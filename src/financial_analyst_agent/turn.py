@@ -35,6 +35,7 @@ from financial_analyst_agent.contracts import (
     NEGATIVE_REVENUE,
     NEWS_SUMMARY_BANNER,
     NO_DIVIDEND_THIS_QUARTER,
+    NOT_IN_SNAPSHOT,
     NOT_MEANINGFUL,
     NOT_OPERATING_COMPANY,
     NOT_REPORTED_FOR_QUARTER,
@@ -831,8 +832,11 @@ def market_formula_rows(
     rows: list[TableRow] = []
     seen_ciks: set[str] = set()
     for issuer in issuers:
+        member, reason = _snapshot_member(ranking, issuer)
+        if member is None:
+            rows.append(_compare_unresolved_row(issuer, metric, reason, report_date=report_date))
+            continue
         try:
-            member = ranking.lookup_member(issuer)
             latest = facts.get_financials(issuer, earnings_metric)
             earnings = (
                 latest
@@ -1022,16 +1026,34 @@ def _snapshot_row(member: Any, metric: str, **kwargs: Any) -> TableRow:
     )
 
 
+def is_cik(issuer: str) -> bool:
+    """Whether a task names a company by CIK: one the spec resolved."""
+    return len(issuer) == 10 and issuer.isdigit()
+
+
+def _snapshot_member(ranking: RankingPort, issuer: str) -> tuple[Any | None, str]:
+    """The snapshot's company for ``issuer``, or none and why the row has none.
+
+    A company the spec resolved by CIK but the snapshot leaves out is not in the
+    snapshot; a name neither knows is not found.
+    """
+    try:
+        return ranking.lookup_member(issuer), ""
+    except CompanyNotFoundError:
+        return None, NOT_IN_SNAPSHOT if is_cik(issuer) else COMPANY_NOT_FOUND
+    except AmbiguousCompanyError as exc:
+        return None, _partial_lookup_reason(exc)
+
+
 def snapshot_compare_rows(
     ranking: RankingPort, issuers: list[str], metric: str
 ) -> list[TableRow]:
     rows: list[TableRow] = []
     seen_ciks: set[str] = set()
     for issuer in issuers:
-        try:
-            member = ranking.lookup_member(issuer)
-        except (CompanyNotFoundError, AmbiguousCompanyError) as exc:
-            rows.append(_compare_unresolved_row(issuer, metric, _partial_lookup_reason(exc)))
+        member, reason = _snapshot_member(ranking, issuer)
+        if member is None:
+            rows.append(_compare_unresolved_row(issuer, metric, reason))
             continue
         if member.cik in seen_ciks:
             continue
@@ -1045,7 +1067,8 @@ def _snapshot_metrics_turn(
 ) -> TurnResult:
     if runtime.ranking is None:
         raise RuntimeError(f"{intent.value} snapshot metric requires a ranking adapter")
-    if intent is Intent.LOOKUP and len(issuers) == 1:
+    if intent is Intent.LOOKUP and len(issuers) == 1 and not is_cik(issuers[0]):
+        # A name SEC does not know either: the lookup says so in words.
         try:
             member = runtime.ranking.lookup_member(issuers[0])
         except (CompanyNotFoundError, AmbiguousCompanyError) as exc:
@@ -1087,7 +1110,7 @@ def compare_task(task: CompiledTask, runtime: Runtime) -> TurnResult:
     """One metric for several companies, at one report date or each one's latest."""
     return _metrics_turn(
         Intent.COMPARE,
-        list(task.company_queries),
+        list(task.issuers),
         _task_metric(task),
         runtime,
         report_date=task.report_date,
@@ -1096,7 +1119,7 @@ def compare_task(task: CompiledTask, runtime: Runtime) -> TurnResult:
 
 def lookup_task(task: CompiledTask, runtime: Runtime) -> TurnResult:
     """One company's metric, at one report date or its latest quarter."""
-    company = task.company_queries[0]
+    company = task.issuers[0]
     metric = _task_metric(task)
     report_date = task.report_date
     if metric in FORMULA_COMPONENTS:

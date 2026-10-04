@@ -138,3 +138,26 @@ def test_a_comparative_still_comes_first_for_a_quarter_s_results(runtime) -> Non
     year = answer.fact_card.changes[0]
     assert year.label == "▲16.4% YoY"
     assert year.title.endswith("as 10-Q 0000320193-26-000020 reports it")
+
+
+def test_a_company_outside_the_snapshot_is_resolved_to_its_cik_before_any_lookup(runtime) -> None:  # type: ignore[no-untyped-def]
+    # CONTEXT.md: resolved means CIKs. Tesla is not in the recorded snapshot, so
+    # SEC's ticker map names it, before any of its facts are read.
+    from financial_analyst_agent.graph.analysis_spec import SpecDraft, resolve_spec
+    from financial_analyst_agent.graph.spec_turn import sec_identity
+
+    draft = SpecDraft(company_queries=("Tesla", "Acme Widgets"), metrics=("revenue",))
+    tesla, acme = resolve_spec(
+        draft, ranking=runtime.ranking, identify=sec_identity(runtime)
+    ).companies
+
+    assert (tesla.cik, tesla.ticker, tesla.query) == ("0001318605", "TSLA", "Tesla")
+    # A name SEC does not know stays a name; its cells say it was not found.
+    assert (acme.cik, acme.handle) == ("", "Acme Widgets")
+
+
+def test_a_market_figure_for_a_company_the_snapshot_lacks_says_so(runtime) -> None:  # type: ignore[no-untyped-def]
+    (answer,) = ask(runtime, "Apple vs Tesla market cap")
+
+    assert answer.table is not None
+    assert answer.table.rows[1][:3] == ("Tesla, Inc.", "TSLA", "Not in the market snapshot")

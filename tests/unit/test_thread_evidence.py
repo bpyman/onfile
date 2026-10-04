@@ -17,6 +17,10 @@ from urllib.parse import quote
 
 from financial_analyst_agent.contracts import WorkflowPlan
 from financial_analyst_agent.runtime import FIXTURE_UNIVERSE_SNAPSHOT_PATH
+from helpers import named_by_cik
+
+# Resolved companies are asked for by CIK; these fakes answer by name.
+_NAMED = named_by_cik('Microsoft', 'Google')
 
 
 class _CountingFacts:
@@ -32,6 +36,7 @@ class _CountingFacts:
         *,
         report_date: date | None = None,
     ) -> SimpleNamespace:
+        company = _NAMED(company)
         self.calls.append((company, metric, report_date))
         values = {
             ("Microsoft", "revenue"): Decimal("400"),
@@ -318,3 +323,32 @@ def test_thread_checkpoint_stays_small_as_turns_accumulate(tmp_path: Path) -> No
     result_refs = [ref for ref in state.evidence_refs if ref.startswith("result-")]
     assert len(result_refs) == 6
     assert any(ref.startswith("fact-") for ref in state.evidence_refs)
+
+
+def test_one_company_by_another_name_reuses_its_evidence(tmp_path: Path) -> None:
+    # "Google" and "GOOGL" resolve to Alphabet's CIK, and evidence is kept by CIK,
+    # so asking again by ticker refetches nothing.
+    from financial_analyst_agent.contracts import Intent
+    from financial_analyst_agent.conversation import run_conversation_turn
+    from financial_analyst_agent.thread_store import LocalThreadStore
+
+    class _Lookup:
+        def __init__(self, company: str) -> None:
+            self.company = company
+
+        def complete(self, query: str, current_spec: object = None) -> WorkflowPlan:
+            return WorkflowPlan(intent=Intent.LOOKUP, company=self.company, metric="revenue")
+
+    facts = _CountingFacts()
+    store = LocalThreadStore(tmp_path)
+    run_conversation_turn(
+        "t1", "Google revenue", _runtime(completer=_Lookup("Google"), facts=facts), store=store
+    )
+    asked = len(facts.calls)
+    assert asked
+
+    run_conversation_turn(
+        "t1", "GOOGL revenue", _runtime(completer=_Lookup("GOOGL"), facts=facts), store=store
+    )
+
+    assert len(facts.calls) == asked

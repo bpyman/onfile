@@ -215,7 +215,7 @@ def test_compile_tasks_lookup_without_executing() -> None:
     assert tasks == (
         CompiledTask(
             kind="lookup",
-            company_queries=("Google",),
+            issuers=("0001652044",),
             metric="net_income",
         ),
     )
@@ -253,7 +253,7 @@ def test_compile_tasks_compare_for_two_companies() -> None:
     assert tasks == (
         CompiledTask(
             kind="compare",
-            company_queries=("Microsoft", "Google"),
+            issuers=("0000789019", "0001652044"),
             metric="operating_margin",
         ),
     )
@@ -291,12 +291,12 @@ def test_compile_tasks_one_independent_task_per_metric() -> None:
     assert tasks == (
         CompiledTask(
             kind="compare",
-            company_queries=("Microsoft", "Google"),
+            issuers=("0000789019", "0001652044"),
             metric="revenue",
         ),
         CompiledTask(
             kind="compare",
-            company_queries=("Microsoft", "Google"),
+            issuers=("0000789019", "0001652044"),
             metric="operating_margin",
         ),
     )
@@ -325,8 +325,8 @@ def test_compile_tasks_multi_metric_lookup_is_one_task_per_metric() -> None:
     )
     tasks = compile_tasks(spec)
     assert tasks == (
-        CompiledTask(kind="lookup", company_queries=("Google",), metric="revenue"),
-        CompiledTask(kind="lookup", company_queries=("Google",), metric="net_income"),
+        CompiledTask(kind="lookup", issuers=("0001652044",), metric="revenue"),
+        CompiledTask(kind="lookup", issuers=("0001652044",), metric="net_income"),
     )
 
 
@@ -417,13 +417,13 @@ def test_compile_tasks_fans_out_last_n_report_dates() -> None:
     assert tasks == (
         CompiledTask(
             kind="lookup",
-            company_queries=("Microsoft",),
+            issuers=("0000789019",),
             metric="revenue",
             report_date=q2,
         ),
         CompiledTask(
             kind="lookup",
-            company_queries=("Microsoft",),
+            issuers=("0000789019",),
             metric="revenue",
             report_date=q1,
         ),

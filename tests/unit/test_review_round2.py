@@ -75,7 +75,7 @@ def test_each_fiscal_calendar_asks_for_its_own_quarters() -> None:
 
     # Apple's quarters sit on Microsoft's calendar grid, so they share its dates;
     # Nvidia's April/July/October quarters are asked for on their own dates.
-    asked = {(task.company_queries, task.report_date) for task in tasks}
+    asked = {(task.issuers, task.report_date) for task in tasks}
     assert asked == {
         *((("Microsoft", "Apple"), day) for day in _MSFT),
         *((("Nvidia",), day) for day in _NVDA),
@@ -93,9 +93,10 @@ def test_adding_a_company_lists_only_that_company() -> None:
     spec = materialize_period_dates(grown, runtime)  # type: ignore[arg-type]
 
     assert runtime.facts.listed == ["Microsoft", "Nvidia", "Missing"]
-    assert dict(spec.periods.company_report_dates)["nvidia"] == _NVDA
+    # Keyed by the company's CIK (here its query stands in for one).
+    assert dict(spec.periods.company_report_dates)["Nvidia"] == _NVDA
     # A company that cannot be listed falls back to the shared window.
-    groups = {task.company_queries for task in compile_tasks(spec)}
+    groups = {task.issuers for task in compile_tasks(spec)}
     assert groups == {("Microsoft", "Missing"), ("Nvidia",)}
 
 

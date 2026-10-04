@@ -62,7 +62,7 @@ def test_a_retailer_ten_days_off_another_calendar_keeps_its_own_quarters() -> No
         _window(_company("Costco"), _company("Walmart")), _runtime()
     )
 
-    asked = {(task.company_queries, task.report_date) for task in compile_tasks(spec)}
+    asked = {(task.issuers, task.report_date) for task in compile_tasks(spec)}
 
     # Costco's May 10 and Walmart's April 30 sit in the same month of the quarter
     # grid; asking Walmart for May 10 found no filing, so every cell was missing.

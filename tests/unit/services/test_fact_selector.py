@@ -12,6 +12,7 @@ from financial_analyst_agent.domain.errors import (
     UnsupportedQuarterlyFactError,
 )
 from financial_analyst_agent.services.fact_selector import (
+    FactOwner,
     select_quarterly_fact,
     select_quarterly_fact_with_filing_fallback,
 )
@@ -24,6 +25,7 @@ COMPANY = {
     "ticker": "AAPL",
     "cik": "0000320193",
 }
+OWNER = FactOwner(**COMPANY)
 REPORT_END = date(2024, 9, 28)
 
 
@@ -32,9 +34,8 @@ def _select(facts: list, filing=FILING) -> object:
         facts,
         filing,
         Metric.NET_INCOME,
-        "USD",
+        OWNER,
         source_url=SOURCE_URL,
-        **COMPANY,
     )
     assert len(selected) == 1
     return selected[0]
@@ -187,9 +188,8 @@ def test_10_q_a_filing_requires_10_q_a_form_on_fact() -> None:
         facts,
         amendment_filing,
         Metric.NET_INCOME,
-        "USD",
+        OWNER,
         source_url=SOURCE_URL,
-        **COMPANY,
     )
     assert len(result) == 1
     assert result[0].value == Decimal("200")
@@ -232,9 +232,8 @@ def test_operating_expenses_rejects_total_costs_concept() -> None:
             facts,
             FILING,
             Metric.OPERATING_EXPENSES,
-            "USD",
+            OWNER,
             source_url=SOURCE_URL,
-            **COMPANY,
         )
 
 
@@ -294,10 +293,9 @@ def test_filing_fallback_named_report_date_returns_that_quarter() -> None:
         facts,
         [older_filing, newer_filing],
         Metric.NET_INCOME,
-        "USD",
+        OWNER,
         source_url_for_filing=_source_url,
         report_date=OLDER_END,
-        **COMPANY,
     )
 
     assert len(selected) == 1
@@ -314,10 +312,9 @@ def test_filing_fallback_named_report_date_missing_does_not_use_latest() -> None
             facts,
             [FILING],
             Metric.NET_INCOME,
-            "USD",
+            OWNER,
             source_url_for_filing=_source_url,
             report_date=OLDER_END,
-            **COMPANY,
         )
 
 
@@ -342,9 +339,8 @@ def test_filing_fallback_latest_unchanged_when_report_date_omitted() -> None:
         facts,
         [older_filing, FILING],
         Metric.NET_INCOME,
-        "USD",
+        OWNER,
         source_url_for_filing=_source_url,
-        **COMPANY,
     )
 
     assert selected[0].value == Decimal("23636000000")
@@ -379,8 +375,7 @@ def test_filing_fallback_named_period_still_raises_ambiguous() -> None:
             facts,
             [older_filing, FILING],
             Metric.NET_INCOME,
-            "USD",
+            OWNER,
             source_url_for_filing=_source_url,
             report_date=OLDER_END,
-            **COMPANY,
         )

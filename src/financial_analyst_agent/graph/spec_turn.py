@@ -10,7 +10,6 @@ notes. The analyst's wording is read by ``request_wording``; the notes' text is
 
 from __future__ import annotations
 
-import re
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from concurrent.futures import TimeoutError as FuturesTimeout
@@ -82,6 +81,7 @@ from financial_analyst_agent.graph.analysis_spec import (
 from financial_analyst_agent.graph.state import CompiledAnalysis, StructuredRequest
 from financial_analyst_agent.guide import short_name
 from financial_analyst_agent.providers.sec.client import sec_turn_seconds_left
+from financial_analyst_agent.providers.sec.company_resolver import resolve_company
 from financial_analyst_agent.request_wording import (
     COMPARISON_CANDIDATES,
     COMPARISON_LABELS,
@@ -177,15 +177,15 @@ def materialize_period_dates(spec: AnalysisSpec, runtime: Runtime) -> AnalysisSp
     listing = getattr(runtime.facts, "list_quarterly_report_dates", None)
     if listing is None:
         return spec
-    queries = [company.query for company in spec.companies]
-    if not queries and spec.constituents is not None and spec.constituents.members:
-        queries = [spec.constituents.members[0].query]
-    if not queries:
+    first = spec.companies[0] if spec.companies else None
+    if first is None and spec.constituents is not None and spec.constituents.members:
+        first = spec.constituents.members[0]
+    if first is None:
         return spec
     periods = spec.periods
     listed_first = False
     if not periods.report_dates:
-        dates = _listed_dates(listing, queries[0], periods.count or 1)
+        dates = _listed_dates(listing, first.handle, periods.count or 1)
         if not dates:
             return spec
         asked = periods.count if periods.count and len(dates) < periods.count else None
@@ -195,13 +195,13 @@ def materialize_period_dates(spec: AnalysisSpec, runtime: Runtime) -> AnalysisSp
         listed_first = True
     known = dict(periods.company_report_dates)
     if listed_first and spec.companies:
-        known[queries[0].casefold()] = periods.report_dates
+        known[first.key] = periods.report_dates
     for company in spec.companies:
-        key = company.query.casefold()
+        key = company.key
         if key in known:
             continue
         try:
-            dates = _listed_dates(listing, company.query, periods.count or 1)
+            dates = _listed_dates(listing, company.handle, periods.count or 1)
         except SessionQuotaError:
             raise
         except Exception:
@@ -238,11 +238,11 @@ def _materialize_named_periods(spec: AnalysisSpec, runtime: Runtime) -> Analysis
     periods = spec.periods
     known = dict(periods.company_report_dates)
     for company in spec.companies:
-        key = company.query.casefold()
+        key = company.key
         if key in known:
             continue
         try:
-            listed = lister(company.query)
+            listed = lister(company.handle)
         except SessionQuotaError:
             raise
         except Exception:
@@ -250,8 +250,7 @@ def _materialize_named_periods(spec: AnalysisSpec, runtime: Runtime) -> Analysis
             continue
         known[key] = _named_dates(listed, periods.named)
     first = next(
-        (known[company.query.casefold()] for company in spec.companies
-         if known.get(company.query.casefold())),
+        (known[company.key] for company in spec.companies if known.get(company.key)),
         (),
     )
     longest = max((len(dates) for dates in known.values()), default=0)
@@ -280,7 +279,7 @@ def drop_annual_filers(spec: AnalysisSpec, runtime: Runtime) -> tuple[AnalysisSp
     dropped: list[str] = []
     for company in spec.companies:
         try:
-            quarterly, name = checker(company.ticker or company.query)
+            quarterly, name = checker(company.handle)
         except SessionQuotaError:
             raise
         except Exception:
@@ -294,6 +293,28 @@ def drop_annual_filers(spec: AnalysisSpec, runtime: Runtime) -> tuple[AnalysisSp
     if not dropped:
         return spec, []
     return spec.model_copy(update={"companies": tuple(kept)}), dropped
+
+
+def sec_identity(runtime: Runtime) -> Callable[[str], ResolvedCompany | None] | None:
+    """Pin a name the snapshot leaves out to its SEC company, from SEC's ticker map.
+
+    The facts lookup resolves names the same way, so a cell finds the company the
+    spec names. A name SEC does not know, or knows as several companies, stays a
+    name: its cells say so. Without a filings port (a test runtime), nothing.
+    """
+    filings = runtime.filings
+    if filings is None:
+        return None
+
+    def identify(query: str) -> ResolvedCompany | None:
+        try:
+            company = resolve_company(query, filings.get_company_tickers())
+        except (CompanyNotFoundError, AmbiguousCompanyError, *SOURCE_FAILURES):
+            return None
+        ticker = company.tickers[0] if company.tickers else ""
+        return ResolvedCompany(cik=company.cik, name=company.name, ticker=ticker, query=query)
+
+    return identify
 
 
 def is_filing_change_proposal(proposal: WorkflowPlan | SpecPatch) -> bool:
@@ -368,8 +389,8 @@ def _task_failure_result(task: CompiledTask, exc: BaseException) -> TurnResult:
     gets its own reason. The raw exception text never reaches the visitor.
     """
     reason = SOURCE_UNAVAILABLE if isinstance(exc, SOURCE_FAILURES) else LOOKUP_FAILED
-    if task.kind in ("lookup", "compare") and task.company_queries and task.metric:
-        companies = task.company_queries[:1] if task.kind == "lookup" else task.company_queries
+    if task.kind in ("lookup", "compare") and task.issuers and task.metric:
+        companies = task.issuers[:1] if task.kind == "lookup" else task.issuers
         return TurnResult(
             intent=Intent(task.kind),
             tool_traces=[],
@@ -463,7 +484,7 @@ def _lookup_refuse_as_partial(task: CompiledTask, result: TurnResult) -> list[Ta
     """Convert a whole-lookup refuse into a cell so multi-metric tables stay partial."""
     if result.renderer is not RendererKind.REFUSE:
         return list(result.table_rows)
-    if task.kind != "lookup" or not task.company_queries or not task.metric:
+    if task.kind != "lookup" or not task.issuers or not task.metric:
         return list(result.table_rows)
     # A fund in a window of quarters says so, as it does in a comparison (ADR 0002).
     codes = {
@@ -478,7 +499,7 @@ def _lookup_refuse_as_partial(task: CompiledTask, result: TurnResult) -> list[Ta
         reason = COMPANY_NOT_FOUND
     else:
         reason = MISSING_FACT
-    return [_missing_cell(task.company_queries[0], task.metric, task.report_date, reason)]
+    return [_missing_cell(task.issuers[0], task.metric, task.report_date, reason)]
 
 
 def _subtracted_level_provenance(row: TableRow) -> ComponentProvenance:
@@ -715,13 +736,13 @@ def _order_companies_by_metric(result: TurnResult, metric: str) -> TurnResult:
 
 
 def _fill_identity(result: TurnResult, spec: AnalysisSpec) -> TurnResult:
-    """Give a failed cell the company's name and ticker, not the typed query.
+    """Give a failed cell the company's name and ticker, not the handle it was asked by.
 
-    A cell that never reached a filing carries only the query ("walmart");
-    the spec resolved that query to a snapshot company, so show that one.
+    A cell that never reached a filing carries only what the providers were asked
+    for (a CIK); the spec says which company that is, so show that one.
     """
     known = {
-        company.query.casefold(): company
+        company.handle.casefold(): company
         for company in spec.companies
         if company.cik and company.name
     }
@@ -872,7 +893,7 @@ def resolve_request(
         )
 
     try:
-        spec = resolve_spec(draft, ranking=runtime.ranking)
+        spec = resolve_spec(draft, ranking=runtime.ranking, identify=sec_identity(runtime))
     except UnknownIndustryError as exc:
         return answered(_refusal(asked, str(exc)), None)
     except AmbiguousCompanyError as exc:
@@ -1043,8 +1064,7 @@ def annotate_analysis(
     banners = list(dict.fromkeys([*compiled.notes, *merged.banners, *notes]))
     if banners != merged.banners:
         merged = merged.model_copy(update={"banners": banners})
-    resolved = _identity_from_rows(spec, merged)
-    return merged, _with_market_date(resolved, runtime)
+    return merged, _with_market_date(spec, runtime)
 
 
 EMPTIED_MESSAGES = {
@@ -1151,7 +1171,7 @@ def _after_latest_filing(spec: AnalysisSpec, runtime: Runtime) -> bool:
     if lister is None or not spec.companies:
         return False
     try:
-        listed = tuple(lister(spec.companies[0].query))
+        listed = tuple(lister(spec.companies[0].handle))
     except SessionQuotaError:
         raise
     except Exception:
@@ -1274,7 +1294,7 @@ def earlier_quarters(
         wanted += [day for day in dates if a_year_before(day)][:1]
         if not wanted:
             return None
-        key = spec.companies[0].query.casefold()
+        key = spec.companies[0].key
         window = window.model_copy(
             update={
                 "periods": window.periods.model_copy(
@@ -1310,38 +1330,4 @@ def earlier_quarters(
         year_earlier=year if len(year) == 1 else [],
         tool_traces=merged.tool_traces,
     )
-
-
-def _identity_from_rows(spec: AnalysisSpec, result: TurnResult) -> AnalysisSpec:
-    """Name a company the snapshot lacks as its filings do (Tesla → TSLA).
-
-    The recorded demo holds filings for companies outside its ranking snapshot;
-    the spec keeps only the typed query for those until a filing names them.
-    """
-    if all(company.ticker for company in spec.companies):
-        return spec
-    filed = [row for row in result.table_rows if row.ticker and row.cik]
-    companies = []
-    for company in spec.companies:
-        match = None
-        if not company.ticker:
-            query = company.query.casefold()
-            match = next(
-                (
-                    row
-                    for row in filed
-                    if row.ticker.casefold() == query
-                    or re.match(rf"{re.escape(query)}\b", row.company_name.casefold())
-                ),
-                None,
-            )
-        companies.append(
-            company
-            if match is None
-            else company.model_copy(
-                update={"cik": match.cik, "ticker": match.ticker, "name": match.company_name}
-            )
-        )
-    return spec.model_copy(update={"companies": tuple(companies)})
-
 

@@ -467,7 +467,7 @@ def test_run_turn_lookup_google_market_cap_from_snapshot() -> None:
     assert row.start_date is None
     assert row.form is None
     assert result.tool_traces[0].tool == "compare_metrics"
-    assert result.tool_traces[0].args == {"issuers": ["Google"], "metric": "market_cap"}
+    assert result.tool_traces[0].args == {"issuers": [ALPHABET_CIK], "metric": "market_cap"}
     assert result.tool_traces[0].provenance["snapshot_as_of"] == SNAPSHOT_AS_OF
 
 

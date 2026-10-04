@@ -36,6 +36,7 @@ from financial_analyst_agent.providers.sec.submissions import (
 from financial_analyst_agent.providers.sec.tickers import parse_cik
 from financial_analyst_agent.providers.sec.urls import build_filing_source_url
 from financial_analyst_agent.services.fact_selector import (
+    FactOwner,
     derive_quarter,
     derive_trailing_year,
     select_instant_fact,
@@ -126,10 +127,7 @@ def _select_or_derive(
     records: list[FactRecord],
     filings: list[Filing],
     metric: Metric,
-    unit: str,
-    company_name: str,
-    ticker: str,
-    cik: str,
+    owner: FactOwner,
     *,
     report_date: date | None,
     filer_ciks: Mapping[str, str] | None = None,
@@ -138,10 +136,7 @@ def _select_or_derive(
         records,
         filings,
         metric,
-        unit,
-        company_name,
-        ticker,
-        cik,
+        owner,
         report_date=report_date,
         filer_ciks=filer_ciks,
     )
@@ -153,10 +148,7 @@ def _select_or_derive_in_unit(
     records: list[FactRecord],
     filings: list[Filing],
     metric: Metric,
-    unit: str,
-    company_name: str,
-    ticker: str,
-    cik: str,
+    owner: FactOwner,
     *,
     report_date: date | None,
     filer_ciks: Mapping[str, str] | None = None,
@@ -170,14 +162,14 @@ def _select_or_derive_in_unit(
     folders = filer_ciks or {}
 
     def source_url_for_filing(filing: Filing) -> str:
-        return build_filing_source_url(folders.get(filing.accession_number, cik), filing)
+        return build_filing_source_url(folders.get(filing.accession_number, owner.cik), filing)
 
     def source_url_for_accession(accession: str) -> str:
         filing = by_accession.get(accession)
         if filing is not None:
             return source_url_for_filing(filing)
         return build_filing_source_url(
-            folders.get(accession, cik),
+            folders.get(accession, owner.cik),
             Filing(
                 form="",
                 accession_number=accession,
@@ -207,20 +199,14 @@ def _select_or_derive_in_unit(
                         records,
                         filing,
                         metric,
-                        unit,
-                        company_name,
-                        ticker,
-                        cik,
+                        owner,
                         source_url_for_filing(filing),
                     )
                 return derive_trailing_year(
                     records,
                     filing,
                     metric,
-                    unit,
-                    company_name,
-                    ticker,
-                    cik,
+                    owner,
                     source_url_for_filing(filing),
                     source_url_for_accession,
                 )
@@ -234,10 +220,7 @@ def _select_or_derive_in_unit(
                 records,
                 filings,
                 metric,
-                unit,
-                company_name,
-                ticker,
-                cik,
+                owner,
                 source_url_for_filing,
                 report_date=report_date,
             )[0]
@@ -249,10 +232,7 @@ def _select_or_derive_in_unit(
                 records,
                 filing,
                 metric,
-                unit,
-                company_name,
-                ticker,
-                cik,
+                owner,
                 source_url_for_filing(filing),
                 source_url_for_accession,
             )
@@ -541,10 +521,7 @@ class SecFactLookup:
                         records,
                         filings,
                         parsed_metric,
-                        unit,
-                        name,
-                        ticker,
-                        cik,
+                        FactOwner(company_name=name, ticker=ticker, cik=cik, currency=unit),
                         report_date=period,
                         filer_ciks=filer_ciks,
                     )
@@ -600,10 +577,7 @@ class SecFactLookup:
         records: list[FactRecord],
         filings: list[Filing],
         metric: Metric,
-        unit: str,
-        company_name: str,
-        ticker: str,
-        cik: str,
+        owner: FactOwner,
         *,
         report_date: date | None,
         filer_ciks: Mapping[str, str] | None = None,
@@ -614,20 +588,15 @@ class SecFactLookup:
                 kept,
                 filings,
                 chosen,
-                unit,
-                company_name,
-                ticker,
-                cik,
+                owner,
                 report_date=report_date,
                 filer_ciks=filer_ciks,
             )
 
         if metric is Metric.REVENUE:
-            fact = _total_revenue(records, payload, unit, select)
-            fact = _bank_revenue(fact, payload, unit, select)
-            return self._plausible_revenue(
-                fact, payload, filings, unit, company_name, ticker, cik, filer_ciks=filer_ciks
-            )
+            fact = _total_revenue(records, payload, owner.currency, select)
+            fact = _bank_revenue(fact, payload, owner.currency, select)
+            return self._plausible_revenue(fact, payload, filings, owner, filer_ciks=filer_ciks)
         try:
             fact = select(records, metric)
             if metric is Metric.DIVIDENDS_PER_SHARE:
@@ -638,10 +607,7 @@ class SecFactLookup:
                 return self._depreciation_plus_amortization(
                     payload,
                     filings,
-                    unit,
-                    company_name,
-                    ticker,
-                    cik,
+                    owner,
                     report_date=report_date,
                     filer_ciks=filer_ciks,
                 )
@@ -649,11 +615,13 @@ class SecFactLookup:
                 raise
             # Retailers (Costco, Walmart) tag no gross profit line; revenue
             # minus cost of revenue is the same amount (ADR 0007).
-            revenue_records, _ = parse_company_facts(payload, Metric.REVENUE, unit)
+            revenue_records, _ = parse_company_facts(payload, Metric.REVENUE, owner.currency)
             revenue = _sales_revenue(
-                _total_revenue(revenue_records, payload, unit, select), revenue_records, select
+                _total_revenue(revenue_records, payload, owner.currency, select),
+                revenue_records,
+                select,
             )
-            cost_records, _ = parse_company_facts(payload, Metric.COST_OF_REVENUE, unit)
+            cost_records, _ = parse_company_facts(payload, Metric.COST_OF_REVENUE, owner.currency)
             cost = select(cost_records, Metric.COST_OF_REVENUE)
             if (revenue.start_date, revenue.end_date) != (cost.start_date, cost.end_date):
                 raise
@@ -666,10 +634,7 @@ class SecFactLookup:
         revenue: FinancialFact,
         payload: dict[str, Any],
         filings: list[Filing],
-        unit: str,
-        company_name: str,
-        ticker: str,
-        cik: str,
+        owner: FactOwner,
         *,
         filer_ciks: Mapping[str, str] | None,
     ) -> FinancialFact:
@@ -682,17 +647,14 @@ class SecFactLookup:
         """
         parts: list[FinancialFact] = []
         for component in (Metric.GROSS_PROFIT, Metric.COST_OF_REVENUE):
-            component_records, _ = parse_company_facts(payload, component, unit)
+            component_records, _ = parse_company_facts(payload, component, owner.currency)
             try:
                 parts.append(
                     _select_or_derive(
                         component_records,
                         filings,
                         component,
-                        unit,
-                        company_name,
-                        ticker,
-                        cik,
+                        owner,
                         report_date=revenue.end_date,
                         filer_ciks=filer_ciks,
                     )
@@ -722,10 +684,7 @@ class SecFactLookup:
         self,
         payload: dict[str, Any],
         filings: list[Filing],
-        unit: str,
-        company_name: str,
-        ticker: str,
-        cik: str,
+        owner: FactOwner,
         *,
         report_date: date | None,
         filer_ciks: Mapping[str, str] | None,
@@ -736,16 +695,13 @@ class SecFactLookup:
         """
         parts = []
         for component in (Metric.DEPRECIATION, Metric.AMORTIZATION_OF_INTANGIBLES):
-            component_records, _ = parse_company_facts(payload, component, unit)
+            component_records, _ = parse_company_facts(payload, component, owner.currency)
             parts.append(
                 _select_or_derive(
                     component_records,
                     filings,
                     component,
-                    unit,
-                    company_name,
-                    ticker,
-                    cik,
+                    owner,
                     report_date=report_date,
                     filer_ciks=filer_ciks,
                 )

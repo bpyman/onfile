@@ -83,6 +83,7 @@ _REASON_LABELS = {
     "source_unavailable": "Source unavailable",
     "lookup_failed": "Lookup failed",
     "company_not_found": "Company not found",
+    "not_in_snapshot": "Not in the market snapshot",
     "not_reported_for_quarter": "Reported for the year only",
     "no_dividend_this_quarter": "No dividend declared this quarter",
     "not_meaningful": "Not meaningful (loss)",
@@ -2536,14 +2537,19 @@ def _trace_fields(payload: dict[str, Any]) -> tuple[tuple[str, str], ...]:
 
 
 def _names_by_cik(rows: list[TableRow]) -> dict[str, str]:
-    return {row.cik: row.company_name for row in rows if row.cik and row.company_name}
+    """Each CIK the turn asked for, by the short name the answer's notes use ("Microsoft")."""
+    return {
+        row.cik: short_name(row.company_name) or row.company_name
+        for row in rows
+        if row.cik and row.company_name
+    }
 
 
 def _display_trace(trace: Any, *, names: dict[str, str] | None = None) -> DisplayTrace:
     args = dict(trace.args)
     company = args.get("company")
     if names and isinstance(company, str) and company in names:
-        # Ranked lookups run by CIK; the header reads better with the name.
+        # Lookups run by CIK; the header reads better with the name.
         args["company"] = names[company]
     issuers = args.get("issuers")
     if names and isinstance(issuers, list):

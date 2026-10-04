@@ -158,6 +158,8 @@ SOURCE_UNAVAILABLE = "source_unavailable"
 LOOKUP_FAILED = "lookup_failed"
 # A named company that neither the snapshot nor SEC's ticker list knows.
 COMPANY_NOT_FOUND = "company_not_found"
+# A company SEC knows that the market snapshot does not hold: no market cap or price.
+NOT_IN_SNAPSHOT = "not_in_snapshot"
 AMBIGUOUS_CONCEPT = "ambiguous_concept"
 ZERO_DENOMINATOR = "zero_denominator"
 # A per-share figure for a quarter the filings do not report on its own
