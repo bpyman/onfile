@@ -16,6 +16,7 @@ from financial_analyst_agent.ranking import SnapshotRanking
 from financial_analyst_agent.rules_planner import DemoCompleter, issuer_index
 from financial_analyst_agent.runtime import recorded_runtime
 from financial_analyst_agent.thread_store import EphemeralThreadStore
+from helpers import FakeFacts
 
 
 def _conversation(runtime: Runtime, *messages: str) -> list[TurnResult]:
@@ -91,7 +92,7 @@ def test_a_shared_first_name_always_asks(name: str, first: tuple[str, str]) -> N
 def test_an_everyday_word_name_is_added_in_lower_case(edit: str) -> None:
     from financial_analyst_agent.contracts import Intent
 
-    class _Facts:
+    class _Facts(FakeFacts):
         def list_quarterly_report_dates(self, company: str, *, limit: int) -> tuple[()]:
             return ()
 

@@ -46,16 +46,20 @@ from typing import Any
 
 from financial_analyst_agent.filing_change import (
     REVIEWED_SECTIONS,
+    _read_filings,
     _year_apart_quarterlies,
     extract_section,
 )
+from financial_analyst_agent.providers.sec.submissions import KEPT_COLUMNS
 from financial_analyst_agent.providers.sec.urls import build_filing_document_url
+from financial_analyst_agent.rules_planner import FIXTURE_UNIVERSE_SNAPSHOT_PATH
 from financial_analyst_agent.services.metric_catalog import READ_CONCEPTS
+from financial_analyst_agent.universe import DEFAULT_SNAPSHOT_PATH
 
 DATA = Path(__file__).resolve().parents[1] / "src" / "financial_analyst_agent" / "data"
 CASSETTE = DATA / "sec_fixture_recordings.json"
-LIVE_SNAPSHOT = DATA / "universe_snapshot.json"
-FIXTURE_SNAPSHOT = DATA / "fixture_universe_snapshot.json"
+LIVE_SNAPSHOT = DEFAULT_SNAPSHOT_PATH
+FIXTURE_SNAPSHOT = FIXTURE_UNIVERSE_SNAPSHOT_PATH
 # Issuers the guided stories and the scorecard name outside the ranking snapshot.
 EXTRA_CIKS = ("0001318605", "0001467858")  # Tesla, General Motors
 MICROSOFT = "0000789019"
@@ -131,15 +135,14 @@ def _recorded_ciks() -> list[str]:
 
 def _quarterly_filings(submissions: dict[str, Any], quarters: int) -> dict[str, list[Any]]:
     recent = submissions["filings"]["recent"]
-    keys = ("form", "accessionNumber", "filingDate", "reportDate", "primaryDocument")
     rows = [
-        dict(zip(keys, values, strict=True))
-        for values in zip(*(recent[key] for key in keys), strict=True)
-        if values[0] in PERIODIC_FORMS
+        row
+        for values in zip(*(recent[key] for key in KEPT_COLUMNS), strict=True)
+        if (row := dict(zip(KEPT_COLUMNS, values, strict=True)))["form"] in PERIODIC_FORMS
     ]
     report_dates = sorted({row["reportDate"] for row in rows}, reverse=True)[:quarters]
     kept = [row for row in rows if row["reportDate"] in report_dates]
-    return {key: [row[key] for row in kept] for key in keys}
+    return {key: [row[key] for row in kept] for key in KEPT_COLUMNS}
 
 
 def _trim_submissions(payload: dict[str, Any], quarters: int) -> dict[str, Any]:
@@ -197,13 +200,13 @@ def _year_apart_documents(
     cik: str, recent: dict[str, list[Any]], user_agent: str
 ) -> tuple[dict[str, str], tuple[str, str]] | None:
     """The newest 10-Q and the one a year before it, as ``filing_change`` pairs them."""
-    pair = _year_apart_quarterlies(recent)
+    filings = _read_filings(recent)
+    pair = _year_apart_quarterlies(filings)
     if pair is None:
         return None
     documents: dict[str, str] = {}
     for accession in pair:
-        index = recent["accessionNumber"].index(accession)
-        document = recent["primaryDocument"][index]
+        document = filings[accession].primary_document
         url = build_filing_document_url(cik, accession, document)
         raw = _get(url, user_agent).decode("utf-8", errors="replace")
         documents[f"{cik}:{accession}:{document}"] = _section_excerpt(raw)

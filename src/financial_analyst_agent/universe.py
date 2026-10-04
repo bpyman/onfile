@@ -3,13 +3,14 @@
 import json
 import re
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Container, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
 from pydantic import BaseModel, Field
 
+from financial_analyst_agent.domain.errors import IneligibleIssuerError
 from financial_analyst_agent.domain.serialization import DecimalStr
 
 DEFAULT_SNAPSHOT_PATH = Path(__file__).parent / "data" / "universe_snapshot.json"
@@ -146,6 +147,25 @@ def sec_identity_is_operating(cik: str, title: str) -> bool:
     California Edison) still files 10-Qs as an operating company.
     """
     return cik not in INELIGIBLE_ISSUER_CIKS and _INSTRUMENT_TITLE.search(title) is None
+
+
+def require_operating(cik: str, title: str, listed_ciks: Container[str]) -> None:
+    """Refuse a company that is not an operating company (ADR 0001, 0002).
+
+    A CIK on the ineligible list is never operating, even a snapshot member's
+    listed there since the snapshot was built. A snapshot member is otherwise
+    operating: the snapshot already applied the membership rule. Any other
+    company is judged by its SEC title.
+    """
+    if cik in INELIGIBLE_ISSUER_CIKS or (
+        cik not in listed_ciks and not sec_identity_is_operating(cik, title)
+    ):
+        raise IneligibleIssuerError(
+            f"{title} is not an operating company (it is a fund, business "
+            "development company or similar listing), so its 10-Q figures are "
+            "outside what this analyst covers.",
+            details={"cik": cik},
+        )
 
 
 def _is_common_share(company: UniverseCompany) -> bool:
@@ -348,12 +368,28 @@ def _normalize_group(text: str) -> str:
     return " ".join(_singular(word) for word in text.split())
 
 
-def resolve_industry(industry: str, snapshot: UniverseSnapshot) -> str | None:
+@dataclass(frozen=True)
+class SnapshotGroups:
+    """The sectors and industries a snapshot's members fall in, scanned once."""
+
+    sectors: frozenset[str]
+    industries: frozenset[str]
+
+    @classmethod
+    def of(cls, snapshot: UniverseSnapshot) -> "SnapshotGroups":
+        return cls(
+            sectors=frozenset(company.sector for company in snapshot.companies),
+            industries=frozenset(
+                company.industry for company in snapshot.companies if company.industry
+            ),
+        )
+
+
+def resolve_industry(industry: str, groups: SnapshotGroups) -> str | None:
     normalized = " ".join(industry.strip().casefold().split())
     if normalized in INDUSTRY_ALIASES:
         return INDUSTRY_ALIASES[normalized]
-    sectors = {company.sector for company in snapshot.companies}
-    for sector in sectors:
+    for sector in groups.sectors:
         if sector.casefold() == normalized:
             return sector
     return None
@@ -368,7 +404,7 @@ _WHOLE_SNAPSHOT = frozenset(
 )
 
 
-def resolve_industry_group(industry: str, snapshot: UniverseSnapshot) -> IndustryGroup | None:
+def resolve_industry_group(industry: str, groups: SnapshotGroups) -> IndustryGroup | None:
     """A sector by name or alias, else the industries an everyday word names.
 
     "technology" is a sector; "semiconductors", "banks", or "software companies"
@@ -376,15 +412,15 @@ def resolve_industry_group(industry: str, snapshot: UniverseSnapshot) -> Industr
     """
     if industry.strip() and _normalize_group(industry) in _WHOLE_SNAPSHOT:
         return IndustryGroup(label="All companies", everything=True)
-    sector = resolve_industry(industry, snapshot) or resolve_industry(
-        _normalize_group(industry), snapshot
+    sector = resolve_industry(industry, groups) or resolve_industry(
+        _normalize_group(industry), groups
     )
     if sector is not None:
         return IndustryGroup(label=sector, sector=sector)
     wanted = _normalize_group(industry)
     if not wanted:
         return None
-    present = {company.industry for company in snapshot.companies if company.industry}
+    present = groups.industries
     patterns = INDUSTRY_GROUP_ALIASES.get(wanted, ())
     matched = {
         name
@@ -411,9 +447,9 @@ def resolve_industry_group(industry: str, snapshot: UniverseSnapshot) -> Industr
     return IndustryGroup(label=label, industries=frozenset(matched))
 
 
-def allowed_industry_names(snapshot: UniverseSnapshot) -> tuple[str, ...]:
+def allowed_industry_names(groups: SnapshotGroups) -> tuple[str, ...]:
     aliases = ("finance", "healthcare", "technology")
-    sectors = tuple(sorted({company.sector for company in snapshot.companies}))
+    sectors = tuple(sorted(groups.sectors))
     seen: list[str] = []
     folded: set[str] = set()
     for name in (*sectors, *aliases):

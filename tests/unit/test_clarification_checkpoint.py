@@ -19,7 +19,7 @@ import pytest
 
 from financial_analyst_agent.contracts import WorkflowPlan
 from financial_analyst_agent.runtime import FIXTURE_EXPLAIN_ESSAY, FIXTURE_UNIVERSE_SNAPSHOT_PATH
-from helpers import named_by_cik
+from helpers import FakeFacts, named_by_cik
 
 # Resolved companies are asked for by CIK; these fakes answer by name.
 _NAMED = named_by_cik('Google')
@@ -27,7 +27,7 @@ _NAMED = named_by_cik('Google')
 PROFIT = ("gross_profit", "operating_income", "net_income")
 
 
-class _Facts:
+class _Facts(FakeFacts):
     def __init__(self) -> None:
         self.calls: list[tuple[str, str]] = []
 

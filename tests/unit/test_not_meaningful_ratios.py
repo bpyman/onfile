@@ -13,13 +13,14 @@ from financial_analyst_agent.domain.models import FinancialFact
 from financial_analyst_agent.graph.spec_turn import _order_by_metric
 from financial_analyst_agent.presentation import format_reason, present_turn
 from financial_analyst_agent.turn import compare_metrics
+from helpers import FakeFacts
 
 _QUARTER = (date(2026, 4, 1), date(2026, 6, 30))
 _YEAR = (date(2025, 7, 1), date(2026, 6, 30))
 _AT_END = (date(2026, 6, 30), date(2026, 6, 30))
 
 
-class _Facts:
+class _Facts(FakeFacts):
     def __init__(self, facts: dict[str, FinancialFact]) -> None:
         self.facts = facts
 

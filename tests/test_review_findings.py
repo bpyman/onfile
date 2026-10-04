@@ -7,6 +7,7 @@ import pytest
 from financial_analyst_agent.contracts import Intent, RendererKind, Runtime
 from financial_analyst_agent.runtime import recorded_runtime
 from financial_analyst_agent.turn import run_turn
+from helpers import FakeFacts
 
 
 @pytest.fixture(scope="module")
@@ -48,7 +49,7 @@ def test_a_cached_fact_reads_back_as_the_same_financial_fact() -> None:
         source_url="https://www.sec.gov/example.htm",
     )
 
-    class _Facts:
+    class _Facts(FakeFacts):
         def get_financials(
             self, company: str, metric: str, *, report_date: date | None = None
         ) -> FinancialFact:
@@ -82,13 +83,39 @@ def test_a_name_outside_the_freeze_is_judged_by_its_sec_identity(
     assert sec_identity_is_operating(cik, title) is operating
 
 
+@pytest.mark.parametrize(
+    ("cik", "title", "listed", "operating"),
+    [
+        # A member: the snapshot judged it, whatever SEC's title says.
+        ("0009999999", "ACME CAPITAL TRUST II 7.875% NOTES", {"0009999999"}, True),
+        # A non-member is judged by its SEC title.
+        ("0009999999", "ACME CAPITAL TRUST II 7.875% NOTES", set(), False),
+        ("0009999999", "MICROSOFT CORP", set(), True),
+        # The ineligible list wins over membership (AGENTS.md).
+        ("0001287750", "ARES CAPITAL CORP", {"0001287750"}, False),
+    ],
+)
+def test_one_operating_company_rule(
+    cik: str, title: str, listed: set[str], operating: bool
+) -> None:
+    from financial_analyst_agent.domain.errors import IneligibleIssuerError
+    from financial_analyst_agent.universe import require_operating
+
+    if operating:
+        require_operating(cik, title, listed)
+        return
+    with pytest.raises(IneligibleIssuerError, match="is not an operating company") as raised:
+        require_operating(cik, title, listed)
+    assert raised.value.details == {"cik": cik}
+
+
 def test_an_ineligible_issuer_is_a_typed_miss_in_a_comparison() -> None:
     # ADR 0002: the row that failed the rule says so; the other row stays.
     from financial_analyst_agent.contracts import NOT_OPERATING_COMPANY
     from financial_analyst_agent.domain.errors import IneligibleIssuerError
     from financial_analyst_agent.turn import compare_metrics
 
-    class _Facts:
+    class _Facts(FakeFacts):
         def get_financials(self, company: str, metric: str, **_: object) -> object:
             raise IneligibleIssuerError("ARES CAPITAL CORP is not an operating company")
 
@@ -162,11 +189,11 @@ def test_a_snapshot_member_listed_ineligible_later_is_refused(
 ) -> None:
     # AGENTS.md: a fund's CIK goes on the list; lookup refuses it before the
     # snapshot is rebuilt, as ranking does.
-    from financial_analyst_agent import sec_facts
+    from financial_analyst_agent import universe
     from financial_analyst_agent.domain.errors import IneligibleIssuerError
     from financial_analyst_agent.runtime import recorded_runtime
 
-    monkeypatch.setattr(sec_facts, "INELIGIBLE_ISSUER_CIKS", frozenset({"0000320193"}))
+    monkeypatch.setattr(universe, "INELIGIBLE_ISSUER_CIKS", frozenset({"0000320193"}))
 
     with pytest.raises(IneligibleIssuerError):
         recorded_runtime().facts.get_financials("AAPL", "revenue")
@@ -233,7 +260,7 @@ def test_a_refused_cell_in_a_window_keeps_its_reason(code: str, reason: str) -> 
         ),
     }
 
-    class _Facts:
+    class _Facts(FakeFacts):
         def get_financials(self, *_: object, **__: object) -> object:
             raise errors[code]
 

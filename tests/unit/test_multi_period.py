@@ -14,7 +14,7 @@ from types import SimpleNamespace
 from financial_analyst_agent.domain.errors import UnsupportedQuarterlyFactError
 from financial_analyst_agent.runtime import FIXTURE_UNIVERSE_SNAPSHOT_PATH
 from financial_analyst_agent.services.fiscal_periods import FiscalPeriod
-from helpers import named_by_cik
+from helpers import FakeFacts, named_by_cik
 
 # Resolved companies are asked for by CIK; these fakes answer by name.
 _NAMED = named_by_cik('Microsoft', 'Google')
@@ -29,7 +29,7 @@ FOUR_QUARTERS = (Q4, Q3, Q2, Q1)  # newest first
 FIVE_QUARTERS = (Q4, Q3, Q2, Q1, Q1_PRIOR)
 
 
-class _PeriodFacts:
+class _PeriodFacts(FakeFacts):
     """Per-(company, metric, report_date) facts; one cell can be missing."""
 
     def __init__(
@@ -365,7 +365,7 @@ def test_mismatched_periods_and_zero_denominator_do_not_compute(tmp_path: Path) 
         ("Google", "revenue", Q1): Decimal("200"),  # different period → mismatch path
     }
 
-    class _Facts:
+    class _Facts(FakeFacts):
         def list_quarterly_report_dates(self, company: str, *, limit: int) -> tuple[date, ...]:
             company = _NAMED(company)
             return (Q2,)[:limit]

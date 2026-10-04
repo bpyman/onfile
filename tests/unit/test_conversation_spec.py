@@ -13,13 +13,13 @@ from types import SimpleNamespace
 
 from financial_analyst_agent.contracts import WorkflowPlan
 from financial_analyst_agent.runtime import FIXTURE_UNIVERSE_SNAPSHOT_PATH
-from helpers import named_by_cik
+from helpers import FakeFacts, named_by_cik
 
 # Resolved companies are asked for by CIK; these fakes answer by name.
 _NAMED = named_by_cik('Apple', 'Nvidia', 'Google', 'Microsoft')
 
 
-class _LookupFacts:
+class _LookupFacts(FakeFacts):
     def __init__(self) -> None:
         self.calls: list[tuple[str, str]] = []
 
@@ -61,7 +61,7 @@ class _LookupFacts:
         )
 
 
-class _SilentFacts:
+class _SilentFacts(FakeFacts):
     def get_financials(
         self, company: str, metric: str, *, report_date: date | None = None
     ) -> SimpleNamespace:
