@@ -759,3 +759,75 @@ Blockers / next:
 - Verification: 1,674 tests passed (deploy wizard deselected on this branch);
   ruff and mypy passed.
 - Recorded answers: 0 of 244 differ.
+
+## 2026-10-04 — simplify-followups 07 Merge and annotate read the spec
+
+Task completed: `docs/process/tickets/simplify-followups/issues/07-merge-reads-the-spec.md`
+
+Key decisions:
+- Request wording creates one typed window reading and carries it through the
+  structured request and compiled analysis; answer notes no longer parse those
+  window phrases again.
+- Follow-up ordering edits set the spec's `order_by`; merge reads that field,
+  with the first metric retained as the unchanged fallback.
+- Replace-mode one-metric rankings do not persist a redundant `order_by`, so
+  recorded analysis specs and answers remain byte-for-byte unchanged.
+
+Files changed:
+- `src/financial_analyst_agent/request_wording.py`
+- `src/financial_analyst_agent/answer_notes.py`
+- `src/financial_analyst_agent/graph/{state,turn_graph,spec_turn}.py`
+- `tests/unit/test_{planner_wording,window_copy,review_round2,showcase_fixes}.py`
+- `docs/process/tickets/simplify-followups/issues/07-merge-reads-the-spec.md`
+- `docs/process/progress.txt`
+
+Blockers / next:
+- None. The answer comparison reports `0 of 244 conversations differ from HEAD`.
+
+## 2026-10-04 — simplify-followups 12 Re-render only the answer that changed
+
+Task completed: `docs/process/tickets/simplify-followups/issues/12-memoise-the-answer.md`
+
+Key decisions:
+- Keep the event callback stable inside `Thread`, since the audience window
+  recreates its send function when streamed progress changes.
+- Memoise each answer's conversation and clarification props at a child
+  boundary, then wrap `Answer` in `React.memo`.
+- Assert render counts on a progress update, including a changed parent
+  callback, and separately pin the memoised `Answer` export.
+
+Files changed:
+- `web/components/{thread,answer}.tsx`
+- `web/components/thread.test.tsx`
+- `web/components/answer-memo.test.ts`
+- `web/{package.json,package-lock.json,vitest.config.ts}`
+- `docs/process/tickets/simplify-followups/issues/12-memoise-the-answer.md`
+- `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,657 Python tests, 210 Vitest tests, and 46 Playwright tests pass;
+  the answer comparison reports `0 of 244 conversations differ from HEAD`.
+
+## 2026-10-04 — simplify-followups 13 Make the issuer index immutable
+
+Task completed: `docs/process/tickets/simplify-followups/issues/13-immutable-issuer-index.md`
+
+Key decisions:
+- Freeze `IssuerIndex` and copy its phrase, ticker, display-name, CIK, and
+  shared-name maps into read-only proxies at construction.
+- Assemble snapshot aliases and supplemental former, ineligible, and outside
+  filer names in local mutable maps, then construct the index once.
+- Cache the typo-candidate tuple on the finished index and reuse it in every
+  correction call.
+
+Files changed:
+- `src/financial_analyst_agent/issuer_index.py`
+- `src/financial_analyst_agent/rules_planner.py`
+- `tests/unit/test_issuer_index.py`
+- `tests/unit/test_planner_rules.py`
+- `docs/process/tickets/simplify-followups/issues/13-immutable-issuer-index.md`
+- `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,659 Python tests pass; ruff and mypy pass; the answer comparison
+  reports `0 of 244 conversations differ from HEAD`.

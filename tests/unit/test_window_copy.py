@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import date
 from decimal import Decimal
+from inspect import signature
 
 from financial_analyst_agent.answer_notes import FISCAL_Q4_GAP_BANNER, period_notes
 from financial_analyst_agent.contracts import (
@@ -16,6 +17,7 @@ from financial_analyst_agent.contracts import (
 )
 from financial_analyst_agent.graph.analysis_spec import AnalysisSpec, PeriodSelection
 from financial_analyst_agent.presentation import present_turn
+from financial_analyst_agent.request_wording import read_window
 from financial_analyst_agent.rules_planner import _companies_from_query
 from financial_analyst_agent.runtime import DemoCompleter
 from financial_analyst_agent.universe import allowed_industry_names, load_universe_snapshot
@@ -140,11 +142,56 @@ def test_period_notes_flag_named_periods_and_fiscal_q4_gaps() -> None:
         }
     )
 
-    assert period_notes("Microsoft revenue last 3 quarters", spec) == []
-    assert FISCAL_Q4_GAP_BANNER in period_notes("Microsoft revenue", gap)
-    named = period_notes("What was Microsoft revenue in Q3 2024?", AnalysisSpec())
-    assert named and "Q3 2024" in named[0] and "latest quarter" in named[0]
-    assert period_notes("Microsoft revenue for fiscal 2025", AnalysisSpec())
+    message = "Microsoft revenue last 3 quarters"
+    assert period_notes(message, spec, window=read_window(message)) == []
+    message = "Microsoft revenue"
+    assert FISCAL_Q4_GAP_BANNER in period_notes(
+        message, gap, window=read_window(message)
+    )
+    message = "What was Microsoft revenue for the quarter ended April 2026?"
+    named = period_notes(message, AnalysisSpec(), window=read_window(message))
+    assert named and "April 2026" in named[0] and "latest quarter" in named[0]
+
+
+def test_request_wording_records_every_window_reading_used_by_notes() -> None:
+    from financial_analyst_agent import request_wording
+
+    read_window = getattr(request_wording, "read_window", None)
+
+    assert read_window is not None
+    approximate = read_window("Apple revenue over the past several months")
+    assert approximate.asked_quarters == 2
+    assert approximate.interpretation_notes
+    assert read_window("Apple TTM revenue").trailing_year
+    since = read_window("Apple revenue since 2000")
+    assert (since.since_year, since.asked_quarters) == (2000, 20)
+    assert since.since_capped_from is not None
+    assert (
+        read_window("Apple revenue for the quarter ended April 2026").unread_named_period
+        == "April 2026"
+    )
+    assert read_window("Apple revenue last month").sub_quarter
+
+
+def test_compilation_carries_the_window_reading_and_notes_use_it() -> None:
+    from financial_analyst_agent.graph.state import CompiledAnalysis
+    from financial_analyst_agent.request_wording import read_window
+
+    assert "window" in CompiledAnalysis.model_fields
+    assert "window" in signature(period_notes).parameters
+    reading = read_window("Apple revenue over the past several months")
+    spec = AnalysisSpec(
+        periods=PeriodSelection(
+            kind="last_n_quarters",
+            count=1,
+            report_dates=(date(2026, 3, 31),),
+        )
+    )
+
+    notes = period_notes("Apple revenue", spec, window=reading)
+
+    assert any("Read “past several months” as the latest 2 quarters" in note for note in notes)
+    assert "only 1 of the 2 quarters asked for" in notes[-1]
 
 
 def test_recorded_planner_knows_every_recorded_company_in_the_order_named() -> None:

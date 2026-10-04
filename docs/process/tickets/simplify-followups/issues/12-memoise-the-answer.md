@@ -10,4 +10,18 @@ Found by the 2026-10-04 simplify review of master (#67), which left it out as la
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped on 2026-10-04.
+
+- `Thread` now gives completed answers stable conversation, clarification, and
+  send-callback props while progress events re-render their parent.
+- `Answer` is wrapped in `React.memo`, so an unchanged answer keeps its chart
+  and table render intact.
+- Focused component tests pin both the stable progress-event behaviour and the
+  memoised export.
+- All 1,657 Python tests, 210 Vitest tests, and 46 Playwright tests pass. Ruff,
+  mypy, ESLint, TypeScript, and the production build pass. The answer
+  comparison reports `0 of 244 conversations differ from HEAD`.

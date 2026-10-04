@@ -382,19 +382,19 @@ _FILER_RESERVED_WORDS = _METRIC_WORDS | {
 @lru_cache(maxsize=4)
 def _index_for(path: Path, _mtime_ns: int) -> IssuerIndex:
     snapshot = load_universe_snapshot(path)
-    index = IssuerIndex.build(snapshot.companies, _ISSUER_PHRASES)
-    # Names the larger companies used to file under: "Facebook", "Raytheon Technologies".
-    for ticker, name in former_names():
-        index.add_former(ticker, name)
-    # Funds are left out of the snapshot, yet "SPY revenue" names one: the
-    # lookup then says it is not an operating company (ADR 0001).
-    for ticker, name in ineligible_issuers():
-        index.add_outside(ticker, name)
-    # Operating filers the snapshot leaves out, by full name: "Southern California
-    # Edison" is that utility, not California Resources and Edison International.
-    for ticker, name in sec_filer_names():
-        index.add_filer(ticker, name, reserved=_FILER_RESERVED_WORDS)
-    return index
+    return IssuerIndex.build(
+        snapshot.companies,
+        _ISSUER_PHRASES,
+        # Names the larger companies used to file under: "Facebook", "Raytheon Technologies".
+        former=former_names(),
+        # Funds are left out of the snapshot, yet "SPY revenue" names one: the
+        # lookup then says it is not an operating company (ADR 0001).
+        outside=ineligible_issuers(),
+        # Operating filers the snapshot leaves out, by full name: "Southern California
+        # Edison" is that utility, not California Resources and Edison International.
+        filers=sec_filer_names(),
+        reserved=_FILER_RESERVED_WORDS,
+    )
 
 
 def issuer_index(path: Path | None = None) -> IssuerIndex:

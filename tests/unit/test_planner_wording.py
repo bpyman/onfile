@@ -13,6 +13,7 @@ from financial_analyst_agent.graph.analysis_spec import (
 )
 from financial_analyst_agent.ranking import SnapshotRanking
 from financial_analyst_agent.request_wording import (
+    bind_metrics_from_message,
     bind_periods_from_message,
     refine_patch_from_message,
 )
@@ -99,6 +100,24 @@ def test_adding_a_metric_never_removes_one() -> None:
     patch = refine_patch_from_message(proposed, "now add operating margin", spec, index=index)
 
     assert (patch.add_metrics, patch.remove_metrics) == (("operating_margin",), ())
+
+
+def test_metric_wording_records_which_metric_orders_the_answer() -> None:
+    proposed = SpecPatch(mode="extend", add_operations=("order_by_metric",))
+
+    patch, refusal = bind_metrics_from_message(proposed, "sort by net income")
+
+    assert refusal is None
+    assert patch.set_order_by == "net_income"
+
+
+def test_merge_uses_the_specs_ordering_metric_not_the_message() -> None:
+    from financial_analyst_agent.graph.analysis_spec import AnalysisSpec
+    from financial_analyst_agent.graph.spec_turn import _ordering_metric
+
+    spec = AnalysisSpec(metrics=("revenue", "net_income"), order_by="net_income")
+
+    assert _ordering_metric(spec) == "net_income"
 
 
 def test_over_the_past_year_is_the_years_quarters_not_growth() -> None:
