@@ -13,6 +13,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from financial_analyst_agent.contracts import WorkflowPlan
 from financial_analyst_agent.runtime import FIXTURE_UNIVERSE_SNAPSHOT_PATH
 
 
@@ -71,10 +72,10 @@ class _RecordingCompleter:
         return self.plans.pop(0)
 
 
-def _lookup_plan(company: str, metric: str) -> SimpleNamespace:
+def _lookup_plan(company: str, metric: str) -> WorkflowPlan:
     from financial_analyst_agent.contracts import Intent
 
-    return SimpleNamespace(
+    return WorkflowPlan(
         intent=Intent.LOOKUP,
         company=company,
         companies=[],

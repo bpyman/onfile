@@ -2,7 +2,7 @@ from datetime import date
 from decimal import Decimal
 from types import SimpleNamespace
 
-from financial_analyst_agent.contracts import Intent, RendererKind, Runtime
+from financial_analyst_agent.contracts import Intent, RendererKind, Runtime, WorkflowPlan
 from financial_analyst_agent.runtime import recorded_runtime
 from financial_analyst_agent.turn import run_turn
 from test_run_turn_lookup import (
@@ -17,8 +17,8 @@ PROFIT_MARGIN_QUERY = "What was Google's profit margin?"
 
 
 class _GuessNetIncomeCompleter:
-    def complete(self, query: str, current_spec: object = None) -> SimpleNamespace:
-        return SimpleNamespace(intent=Intent.LOOKUP, company="Google", metric="net_income")
+    def complete(self, query: str, current_spec: object = None) -> WorkflowPlan:
+        return WorkflowPlan(intent=Intent.LOOKUP, company="Google", metric="net_income")
 
 
 def test_run_turn_clarifies_profit_even_when_planner_guesses_net_income() -> None:

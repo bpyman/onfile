@@ -10,13 +10,14 @@ from decimal import Decimal
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal, Protocol, Self
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from financial_analyst_agent.domain.models import FinancialFact
 from financial_analyst_agent.domain.serialization import DecimalStr
 from financial_analyst_agent.services.metric_catalog import METRIC_DISPLAY
 
 if TYPE_CHECKING:
+    from financial_analyst_agent.graph.analysis_spec import SpecPatch
     from financial_analyst_agent.ranking import RankTable
     from financial_analyst_agent.universe import UniverseCompany
 
@@ -183,8 +184,47 @@ SEARCH_NEWS_MAX_RESULTS = 5
 SEARCH_NEWS_TIME_RANGE = "week"
 
 
+class WorkflowPlan(BaseModel):
+    """A planner's reading of a question: one closed workflow and what it takes.
+
+    Both planners return one, or a ``SpecPatch`` for an edit to the analysis on
+    screen, and the turn types it into a request. A field the workflow does not
+    take keeps its default.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    intent: Intent
+    company: str | None = None
+    companies: tuple[str, ...] = ()
+    # A catalog slug, "overview", or the analyst's own word for a measure the catalog lacks.
+    metric: str | None = None
+    industry: str | None = None
+    limit: int = DEFAULT_RANK_LIMIT
+    # "Top 5 banks by net income" orders by it; "and their net income" does not.
+    order_by_metric: bool = False
+    # The window a model read, in quarters; code's own reading of the words comes first.
+    recent_quarters: int | None = None
+    # One company against the largest in its industry; the conversation adds them.
+    peers: bool = False
+    # What an essay is about; the question itself when there is none.
+    topic: str | None = None
+    # Two filings to compare (empty: the latest against the one before), which
+    # sections, and whether the model's summary was asked for as well.
+    older_accession: str = ""
+    newer_accession: str = ""
+    section: str = "both"
+    summarize: bool = False
+    # Further companies named where the workflow takes one.
+    other_companies: tuple[str, ...] = ()
+    # Said before the answer: a corrected name, a company left out.
+    notes: tuple[str, ...] = ()
+
+
 class Completer(Protocol):
-    def complete(self, query: str, current_spec: Any | None = None) -> Any: ...
+    def complete(
+        self, query: str, current_spec: Any | None = None
+    ) -> "WorkflowPlan | SpecPatch": ...
 
 
 class EssayCompleter(Protocol):

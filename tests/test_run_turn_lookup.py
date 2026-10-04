@@ -4,7 +4,13 @@ from datetime import date
 from decimal import Decimal
 from types import SimpleNamespace
 
-from financial_analyst_agent.contracts import ALLOWED_METRICS, Intent, RendererKind, Runtime
+from financial_analyst_agent.contracts import (
+    ALLOWED_METRICS,
+    Intent,
+    RendererKind,
+    Runtime,
+    WorkflowPlan,
+)
 from financial_analyst_agent.domain.errors import AmbiguousFactError
 from financial_analyst_agent.providers.sec.company_resolver import resolve_company
 from financial_analyst_agent.ranking import SnapshotRanking
@@ -58,10 +64,10 @@ SOURCE_URL = "https://www.sec.gov/Archives/edgar/data/1652044/000165204426000071
 
 
 class _FakeCompleter:
-    def complete(self, query: str, current_spec: object = None) -> SimpleNamespace:
+    def complete(self, query: str, current_spec: object = None) -> WorkflowPlan:
         if query != GOOGLE_LATEST_QUARTER_NET_INCOME_QUERY:
             raise AssertionError(f"unexpected query: {query!r}")
-        return SimpleNamespace(intent=Intent.LOOKUP, company="Google", metric="net_income")
+        return WorkflowPlan(intent=Intent.LOOKUP, company="Google", metric="net_income")
 
 
 class _FixtureFacts:
@@ -90,24 +96,24 @@ class _FixtureFacts:
 
 
 class _UnknownMetricCompleter:
-    def complete(self, query: str, current_spec: object = None) -> SimpleNamespace:
+    def complete(self, query: str, current_spec: object = None) -> WorkflowPlan:
         if query != UNKNOWN_METRIC_QUERY:
             raise AssertionError(f"unexpected query: {query!r}")
-        return SimpleNamespace(intent=Intent.LOOKUP, company="Google", metric="roa")
+        return WorkflowPlan(intent=Intent.LOOKUP, company="Google", metric="roa")
 
 
 class _ShopifyNetMarginCompleter:
-    def complete(self, query: str, current_spec: object = None) -> SimpleNamespace:
+    def complete(self, query: str, current_spec: object = None) -> WorkflowPlan:
         if query != SHOPIFY_NET_MARGIN_QUERY:
             raise AssertionError(f"unexpected query: {query!r}")
-        return SimpleNamespace(intent=Intent.LOOKUP, company="Shopify", metric="net_margin")
+        return WorkflowPlan(intent=Intent.LOOKUP, company="Shopify", metric="net_margin")
 
 
 class _ShopifyRdToSalesCompleter:
-    def complete(self, query: str, current_spec: object = None) -> SimpleNamespace:
+    def complete(self, query: str, current_spec: object = None) -> WorkflowPlan:
         if query != SHOPIFY_RD_TO_SALES_QUERY:
             raise AssertionError(f"unexpected query: {query!r}")
-        return SimpleNamespace(intent=Intent.LOOKUP, company="Shopify", metric="rd_to_sales")
+        return WorkflowPlan(intent=Intent.LOOKUP, company="Shopify", metric="rd_to_sales")
 
 
 class _ComponentFacts:
@@ -431,10 +437,10 @@ SNAPSHOT_AS_OF = "2026-09-27T22:43:45.015184+00:00"
 
 
 class _ShopifyMarketCapCompleter:
-    def complete(self, query: str, current_spec: object = None) -> SimpleNamespace:
+    def complete(self, query: str, current_spec: object = None) -> WorkflowPlan:
         if query != SHOPIFY_MARKET_CAP_QUERY:
             raise AssertionError(f"unexpected query: {query!r}")
-        return SimpleNamespace(intent=Intent.LOOKUP, company="Shopify", metric="market_cap")
+        return WorkflowPlan(intent=Intent.LOOKUP, company="Shopify", metric="market_cap")
 
 
 class _NoFacts:

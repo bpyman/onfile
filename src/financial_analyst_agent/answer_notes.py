@@ -102,11 +102,11 @@ def short_ranking_notes(spec: AnalysisSpec) -> list[str]:
 
 def capped_ranking_notes(patch: SpecPatch) -> list[str]:
     """Say so when a ranking asked for more companies than one lists."""
-    if patch.ranked_request is None or patch.ranked_request[1] <= MAX_RANKED_COMPANIES:
+    if patch.ranked_request is None or patch.ranked_request.limit <= MAX_RANKED_COMPANIES:
         return []
     return [
         f"A ranking lists at most {MAX_RANKED_COMPANIES} companies, so this shows the "
-        f"top {MAX_RANKED_COMPANIES} rather than {patch.ranked_request[1]}."
+        f"top {MAX_RANKED_COMPANIES} rather than {patch.ranked_request.limit}."
     ]
 
 

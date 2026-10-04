@@ -4,7 +4,7 @@ from datetime import date
 from decimal import Decimal
 from types import SimpleNamespace
 
-from financial_analyst_agent.contracts import Intent, RendererKind, Runtime
+from financial_analyst_agent.contracts import Intent, RendererKind, Runtime, WorkflowPlan
 from financial_analyst_agent.domain.errors import (
     AmbiguousFactError,
     UnsupportedQuarterlyFactError,
@@ -114,8 +114,8 @@ def test_run_turn_returns_rank_and_lookup_table_for_healthcare_incomes() -> None
 
 def test_run_turn_rank_and_lookup_ignores_model_typed_constituents() -> None:
     class _DecoyCompleter:
-        def complete(self, query: str, current_spec: object = None) -> SimpleNamespace:
-            return SimpleNamespace(
+        def complete(self, query: str, current_spec: object = None) -> WorkflowPlan:
+            return WorkflowPlan(
                 intent=Intent.RANK_AND_LOOKUP,
                 industry="healthcare",
                 limit=10,
@@ -318,10 +318,10 @@ def test_run_turn_rank_and_lookup_computes_net_margin_per_ranked_issuer() -> Non
 
 
 class _RankAndLookupNetMarginCompleter:
-    def complete(self, query: str, current_spec: object = None) -> SimpleNamespace:
+    def complete(self, query: str, current_spec: object = None) -> WorkflowPlan:
         if query != HEALTHCARE_NET_MARGINS_QUERY:
             raise AssertionError(f"unexpected query: {query!r}")
-        return SimpleNamespace(
+        return WorkflowPlan(
             intent=Intent.RANK_AND_LOOKUP,
             industry="healthcare",
             limit=10,

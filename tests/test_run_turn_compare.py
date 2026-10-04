@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from financial_analyst_agent.contracts import Intent, RendererKind, Runtime
+from financial_analyst_agent.contracts import Intent, RendererKind, Runtime, WorkflowPlan
 from financial_analyst_agent.domain.errors import (
     AmbiguousFactError,
     DataIntegrityError,
@@ -164,10 +164,10 @@ GOOGLE_PRIOR_QUARTER_END = date(2025, 12, 31)
 
 
 class _CompareCompleter:
-    def complete(self, query: str, current_spec: object = None) -> SimpleNamespace:
+    def complete(self, query: str, current_spec: object = None) -> WorkflowPlan:
         if query != MSFT_GOOG_OPERATING_MARGINS_QUERY:
             raise AssertionError(f"unexpected query: {query!r}")
-        return SimpleNamespace(
+        return WorkflowPlan(
             intent=Intent.COMPARE,
             companies=["Microsoft", "Google"],
             metric="operating_margin",
@@ -274,8 +274,8 @@ def test_run_turn_never_blends_margins_across_mismatched_periods() -> None:
 
 
 class _ShareClassCompleter:
-    def complete(self, query: str, current_spec: object = None) -> SimpleNamespace:
-        return SimpleNamespace(
+    def complete(self, query: str, current_spec: object = None) -> WorkflowPlan:
+        return WorkflowPlan(
             intent=Intent.COMPARE,
             companies=["GOOG", "GOOGL"],
             metric="operating_margin",

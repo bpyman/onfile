@@ -70,7 +70,7 @@ def test_real_ticker_questions_still_work(question: str, companies: list[str]) -
 def test_a_bare_ticker_beside_a_named_company_is_said() -> None:
     plan = _live().complete("Compare Apple and CRM revenue")
 
-    assert plan.companies == ["Apple", "CRM"]
+    assert plan.companies == ("Apple", "CRM")
     assert any("for “CRM”" in note for note in plan.notes)
 
 

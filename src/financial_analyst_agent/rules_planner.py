@@ -11,16 +11,19 @@ from __future__ import annotations
 import re
 from functools import lru_cache
 from pathlib import Path
-from types import SimpleNamespace
-from typing import Any
 
-from financial_analyst_agent.contracts import ALLOWED_METRICS, DEFAULT_RANK_LIMIT, Intent
+from financial_analyst_agent.contracts import (
+    ALLOWED_METRICS,
+    DEFAULT_RANK_LIMIT,
+    Intent,
+    WorkflowPlan,
+)
 from financial_analyst_agent.filing_change import (
     ACCESSION_PATTERN,
     REVIEWED_SECTIONS,
     requested_sections,
 )
-from financial_analyst_agent.graph.analysis_spec import AnalysisSpec, SpecPatch
+from financial_analyst_agent.graph.analysis_spec import AnalysisSpec, RankedRequest, SpecPatch
 from financial_analyst_agent.guide import short_name
 from financial_analyst_agent.issuer_index import (
     CompanyMention,
@@ -260,14 +263,14 @@ def _is_filing_change_query(normalized: str) -> bool:
     )
 
 
-def _filing_change_plan(query: str, normalized: str) -> SimpleNamespace:
+def _filing_change_plan(query: str, normalized: str) -> WorkflowPlan:
     accessions = ACCESSION_PATTERN.findall(query)
     older = accessions[0] if len(accessions) >= 2 else ""
     newer = accessions[1] if len(accessions) >= 2 else ""
     # "What changed in Apple's 10-Q?" names no section: it asks about the filing.
     # The plan's section field is text, as the model planner fills it.
     section = " and ".join(requested_sections(normalized) or REVIEWED_SECTIONS)
-    return SimpleNamespace(
+    return WorkflowPlan(
         intent=Intent.FILING_CHANGE,
         company=_company_from_query(normalized),
         older_accession=older,
@@ -553,7 +556,7 @@ class DemoCompleter:
 
     def complete(
         self, query: str, current_spec: object = None, *, _nested: bool = False
-    ) -> Any:
+    ) -> WorkflowPlan | SpecPatch:
         query, count_notes = _whole_counts(
             _count_words_as_digits(expand_groups(plain_text(query)))
         )
@@ -584,19 +587,20 @@ class DemoCompleter:
         if _is_filing_change_query(normalized):
             plan = _filing_change_plan(query, normalized)
             if companies:
-                plan.company = companies[0]
                 # One company's filings are compared at a time; the turn says so.
-                plan.other_companies = tuple(companies[1:])
-            plan.notes = tuple(notes)
-            return plan
+                plan = plan.model_copy(
+                    update={"company": companies[0], "other_companies": tuple(companies[1:])}
+                )
+            return plan.model_copy(update={"notes": tuple(notes)})
         if "disrupt" in normalized or re.search(
             r"\bhow (?:can|could|will|might|would) ai\b", normalized
         ):
-            return SimpleNamespace(intent=Intent.EXPLAIN, topic=query)
+            return WorkflowPlan(intent=Intent.EXPLAIN, topic=query)
         if _is_exploratory_query(normalized):
-            return SimpleNamespace(intent=Intent.EXPLORATORY_RESEARCH, topic=query)
+            return WorkflowPlan(intent=Intent.EXPLORATORY_RESEARCH, topic=query)
         if _is_news_query(normalized):
-            return SimpleNamespace(intent=Intent.NEWS_AND_EXPLAIN, query=query)
+            # The news workflow searches the question itself.
+            return WorkflowPlan(intent=Intent.NEWS_AND_EXPLAIN)
 
         spec = current_spec if isinstance(current_spec, AnalysisSpec) else None
         if spec is not None:
@@ -608,12 +612,11 @@ class DemoCompleter:
         planned = [*count_notes, *notes, *plan.notes]
         if not _nested:
             planned.extend(self._unanswered_notes(query, normalized, plan, mentions))
-        plan.notes = tuple(dict.fromkeys(planned))
-        return plan
+        return plan.model_copy(update={"notes": tuple(dict.fromkeys(planned))})
 
     def _plan(
         self, query: str, normalized: str, metric: str, mentions: list[CompanyMention]
-    ) -> SimpleNamespace:
+    ) -> WorkflowPlan:
         """The closed plan a question asks for, before notes on what it leaves out."""
         companies = [mention.query for mention in mentions]
         which = _WHICH_HIGHEST.search(normalized) if not companies else None
@@ -641,7 +644,7 @@ class DemoCompleter:
                 ordered = metric != "market_cap" and (
                     which is not None or bool(_ORDER_WORDING.search(normalized))
                 )
-                return SimpleNamespace(
+                return WorkflowPlan(
                     intent=Intent.RANK_AND_LOOKUP,
                     industry=industry,
                     limit=limit,
@@ -650,14 +653,14 @@ class DemoCompleter:
                     order_by_metric=ordered,
                     notes=notes,
                 )
-            return SimpleNamespace(intent=Intent.RANK, industry=industry, limit=limit, notes=notes)
+            return WorkflowPlan(intent=Intent.RANK, industry=industry, limit=limit, notes=notes)
         segment = segment_term(query)
         segment_notes = (segment_note(segment),) if segment and metric in ALLOWED_METRICS else ()
         if len(companies) == 1 and _PEERS.search(normalized):
             # "Compare Nvidia to its peers": the conversation adds the peers.
-            return SimpleNamespace(
+            return WorkflowPlan(
                 intent=Intent.COMPARE,
-                companies=companies,
+                companies=tuple(companies),
                 metric=metric if metric != "unknown" else OVERVIEW_PLAN,
                 notes=(),
                 peers=True,
@@ -673,21 +676,21 @@ class DemoCompleter:
         if len(companies) >= 2 or compare_words:
             if metric == "unknown" and len(companies) >= 2 and _names_only(query, mentions):
                 metric = OVERVIEW_PLAN
-            return SimpleNamespace(
+            return WorkflowPlan(
                 intent=Intent.COMPARE,
-                companies=companies,
+                companies=tuple(companies),
                 metric=metric,
                 notes=segment_notes,
                 # "Rank Apple, Microsoft and Nvidia by revenue" orders the companies.
                 order_by_metric=_RANK_NAMED.search(normalized) is not None,
             )
         company = companies[0] if companies else _lookup_company(normalized)
-        return SimpleNamespace(
+        return WorkflowPlan(
             intent=Intent.LOOKUP, company=company, metric=metric, notes=segment_notes
         )
 
     def _unanswered_notes(
-        self, query: str, normalized: str, plan: Any, mentions: list[CompanyMention]
+        self, query: str, normalized: str, plan: WorkflowPlan, mentions: list[CompanyMention]
     ) -> list[str]:
         """Say what a plan leaves out: a name no company matched, a second question."""
         notes: list[str] = []
@@ -705,9 +708,11 @@ class DemoCompleter:
         return notes
 
 
-def _subject(plan: Any) -> tuple[str, frozenset[str]] | None:
+def _subject(plan: WorkflowPlan | SpecPatch) -> tuple[str, frozenset[str]] | None:
     """What a plan is about: its companies, its ranking, or a kind of answer."""
-    intent = getattr(plan, "intent", None)
+    if isinstance(plan, SpecPatch):
+        return None
+    intent = plan.intent
     if intent in (Intent.RANK, Intent.RANK_AND_LOOKUP):
         return "rank", frozenset({str(plan.industry).casefold()})
     if intent is Intent.COMPARE:
@@ -919,7 +924,10 @@ def _follow_up(
         and re.fullmatch(r"(?:only |just |show )?(?:the )?top\s+\d+", text)
     ):
         return SpecPatch(
-            mode="extend", ranked_request=(spec.constituents.industry, int(top.group(1)))
+            mode="extend",
+            ranked_request=RankedRequest(
+                industry=spec.constituents.industry, limit=int(top.group(1))
+            ),
         )
     on_screen = bool(spec.companies) or spec.constituents is not None
     sort = _SORT_BY.match(text)
@@ -967,7 +975,10 @@ def _follow_up(
     if spec.constituents is not None and not companies and metric == "unknown" and swap:
         # "what about pharma?": the same ranking, another industry.
         industry = swap.group("industry").strip()
-        return SpecPatch(mode="extend", ranked_request=(industry, spec.constituents.limit))
+        return SpecPatch(
+            mode="extend",
+            ranked_request=RankedRequest(industry=industry, limit=spec.constituents.limit),
+        )
     if companies and metric == "unknown" and not on_screen and spec.metrics:
         # "revenue", then "for Apple": the company the question was missing.
         return SpecPatch(mode="extend", add_companies=tuple(companies))

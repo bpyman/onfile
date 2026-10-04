@@ -48,6 +48,7 @@ from financial_analyst_agent.contracts import (
     TableRow,
     ToolTrace,
     TurnResult,
+    WorkflowPlan,
     split_between,
     unknown_metric_message,
 )
@@ -67,6 +68,7 @@ from financial_analyst_agent.graph.analysis_spec import (
     CompiledTask,
     NamedPeriodSpec,
     PeriodSelection,
+    RankedRequest,
     ResolvedCompany,
     SpecDraft,
     SpecPatch,
@@ -110,11 +112,11 @@ DEFAULT_TASK_MAX_WORKERS = 8
 ProgressCallback = Callable[[int, int], None]
 
 
-def plan_to_spec_patch(plan: Any) -> SpecPatch:
-    """Lift a one-shot closed Plan into a replace-mode spec patch."""
+def plan_to_spec_patch(plan: WorkflowPlan) -> SpecPatch:
+    """Lift a one-shot closed plan into a replace-mode spec patch."""
     patch = _lifted_plan(plan)
-    window = getattr(plan, "recent_quarters", None)
-    if isinstance(window, int) and window >= 1 and plan.intent is not Intent.RANK:
+    window = plan.recent_quarters
+    if window is not None and window >= 1 and plan.intent is not Intent.RANK:
         # The model's reading of a window: used only where the wording's own
         # reading finds none (see planner_window).
         selection = PeriodSelection(kind="last_n_quarters", count=min(window, MAX_QUARTERS_ASKED))
@@ -122,11 +124,10 @@ def plan_to_spec_patch(plan: Any) -> SpecPatch:
     return patch
 
 
-def _lifted_plan(plan: Any) -> SpecPatch:
+def _lifted_plan(plan: WorkflowPlan) -> SpecPatch:
     """The plan's companies, metric and ranking as a replace patch."""
     intent = plan.intent
-    metric = plan.metric if isinstance(getattr(plan, "metric", None), str) else None
-    metrics = (metric,) if metric else ()
+    metrics = (plan.metric,) if plan.metric else ()
     if intent is Intent.LOOKUP:
         # A question naming no company names none: "the" or "unknown" is not one.
         company = plan.company if plan.company and plan.company != "unknown" else None
@@ -134,29 +135,26 @@ def _lifted_plan(plan: Any) -> SpecPatch:
             mode="replace", add_companies=(company,) if company else (), add_metrics=metrics
         )
     if intent is Intent.COMPARE:
-        ordered = getattr(plan, "order_by_metric", False) is True
         return SpecPatch(
             mode="replace",
-            add_companies=tuple(plan.companies),
+            add_companies=plan.companies,
             add_metrics=metrics,
             add_operations=(
-                ("across_companies", "order_by_metric") if ordered else ("across_companies",)
+                ("across_companies", "order_by_metric")
+                if plan.order_by_metric
+                else ("across_companies",)
             ),
         )
     if intent not in (Intent.RANK, Intent.RANK_AND_LOOKUP):
         raise ValueError(f"cannot lift intent to spec patch: {intent!r}")
-    ranked = (
-        plan.industry or "",
-        int(getattr(plan, "limit", DEFAULT_RANK_LIMIT) or DEFAULT_RANK_LIMIT),
-    )
+    ranked = RankedRequest(industry=plan.industry or "", limit=plan.limit or DEFAULT_RANK_LIMIT)
     if intent is Intent.RANK:
         return SpecPatch(mode="replace", ranked_request=ranked)
-    ordered = getattr(plan, "order_by_metric", False) is True
     return SpecPatch(
         mode="replace",
         ranked_request=ranked,
         add_metrics=metrics,
-        add_operations=("rank", "order_by_metric") if ordered else ("rank",),
+        add_operations=("rank", "order_by_metric") if plan.order_by_metric else ("rank",),
     )
 
 
@@ -298,28 +296,16 @@ def drop_annual_filers(spec: AnalysisSpec, runtime: Runtime) -> tuple[AnalysisSp
     return spec.model_copy(update={"companies": tuple(kept)}), dropped
 
 
-def is_filing_change_proposal(proposal: Any) -> bool:
-    if isinstance(proposal, SpecPatch):
-        return False
-    intent = getattr(proposal, "intent", None)
-    if intent == Intent.FILING_CHANGE:
-        return True
-    action = getattr(proposal, "action", None)
-    return getattr(action, "intent", None) == Intent.FILING_CHANGE
+def is_filing_change_proposal(proposal: WorkflowPlan | SpecPatch) -> bool:
+    return isinstance(proposal, WorkflowPlan) and proposal.intent is Intent.FILING_CHANGE
 
 
-def is_qualitative_proposal(proposal: Any) -> bool:
-    if isinstance(proposal, SpecPatch):
-        return False
-    intent = getattr(proposal, "intent", None)
-    return intent in QUALITATIVE_INTENTS
+def is_qualitative_proposal(proposal: WorkflowPlan | SpecPatch) -> bool:
+    return isinstance(proposal, WorkflowPlan) and proposal.intent in QUALITATIVE_INTENTS
 
 
-def is_structured_proposal(proposal: Any) -> bool:
-    if isinstance(proposal, SpecPatch):
-        return True
-    intent = getattr(proposal, "intent", None)
-    return intent in STRUCTURED_INTENTS
+def is_structured_proposal(proposal: WorkflowPlan | SpecPatch) -> bool:
+    return isinstance(proposal, SpecPatch) or proposal.intent in STRUCTURED_INTENTS
 
 
 def _draft_intent(draft: SpecDraft) -> Intent:

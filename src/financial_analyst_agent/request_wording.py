@@ -391,7 +391,7 @@ def _names_new_subject(patch: SpecPatch, spec: AnalysisSpec, message: str = "") 
     """
     if patch.ranked_request is not None:
         return spec.constituents is None or (
-            patch.ranked_request[0].casefold() != spec.constituents.industry.casefold()
+            patch.ranked_request.industry.casefold() != spec.constituents.industry.casefold()
         )
     if not _names_companies(patch):
         return False

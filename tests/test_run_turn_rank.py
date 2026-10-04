@@ -11,7 +11,7 @@ import httpx
 import pytest
 
 from financial_analyst_agent.config import Settings
-from financial_analyst_agent.contracts import Intent, RendererKind, Runtime
+from financial_analyst_agent.contracts import Intent, RendererKind, Runtime, WorkflowPlan
 from financial_analyst_agent.domain.errors import ProviderError
 from financial_analyst_agent.facts import RecordedSECDataSource
 from financial_analyst_agent.ranking import SnapshotRanking
@@ -140,8 +140,8 @@ class _MissingIndustryCompleter:
     def __init__(self, intent: Intent) -> None:
         self._intent = intent
 
-    def complete(self, query: str, current_spec: object = None) -> SimpleNamespace:
-        return SimpleNamespace(
+    def complete(self, query: str, current_spec: object = None) -> WorkflowPlan:
+        return WorkflowPlan(
             intent=self._intent,
             industry=None,
             metric="net_income",

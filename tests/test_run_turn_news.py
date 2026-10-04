@@ -3,7 +3,7 @@
 from datetime import date
 from types import SimpleNamespace
 
-from financial_analyst_agent.contracts import Intent, NewsHit, RendererKind, Runtime
+from financial_analyst_agent.contracts import Intent, NewsHit, RendererKind, Runtime, WorkflowPlan
 from financial_analyst_agent.domain.errors import ProviderError
 from financial_analyst_agent.news import FIXTURE_NEWS_QUERY
 from financial_analyst_agent.runtime import recorded_runtime
@@ -25,17 +25,17 @@ GROUNDED_ESSAY = (
 
 
 class _NewsCompleter:
-    def complete(self, query: str, current_spec: object = None) -> SimpleNamespace:
+    def complete(self, query: str, current_spec: object = None) -> WorkflowPlan:
         if query != NVIDIA_SUPPLY_QUERY:
             raise AssertionError(f"unexpected query: {query!r}")
-        return SimpleNamespace(intent=Intent.NEWS_AND_EXPLAIN, query=query)
+        return WorkflowPlan(intent=Intent.NEWS_AND_EXPLAIN)
 
 
 class _RewritingNewsCompleter:
-    def complete(self, query: str, current_spec: object = None) -> SimpleNamespace:
+    def complete(self, query: str, current_spec: object = None) -> WorkflowPlan:
         if query != NVIDIA_SUPPLY_QUERY:
             raise AssertionError(f"unexpected query: {query!r}")
-        return SimpleNamespace(intent=Intent.NEWS_AND_EXPLAIN, query="NVIDIA")
+        return WorkflowPlan(intent=Intent.NEWS_AND_EXPLAIN)
 
 
 class _GroundedEssay:

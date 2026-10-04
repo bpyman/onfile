@@ -125,7 +125,11 @@ def test_apply_patch_replace_discards_prior_companies() -> None:
 
 
 def test_apply_patch_ignores_model_typed_companies_when_ranked_request_set() -> None:
-    from financial_analyst_agent.graph.analysis_spec import SpecPatch, apply_patch
+    from financial_analyst_agent.graph.analysis_spec import (
+        RankedRequest,
+        SpecPatch,
+        apply_patch,
+    )
 
     draft = apply_patch(
         None,
@@ -133,11 +137,11 @@ def test_apply_patch_ignores_model_typed_companies_when_ranked_request_set() -> 
             mode="replace",
             add_companies=("FakeCo", "OtherCo"),
             add_metrics=("net_income",),
-            ranked_request=("healthcare", 10),
+            ranked_request=RankedRequest(industry="healthcare", limit=10),
         ),
     )
     assert draft.company_queries == ()
-    assert draft.ranked_request == ("healthcare", 10)
+    assert draft.ranked_request == RankedRequest(industry="healthcare", limit=10)
     assert draft.metrics == ("net_income",)
 
 
@@ -490,6 +494,7 @@ def test_resolve_spec_fills_ranked_constituents_from_port_not_model_list() -> No
     from types import SimpleNamespace
 
     from financial_analyst_agent.graph.analysis_spec import (
+        RankedRequest,
         SpecDraft,
         resolve_spec,
     )
@@ -514,10 +519,19 @@ def test_resolve_spec_fills_ranked_constituents_from_port_not_model_list() -> No
     draft = SpecDraft(
         company_queries=("FakeCo",),
         metrics=("net_income",),
-        ranked_request=("healthcare", 2),
+        ranked_request=RankedRequest(industry="healthcare", limit=2),
     )
     spec = resolve_spec(draft, ranking=_Ranking())
     assert spec.companies == ()
     assert spec.constituents is not None
     assert spec.constituents.industry == "healthcare"
     assert [m.ticker for m in spec.constituents.members] == ["REAL"]
+
+
+def test_a_held_ranking_stored_as_a_pair_still_loads() -> None:
+    # A clarification held before rankings had a type stored ("banks", 5).
+    from financial_analyst_agent.graph.analysis_spec import RankedRequest, SpecPatch
+
+    patch = SpecPatch.model_validate_json('{"mode": "replace", "ranked_request": ["banks", 5]}')
+
+    assert patch.ranked_request == RankedRequest(industry="banks", limit=5)
