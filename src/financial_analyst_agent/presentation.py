@@ -34,6 +34,7 @@ from financial_analyst_agent.contracts import (
     split_between,
 )
 from financial_analyst_agent.evidence_store import THREAD_EVIDENCE_BANNER
+from financial_analyst_agent.graph.clarify import clarify_prompt
 from financial_analyst_agent.guide import possessive, short_name
 from financial_analyst_agent.services.fact_selector import (
     FOURTH_QUARTER_LABEL,
@@ -47,7 +48,7 @@ from financial_analyst_agent.services.fiscal_periods import (
     GROSS_PROFIT_LABEL,
     REVENUE_FROM_COMPONENTS_LABEL,
 )
-from financial_analyst_agent.services.metric_catalog import segment_term
+from financial_analyst_agent.services.metric_catalog import METRIC_DISPLAY, segment_term
 
 _MONTHS = (
     "Jan",
@@ -91,6 +92,7 @@ _REASON_LABELS = {
     "extreme_margin": "Not meaningful (beyond ±1,000%)",
     "latest_period_only": "Latest period only",
 }
+# Labels for the table's own columns; a metric's label is its catalog entry's.
 _FIELD_LABELS = {
     "comparison": "Change",
     "cik": "CIK",
@@ -99,41 +101,6 @@ _FIELD_LABELS = {
     "accession_number": "Accession number",
     "start_date": "Start date",
     "end_date": "End date",
-    "market_cap": "Market cap",
-    "cost_of_revenue": "Cost of revenue",
-    "gross_profit": "Gross profit",
-    "operating_expenses": "Operating expenses",
-    "operating_income": "Operating income",
-    "net_income": "Net income",
-    "research_and_development": "Research and development",
-    "selling_general_and_administrative": "Selling, general and administrative",
-    "interest_expense": "Interest expense",
-    "income_tax_expense": "Income tax expense",
-    "pretax_income": "Pretax income",
-    "gross_margin": "Gross margin",
-    "operating_margin": "Operating margin",
-    "net_margin": "Net margin",
-    "rd_to_sales": "R&D to sales",
-    "sga_ratio": "SG&A ratio",
-    "effective_tax_rate": "Effective tax rate",
-    "interest_coverage": "Interest coverage",
-    "eps_diluted": "Diluted EPS",
-    "eps_basic": "Basic EPS",
-    "operating_cash_flow": "Operating cash flow",
-    "capital_expenditure": "Capital expenditure",
-    "free_cash_flow": "Free cash flow",
-    "depreciation_amortization": "Depreciation and amortization",
-    "dividends_paid": "Dividends paid",
-    "dividends_per_share": "Dividends per share",
-    "cash": "Cash and equivalents",
-    "shareholders_equity": "Shareholders' equity",
-    "net_income_ttm": "Net income (trailing year)",
-    "ebitda": "EBITDA",
-    "return_on_equity": "Return on equity",
-    "pe_ratio": "P/E ratio",
-    "price": "Share price",
-    "net_interest_income": "Net interest income",
-    "noninterest_income": "Noninterest income",
 }
 # Marks a derived value in a table cell; a banner says how it was derived.
 DERIVED_MARK = " †"
@@ -221,7 +188,8 @@ def format_datetime_utc(value: datetime) -> str:
 
 
 def format_field_name(key: str) -> str:
-    label = _FIELD_LABELS.get(key)
+    display = METRIC_DISPLAY.get(key)
+    label = display.label if display is not None else _FIELD_LABELS.get(key)
     if label is None:
         return " ".join(part.capitalize() for part in key.split("_"))
     return label
@@ -242,13 +210,8 @@ def format_reason(reason: str) -> str:
 
 
 def chart_value_kind(metric: str) -> str:
-    if metric in MULTIPLE_FORMULAS:
-        return "multiple"
-    if metric in PERCENT_FORMULAS:
-        return "percent"
-    if metric in PER_SHARE_METRICS:
-        return "per_share"
-    return "usd"
+    display = METRIC_DISPLAY.get(metric)
+    return display.value_kind if display is not None else "usd"
 
 
 _VALUE_FORMATTERS = {
@@ -581,12 +544,6 @@ _BANNER_COPY = {
         "filings. Check a source before relying on it."
     ),
 }
-_METRIC_CLARIFY_PROMPT = "Which metric do you mean?"
-_SCOPE_CLARIFY_PROMPT = "Add to the current analysis, or start a new one?"
-_COMPANY_CLARIFY_PROMPT = "Which company do you mean by “{subject}”?"
-_COMPARISON_CLARIFY_PROMPT = "Compared with what?"
-
-
 @dataclass(frozen=True)
 class ChangeChip:
     """A fact's change on its card: "▲17.7% YoY", and what it was measured against."""
@@ -1755,13 +1712,7 @@ def _friendly_message(message: str | None) -> str | None:
 def _clarify_prompt(result: TurnResult) -> str | None:
     if result.renderer is not RendererKind.CLARIFY or not result.candidates:
         return None
-    if result.clarify_kind == "ambiguous_mode":
-        return _SCOPE_CLARIFY_PROMPT
-    if result.clarify_kind == "ambiguous_comparison":
-        return _COMPARISON_CLARIFY_PROMPT
-    if result.clarify_kind == "ambiguous_company":
-        return _COMPANY_CLARIFY_PROMPT.format(subject=result.clarify_subject or "that name")
-    return _METRIC_CLARIFY_PROMPT
+    return clarify_prompt(result.clarify_kind, result.clarify_subject)
 
 
 _INPUT_NAMES = {"net_income_ttm": "trailing-year net income"}

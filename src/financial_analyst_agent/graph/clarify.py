@@ -10,10 +10,16 @@ which, deterministically; the model has no say in it.
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Literal
 
-from financial_analyst_agent.contracts import ComparisonBase, RendererKind, TurnResult
+from financial_analyst_agent.contracts import (
+    ClarifyKind,
+    ComparisonBase,
+    RendererKind,
+    TurnResult,
+)
 from financial_analyst_agent.graph.analysis_spec import AnalysisSpec, SpecPatch
 from financial_analyst_agent.graph.state import (
     Clarification,
@@ -87,22 +93,43 @@ def clarification_reply(
         if 1 <= position <= len(pending.candidates):
             return ClarifyReply(chosen=(pending.candidates[position - 1],))
         return ClarifyReply(out_of_range=True)
-    if pending.kind == "ambiguous_mode":
-        for candidate in pending.candidates:
-            if text == candidate.casefold():
-                return ClarifyReply(chosen=(candidate,))
+    return CLARIFY_KINDS[pending.kind].read(_Answer(pending, message, text, plain, index))
+
+
+@dataclass(frozen=True)
+class _Answer:
+    """A reply to an open question, as each kind's reader takes it."""
+
+    pending: PendingClarification
+    message: str
+    # Casefolded, without end punctuation; ``plain`` also without filler words.
+    text: str
+    plain: str
+    index: CompanyNames | None
+
+
+def _read_scope(answer: _Answer) -> ClarifyReply | None:
+    for candidate in answer.pending.candidates:
+        if answer.text == candidate.casefold():
+            return ClarifyReply(chosen=(candidate,))
+    return None
+
+
+def _read_company(answer: _Answer) -> ClarifyReply | None:
+    named = _company_named(answer.pending, answer.text, answer.index)
+    return ClarifyReply(chosen=(named,)) if named is not None else None
+
+
+def _read_comparison(answer: _Answer) -> ClarifyReply | None:
+    if _asks_anew(answer.message, answer.index):
+        # "Microsoft net income last quarter" names a quarter, but is a new question.
         return None
-    if pending.kind == "ambiguous_company":
-        named = _company_named(pending, text, index)
-        return ClarifyReply(chosen=(named,)) if named is not None else None
-    if pending.kind == "ambiguous_comparison":
-        if _asks_anew(message, index):
-            # "Microsoft net income last quarter" names a quarter, but is a new question.
-            return None
-        base = _comparison_named(text)
-        return ClarifyReply(chosen=(base,)) if base is not None else None
-    if pending.kind != "ambiguous_metric":
-        return None
+    base = _comparison_named(answer.text)
+    return ClarifyReply(chosen=(base,)) if base is not None else None
+
+
+def _read_metric(answer: _Answer) -> ClarifyReply | None:
+    pending, message, plain, index = answer.pending, answer.message, answer.plain, answer.index
     if _NEW_QUESTION.search(message) or len(message.split()) > _MAX_ANSWER_WORDS:
         # "What was Microsoft's net income?" names a candidate but is a new
         # question; answering the held patch would drop its company.
@@ -231,49 +258,80 @@ def resumed_request(
     current_spec: AnalysisSpec | None,
 ) -> StructuredRequest:
     """The held analysis with the analyst's choice filled in, ready to resolve again."""
-    answer = chosen[0]
+    return CLARIFY_KINDS[pending.kind].resume(pending, chosen, message, current_spec)
+
+
+def _resume_metric(
+    pending: PendingClarification,
+    chosen: tuple[str, ...],
+    message: str,
+    current_spec: AnalysisSpec | None,
+) -> StructuredRequest:
     wording = message
-    if pending.kind == "ambiguous_metric" and resolve_metric_phrase(message).metrics != chosen:
+    if resolve_metric_phrase(message).metrics != chosen:
         # The turn reads its wording too: "2" or "net" names no one metric, the choice does.
         wording = " and ".join(name.replace("_", " ") for name in chosen)
-    if pending.kind == "ambiguous_metric":
-        if pending.metric_role == "remove":
-            patch = pending.patch.model_copy(update={"remove_metrics": chosen, "add_metrics": ()})
-        else:
-            patch = pending.patch.model_copy(update={"add_metrics": chosen})
-            if patch.add_companies and not _ADD_WORDS.match(pending.question.strip()):
-                # "Apple margin" after Microsoft revenue is a question of its own:
-                # the chosen margin replaces revenue rather than joining it.
-                patch = patch.model_copy(update={"mode": "replace", "remove_companies": ()})
-        if patch.mode is None and current_spec is None:
-            patch = patch.model_copy(update={"mode": "replace"})
-    elif pending.kind == "ambiguous_comparison":
-        # The held question again, its changes measured as chosen.
-        return StructuredRequest(
-            patch=pending.patch,
-            wording=pending.question or message,
-            question=pending.question or message,
-            comparison="year_over_year" if answer == "year_over_year" else "sequential",
-        )
-    elif pending.kind == "ambiguous_company":
-        # The held question again, with the chosen company for the ambiguous name.
-        companies = pending.patch.add_companies
-        if pending.subject in companies:
-            companies = tuple(answer if name == pending.subject else name for name in companies)
-        else:
-            companies = (*companies, answer)
-        patch = pending.patch.model_copy(update={"add_companies": companies})
-        return StructuredRequest(
-            patch=patch,
-            wording=pending.question or message,
-            question=pending.question or message,
-            company_choice=(pending.subject, answer),
-        )
-    else:  # ambiguous_mode: the held question is what the chosen scope answers.
-        mode: Literal["extend", "replace"] = "extend" if answer == "extend" else "replace"
-        patch = pending.patch.model_copy(update={"mode": mode})
-        wording = pending.question or message
+    if pending.metric_role == "remove":
+        patch = pending.patch.model_copy(update={"remove_metrics": chosen, "add_metrics": ()})
+    else:
+        patch = pending.patch.model_copy(update={"add_metrics": chosen})
+        if patch.add_companies and not _ADD_WORDS.match(pending.question.strip()):
+            # "Apple margin" after Microsoft revenue is a question of its own:
+            # the chosen margin replaces revenue rather than joining it.
+            patch = patch.model_copy(update={"mode": "replace", "remove_companies": ()})
+    if patch.mode is None and current_spec is None:
+        patch = patch.model_copy(update={"mode": "replace"})
     return StructuredRequest(patch=patch, wording=wording, question=pending.question or message)
+
+
+def _resume_comparison(
+    pending: PendingClarification,
+    chosen: tuple[str, ...],
+    message: str,
+    current_spec: AnalysisSpec | None,
+) -> StructuredRequest:
+    # The held question again, its changes measured as chosen.
+    return StructuredRequest(
+        patch=pending.patch,
+        wording=pending.question or message,
+        question=pending.question or message,
+        comparison="year_over_year" if chosen[0] == "year_over_year" else "sequential",
+    )
+
+
+def _resume_company(
+    pending: PendingClarification,
+    chosen: tuple[str, ...],
+    message: str,
+    current_spec: AnalysisSpec | None,
+) -> StructuredRequest:
+    # The held question again, with the chosen company for the ambiguous name.
+    answer = chosen[0]
+    companies = pending.patch.add_companies
+    if pending.subject in companies:
+        companies = tuple(answer if name == pending.subject else name for name in companies)
+    else:
+        companies = (*companies, answer)
+    patch = pending.patch.model_copy(update={"add_companies": companies})
+    return StructuredRequest(
+        patch=patch,
+        wording=pending.question or message,
+        question=pending.question or message,
+        company_choice=(pending.subject, answer),
+    )
+
+
+def _resume_scope(
+    pending: PendingClarification,
+    chosen: tuple[str, ...],
+    message: str,
+    current_spec: AnalysisSpec | None,
+) -> StructuredRequest:
+    # The held question is what the chosen scope answers.
+    mode: Literal["extend", "replace"] = "extend" if chosen[0] == "extend" else "replace"
+    patch = pending.patch.model_copy(update={"mode": mode})
+    question = pending.question or message
+    return StructuredRequest(patch=patch, wording=question, question=question)
 
 
 def ask_again(
@@ -289,11 +347,8 @@ def ask_again(
     else:
         patch = pending.patch
         count = len(pending.candidates)
-        named = {
-            "ambiguous_company": "or type the company's ticker",
-            "ambiguous_comparison": "or say “year over year” or “the quarter before”",
-        }.get(pending.kind, "or type the metric's name")
-        note = f"There are {count} options: pick 1 to {count}, {named}."
+        hint = CLARIFY_KINDS[pending.kind].hint
+        note = f"There are {count} options: pick 1 to {count}, {hint}."
     result = TurnResult(
         intent=pending.intent,
         tool_traces=[],
@@ -309,3 +364,52 @@ def ask_again(
         result=result,
         analysis_spec=current_spec,
     )
+
+
+@dataclass(frozen=True)
+class ClarifyKindRules:
+    """What one kind of clarification asks, and how its answer is read and used."""
+
+    # The question the window shows; a company's names the ambiguous ``{subject}``.
+    prompt: str
+    # Said beside "pick 1 to N" when an answer is out of range.
+    hint: str
+    read: Callable[[_Answer], ClarifyReply | None]
+    resume: Callable[
+        [PendingClarification, tuple[str, ...], str, AnalysisSpec | None], StructuredRequest
+    ]
+
+
+# Every kind of clarification, in one place: a new kind is one entry here.
+CLARIFY_KINDS: dict[ClarifyKind, ClarifyKindRules] = {
+    "ambiguous_metric": ClarifyKindRules(
+        prompt="Which metric do you mean?",
+        hint="or type the metric's name",
+        read=_read_metric,
+        resume=_resume_metric,
+    ),
+    "ambiguous_mode": ClarifyKindRules(
+        prompt="Add to the current analysis, or start a new one?",
+        hint="or type “extend” or “replace”",
+        read=_read_scope,
+        resume=_resume_scope,
+    ),
+    "ambiguous_company": ClarifyKindRules(
+        prompt="Which company do you mean by “{subject}”?",
+        hint="or type the company's ticker",
+        read=_read_company,
+        resume=_resume_company,
+    ),
+    "ambiguous_comparison": ClarifyKindRules(
+        prompt="Compared with what?",
+        hint="or say “year over year” or “the quarter before”",
+        read=_read_comparison,
+        resume=_resume_comparison,
+    ),
+}
+
+
+def clarify_prompt(kind: ClarifyKind | None, subject: str | None = None) -> str:
+    """The question a clarification asks; a result saved without a kind asks for a metric."""
+    rules = CLARIFY_KINDS[kind or "ambiguous_metric"]
+    return rules.prompt.format(subject=subject or "that name")

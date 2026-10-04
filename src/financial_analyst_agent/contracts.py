@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 from financial_analyst_agent.domain.models import FinancialFact
 from financial_analyst_agent.domain.serialization import DecimalStr
+from financial_analyst_agent.services.metric_catalog import METRIC_DISPLAY
 
 if TYPE_CHECKING:
     from financial_analyst_agent.ranking import RankTable
@@ -88,14 +89,9 @@ FORMULA_METRICS: tuple[str, ...] = (
 )
 SNAPSHOT_METRICS: tuple[str, ...] = ("market_cap", "price")
 ALLOWED_METRICS: tuple[str, ...] = REPORTED_METRICS + FORMULA_METRICS + SNAPSHOT_METRICS
-PERCENT_FORMULAS: tuple[str, ...] = (
-    "gross_margin",
-    "operating_margin",
-    "net_margin",
-    "rd_to_sales",
-    "sga_ratio",
-    "effective_tax_rate",
-    "return_on_equity",
+# A metric's kind of value is its catalog entry's (services.metric_catalog).
+PERCENT_FORMULAS: tuple[str, ...] = tuple(
+    metric for metric in FORMULA_METRICS if METRIC_DISPLAY[metric].value_kind == "percent"
 )
 # Formulas whose denominator is revenue.
 MARGIN_FORMULAS: tuple[str, ...] = (
@@ -123,7 +119,9 @@ DIFFERENCE_FORMULAS: tuple[str, ...] = ("free_cash_flow",)
 # Formulas that add their components.
 SUM_FORMULAS: tuple[str, ...] = ("ebitda",)
 # Formulas whose value is a multiple ("12.4x"), not a percent or an amount.
-MULTIPLE_FORMULAS: tuple[str, ...] = ("interest_coverage", "pe_ratio")
+MULTIPLE_FORMULAS: tuple[str, ...] = tuple(
+    metric for metric in FORMULA_METRICS if METRIC_DISPLAY[metric].value_kind == "multiple"
+)
 # Formulas over the trailing year rather than one quarter (ADR 0008).
 TRAILING_YEAR_FORMULAS: tuple[str, ...] = ("return_on_equity", "pe_ratio")
 # Formulas with a snapshot component: computed for the latest period only,
@@ -131,7 +129,9 @@ TRAILING_YEAR_FORMULAS: tuple[str, ...] = ("return_on_equity", "pe_ratio")
 MARKET_FORMULAS: tuple[str, ...] = ("pe_ratio",)
 # Balance-sheet amounts: one value at the quarter's end date (ADR 0008).
 INSTANT_METRICS: tuple[str, ...] = ("cash", "shareholders_equity")
-PER_SHARE_METRICS: tuple[str, ...] = ("eps_diluted", "eps_basic", "dividends_per_share", "price")
+PER_SHARE_METRICS: tuple[str, ...] = tuple(
+    metric for metric in ALLOWED_METRICS if METRIC_DISPLAY[metric].value_kind == "per_share"
+)
 
 # A ranked list's length when the question names none.
 DEFAULT_RANK_LIMIT = 10

@@ -180,3 +180,29 @@ def test_year_over_year_on_its_own_still_asks_for_it() -> None:
 
     assert "year_over_year" in patch.add_operations
     assert not patch.remove_operations
+
+
+def test_every_kind_of_clarification_is_one_entry_in_the_table() -> None:
+    from typing import get_args
+
+    from financial_analyst_agent.contracts import ClarifyKind
+    from financial_analyst_agent.graph.clarify import CLARIFY_KINDS, clarify_prompt
+
+    assert set(CLARIFY_KINDS) == set(get_args(ClarifyKind))
+    asked = clarify_prompt("ambiguous_company", "Lincoln")
+    assert asked == "Which company do you mean by “Lincoln”?"
+    # A result saved before clarifications had kinds asked for a metric.
+    assert clarify_prompt(None) == "Which metric do you mean?"
+
+
+def test_asking_the_scope_question_again_names_its_own_answers() -> None:
+    from financial_analyst_agent.graph.clarify import ClarifyReply, ask_again
+    from financial_analyst_agent.graph.state import PendingClarification
+
+    pending = PendingClarification(
+        kind="ambiguous_mode", candidates=("extend", "replace"), patch=SpecPatch()
+    )
+    asked = ask_again(pending, ClarifyReply(out_of_range=True), "3", None)
+    assert asked.result.banners == [
+        "There are 2 options: pick 1 to 2, or type “extend” or “replace”."
+    ]

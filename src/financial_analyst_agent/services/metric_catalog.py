@@ -142,10 +142,66 @@ READ_CONCEPTS: frozenset[tuple[str, str]] = (
     | {SHARE_COUNT_CONCEPT}
 )
 
+ValueKind = Literal["usd", "percent", "multiple", "per_share"]
+
+
+@dataclass(frozen=True)
+class MetricDisplay:
+    """How the window names a metric and writes its value."""
+
+    label: str
+    # Dollars ("$1.20 B"), a percent ("27.1%"), a multiple ("12.4x") or per share ("$1.57").
+    value_kind: ValueKind = "usd"
+
+
+# Every metric the window can show, with its label and kind of value: the ones
+# an analyst asks for, a formula's inputs, and the parts of a derived figure.
+# Adding a metric adds its entry here (ADR 0005).
+METRIC_DISPLAY: dict[str, MetricDisplay] = {
+    "revenue": MetricDisplay("Revenue"),
+    "cost_of_revenue": MetricDisplay("Cost of revenue"),
+    "gross_profit": MetricDisplay("Gross profit"),
+    "operating_expenses": MetricDisplay("Operating expenses"),
+    "operating_income": MetricDisplay("Operating income"),
+    "net_income": MetricDisplay("Net income"),
+    "research_and_development": MetricDisplay("Research and development"),
+    "selling_general_and_administrative": MetricDisplay("Selling, general and administrative"),
+    "interest_expense": MetricDisplay("Interest expense"),
+    "income_tax_expense": MetricDisplay("Income tax expense"),
+    "pretax_income": MetricDisplay("Pretax income"),
+    "eps_diluted": MetricDisplay("Diluted EPS", "per_share"),
+    "eps_basic": MetricDisplay("Basic EPS", "per_share"),
+    "operating_cash_flow": MetricDisplay("Operating cash flow"),
+    "capital_expenditure": MetricDisplay("Capital expenditure"),
+    "depreciation_amortization": MetricDisplay("Depreciation and amortization"),
+    "dividends_paid": MetricDisplay("Dividends paid"),
+    "dividends_per_share": MetricDisplay("Dividends per share", "per_share"),
+    "cash": MetricDisplay("Cash and equivalents"),
+    "shareholders_equity": MetricDisplay("Shareholders' equity"),
+    "net_income_ttm": MetricDisplay("Net income (trailing year)"),
+    "depreciation": MetricDisplay("Depreciation"),
+    "amortization_of_intangibles": MetricDisplay("Amortization of intangibles"),
+    "net_interest_income": MetricDisplay("Net interest income"),
+    "noninterest_income": MetricDisplay("Noninterest income"),
+    "gross_margin": MetricDisplay("Gross margin", "percent"),
+    "operating_margin": MetricDisplay("Operating margin", "percent"),
+    "net_margin": MetricDisplay("Net margin", "percent"),
+    "rd_to_sales": MetricDisplay("R&D to sales", "percent"),
+    "sga_ratio": MetricDisplay("SG&A ratio", "percent"),
+    "effective_tax_rate": MetricDisplay("Effective tax rate", "percent"),
+    "interest_coverage": MetricDisplay("Interest coverage", "multiple"),
+    "free_cash_flow": MetricDisplay("Free cash flow"),
+    "ebitda": MetricDisplay("EBITDA"),
+    "return_on_equity": MetricDisplay("Return on equity", "percent"),
+    "pe_ratio": MetricDisplay("P/E ratio", "multiple"),
+    "market_cap": MetricDisplay("Market cap"),
+    "price": MetricDisplay("Share price", "per_share"),
+}
+
 # Per-share amounts are reported in USD per share and are never derived by
 # subtraction: the share count moves during the year (ADR 0007).
 PER_SHARE_METRICS: frozenset[Metric] = frozenset(
-    {Metric.EPS_DILUTED, Metric.EPS_BASIC, Metric.DIVIDENDS_PER_SHARE}
+    metric for metric in Metric if METRIC_DISPLAY[metric].value_kind == "per_share"
 )
 # Balance-sheet amounts: one value at the report date, never a duration (ADR 0008).
 INSTANT_METRICS: frozenset[Metric] = frozenset({Metric.CASH, Metric.SHAREHOLDERS_EQUITY})

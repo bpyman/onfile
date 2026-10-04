@@ -10,7 +10,7 @@ A metric phrase is taken from the **user question**, not from `plan.metric`. Lon
 
 ## Phrase table
 
-The catalog owns the phrases: `services/metric_catalog.py` holds them, and `resolve_metric_phrase` reads them. This ADR records the rules and the ambiguous set, not every alias.
+The catalog owns the phrases: `services/metric_catalog.py` holds them, and `resolve_metric_phrase` reads them. It also holds each metric's label and kind of value (`METRIC_DISPLAY`), which the window reads. This ADR records the rules and the ambiguous set, not every alias.
 
 **Unique** phrases name one metric, longest span first: catalog names and slugs, abbreviations (`cogs`, `sg&a`, `r&d`, `opex`, `ebit`, `ebitda`, `roe`, `p/e`, `fcf`), and everyday wording (`top line` and `sales` → revenue, `bottom line` and `earnings` → net income, `market value` and `worth` → market cap, `net worth` → shareholders' equity, `share price` → price). A unique phrase that names a group names every member: `margins` is gross, operating and net margin.
 
