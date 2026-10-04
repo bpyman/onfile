@@ -20,10 +20,12 @@ from pydantic import BaseModel, Field
 
 from financial_analyst_agent.contracts import (
     QUALITATIVE_INTENTS,
+    FactsPort,
     NewsHit,
     TurnResult,
 )
 from financial_analyst_agent.domain.models import FinancialFact
+from financial_analyst_agent.services.fiscal_periods import FiscalPeriod
 
 EvidenceKind = Literal["fact", "news", "result"]
 
@@ -194,7 +196,7 @@ class EvidenceCachedFacts:
 
     def __init__(
         self,
-        inner: Any,
+        inner: FactsPort,
         store: EvidenceStore,
         *,
         prior_ids: frozenset[str],
@@ -231,28 +233,16 @@ class EvidenceCachedFacts:
         return fact
 
     def list_quarterly_report_dates(self, company: str, *, limit: int) -> tuple[date, ...]:
-        listing = getattr(self._inner, "list_quarterly_report_dates", None)
-        if listing is None:
-            return ()
-        dates = listing(company, limit=limit)
-        return tuple(dates)
+        return self._inner.list_quarterly_report_dates(company, limit=limit)
 
     def files_quarterly(self, company: str) -> tuple[bool, str]:
-        checker = getattr(self._inner, "files_quarterly", None)
-        if checker is None:
-            return True, company
-        quarterly, name = checker(company)
-        return bool(quarterly), str(name)
+        return self._inner.files_quarterly(company)
 
-    def fiscal_periods(self, company: str) -> tuple[Any, ...]:
-        periods = getattr(self._inner, "fiscal_periods", None)
-        if periods is None:
-            return ()
-        return tuple(periods(company))
+    def fiscal_periods(self, company: str) -> tuple[FiscalPeriod, ...]:
+        return self._inner.fiscal_periods(company)
 
     def display_name(self, cik: str, fallback: str) -> str:
-        named = getattr(self._inner, "display_name", None)
-        return str(named(cik, fallback)) if callable(named) else fallback
+        return self._inner.display_name(cik, fallback)
 
 
 def with_banner(result: TurnResult, banner: str) -> TurnResult:

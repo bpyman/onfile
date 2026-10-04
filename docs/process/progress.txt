@@ -885,3 +885,28 @@ Blockers / next:
   reports `0 of 244 conversations differ from HEAD`.
 - `tests/test_api.py::test_the_new_conversation_limit_says_how_long_to_wait`
   failed once ("about 61 minutes") and passed on rerun. It depends on the clock.
+
+## 2026-10-04 — simplify-followups 11 Type the facts port
+
+Task completed: `docs/process/tickets/simplify-followups/issues/11-type-the-facts-port.md`
+
+Key decisions:
+- `FactsPort` declares the four methods the turn used to probe for. Real ports
+  (`SecFactsService`, `EvidenceCachedFacts`) already had them.
+- `tests/helpers.FakeFacts` gives the four defaults. Its defaults match what
+  the old probes did when a method was missing, except `fiscal_periods`, which
+  returns `()`. No test depended on the difference.
+- Fact fields are read directly. `turn.py` types the company and the identity
+  arguments as `UniverseCompany` and `FinancialFact`.
+
+Files changed:
+- `src/financial_analyst_agent/{contracts,evidence_store,filing_change,turn}.py`
+- `src/financial_analyst_agent/graph/spec_turn.py`
+- `tests/helpers.py` and 28 test files whose fakes now subclass `FakeFacts`
+- `docs/process/tickets/simplify-followups/issues/11-type-the-facts-port.md`
+- `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,702 Python tests pass; ruff and mypy pass; the answer comparison
+  reports `0 of 244 conversations differ from HEAD`.
+

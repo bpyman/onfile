@@ -16,6 +16,7 @@ from financial_analyst_agent.contracts import (
 from financial_analyst_agent.domain.errors import ProviderError, ProviderRefusal
 from financial_analyst_agent.runtime import FIXTURE_EXPLAIN_ESSAY, recorded_runtime
 from financial_analyst_agent.turn import ESSAY_UNAVAILABLE_MESSAGE, run_turn
+from helpers import FakeFacts
 
 AI_HEALTHCARE_QUERY = "How can AI disrupt healthcare?"
 AI_MINING_QUERY = "How can AI disrupt mining?"
@@ -35,7 +36,7 @@ class _NumberFreeEssay:
         return FIXTURE_EXPLAIN_ESSAY
 
 
-class _ExplodingFacts:
+class _ExplodingFacts(FakeFacts):
     def get_financials(
         self, company: str, metric: str, *, report_date: date | None = None
     ) -> SimpleNamespace:

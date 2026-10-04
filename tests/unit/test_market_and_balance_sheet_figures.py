@@ -16,6 +16,7 @@ from financial_analyst_agent.presentation import (
     present_turn,
 )
 from financial_analyst_agent.turn import compare_metrics, market_formula_rows, snapshot_compare_rows
+from helpers import FakeFacts
 
 _QUARTER = (date(2026, 3, 29), date(2026, 6, 27))
 _YEAR = (date(2025, 6, 29), date(2026, 6, 27))
@@ -42,7 +43,7 @@ def _fact(metric: str, value: str, period: tuple[date, date]) -> FinancialFact:
     )
 
 
-class _Facts:
+class _Facts(FakeFacts):
     def __init__(self, facts: dict[str, FinancialFact], dated: dict[str, FinancialFact]) -> None:
         self.facts = facts
         self.dated = dated

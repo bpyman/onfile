@@ -12,6 +12,7 @@ from financial_analyst_agent.domain.errors import (
 )
 from financial_analyst_agent.ranking import SnapshotRanking
 from financial_analyst_agent.turn import run_turn
+from helpers import FakeFacts
 from test_run_turn_rank import (
     FIXTURE_SNAPSHOT_PATH,
     HEALTHCARE_TOP_10,
@@ -167,7 +168,7 @@ def test_run_turn_rank_and_lookup_keeps_good_rows_when_issuers_have_no_10_q() ->
     assert all(row.reason == "missing_fact" for row in result.table_rows[1:])
 
 
-class _CikOnlyFacts:
+class _CikOnlyFacts(FakeFacts):
     """Resolves recorded facts by ranking CIK only — a typed ticker list would miss."""
 
     def get_financials(

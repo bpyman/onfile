@@ -22,6 +22,7 @@ from financial_analyst_agent.runtime import (
     recorded_runtime,
 )
 from financial_analyst_agent.turn import run_turn
+from helpers import FakeFacts
 
 GOOGLE_LATEST_QUARTER_NET_INCOME_QUERY = (
     "What was Google's net income based on their latest quarterly report?"
@@ -71,7 +72,7 @@ class _FakeCompleter:
         return WorkflowPlan(intent=Intent.LOOKUP, company="Google", metric="net_income")
 
 
-class _FixtureFacts:
+class _FixtureFacts(FakeFacts):
     def get_financials(
         self, company: str, metric: str, *, report_date: date | None = None
     ) -> SimpleNamespace:
@@ -117,7 +118,7 @@ class _ShopifyRdToSalesCompleter:
         return WorkflowPlan(intent=Intent.LOOKUP, company="Shopify", metric="rd_to_sales")
 
 
-class _ComponentFacts:
+class _ComponentFacts(FakeFacts):
     def __init__(self, company: str, values: dict[str, Decimal]) -> None:
         self._company = company
         self._values = values
@@ -148,14 +149,14 @@ class _ComponentFacts:
         )
 
 
-class _ExplodingFacts:
+class _ExplodingFacts(FakeFacts):
     def get_financials(
         self, company: str, metric: str, *, report_date: date | None = None
     ) -> SimpleNamespace:
         raise AssertionError("get_financials must not invent a number for an unknown metric")
 
 
-class _SuccessorFacts:
+class _SuccessorFacts(FakeFacts):
     def get_financials(
         self, company: str, metric: str, *, report_date: date | None = None
     ) -> SimpleNamespace:
@@ -389,7 +390,7 @@ def test_run_turn_lookup_resolves_exxon_prefix() -> None:
 
 
 def test_run_turn_refuses_conflicting_catalog_concepts() -> None:
-    class _AmbiguousFacts:
+    class _AmbiguousFacts(FakeFacts):
         def get_financials(
             self, company: str, metric: str, *, report_date: date | None = None
         ) -> SimpleNamespace:
@@ -451,7 +452,7 @@ class _ShopifyMarketCapCompleter:
         return WorkflowPlan(intent=Intent.LOOKUP, company="Shopify", metric="market_cap")
 
 
-class _NoFacts:
+class _NoFacts(FakeFacts):
     def get_financials(
         self, company: str, metric: str, *, report_date: date | None = None
     ) -> SimpleNamespace:

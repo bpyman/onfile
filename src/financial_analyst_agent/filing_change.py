@@ -1007,8 +1007,7 @@ def run_filing_change(
         )
     cik = resolved.cik
     # SEC titles companies "PFIZER INC"; the snapshot knows them as "Pfizer Inc.".
-    display = getattr(runtime.facts, "display_name", None)
-    name = display(cik, resolved.name) if callable(display) else resolved.name
+    name = runtime.facts.display_name(cik, resolved.name)
     chosen_banner = ""
     changes: list[DisclosureChange] = []
     figure_rows = 0

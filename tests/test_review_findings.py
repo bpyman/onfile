@@ -7,6 +7,7 @@ import pytest
 from financial_analyst_agent.contracts import Intent, RendererKind, Runtime
 from financial_analyst_agent.runtime import recorded_runtime
 from financial_analyst_agent.turn import run_turn
+from helpers import FakeFacts
 
 
 @pytest.fixture(scope="module")
@@ -48,7 +49,7 @@ def test_a_cached_fact_reads_back_as_the_same_financial_fact() -> None:
         source_url="https://www.sec.gov/example.htm",
     )
 
-    class _Facts:
+    class _Facts(FakeFacts):
         def get_financials(
             self, company: str, metric: str, *, report_date: date | None = None
         ) -> FinancialFact:
@@ -114,7 +115,7 @@ def test_an_ineligible_issuer_is_a_typed_miss_in_a_comparison() -> None:
     from financial_analyst_agent.domain.errors import IneligibleIssuerError
     from financial_analyst_agent.turn import compare_metrics
 
-    class _Facts:
+    class _Facts(FakeFacts):
         def get_financials(self, company: str, metric: str, **_: object) -> object:
             raise IneligibleIssuerError("ARES CAPITAL CORP is not an operating company")
 
@@ -259,7 +260,7 @@ def test_a_refused_cell_in_a_window_keeps_its_reason(code: str, reason: str) -> 
         ),
     }
 
-    class _Facts:
+    class _Facts(FakeFacts):
         def get_financials(self, *_: object, **__: object) -> object:
             raise errors[code]
 

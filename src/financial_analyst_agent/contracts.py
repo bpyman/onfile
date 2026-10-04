@@ -20,6 +20,7 @@ from financial_analyst_agent.services.metric_catalog import METRIC_DISPLAY
 if TYPE_CHECKING:
     from financial_analyst_agent.graph.analysis_spec import SpecPatch
     from financial_analyst_agent.ranking import RankTable
+    from financial_analyst_agent.services.fiscal_periods import FiscalPeriod
     from financial_analyst_agent.universe import UniverseCompany
 
 
@@ -236,6 +237,14 @@ class FactsPort(Protocol):
         *,
         report_date: date | None = None,
     ) -> FinancialFact: ...
+
+    def list_quarterly_report_dates(self, company: str, *, limit: int) -> tuple[date, ...]: ...
+
+    def fiscal_periods(self, company: str) -> tuple["FiscalPeriod", ...]: ...
+
+    def files_quarterly(self, company: str) -> tuple[bool, str]: ...
+
+    def display_name(self, cik: str, fallback: str) -> str: ...
 
 
 class RankingPort(Protocol):

@@ -15,19 +15,19 @@ from types import SimpleNamespace
 
 from financial_analyst_agent.contracts import WorkflowPlan
 from financial_analyst_agent.runtime import FIXTURE_EXPLAIN_ESSAY, FIXTURE_UNIVERSE_SNAPSHOT_PATH
-from helpers import named_by_cik
+from helpers import FakeFacts, named_by_cik
 
 # Resolved companies are asked for by CIK; these fakes answer by name.
 _NAMED = named_by_cik('Google')
 
 
-class _SilentFacts:
+class _SilentFacts(FakeFacts):
     def get_financials(self, company: str, metric: str, **kwargs: object) -> SimpleNamespace:
         company = _NAMED(company)
         raise AssertionError(f"provider must not run while clarifying: {company} {metric}")
 
 
-class _LookupFacts:
+class _LookupFacts(FakeFacts):
     def __init__(self) -> None:
         self.calls: list[tuple[str, str]] = []
 

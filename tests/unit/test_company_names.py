@@ -24,6 +24,7 @@ from financial_analyst_agent.ranking import SnapshotRanking
 from financial_analyst_agent.rules_planner import DemoCompleter, issuer_index
 from financial_analyst_agent.thread_store import LocalThreadStore
 from financial_analyst_agent.universe import load_universe_snapshot
+from helpers import FakeFacts
 
 
 def _ranking() -> SnapshotRanking:
@@ -151,7 +152,7 @@ def test_every_capitalised_name_is_a_company_unless_plainly_a_word(word: str, ti
     assert ticker not in _found(f"Ask the {word}: what's Nvidia's revenue?")
 
 
-class _Facts:
+class _Facts(FakeFacts):
     def __init__(self) -> None:
         self.companies: list[str] = []
 

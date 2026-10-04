@@ -17,13 +17,13 @@ from urllib.parse import quote
 
 from financial_analyst_agent.contracts import WorkflowPlan
 from financial_analyst_agent.runtime import FIXTURE_UNIVERSE_SNAPSHOT_PATH
-from helpers import named_by_cik
+from helpers import FakeFacts, named_by_cik
 
 # Resolved companies are asked for by CIK; these fakes answer by name.
 _NAMED = named_by_cik('Microsoft', 'Google')
 
 
-class _CountingFacts:
+class _CountingFacts(FakeFacts):
     """Records every provider call; returns stable quarterly facts."""
 
     def __init__(self) -> None:

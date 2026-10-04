@@ -78,6 +78,7 @@ from financial_analyst_agent.domain.models import DerivationPart, FinancialFact
 from financial_analyst_agent.graph.analysis_spec import CompiledTask
 from financial_analyst_agent.observability import call_provider
 from financial_analyst_agent.services.filing_selector import FISCAL_WEEK_TOLERANCE
+from financial_analyst_agent.universe import UniverseCompany
 
 _LOOKUP_FAILURES = (
     AmbiguousFactError,
@@ -442,7 +443,7 @@ def _derivation_fields(fact: FinancialFact) -> dict[str, Any]:
 
 def _year_earlier(fact: FinancialFact, metric: str | None = None) -> ComponentProvenance | None:
     """The fact's year-earlier comparative, as its own filing reports it."""
-    before = getattr(fact, "year_earlier", None)
+    before = fact.year_earlier
     if before is None:
         return None
     return _part_provenance(before, metric or fact.metric.value, _fact_source_kind(fact))
@@ -726,7 +727,7 @@ def _compare_unresolved_row(
     )
 
 
-def _compare_row(identity: Any, metric: str, **kwargs: Any) -> TableRow:
+def _compare_row(identity: FinancialFact, metric: str, **kwargs: Any) -> TableRow:
     return TableRow(
         company_name=identity.company_name,
         ticker=identity.ticker,
@@ -802,7 +803,7 @@ def compare_metrics(
                 end_date=period_end,
                 components=components,
                 year_earlier=_formula_year_earlier(metric, fetched, component_names),
-                diluted_shares=getattr(identity, "diluted_shares", None),
+                diluted_shares=identity.diluted_shares,
                 newer_filing_end=max(
                     (
                         pending
@@ -899,7 +900,7 @@ def market_formula_rows(
                 metric,
                 value=member.market_cap / earnings.value,
                 components=components,
-                newer_filing_end=getattr(earnings, "newer_filing_end", None),
+                newer_filing_end=earnings.newer_filing_end,
                 **period,
             )
         )
@@ -912,7 +913,9 @@ def periods_differ(rows: list[TableRow]) -> bool:
     return not _same_fiscal_period(periods)
 
 
-def _rank_and_lookup_row(company: Any, index: int, metric: str, reason: str) -> TableRow:
+def _rank_and_lookup_row(
+    company: UniverseCompany, index: int, metric: str, reason: str
+) -> TableRow:
     return TableRow(
         company_name=company.name,
         ticker=company.ticker,
@@ -920,18 +923,18 @@ def _rank_and_lookup_row(company: Any, index: int, metric: str, reason: str) -> 
         metric=metric,
         rank=index,
         reason=reason,
-        market_cap=getattr(company, "market_cap", None),
+        market_cap=company.market_cap,
     )
 
 
-def _with_rank_identity(row: TableRow, company: Any, index: int) -> TableRow:
+def _with_rank_identity(row: TableRow, company: UniverseCompany, index: int) -> TableRow:
     return row.model_copy(
         update={
             "company_name": company.name,
             "ticker": company.ticker,
             "cik": company.cik,
             "rank": index,
-            "market_cap": getattr(company, "market_cap", None),
+            "market_cap": company.market_cap,
         }
     )
 

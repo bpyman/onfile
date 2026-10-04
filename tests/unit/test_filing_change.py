@@ -25,6 +25,7 @@ from financial_analyst_agent.filing_change import (
     run_filing_change,
 )
 from financial_analyst_agent.graph.state import FilingChangeRequest
+from helpers import FakeFacts
 
 OLDER_HTML = """
 <html><body>
@@ -109,7 +110,7 @@ class _Client:
         raise AssertionError(accession)
 
 
-class _Facts:
+class _Facts(FakeFacts):
     def __init__(self) -> None:
         # The SEC source filing change reads, passed as the runtime's filings port.
         self._client = _Client()

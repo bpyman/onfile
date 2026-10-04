@@ -15,9 +15,10 @@ import pytest
 
 from financial_analyst_agent.contracts import WorkflowPlan
 from financial_analyst_agent.runtime import FIXTURE_UNIVERSE_SNAPSHOT_PATH
+from helpers import FakeFacts
 
 
-class _PeriodFacts:
+class _PeriodFacts(FakeFacts):
     Q2 = date(2025, 6, 30)
     Q1 = date(2025, 3, 31)
     Q4 = date(2024, 12, 31)
@@ -295,7 +296,7 @@ def test_unmaterialized_window_refuses_instead_of_latest_quarter(tmp_path: Path)
     from financial_analyst_agent.graph.analysis_spec import PeriodSelection, SpecPatch
     from financial_analyst_agent.thread_store import LocalThreadStore
 
-    class _NoDates:
+    class _NoDates(FakeFacts):
         def get_financials(self, company: str, metric: str, **_kwargs: object) -> object:
             raise AssertionError("must not fall back to latest-quarter lookup")
 
