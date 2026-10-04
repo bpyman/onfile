@@ -3,6 +3,7 @@
 import threading
 from collections import Counter
 from collections.abc import Callable, Mapping
+from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
 from typing import Any, Protocol
@@ -18,6 +19,7 @@ from financial_analyst_agent.domain.errors import (
     NoDividendThisQuarterError,
     PerShareNotDerivableError,
     ProviderError,
+    SessionQuotaError,
     UnsupportedQuarterlyFactError,
 )
 from financial_analyst_agent.domain.models import Company, FactRecord, Filing, FinancialFact
@@ -83,7 +85,7 @@ class SECDataSource(Protocol):
 
     def get_company_tickers(self) -> dict[str, Any]: ...
 
-    def get_submissions(self, cik: str) -> dict[str, Any]: ...
+    def get_submissions(self, cik: str, *, with_history: bool = True) -> dict[str, Any]: ...
 
     def get_company_facts(self, cik: str) -> dict[str, Any]: ...
 
@@ -110,6 +112,29 @@ PENDING_IN_XBRL_MESSAGE = "SEC's structured data does not yet include this quart
 UNREADABLE_FACTS_MESSAGE = "SEC's structured data for this metric could not be read"
 
 
+@dataclass(frozen=True)
+class FilingSources:
+    """Where a lookup's filings live, for their source links.
+
+    ``folders`` names the registrant whose EDGAR folder holds a filing when it is
+    not the company's own (a predecessor's reports, see ``SecFactLookup._filings``).
+    ``primary_document`` finds a filing's main document when the filing at hand
+    has none: one read from company facts (``SecFactLookup._with_facts_filings``).
+    Without one the link is the filing's index page.
+    """
+
+    folders: Mapping[str, str] = field(default_factory=dict)
+    primary_document: Callable[[str, str], str | None] | None = None
+
+    def url(self, cik: str, filing: Filing) -> str:
+        folder = self.folders.get(filing.accession_number, cik)
+        if not filing.primary_document and self.primary_document is not None:
+            document = self.primary_document(folder, filing.accession_number)
+            if document:
+                filing = filing.model_copy(update={"primary_document": document})
+        return build_filing_source_url(folder, filing)
+
+
 def _related_lookup_ciks(resolved_cik: str, predecessor: str | None) -> tuple[str, ...]:
     """The listed company's CIK, then its verified predecessor's (ExxonMobil's old CIK).
 
@@ -129,7 +154,7 @@ def _select_or_derive(
     owner: FactOwner,
     *,
     report_date: date | None,
-    filer_ciks: Mapping[str, str] | None = None,
+    sources: FilingSources | None = None,
 ) -> FinancialFact:
     fact = _select_or_derive_in_unit(
         records,
@@ -137,7 +162,7 @@ def _select_or_derive(
         metric,
         owner,
         report_date=report_date,
-        filer_ciks=filer_ciks,
+        sources=sources,
     )
     # EPS is filtered by its "USD/shares" unit but is still an amount in dollars.
     return fact if fact.currency == "USD" else fact.model_copy(update={"currency": "USD"})
@@ -150,32 +175,26 @@ def _select_or_derive_in_unit(
     owner: FactOwner,
     *,
     report_date: date | None,
-    filer_ciks: Mapping[str, str] | None = None,
+    sources: FilingSources | None = None,
 ) -> FinancialFact:
     """A reported quarter when a filing has one, else a derived quarter (ADR 0007).
 
-    ``filer_ciks`` names the registrant whose EDGAR folder holds a filing, when
-    it is not ``cik`` (a predecessor's reports, see ``SecFactLookup._filings``).
+    ``sources`` says where each filing lives, for its source link (``FilingSources``).
     """
     by_accession = {filing.accession_number: filing for filing in filings}
-    folders = filer_ciks or {}
+    where = sources or FilingSources()
 
     def source_url_for_filing(filing: Filing) -> str:
-        return build_filing_source_url(folders.get(filing.accession_number, owner.cik), filing)
+        return where.url(owner.cik, filing)
 
     def source_url_for_accession(accession: str) -> str:
-        filing = by_accession.get(accession)
-        if filing is not None:
-            return source_url_for_filing(filing)
-        return build_filing_source_url(
-            folders.get(accession, owner.cik),
-            Filing(
-                form="",
-                accession_number=accession,
-                filed_date=date.min,
-                report_date=date.min,
-            ),
+        filing = by_accession.get(accession) or Filing(
+            form="",
+            accession_number=accession,
+            filed_date=date.min,
+            report_date=date.min,
         )
+        return source_url_for_filing(filing)
 
     if report_date is None:
         raise FilingNotFoundError("No 10-Q or 10-K filing found")
@@ -270,6 +289,7 @@ class SecFactLookup:
         self._failures: dict[str, BaseException] = {}
         self._resolved_by_query: dict[str, Company] = {}
         self._submissions_by_cik: dict[str, dict[str, Any]] = {}
+        self._documents_by_cik: dict[str, dict[str, str]] = {}
         self._company_facts_by_cik: dict[str, dict[str, Any] | None] = {}
         # A window asks for each quarter of the same metric: its records are read
         # from the facts once a turn, not once a quarter.
@@ -335,11 +355,37 @@ class SecFactLookup:
         if payload is None:
             payload = trim_submissions(
                 self._remembering_failure(
-                    f"submissions:{cik}", lambda: self._client.get_submissions(cik)
+                    # The first page only: older 10-Qs and 10-Ks come from company
+                    # facts (``_with_facts_filings``), which a lookup reads anyway.
+                    # A bank's older pages hold years of prospectuses and cost a
+                    # request each.
+                    f"submissions:{cik}",
+                    lambda: self._client.get_submissions(cik, with_history=False),
                 )
             )
             self._submissions_by_cik[cik] = payload
         return payload
+
+    def _primary_document(self, cik: str, accession: str) -> str | None:
+        """A filing's main document, from the filer's older submissions pages.
+
+        Read only when a source link needs a filing the first page leaves out
+        (``_cached_submissions``), once a turn per filer. A page that fails ends
+        the reading, and the link is the filing's index page.
+        """
+        documents = self._documents_by_cik.get(cik)
+        if documents is None:
+            try:
+                history = parse_submissions(trim_submissions(self._client.get_submissions(cik)))
+            except (ProviderError, SessionQuotaError):
+                history = []
+            documents = {
+                filing.accession_number: filing.primary_document
+                for filing in history
+                if filing.primary_document
+            }
+            self._documents_by_cik[cik] = documents
+        return documents.get(accession)
 
     def _filings(self, cik: str) -> list[Filing]:
         """The issuer's filings, with its predecessor's when it is a new registrant.
@@ -511,12 +557,13 @@ class SecFactLookup:
                 cik, company_facts_payload, parsed_metric, unit
             )
             unreadable = unreadable or (not records and bool(rejections))
-            filer_ciks: dict[str, str] = {}
+            folders: dict[str, str] = {}
             predecessor = self._predecessor_ciks.get(resolved.cik)
             if cik == resolved.cik and predecessor is not None:
-                records, filer_ciks = self._with_predecessor_facts(
+                records, folders = self._with_predecessor_facts(
                     records, predecessor, parsed_metric, unit
                 )
+            sources = FilingSources(folders, self._primary_document)
             name = self._display_names.get(resolved.cik, resolved.name)
             targets: list[date | None] = [target]
             if report_date is None:
@@ -530,7 +577,7 @@ class SecFactLookup:
                         parsed_metric,
                         FactOwner(company_name=name, ticker=ticker, cik=cik, currency=unit),
                         report_date=period,
-                        filer_ciks=filer_ciks,
+                        sources=sources,
                     )
                 except (UnsupportedQuarterlyFactError, FilingNotFoundError) as exc:
                     last_unsupported = exc
@@ -594,7 +641,7 @@ class SecFactLookup:
         owner: FactOwner,
         *,
         report_date: date | None,
-        filer_ciks: Mapping[str, str] | None = None,
+        sources: FilingSources | None = None,
     ) -> FinancialFact:
 
         def select(kept: list[FactRecord], chosen: Metric) -> FinancialFact:
@@ -604,13 +651,13 @@ class SecFactLookup:
                 chosen,
                 owner,
                 report_date=report_date,
-                filer_ciks=filer_ciks,
+                sources=sources,
             )
 
         if metric is Metric.REVENUE:
             fact = _total_revenue(records, payload, owner.currency, select)
             fact = _bank_revenue(fact, payload, owner.currency, select)
-            return self._plausible_revenue(fact, payload, filings, owner, filer_ciks=filer_ciks)
+            return self._plausible_revenue(fact, payload, filings, owner, sources=sources)
         try:
             fact = select(records, metric)
             if metric is Metric.DIVIDENDS_PER_SHARE:
@@ -623,7 +670,7 @@ class SecFactLookup:
                     filings,
                     owner,
                     report_date=report_date,
-                    filer_ciks=filer_ciks,
+                    sources=sources,
                 )
             if metric is not Metric.GROSS_PROFIT:
                 raise
@@ -650,7 +697,7 @@ class SecFactLookup:
         filings: list[Filing],
         owner: FactOwner,
         *,
-        filer_ciks: Mapping[str, str] | None,
+        sources: FilingSources | None,
     ) -> FinancialFact:
         """Revenue, unless the filing's own gross profit or cost of revenue exceeds it.
 
@@ -670,7 +717,7 @@ class SecFactLookup:
                         component,
                         owner,
                         report_date=revenue.end_date,
-                        filer_ciks=filer_ciks,
+                        sources=sources,
                     )
                 )
             except (UnsupportedQuarterlyFactError, FilingNotFoundError):
@@ -701,7 +748,7 @@ class SecFactLookup:
         owner: FactOwner,
         *,
         report_date: date | None,
-        filer_ciks: Mapping[str, str] | None,
+        sources: FilingSources | None,
     ) -> FinancialFact:
         """D&A as depreciation plus amortization of intangibles (Microsoft, Alphabet).
 
@@ -717,7 +764,7 @@ class SecFactLookup:
                     component,
                     owner,
                     report_date=report_date,
-                    filer_ciks=filer_ciks,
+                    sources=sources,
                 )
             )
         return sum_of_components(Metric.DEPRECIATION_AMORTIZATION, parts)

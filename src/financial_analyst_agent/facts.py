@@ -37,7 +37,8 @@ class RecordedSECDataSource:
     def get_company_tickers(self) -> dict[str, Any]:
         return require_usable_company_tickers(self._recording.get("company_tickers"))
 
-    def get_submissions(self, cik: str) -> dict[str, Any]:
+    def get_submissions(self, cik: str, *, with_history: bool = True) -> dict[str, Any]:
+        # The cassette holds each filer's submissions as recorded; there are no pages to skip.
         payload = self._issuer_payload("submissions", cik)
         return validate_submissions_response(payload, cik, details={"cik": cik})
 

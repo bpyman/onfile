@@ -39,7 +39,7 @@ class FixtureSEC:
             raise ProviderError("not in fixtures", details={"cik": cik, "status_code": 404})
         return fixture
 
-    def get_submissions(self, cik: str) -> dict[str, Any]:
+    def get_submissions(self, cik: str, *, with_history: bool = True) -> dict[str, Any]:
         submissions: dict[str, Any] = self._fixture(cik)["submissions"]
         return submissions
 
