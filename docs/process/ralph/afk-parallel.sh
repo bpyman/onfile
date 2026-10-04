@@ -2,6 +2,7 @@
 # Ralph with several workers at once, each in its own worktree.
 # Usage: bash docs/process/ralph/afk-parallel.sh <workers> <max-tickets> <integration-branch> [feature-slug]
 #        RALPH_TICKETS="07 12" ... limits the run to those ticket numbers.
+#        RALPH_AGENT=cursor ... runs Cursor's agent instead of Claude Code (see lib.sh).
 #
 # The integration branch must exist on origin. Workers land their work on it; nothing
 # lands on master, which takes the branch through a pull request as usual.
@@ -139,18 +140,6 @@ ensure_worktree() {
   fi
 }
 
-# Cursor's stream: the agent's new text, without its duplicate flush events (as afk.sh).
-stream_text='
-  select(
-    .type == "assistant"
-    and has("timestamp_ms")
-    and (has("model_call_id") | not)
-  )
-  | .message.content[]?
-  | select(.type == "text")
-  | .text // empty
-'
-
 rules() {
   local k="$1" ticket="$2"
   cat <<EOF
@@ -171,8 +160,9 @@ other worktrees, at the same time; all of you land your work on the branch \`$in
   and the answer comparison, and pushes. Exit 2 means the rebase conflicted: resolve it,
   keeping both sides' intent, run \`git rebase --continue\`, then run it again. Exit 3 means a
   check failed after the rebase: fix it, commit, and run it again.
-- Run integrate.sh in the foreground and wait for it to finish (it can take a few minutes:
-  it waits its turn, then runs every check). Never start it in the background: your
+- Run integrate.sh in the foreground and wait for it to finish (it can take several
+  minutes: it waits its turn, then runs every check), with the longest timeout your shell
+  tool allows; if that runs out, run it again. Never start it in the background: your
   session ends when you stop, and work never seen landing does not count.
 - Finish by quoting the commit hash integrate.sh printed after "landed".
 - This push to \`$integration\` is the one push the LIMITS below allow. Never push anywhere
@@ -213,9 +203,9 @@ Instructions:
 
 $(rules "$k" "$ticket")
 $(cat docs/process/ralph/prompt.md)"
-    ) | tee "$tmp" | jq --unbuffered -rj "$stream_text" >> "$log" 2>&1 || status=$?
+    ) | tee "$tmp" | jq --unbuffered -rj "$RALPH_STREAM_TEXT" >> "$log" 2>&1 || status=$?
     release "$ticket"
-    if [ "$status" -ne 0 ] || ! jq -e 'select(.type == "result" and .subtype == "success")' "$tmp" >/dev/null 2>&1; then
+    if [ "$status" -ne 0 ] || ! jq -e "$RALPH_SUCCESS" "$tmp" >/dev/null 2>&1; then
       echo "[w$k] $ticket: the agent failed ($(jq -r 'select(.type == "result") | .result // .subtype' "$tmp" 2>/dev/null | tail -n 1)); worker stops" | tee -a "$log"
       rm -f "$tmp"
       return 1

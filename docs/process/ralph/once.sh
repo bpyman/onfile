@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # One Ralph iteration. Optional feature slug scopes tickets.
 # Usage: bash docs/process/ralph/once.sh [feature-slug]
+#        RALPH_AGENT=cursor ... runs Cursor's agent instead of Claude Code (see lib.sh).
 set -euo pipefail
 
 # shellcheck source=lib.sh
