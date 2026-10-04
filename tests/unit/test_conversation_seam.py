@@ -13,9 +13,10 @@ from types import SimpleNamespace
 
 from financial_analyst_agent.contracts import WorkflowPlan
 from financial_analyst_agent.runtime import FIXTURE_EXPLAIN_ESSAY
+from helpers import FakeFacts
 
 
-class _LookupFacts:
+class _LookupFacts(FakeFacts):
     def get_financials(
         self, company: str, metric: str, *, report_date: date | None = None
     ) -> SimpleNamespace:

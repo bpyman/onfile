@@ -27,6 +27,7 @@ from financial_analyst_agent.presentation import long_quarter_banner
 from financial_analyst_agent.ranking import SnapshotRanking
 from financial_analyst_agent.request_wording import read_window, refine_patch_from_message
 from financial_analyst_agent.runtime import FIXTURE_UNIVERSE_SNAPSHOT_PATH
+from helpers import FakeFacts
 
 # Costco's quarters end on Sundays of 12- and 16-week periods; Walmart's at month ends.
 _COSTCO = (date(2026, 5, 10), date(2026, 2, 15), date(2025, 11, 23), date(2025, 8, 31))
@@ -37,7 +38,7 @@ def _company(query: str, name: str | None = None) -> ResolvedCompany:
     return ResolvedCompany(cik=query, name=name or query, ticker=query.upper(), query=query)
 
 
-class _Facts:
+class _Facts(FakeFacts):
     def list_quarterly_report_dates(self, company: str, *, limit: int) -> tuple[date, ...]:
         return {"Costco": _COSTCO, "Walmart": _WALMART}[company][:limit]
 

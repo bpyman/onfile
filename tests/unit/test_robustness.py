@@ -21,6 +21,7 @@ from financial_analyst_agent.graph.spec_turn import (
 )
 from financial_analyst_agent.providers.sec.client import _RateLimiter
 from financial_analyst_agent.services.metric_catalog import resolve_metric_phrase
+from helpers import FakeFacts
 
 
 def _level(end: date, value: str) -> TableRow:
@@ -202,7 +203,7 @@ def test_rate_limiter_spaces_concurrent_requests(monkeypatch: pytest.MonkeyPatch
 def test_dated_lookup_error_is_not_retried_as_latest_quarter() -> None:
     calls: list[date | None] = []
 
-    class _Facts:
+    class _Facts(FakeFacts):
         def get_financials(
             self, company: str, metric: str, *, report_date: date | None = None
         ) -> object:
@@ -220,15 +221,11 @@ def test_dated_lookup_error_is_not_retried_as_latest_quarter() -> None:
 
 
 def test_evidence_cache_passes_the_snapshot_name_through() -> None:
-    class _Named:
+    class _Named(FakeFacts):
         def display_name(self, cik: str, fallback: str) -> str:
             return "Pfizer Inc." if cik == "0000078003" else fallback
 
-    class _Bare:
-        pass
-
     named = EvidenceCachedFacts(_Named(), InMemoryEvidenceStore(), prior_ids=frozenset())
-    bare = EvidenceCachedFacts(_Bare(), InMemoryEvidenceStore(), prior_ids=frozenset())
 
     assert named.display_name("0000078003", "PFIZER INC") == "Pfizer Inc."
-    assert bare.display_name("0000078003", "PFIZER INC") == "PFIZER INC"
+    assert named.display_name("0000320193", "APPLE INC") == "APPLE INC"

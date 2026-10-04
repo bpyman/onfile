@@ -72,3 +72,23 @@ def named_by_cik(*names: str):  # type: ignore[no-untyped-def]
         return by_cik.get(company, company)
 
     return named
+
+
+class FakeFacts:
+    """A facts port's optional methods, for fakes that only answer ``get_financials``.
+
+    No quarters are listed, no fiscal periods are known, every company files
+    10-Qs, and a company keeps the name it was asked by.
+    """
+
+    def list_quarterly_report_dates(self, company: str, *, limit: int) -> tuple[date, ...]:
+        return ()
+
+    def fiscal_periods(self, company: str) -> tuple[object, ...]:
+        return ()
+
+    def files_quarterly(self, company: str) -> tuple[bool, str]:
+        return True, company
+
+    def display_name(self, cik: str, fallback: str) -> str:
+        return fallback

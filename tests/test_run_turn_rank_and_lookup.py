@@ -1,5 +1,6 @@
 """Top 10 healthcare and net income for each through run_turn."""
 
+from dataclasses import replace
 from datetime import date
 from decimal import Decimal
 from types import SimpleNamespace
@@ -11,6 +12,7 @@ from financial_analyst_agent.domain.errors import (
 )
 from financial_analyst_agent.ranking import SnapshotRanking
 from financial_analyst_agent.turn import run_turn
+from helpers import FakeFacts
 from test_run_turn_rank import (
     FIXTURE_SNAPSHOT_PATH,
     HEALTHCARE_TOP_10,
@@ -166,7 +168,7 @@ def test_run_turn_rank_and_lookup_keeps_good_rows_when_issuers_have_no_10_q() ->
     assert all(row.reason == "missing_fact" for row in result.table_rows[1:])
 
 
-class _CikOnlyFacts:
+class _CikOnlyFacts(FakeFacts):
     """Resolves recorded facts by ranking CIK only — a typed ticker list would miss."""
 
     def get_financials(
@@ -392,3 +394,30 @@ def test_run_turn_rank_and_lookup_uses_snapshot_market_caps() -> None:
         assert row.metric == "market_cap"
         assert row.value == market_cap
         assert row.start_date is None
+
+
+class _CountingRanking(SnapshotRanking):
+    def __init__(self, ranking: SnapshotRanking) -> None:
+        self.__dict__.update(ranking.__dict__)
+        self.ranked: list[tuple[str, int]] = []
+
+    def rank_companies(self, industry: str, limit: int):  # type: ignore[no-untyped-def]
+        self.ranked.append((industry, limit))
+        return super().rank_companies(industry, limit)
+
+
+def test_an_industry_is_ranked_once_for_every_metric_of_a_turn() -> None:
+    runtime = _snapshot_rank_runtime()
+    ranking = _CountingRanking(SnapshotRanking.from_path(FIXTURE_SNAPSHOT_PATH))
+    runtime = replace(runtime, ranking=ranking)
+
+    result = run_turn(
+        "What are the top 10 healthcare companies and the net income and revenue for each?",
+        runtime,
+    )
+
+    assert result.renderer is RendererKind.TABLE
+    assert ranking.ranked == [("healthcare", 10)]
+    rank_traces = [trace for trace in result.tool_traces if trace.tool == "rank_companies"]
+    assert rank_traces
+    assert all(trace.provenance["snapshot_as_of"] == SNAPSHOT_AS_OF for trace in rank_traces)

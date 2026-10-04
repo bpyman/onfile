@@ -16,11 +16,12 @@ import json
 from pathlib import Path
 from typing import Any
 
+from financial_analyst_agent.providers.sec.submissions import KEPT_COLUMNS
+
 ROOT = Path(__file__).resolve().parents[1]
 CACHE = ROOT / ".cache" / "sec"
 OUT = ROOT / "tests" / "fixtures" / "sec"
 PERIODIC_FORMS = frozenset({"10-Q", "10-Q/A", "10-K", "10-K/A"})
-_SUBMISSION_FIELDS = ("accessionNumber", "filingDate", "reportDate", "form", "primaryDocument")
 
 
 def trim(
@@ -59,7 +60,7 @@ def trim(
             "filings": {
                 "recent": {
                     field: [recent[field][index] for index in rows]
-                    for field in _SUBMISSION_FIELDS
+                    for field in KEPT_COLUMNS
                 },
                 "files": [],
             },

@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from financial_analyst_agent.contracts import WorkflowPlan
+from helpers import FakeFacts
 
 if TYPE_CHECKING:
     from financial_analyst_agent.contracts import Runtime
@@ -24,7 +25,7 @@ if TYPE_CHECKING:
 QUESTION = "What was Google's net income based on their latest quarterly report?"
 
 
-class _Facts:
+class _Facts(FakeFacts):
     def get_financials(
         self, company: str, metric: str, *, report_date: date | None = None
     ) -> SimpleNamespace:

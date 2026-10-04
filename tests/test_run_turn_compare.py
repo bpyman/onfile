@@ -17,7 +17,7 @@ from financial_analyst_agent.facts import RecordedSECDataSource
 from financial_analyst_agent.runtime import recorded_runtime
 from financial_analyst_agent.sec_facts import SecFactLookup
 from financial_analyst_agent.turn import PERIODS_DIFFER_BANNER, run_turn
-from helpers import named_by_cik
+from helpers import FakeFacts, named_by_cik
 
 # Resolved companies are asked for by CIK; these fakes answer by name.
 _NAMED = named_by_cik('Microsoft', 'Google')
@@ -179,7 +179,7 @@ class _CompareCompleter:
         )
 
 
-class _MismatchedPeriodFacts:
+class _MismatchedPeriodFacts(FakeFacts):
     def get_financials(
         self, company: str, metric: str, *, report_date: date | None = None
     ) -> SimpleNamespace:
@@ -308,7 +308,7 @@ def test_run_turn_consolidates_goog_and_googl_to_one_alphabet_row() -> None:
     assert row.value == RECORDED_ALPHABET_OPERATING_INCOME / RECORDED_ALPHABET_REVENUE
 
 
-class _MissingMicrosoftFacts:
+class _MissingMicrosoftFacts(FakeFacts):
     def get_financials(
         self, company: str, metric: str, *, report_date: date | None = None
     ) -> SimpleNamespace:
@@ -480,7 +480,7 @@ def test_run_turn_compare_snapshot_market_caps() -> None:
     }
 
 
-class _OneSourceFails:
+class _OneSourceFails(FakeFacts):
     """Microsoft's SEC documents fail; Google's answer, for its own quarter."""
 
     def __init__(self, failure: Exception) -> None:

@@ -15,9 +15,10 @@ from financial_analyst_agent.domain.models import FinancialFact
 from financial_analyst_agent.graph.analysis_spec import CompiledTask
 from financial_analyst_agent.ranking import SnapshotRanking
 from financial_analyst_agent.runtime import FIXTURE_UNIVERSE_SNAPSHOT_PATH
+from helpers import FakeFacts
 
 
-class _LookupFacts:
+class _LookupFacts(FakeFacts):
     def get_financials(
         self, company: str, metric: str, *, report_date: date | None = None
     ) -> FinancialFact:
@@ -42,7 +43,7 @@ class _LookupFacts:
         )
 
 
-class _CompareFacts:
+class _CompareFacts(FakeFacts):
     def get_financials(
         self, company: str, metric: str, *, report_date: date | None = None
     ) -> FinancialFact:

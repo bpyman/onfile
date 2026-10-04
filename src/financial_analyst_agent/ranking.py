@@ -1,5 +1,6 @@
 """Rank companies from a dated universe snapshot."""
 
+from collections.abc import Collection
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -12,6 +13,7 @@ from financial_analyst_agent.domain.errors import (
 from financial_analyst_agent.issuer_index import IssuerIndex, normalize
 from financial_analyst_agent.providers.sec.company_resolver import resolve_company
 from financial_analyst_agent.universe import (
+    SnapshotGroups,
     UniverseCompany,
     UniverseSnapshot,
     allowed_industry_names,
@@ -49,6 +51,7 @@ class SnapshotRanking:
         for company in self._operating:
             self._listings_by_cik.setdefault(company.cik, []).append(company)
         self._by_ticker = {company.ticker.upper(): company for company in self._operating}
+        self._groups = SnapshotGroups.of(snapshot)
         self._ticker_payload: dict[str, Any] = {
             str(index): {
                 "ticker": company.ticker,
@@ -73,9 +76,9 @@ class SnapshotRanking:
         return self._index
 
     def rank_companies(self, industry: str, limit: int) -> RankTable:
-        group = resolve_industry_group(industry, self._snapshot)
+        group = resolve_industry_group(industry, self._groups)
         if group is None:
-            allowed_names = allowed_industry_names(self._snapshot)
+            allowed_names = allowed_industry_names(self._groups)
             allowed = ", ".join(allowed_names)
             raise UnknownIndustryError(
                 f"Unknown industry {industry!r}. Allowed: {allowed}",
@@ -98,6 +101,10 @@ class SnapshotRanking:
             sector=group.label,
             companies=tuple(selected),
         )
+
+    def member_ciks(self) -> Collection[str]:
+        """Every snapshot member's CIK: the companies the snapshot has already judged."""
+        return self._listings_by_cik.keys()
 
     def snapshot_companies(self) -> tuple[UniverseCompany, ...]:
         return tuple(self._snapshot.companies)

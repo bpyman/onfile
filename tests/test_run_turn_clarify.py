@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from financial_analyst_agent.contracts import Intent, RendererKind, Runtime, WorkflowPlan
 from financial_analyst_agent.runtime import recorded_runtime
 from financial_analyst_agent.turn import run_turn
+from helpers import FakeFacts
 from test_run_turn_lookup import (
     UNKNOWN_METRIC_QUERY,
     _ExplodingFacts,
@@ -76,7 +77,7 @@ def test_unknown_metric_still_refuses_with_full_catalog() -> None:
 def test_unique_phrase_overrides_planner_metric() -> None:
     fetched: list[str] = []
 
-    class _Facts:
+    class _Facts(FakeFacts):
         def get_financials(
             self, company: str, metric: str, *, report_date: date | None = None
         ) -> SimpleNamespace:

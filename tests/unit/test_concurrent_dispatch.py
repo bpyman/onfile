@@ -20,7 +20,7 @@ import pytest
 
 from financial_analyst_agent.domain.errors import UnsupportedQuarterlyFactError
 from financial_analyst_agent.runtime import FIXTURE_UNIVERSE_SNAPSHOT_PATH
-from helpers import named_by_cik
+from helpers import FakeFacts, named_by_cik
 
 # Resolved companies are asked for by CIK; these fakes answer by name.
 _NAMED = named_by_cik('Microsoft')
@@ -32,7 +32,7 @@ Q4 = date(2025, 12, 31)
 FOUR_QUARTERS = (Q4, Q3, Q2, Q1)
 
 
-class _SlowFacts:
+class _SlowFacts(FakeFacts):
     """Facts that overlap in wall time so concurrency is observable."""
 
     def __init__(

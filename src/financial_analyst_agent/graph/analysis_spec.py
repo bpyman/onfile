@@ -118,6 +118,9 @@ class RankedSet(BaseModel):
     industry: str
     limit: int
     members: tuple[ResolvedCompany, ...] = ()
+    # The ranking port's table these members came from, so the turn's ranked
+    # tasks reuse it instead of ranking again. Not stored: a held spec ranks anew.
+    table: Any = Field(default=None, exclude=True, repr=False)
 
 
 class AnalysisSpec(BaseModel):
@@ -202,6 +205,8 @@ class CompiledTask(BaseModel):
     industry: str | None = None
     limit: int | None = None
     report_date: date | None = None
+    # The industry's ranking, when the spec already ranked it (RankedSet.table).
+    ranked: Any = Field(default=None, exclude=True, repr=False)
 
 
 def _company_matches_token(company: ResolvedCompany, token: str) -> bool:
@@ -377,7 +382,7 @@ def resolve_spec(
             )
             for member in table.companies
         )
-        constituents = RankedSet(industry=industry, limit=limit, members=members)
+        constituents = RankedSet(industry=industry, limit=limit, members=members, table=table)
     else:
         seen: set[str] = set()
         for query in draft.company_queries:
@@ -505,6 +510,7 @@ def _base_tasks(spec: AnalysisSpec) -> tuple[CompiledTask, ...]:
                     kind="rank",
                     industry=spec.constituents.industry,
                     limit=spec.constituents.limit,
+                    ranked=spec.constituents.table,
                 ),
             )
         return tuple(
@@ -513,6 +519,7 @@ def _base_tasks(spec: AnalysisSpec) -> tuple[CompiledTask, ...]:
                 industry=spec.constituents.industry,
                 limit=spec.constituents.limit,
                 metric=metric,
+                ranked=spec.constituents.table,
             )
             for metric in spec.metrics
         )

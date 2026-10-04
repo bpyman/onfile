@@ -6,6 +6,7 @@ import json
 import re
 from collections import Counter
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import date
 from difflib import SequenceMatcher
 from html.parser import HTMLParser
@@ -41,7 +42,7 @@ from financial_analyst_agent.providers.sec.submissions import (
     require_recent_filings,
 )
 from financial_analyst_agent.providers.sec.urls import build_filing_document_url
-from financial_analyst_agent.universe import sec_identity_is_operating
+from financial_analyst_agent.universe import require_operating
 
 SectionId = Literal["mda", "risk_factors"]
 
@@ -706,7 +707,19 @@ def parse_sections(raw: str) -> tuple[SectionId, ...]:
     return tuple(found)
 
 
-def _primary_document(recent: dict[str, Any], accession: str) -> str:
+@dataclass(frozen=True)
+class _Filing:
+    """One row of a company's submissions table."""
+
+    accession: str
+    form: str
+    # The period the report covers; the filing date when SEC gives no report dates.
+    report_date: str
+    primary_document: str
+
+
+def _read_filings(recent: dict[str, Any]) -> dict[str, _Filing]:
+    """The ``filings.recent`` columns as rows, keyed by accession."""
     accessions = recent.get("accessionNumber")
     documents = recent.get("primaryDocument")
     forms = recent.get("form")
@@ -718,13 +731,33 @@ def _primary_document(recent: dict[str, Any], accession: str) -> str:
         raise ProviderError("submissions accessionNumber, primaryDocument and form must be lists")
     if len(accessions) != len(documents) or len(accessions) != len(forms):
         raise ProviderError("submissions filing arrays have inconsistent lengths")
-    for index, candidate in enumerate(accessions):
-        if candidate == accession and forms[index] in PERIODIC_FORMS:
-            document = documents[index]
-            if isinstance(document, str) and document.strip():
-                return document
-            raise ProviderRefusal(f"Primary document is missing for accession {accession}")
-    raise ProviderRefusal(f"Filing accession {accession} was not found in supported submissions")
+    dates = recent.get("reportDate")
+    if not isinstance(dates, list):
+        dates = recent.get("filingDate")
+    if not isinstance(dates, list) or len(dates) != len(accessions):
+        dates = [""] * len(accessions)
+    rows: dict[str, _Filing] = {}
+    for accession, form, when, document in zip(accessions, forms, dates, documents, strict=True):
+        if not isinstance(accession, str) or accession in rows:
+            continue
+        rows[accession] = _Filing(
+            accession=accession,
+            form=form if isinstance(form, str) else "",
+            report_date=when.strip() if isinstance(when, str) else "",
+            primary_document=document if isinstance(document, str) and document.strip() else "",
+        )
+    return rows
+
+
+def _primary_document(filings: dict[str, _Filing], accession: str) -> str:
+    row = filings.get(accession)
+    if row is None or row.form not in PERIODIC_FORMS:
+        raise ProviderRefusal(
+            f"Filing accession {accession} was not found in supported submissions"
+        )
+    if not row.primary_document:
+        raise ProviderRefusal(f"Primary document is missing for accession {accession}")
+    return row.primary_document
 
 
 def _pretty(iso: str) -> str:
@@ -740,24 +773,19 @@ _SAME_QUARTER_DAYS = 20
 
 
 def _year_apart_quarterlies(
-    recent: dict[str, Any], form: str = "10-Q"
+    filings: dict[str, _Filing], form: str = "10-Q"
 ) -> tuple[str, str] | None:
     """The newest report of ``form`` and the one for the same period a year before it.
 
     A year apart compares like with like: the same fiscal quarter, so seasonal
     wording does not read as change. Without one, the previous 10-Q stands in.
     """
-    accessions = recent.get("accessionNumber")
-    forms = recent.get("form")
-    dates = recent.get("reportDate")
-    if not (isinstance(accessions, list) and isinstance(forms, list) and isinstance(dates, list)):
-        return None
     quarterlies: list[tuple[date, str]] = []
-    for accession, kind, raw in zip(accessions, forms, dates, strict=False):
-        if kind != form or not isinstance(raw, str) or not isinstance(accession, str):
+    for row in filings.values():
+        if row.form != form:
             continue
         try:
-            quarterlies.append((date.fromisoformat(raw), accession))
+            quarterlies.append((date.fromisoformat(row.report_date), row.accession))
         except ValueError:
             continue
     quarterlies.sort(reverse=True)
@@ -770,25 +798,19 @@ def _year_apart_quarterlies(
     return quarterlies[1][1], newest
 
 
-def _filing_date(recent: dict[str, Any], accession: str) -> str:
-    accessions = recent.get("accessionNumber")
-    if not isinstance(accessions, list):
-        return ""
-    dates = recent.get("reportDate")
-    if not isinstance(dates, list):
-        dates = recent.get("filingDate")
-    if not isinstance(dates, list) or len(dates) != len(accessions):
-        return ""
-    for index, candidate in enumerate(accessions):
-        if candidate == accession:
-            value = dates[index]
-            return value.strip() if isinstance(value, str) else ""
-    return ""
+def _report_date(filings: dict[str, _Filing], accession: str) -> str:
+    row = filings.get(accession)
+    return row.report_date if row is not None else ""
 
 
-def _order_accessions(recent: dict[str, Any], first: str, second: str) -> tuple[str, str]:
-    left = _filing_date(recent, first)
-    right = _filing_date(recent, second)
+def _form_of(filings: dict[str, _Filing], accession: str) -> str:
+    row = filings.get(accession)
+    return row.form if row is not None else ""
+
+
+def _order_accessions(filings: dict[str, _Filing], first: str, second: str) -> tuple[str, str]:
+    left = _report_date(filings, first)
+    right = _report_date(filings, second)
     if left and right and left > right:
         return second, first
     return first, second
@@ -830,18 +852,9 @@ def _request_refusal(
     return ""
 
 
-def _form_of(recent: dict[str, Any], accession: str) -> str:
-    for candidate, form in zip(
-        recent.get("accessionNumber") or [], recent.get("form") or [], strict=False
-    ):
-        if candidate == accession:
-            return str(form)
-    return ""
-
-
-def _check_reviewable(recent: dict[str, Any], accession: str) -> None:
+def _check_reviewable(filings: dict[str, _Filing], accession: str) -> None:
     """Refuse an accession that is this company's, but not a 10-Q or 10-K."""
-    form = _form_of(recent, accession)
+    form = _form_of(filings, accession)
     if form and form not in PERIODIC_FORMS:
         raise ProviderRefusal(
             f"Accession {accession} is a {form}, not a 10-Q or 10-K; only quarterly and "
@@ -849,23 +862,22 @@ def _check_reviewable(recent: dict[str, Any], accession: str) -> None:
         )
 
 
-def _chosen_pair_banner(recent: dict[str, Any], name: str, first: str, second: str) -> str:
+def _chosen_pair_banner(filings: dict[str, _Filing], name: str, older: str, newer: str) -> str:
     """Say which reports two given accession numbers are, and when they differ in kind."""
-    older, newer = _order_accessions(recent, first, second)
     parts = [
-        f"its {_form_of(recent, accession) or 'filing'} for the period ended "
-        f"{_pretty(_filing_date(recent, accession))}"
+        f"its {_form_of(filings, accession) or 'filing'} for the period ended "
+        f"{_pretty(_report_date(filings, accession))}"
         for accession in (older, newer)
     ]
     banner = f"Comparing {short_name(name)}'s {parts[0].removeprefix('its ')} with {parts[1]}."
-    kinds = {_form_of(recent, accession).removesuffix("/A") for accession in (older, newer)}
+    kinds = {_form_of(filings, accession).removesuffix("/A") for accession in (older, newer)}
     if len(kinds) > 1:
         banner += " A 10-K and a 10-Q are laid out differently, so more reads as changed."
     return banner
 
 
-def _too_few_message(recent: dict[str, Any], name: str, form: str) -> str:
-    forms = set(recent.get("form") or [])
+def _too_few_message(filings: dict[str, _Filing], name: str, form: str) -> str:
+    forms = {row.form for row in filings.values()}
     if forms & {"20-F", "40-F"} and "10-Q" not in forms:
         return (
             f"{short_name(name)} files annual 20-F or 40-F reports with the SEC rather "
@@ -988,8 +1000,11 @@ def run_filing_change(
             renderer=RendererKind.REFUSE,
             message="Filing documents are not available on this runtime.",
         )
+    members = runtime.ranking.member_ciks() if runtime.ranking is not None else frozenset()
     try:
         resolved = resolve_company(company, filings.get_company_tickers())
+        # The same membership rule lookups and rankings apply (ADR 0001, 0002).
+        require_operating(resolved.cik, resolved.name, members)
     except (CompanyNotFoundError, AmbiguousCompanyError, *SOURCE_FAILURES) as exc:
         return TurnResult(
             intent=Intent.FILING_CHANGE,
@@ -1003,21 +1018,8 @@ def run_filing_change(
             ),
         )
     cik = resolved.cik
-    if not sec_identity_is_operating(cik, resolved.name):
-        # The same membership rule lookups and rankings apply (ADR 0001, 0002).
-        return TurnResult(
-            intent=Intent.FILING_CHANGE,
-            tool_traces=traces,
-            renderer=RendererKind.REFUSE,
-            message=(
-                f"{resolved.name} is not an operating company (it is a fund, business "
-                "development company or similar listing), so its filings are outside "
-                "what this analyst covers."
-            ),
-        )
     # SEC titles companies "PFIZER INC"; the snapshot knows them as "Pfizer Inc.".
-    display = getattr(runtime.facts, "display_name", None)
-    name = display(cik, resolved.name) if callable(display) else resolved.name
+    name = runtime.facts.display_name(cik, resolved.name)
     chosen_banner = ""
     changes: list[DisclosureChange] = []
     figure_rows = 0
@@ -1025,23 +1027,23 @@ def run_filing_change(
     compared: list[SectionId] = []
     unreadable: list[SectionId] = []
     try:
-        recent = require_recent_filings(filings.get_submissions(cik))
+        submitted = _read_filings(require_recent_filings(filings.get_submissions(cik)))
         if not older:
-            pair = _year_apart_quarterlies(recent, form)
+            pair = _year_apart_quarterlies(submitted, form)
             if pair is None:
-                raise ProviderRefusal(_too_few_message(recent, name, form))
+                raise ProviderRefusal(_too_few_message(submitted, name, form))
             older, newer = pair
             period = "quarter" if form == "10-Q" else "year"
             chosen_banner = (
                 f"Comparing {short_name(name)}'s latest {form} ({period} ended "
-                f"{_pretty(_filing_date(recent, newer))}) with the one for "
-                f"{_pretty(_filing_date(recent, older))}."
+                f"{_pretty(_report_date(submitted, newer))}) with the one for "
+                f"{_pretty(_report_date(submitted, older))}."
             )
         else:
             for accession in (older, newer):
-                _check_reviewable(recent, accession)
-            chosen_banner = _chosen_pair_banner(recent, name, older, newer)
-        older, newer = _order_accessions(recent, older, newer)
+                _check_reviewable(submitted, accession)
+            older, newer = _order_accessions(submitted, older, newer)
+            chosen_banner = _chosen_pair_banner(submitted, name, older, newer)
         traces[0] = traces[0].model_copy(
             update={
                 "args": {
@@ -1051,8 +1053,8 @@ def run_filing_change(
                 }
             }
         )
-        older_doc = _primary_document(recent, older)
-        newer_doc = _primary_document(recent, newer)
+        older_doc = _primary_document(submitted, older)
+        newer_doc = _primary_document(submitted, newer)
         older_text = html_to_text(filings.get_filing_document(cik, older, older_doc))
         newer_text = html_to_text(filings.get_filing_document(cik, newer, newer_doc))
         older_url = build_filing_document_url(cik, older, older_doc)

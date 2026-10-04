@@ -20,7 +20,11 @@ from financial_analyst_agent.presentation import present_turn
 from financial_analyst_agent.request_wording import read_window
 from financial_analyst_agent.rules_planner import _companies_from_query
 from financial_analyst_agent.runtime import DemoCompleter
-from financial_analyst_agent.universe import allowed_industry_names, load_universe_snapshot
+from financial_analyst_agent.universe import (
+    SnapshotGroups,
+    allowed_industry_names,
+    load_universe_snapshot,
+)
 
 
 def _level(end: date, value: str) -> TableRow:
@@ -209,7 +213,7 @@ def test_recorded_planner_sends_how_could_ai_questions_to_explain() -> None:
 
 
 def test_industry_names_are_not_repeated_in_another_case() -> None:
-    names = allowed_industry_names(load_universe_snapshot())
+    names = allowed_industry_names(SnapshotGroups.of(load_universe_snapshot()))
 
     folded = [name.casefold() for name in names]
     assert len(folded) == len(set(folded))
