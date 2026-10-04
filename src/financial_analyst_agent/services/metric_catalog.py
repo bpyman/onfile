@@ -2,6 +2,7 @@
 
 import re
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import Literal
 
 from financial_analyst_agent.domain.enums import Metric
@@ -478,6 +479,7 @@ _NOT_FOLLOWED_BY: dict[str, re.Pattern[str]] = {
 }
 
 
+@lru_cache(maxsize=1)
 def metric_phrases() -> tuple[str, ...]:
     """Every phrase the catalog reads as a metric, unique or ambiguous, longest first."""
     phrases = {phrase for phrase, _ in _UNIQUE_PHRASES} | {

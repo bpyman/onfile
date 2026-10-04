@@ -172,7 +172,7 @@ export function readTurnEvent(name: string, data: string): TurnEvent | null {
 type Raw = Record<string, unknown>;
 
 function record(value: unknown): Raw {
-  return typeof value === "object" && value !== null && !Array.isArray(value) ? (value as Raw) : {};
+  return isRecord(value) ? value : {};
 }
 
 function isRecord(value: unknown): value is Raw {
@@ -209,7 +209,7 @@ function strings<K extends string>(raw: Raw, keys: readonly K[]): Record<K, stri
   return Object.fromEntries(keys.map((key) => [key, text(raw[key])])) as Record<K, string>;
 }
 
-function runtimeKind(value: unknown): RuntimeKind | null {
+export function runtimeKind(value: unknown): RuntimeKind | null {
   return value === "recorded" || value === "live" ? value : null;
 }
 

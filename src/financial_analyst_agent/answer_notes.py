@@ -15,7 +15,7 @@ from financial_analyst_agent.graph.analysis_spec import (
     SpecPatch,
     calendar_groups,
 )
-from financial_analyst_agent.guide import possessive, short_name
+from financial_analyst_agent.guide import format_date, joined, possessive, short_name
 from financial_analyst_agent.period_window import asked_window
 from financial_analyst_agent.request_wording import (
     EXPLICIT_YOY,
@@ -79,7 +79,7 @@ CALENDARS_DIFFER_BANNER = (
 
 
 def annual_filer_note(names: list[str]) -> str:
-    listed = names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+    listed = joined(names)
     verb = "files" if len(names) == 1 else "file"
     return (
         f"{listed} {verb} annual reports with the SEC (Form 20-F or 40-F) rather than "
@@ -134,15 +134,6 @@ def already_present_notes(
     return [f"{' and '.join(names)} {'is' if len(names) == 1 else 'are'} already in this analysis."]
 
 
-def _short_date(day: date) -> str:
-    return f"{day:%b} {day.day}, {day.year}"
-
-
-def _and_joined(parts: list[str]) -> str:
-    """ "Fiscal 2025 and Fiscal 2024", "A, B and C"."""
-    return parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + " and " + parts[-1]
-
-
 def _named_period_notes(spec: AnalysisSpec) -> list[str]:
     """Say which quarter ends a named fiscal period stands for, and who has none."""
     notes: list[str] = []
@@ -160,12 +151,12 @@ def _named_period_notes(spec: AnalysisSpec) -> list[str]:
         company = dated[0]
         notes.append(
             f"{possessive(short_name(company.name) or company.query)} {label} ended "
-            f"{_short_date(own[company.key][0])}."
+            f"{format_date(own[company.key][0])}."
         )
     elif single and not periods.named[0].calendar and dated:
         ends = [
             f"{possessive(short_name(company.name) or company.query)} ended "
-            f"{_short_date(own[company.key][0])}"
+            f"{format_date(own[company.key][0])}"
             for company in spec.companies
             if own.get(company.key)
         ]
@@ -183,7 +174,7 @@ def _named_period_notes(spec: AnalysisSpec) -> list[str]:
             name = short_name(company.name) or company.query
             notes.append(
                 f"The filings here hold {held} of the {expected} quarters in "
-                f"{_and_joined([period.label() for period in periods.named])} for {name}."
+                f"{joined([period.label() for period in periods.named])} for {name}."
             )
     return notes
 

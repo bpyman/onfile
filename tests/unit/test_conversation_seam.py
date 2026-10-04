@@ -104,8 +104,8 @@ def test_conversation_seam_returns_typed_turn(tmp_path: Path) -> None:
     assert turn.result.renderer is RendererKind.TABLE
     assert turn.result.table_rows[0].ticker == "GOOG"
     assert [m.content for m in turn.messages] == [message]
-    assert turn.results == (turn.result,)
-    assert turn.last_result == turn.result
+    state = store.load("thread-a")
+    assert state is not None and store.resolve_results(state) == (turn.result,)
 
 
 def test_same_thread_sees_prior_turn_different_thread_starts_clean(tmp_path: Path) -> None:
@@ -132,7 +132,8 @@ def test_same_thread_sees_prior_turn_different_thread_starts_clean(tmp_path: Pat
         store=store,
     )
     assert [m.content for m in turn2.messages] == [first, second]
-    assert turn2.results == (turn1.result, turn2.result)
+    state = store.load("thread-a")
+    assert state is not None and store.resolve_results(state) == (turn1.result, turn2.result)
     assert turn2.result.intent is Intent.EXPLAIN
 
     other = run_conversation_turn(
@@ -168,7 +169,7 @@ def test_thread_state_survives_process_restart(tmp_path: Path) -> None:
         store=store2,
     )
     assert [m.content for m in turn.messages] == [message, follow_up]
-    assert turn.last_result.intent.value == "explain"
+    assert turn.result.intent.value == "explain"
 
 
 def test_run_state_is_not_persisted_between_turns(tmp_path: Path) -> None:
@@ -247,7 +248,7 @@ def test_clearing_a_thread_forgets_prior_turns(tmp_path: Path) -> None:
         store=restarted,
     )
     assert [m.content for m in turn.messages] == ["How can AI disrupt healthcare?"]
-    assert turn.last_result.intent.value == "explain"
+    assert turn.result.intent.value == "explain"
 
 
 def test_run_turn_is_ephemeral_thread_wrapper() -> None:

@@ -106,10 +106,9 @@ def test_thread_state_references_evidence_by_id_not_inline_results(tmp_path: Pat
         store=store,
     )
     assert turn.result.table_rows
-    assert turn.results == (turn.result,)
-
     state = store.load("t1")
     assert state is not None
+    assert store.resolve_results(state) == (turn.result,)
     dumped = state.model_dump(mode="json")
     assert "evidence_refs" in dumped
     assert state.evidence_refs

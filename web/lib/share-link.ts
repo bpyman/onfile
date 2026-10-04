@@ -1,3 +1,4 @@
+import { runtimeKind } from "./api";
 import type { RuntimeKind } from "./types";
 
 /**
@@ -33,6 +34,5 @@ export function parseShareLink(search: string, maxChars: number): SharedQuestion
   const questions = params.getAll("q").map((question) => question.trim());
   if (questions.length === 0 || questions.length > MAX_SHARED_MESSAGES) return null;
   if (questions.some((question) => !question || question.length > maxChars)) return null;
-  const rt = params.get("rt");
-  return { questions, runtime: rt === "recorded" || rt === "live" ? rt : null };
+  return { questions, runtime: runtimeKind(params.get("rt")) };
 }

@@ -194,97 +194,12 @@ class _FlatActionModel(BaseModel):
 class Plan(_FlatActionModel):
     action: PlanAction
 
-    @property
-    def intent(self) -> Intent:
-        return self.action.intent
-
-    @property
-    def company(self) -> str | None:
-        if isinstance(self.action, (_LookupPlan, _FilingChangePlan)):
-            return self.action.company
-        return None
-
-    @property
-    def companies(self) -> list[str]:
-        if isinstance(self.action, _ComparePlan):
-            return self.action.companies
-        return []
-
     def workflow_plan(self) -> WorkflowPlan:
-        """The model's answer as the plan both planners return."""
-        return WorkflowPlan(
-            intent=self.intent,
-            company=self.company,
-            companies=tuple(self.companies),
-            metric=self.metric,
-            industry=self.industry,
-            limit=self.limit,
-            order_by_metric=self.order_by_metric,
-            recent_quarters=self.recent_quarters,
-            peers=self.peers,
-            topic=self.topic,
-            older_accession=self.older_accession,
-            newer_accession=self.newer_accession,
-            section=self.section,
-            summarize=self.summarize,
-        )
+        """The model's answer as the plan both planners return.
 
-    @property
-    def order_by_metric(self) -> bool:
-        if isinstance(self.action, (_ComparePlan, _RankAndLookupPlan)):
-            return self.action.order_by_metric
-        return False
-
-    @property
-    def recent_quarters(self) -> int | None:
-        """The window the model read, in quarters; code's own reading comes first."""
-        return getattr(self.action, "recent_quarters", None)
-
-    @property
-    def peers(self) -> bool:
-        return isinstance(self.action, _ComparePlan) and self.action.peers
-
-    @property
-    def older_accession(self) -> str:
-        return self.action.older_accession if isinstance(self.action, _FilingChangePlan) else ""
-
-    @property
-    def newer_accession(self) -> str:
-        return self.action.newer_accession if isinstance(self.action, _FilingChangePlan) else ""
-
-    @property
-    def section(self) -> str:
-        if isinstance(self.action, _FilingChangePlan):
-            return self.action.section
-        return "both"
-
-    @property
-    def summarize(self) -> bool:
-        return isinstance(self.action, _FilingChangePlan) and self.action.summarize
-
-    @property
-    def metric(self) -> str | None:
-        if isinstance(self.action, (_LookupPlan, _ComparePlan, _RankAndLookupPlan)):
-            return self.action.metric
-        return None
-
-    @property
-    def industry(self) -> str | None:
-        if isinstance(self.action, (_RankPlan, _RankAndLookupPlan)):
-            return self.action.industry
-        return None
-
-    @property
-    def limit(self) -> int:
-        if isinstance(self.action, (_RankPlan, _RankAndLookupPlan)):
-            return self.action.limit
-        return 10
-
-    @property
-    def topic(self) -> str | None:
-        if isinstance(self.action, (_ExplainPlan, _ExploratoryResearchPlan)):
-            return self.action.topic
-        return None
+        Each action's fields are ``WorkflowPlan`` fields; the rest keep their defaults.
+        """
+        return WorkflowPlan(**self.action.model_dump())
 
 
 Operation = Literal[

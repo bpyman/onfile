@@ -679,25 +679,30 @@ def _same_fiscal_period(periods: set[tuple[date | None, date | None]]) -> bool:
     )
 
 
-def _per_share_reason(exc: PerShareNotDerivableError) -> str:
-    """Why a per-share cell is empty: none declared this quarter, or reported for the year."""
-    if isinstance(exc, NoDividendThisQuarterError):
-        return NO_DIVIDEND_THIS_QUARTER
-    return NOT_REPORTED_FOR_QUARTER
+# A failed cell's reason by the error's code, so one failure reads alike whichever
+# workflow met it: a fund is "not an operating company" rather than a missing
+# filing, a per-share figure for a quarter the filings report only for the year
+# says so, and anything else is a missing fact.
+_REASON_BY_CODE = {
+    IneligibleIssuerError.code: NOT_OPERATING_COMPANY,
+    CompanyNotFoundError.code: COMPANY_NOT_FOUND,
+    AmbiguousFactError.code: AMBIGUOUS_CONCEPT,
+    PerShareNotDerivableError.code: NOT_REPORTED_FOR_QUARTER,
+    NoDividendThisQuarterError.code: NO_DIVIDEND_THIS_QUARTER,
+}
 
 
-def _partial_lookup_reason(exc: BaseException) -> str:
+def reason_for_code(code: str | None) -> str:
+    """Why a cell is empty, from the code of the error that emptied it."""
+    return _REASON_BY_CODE.get(code or "", MISSING_FACT)
+
+
+def reason_for(exc: BaseException) -> str:
+    """Why a cell is empty, from the error that emptied it."""
     if isinstance(exc, SOURCE_FAILURES):
         # EDGAR failed for this company; the filing may well report the fact.
         return SOURCE_UNAVAILABLE
-    if isinstance(exc, IneligibleIssuerError):
-        # A typed miss: the row says why, rather than implying a missing filing.
-        return NOT_OPERATING_COMPANY
-    if isinstance(exc, PerShareNotDerivableError):
-        return _per_share_reason(exc)
-    if isinstance(exc, CompanyNotFoundError):
-        return COMPANY_NOT_FOUND
-    return AMBIGUOUS_CONCEPT if isinstance(exc, AmbiguousFactError) else MISSING_FACT
+    return reason_for_code(getattr(exc, "code", None))
 
 
 def _compare_unresolved_row(
@@ -744,7 +749,7 @@ def compare_metrics(
         except _COMPANY_FAILURES as exc:
             rows.append(
                 _compare_unresolved_row(
-                    issuer, metric, _partial_lookup_reason(exc), report_date=report_date
+                    issuer, metric, reason_for(exc), report_date=report_date
                 )
             )
             continue
@@ -846,7 +851,7 @@ def market_formula_rows(
         except (*_COMPANY_FAILURES, PerShareNotDerivableError) as exc:
             rows.append(
                 _compare_unresolved_row(
-                    issuer, metric, _partial_lookup_reason(exc), report_date=report_date
+                    issuer, metric, reason_for(exc), report_date=report_date
                 )
             )
             continue
@@ -946,7 +951,7 @@ def rank_and_lookup_task(task: CompiledTask, runtime: Runtime) -> TurnResult:
         try:
             fact = runtime.facts.get_financials(company.cik, metric)
         except _COMPANY_FAILURES as exc:
-            rows.append(_rank_and_lookup_row(company, index, metric, _partial_lookup_reason(exc)))
+            rows.append(_rank_and_lookup_row(company, index, metric, reason_for(exc)))
             traces.append(ToolTrace(tool="get_financials", args=args))
             continue
         rows.append(_with_rank_identity(_table_row_from_fact(fact), company, index))
@@ -1042,7 +1047,7 @@ def _snapshot_member(ranking: RankingPort, issuer: str) -> tuple[Any | None, str
     except CompanyNotFoundError:
         return None, NOT_IN_SNAPSHOT if is_cik(issuer) else COMPANY_NOT_FOUND
     except AmbiguousCompanyError as exc:
-        return None, _partial_lookup_reason(exc)
+        return None, reason_for(exc)
 
 
 def snapshot_compare_rows(
@@ -1145,7 +1150,7 @@ def lookup_task(task: CompiledTask, runtime: Runtime) -> TurnResult:
                         cik="",
                         metric=metric,
                         end_date=report_date,
-                        reason=_per_share_reason(exc),
+                        reason=reason_for(exc),
                     )
                 ],
             )

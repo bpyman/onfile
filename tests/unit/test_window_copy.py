@@ -16,7 +16,8 @@ from financial_analyst_agent.contracts import (
 )
 from financial_analyst_agent.graph.analysis_spec import AnalysisSpec, PeriodSelection
 from financial_analyst_agent.presentation import present_turn
-from financial_analyst_agent.runtime import DemoCompleter, _companies_from_query
+from financial_analyst_agent.rules_planner import _companies_from_query
+from financial_analyst_agent.runtime import DemoCompleter
 from financial_analyst_agent.universe import allowed_industry_names, load_universe_snapshot
 
 

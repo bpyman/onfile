@@ -49,6 +49,7 @@ from financial_analyst_agent.filing_change import (
     _year_apart_quarterlies,
     extract_section,
 )
+from financial_analyst_agent.providers.sec.urls import build_filing_document_url
 from financial_analyst_agent.services.metric_catalog import READ_CONCEPTS
 
 DATA = Path(__file__).resolve().parents[1] / "src" / "financial_analyst_agent" / "data"
@@ -203,10 +204,7 @@ def _year_apart_documents(
     for accession in pair:
         index = recent["accessionNumber"].index(accession)
         document = recent["primaryDocument"][index]
-        url = (
-            f"https://www.sec.gov/Archives/edgar/data/{int(cik)}/"
-            f"{accession.replace('-', '')}/{document}"
-        )
+        url = build_filing_document_url(cik, accession, document)
         raw = _get(url, user_agent).decode("utf-8", errors="replace")
         documents[f"{cik}:{accession}:{document}"] = _section_excerpt(raw)
     return documents, pair

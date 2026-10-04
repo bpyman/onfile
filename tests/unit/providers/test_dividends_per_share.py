@@ -34,7 +34,7 @@ def test_a_quarter_after_the_year_s_dividend_was_declared_is_not_zero() -> None:
 def test_a_quarter_with_no_dividend_says_so_without_guessing_why() -> None:
     from financial_analyst_agent.domain.errors import NoDividendThisQuarterError
     from financial_analyst_agent.presentation import format_reason
-    from financial_analyst_agent.turn import _per_share_reason
+    from financial_analyst_agent.turn import reason_for
 
     lookup = fixture_lookup("WMT")
     with pytest.raises(NoDividendThisQuarterError) as raised:
@@ -42,7 +42,7 @@ def test_a_quarter_with_no_dividend_says_so_without_guessing_why() -> None:
 
     # The filing reads the same for a year's dividend declared at once and for
     # a suspension, so neither "reported for the year" nor "declared earlier".
-    assert format_reason(_per_share_reason(raised.value)) == "No dividend declared this quarter"
+    assert format_reason(reason_for(raised.value)) == "No dividend declared this quarter"
     assert "declared earlier in the fiscal year" in str(raised.value)
 
 

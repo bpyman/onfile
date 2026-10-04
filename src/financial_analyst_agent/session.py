@@ -7,7 +7,8 @@ from datetime import UTC, datetime, timedelta
 from threading import Lock
 
 from financial_analyst_agent.domain.errors import SessionQuotaError
-from financial_analyst_agent.presentation import format_date, try_parse_datetime
+from financial_analyst_agent.guide import format_date
+from financial_analyst_agent.presentation import try_parse_datetime
 from financial_analyst_agent.thread_store import ThreadState, ThreadStore
 
 

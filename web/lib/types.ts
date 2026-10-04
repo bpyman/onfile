@@ -157,8 +157,8 @@ export interface Presentation {
   message_tone: "info" | "warning";
   /** One sentence that answers the question before the table, or null. */
   headline?: string | null;
-  /** Small trend charts beside one company's overview; absent in older answers. */
-  trends?: LineChartSpec[];
+  /** Small trend charts beside one company's overview; empty for any other answer. */
+  trends: LineChartSpec[];
 }
 
 export interface Turn {

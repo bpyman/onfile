@@ -199,4 +199,4 @@ def test_conversation_routes_non_analysis_question_to_exploratory_lane() -> None
     assert turn.result.citations
     assert turn.result.table_rows == []
     assert turn.analysis_spec is None
-    assert turn.last_result.intent == Intent.EXPLORATORY_RESEARCH
+    assert turn.result.intent == Intent.EXPLORATORY_RESEARCH

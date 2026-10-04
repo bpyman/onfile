@@ -36,6 +36,7 @@ import { Landing } from "./landing";
 import { StatusLine } from "./status-line";
 import { Thread } from "./thread";
 import { Callout } from "./ui";
+import { subscribeNothing } from "@/lib/browser";
 
 const threadApi: ThreadApi = { createThread, getThread, deleteThread };
 const UNREACHABLE = "The analysis service is unreachable. Please try again shortly.";
@@ -63,8 +64,6 @@ function errorText(error: unknown): string {
   if (error instanceof ApiError) return error.message;
   return UNREACHABLE;
 }
-
-const subscribeNothing = () => () => {};
 
 /** The audience window: one thread per browser, bound to one runtime (ADR 0006). */
 export function AnalystWindow() {

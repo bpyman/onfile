@@ -24,6 +24,7 @@ from financial_analyst_agent.domain.models import (
     FinancialFact,
 )
 from financial_analyst_agent.services.filing_selector import get_candidate_filings
+from financial_analyst_agent.services.fiscal_periods import one_year_earlier
 from financial_analyst_agent.services.metric_catalog import (
     PER_SHARE_METRICS,
     get_concept_candidates,
@@ -41,7 +42,8 @@ class FactOwner:
 
 
 _MIN_QUARTER_DAYS = 70
-_MAX_QUARTER_DAYS = 110
+# Longer than this, a duration fact is not one quarter.
+MAX_QUARTER_DAYS = 110
 
 
 def _duration_days(start: date, end: date) -> int:
@@ -58,7 +60,7 @@ def _is_standalone_quarter_duration(start_date: date | None, end_date: date) -> 
     if start_date is None:
         return False
     days = _duration_days(start_date, end_date)
-    return _MIN_QUARTER_DAYS <= days <= _MAX_QUARTER_DAYS
+    return _MIN_QUARTER_DAYS <= days <= MAX_QUARTER_DAYS
 
 
 def _filter_quarterly_candidates(
@@ -250,7 +252,7 @@ def select_quarterly_fact_with_filing_fallback(
 
 _ANNUAL_DAYS = (350, 380)
 _NINE_MONTH_DAYS = (250, 290)
-_CUMULATIVE_MIN_DAYS = _MAX_QUARTER_DAYS + 1
+_CUMULATIVE_MIN_DAYS = MAX_QUARTER_DAYS + 1
 # The shorter cumulative amount ends one quarter before the longer one.
 _ONE_QUARTER_EARLIER_DAYS = (60, 120)
 FOURTH_QUARTER_LABEL = "Fiscal year (10-K) minus nine months (10-Q)"
@@ -293,7 +295,7 @@ def comparative(
     differs from the figure its older 10-Q gave. A change over the year reads both
     amounts from one filing; None when the filing reports no such comparative.
     """
-    target = _one_year_earlier(current.end_date)
+    target = one_year_earlier(current.end_date)
     length = _days_between(current)
     matches = [
         fact
@@ -557,13 +559,6 @@ def _near(day: date, target: date) -> bool:
     return abs((day - target).days) <= _ONE_YEAR_TOLERANCE_DAYS
 
 
-def _one_year_earlier(day: date) -> date:
-    try:
-        return day.replace(year=day.year - 1)
-    except ValueError:  # 29 February
-        return day.replace(year=day.year - 1, day=28)
-
-
 def derive_trailing_year(
     facts: list[FactRecord],
     filing: Filing,
@@ -617,7 +612,7 @@ def derive_trailing_year(
             [fact for fact in to_date if _days_between(fact) == longest]
         )
         assert current.start_date is not None
-        earlier_end = _one_year_earlier(current.end_date)
+        earlier_end = one_year_earlier(current.end_date)
         earlier = [
             fact
             for fact in concept_facts

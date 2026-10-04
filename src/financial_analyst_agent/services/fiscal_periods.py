@@ -443,3 +443,11 @@ _ADJACENT_QUARTER_GAP = (timedelta(days=84), timedelta(days=126))
 def adjacent_quarters(newer: date, older: date) -> bool:
     low, high = _ADJACENT_QUARTER_GAP
     return low <= newer - older <= high
+
+
+def one_year_earlier(day: date) -> date:
+    """The same day a year before; 29 February becomes 28 February."""
+    try:
+        return day.replace(year=day.year - 1)
+    except ValueError:
+        return day.replace(year=day.year - 1, day=28)

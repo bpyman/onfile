@@ -29,7 +29,6 @@ from financial_analyst_agent.answer_notes import (
 )
 from financial_analyst_agent.contracts import (
     ALLOWED_METRICS,
-    COMPANY_NOT_FOUND,
     DEFAULT_RANK_LIMIT,
     LOOKUP_FAILED,
     MISSING_FACT,
@@ -55,7 +54,6 @@ from financial_analyst_agent.domain.errors import (
     SOURCE_FAILURES,
     AmbiguousCompanyError,
     CompanyNotFoundError,
-    IneligibleIssuerError,
     ProviderError,
     ProviderRefusal,
     SessionQuotaError,
@@ -79,7 +77,7 @@ from financial_analyst_agent.graph.analysis_spec import (
     validate_spec,
 )
 from financial_analyst_agent.graph.state import CompiledAnalysis, StructuredRequest
-from financial_analyst_agent.guide import short_name
+from financial_analyst_agent.guide import in_sentence, short_name
 from financial_analyst_agent.providers.sec.client import sec_turn_seconds_left
 from financial_analyst_agent.providers.sec.company_resolver import resolve_company
 from financial_analyst_agent.request_wording import (
@@ -98,12 +96,14 @@ from financial_analyst_agent.services.fiscal_periods import (
     adjacent_quarters,
     calendar_quarter,
     dates_for,
+    one_year_earlier,
 )
 from financial_analyst_agent.turn import (
     compare_task,
     lookup_task,
     rank_and_lookup_task,
     rank_task,
+    reason_for_code,
 )
 
 # Bound concurrent provider fan-out so a wide window cannot flood SEC/EDGAR.
@@ -486,19 +486,17 @@ def _lookup_refuse_as_partial(task: CompiledTask, result: TurnResult) -> list[Ta
         return list(result.table_rows)
     if task.kind != "lookup" or not task.issuers or not task.metric:
         return list(result.table_rows)
-    # A fund in a window of quarters says so, as it does in a comparison (ADR 0002).
-    codes = {
-        trace.provenance.get("error", {}).get("code")
+    # The refusal's error says why, as it does in a comparison (ADR 0002): a fund in
+    # a window of quarters, or an unknown company, reads alike in every cell.
+    codes = [
+        trace.provenance["error"].get("code")
         for trace in result.tool_traces
         if isinstance(trace.provenance.get("error"), dict)
-    }
-    if IneligibleIssuerError.code in codes:
-        reason = NOT_OPERATING_COMPANY
-    elif CompanyNotFoundError.code in codes:
-        # The same unknown company reads alike in every cell, lookup or formula.
-        reason = COMPANY_NOT_FOUND
-    else:
-        reason = MISSING_FACT
+    ]
+    reason = next(
+        (reason_for_code(code) for code in codes if reason_for_code(code) != MISSING_FACT),
+        MISSING_FACT,
+    )
     return [_missing_cell(task.issuers[0], task.metric, task.report_date, reason)]
 
 
@@ -564,18 +562,10 @@ def _year_earlier_level(
     return _subtracted_level_provenance(prior)
 
 
-def _yoy_prior_date(end: date) -> date:
-    try:
-        return end.replace(year=end.year - 1)
-    except ValueError:
-        # Feb 29 → Feb 28 prior year
-        return end.replace(year=end.year - 1, day=28)
-
-
 def _yoy_prior(row: TableRow, ordered: list[TableRow]) -> TableRow | None:
     """The row a year earlier, allowing for 52/53-week fiscal calendars."""
     assert row.end_date is not None
-    target = _yoy_prior_date(row.end_date)
+    target = one_year_earlier(row.end_date)
     best: TableRow | None = None
     for candidate in ordered:
         if candidate is row or candidate.end_date is None:
@@ -1089,8 +1079,7 @@ def forecast_message(asked: str) -> str:
 def no_company_message(metrics: tuple[str, ...]) -> str:
     from financial_analyst_agent.presentation import format_field_name
 
-    label = format_field_name(metrics[0])
-    label = label if label[1:2].isupper() else label[:1].lower() + label[1:]
+    label = in_sentence(format_field_name(metrics[0]))
     return (
         f"I couldn't tell which company you mean. Name one or its ticker, for example "
         f"“Apple {label}”, or rank an industry, such as “top 5 banks by {label}”."
@@ -1277,7 +1266,7 @@ def earlier_quarters(
     current = rows[0]
     end = current.end_date
     assert end is not None
-    year_target = _yoy_prior_date(end) if current.year_earlier is None else None
+    year_target = one_year_earlier(end) if current.year_earlier is None else None
 
     def a_year_before(day: date) -> bool:
         return year_target is not None and abs(day - year_target) <= FISCAL_WEEK_TOLERANCE

@@ -62,3 +62,16 @@ export function splitBanner(banner: string): [string, string] {
   if (at < 0) return [banner, ""];
   return [banner.slice(0, at), banner.slice(at + 3)];
 }
+
+/** A filing named by whose it is and its accession: "Apple Inc., 10-Q 0000320193-26-000013". */
+export function filingLabel(company: string, form: string, accession: string): string {
+  return [company, [form, accession].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+}
+
+/** A filing's address without the passage it points into (#:~:text=), or null if unsafe. */
+export function filingUrl(url: string): string | null {
+  if (!safeHref(url)) return null;
+  const filing = new URL(url);
+  filing.hash = "";
+  return filing.href;
+}

@@ -20,6 +20,7 @@ const EMPTY: Presentation = {
   suggestions: [],
   message_tone: "info",
   headline: null,
+  trends: [],
 };
 
 const FILING = "https://www.sec.gov/Archives/edgar/data/59478/000005947826000012/0000059478-26-000012-index.htm";
