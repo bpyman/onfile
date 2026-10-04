@@ -1,0 +1,2 @@
+# Parallel Ralph workers each append to the progress log; keep every entry when they merge.
+docs/process/progress.txt merge=union
