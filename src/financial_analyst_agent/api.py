@@ -116,7 +116,9 @@ BODY_UNREADABLE_MESSAGE = "The request could not be read. Send it again."
 
 def threads_limited_message(wait_seconds: float) -> str:
     """The new-conversation limit's own copy, with the wait in whole minutes."""
-    minutes = max(1, math.ceil(wait_seconds / 60))
+    # Whole seconds first: (t + 3600) - t can be a hair over 3600 in floats, and
+    # a full hour must read "60 minutes", not 61.
+    minutes = max(1, math.ceil(round(wait_seconds) / 60))
     unit = "minute" if minutes == 1 else "minutes"
     return (
         "You've started a lot of conversations in the last hour. You can start "

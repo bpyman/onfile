@@ -20,7 +20,11 @@ from pydantic import SecretStr
 
 from api_server import smoke
 from financial_analyst_agent import api
-from financial_analyst_agent.api import PUBLIC_FAILURE_MESSAGE, create_app
+from financial_analyst_agent.api import (
+    PUBLIC_FAILURE_MESSAGE,
+    create_app,
+    threads_limited_message,
+)
 from financial_analyst_agent.config import AppMode, Settings
 from financial_analyst_agent.contracts import Runtime, RuntimeKind
 from financial_analyst_agent.domain.errors import (
@@ -1202,6 +1206,20 @@ def test_the_new_conversation_limit_says_how_long_to_wait(tmp_path: Path) -> Non
     detail = refused.json()["detail"]
     assert "conversations" in detail
     assert "about 60 minutes" in detail
+
+
+@pytest.mark.parametrize(
+    ("wait_seconds", "shown"),
+    [
+        # Both requests in one clock tick: (t + 3600) - t comes out a hair over 3600.
+        ((496.00625 + 3600.0) - 496.00625, "about 60 minutes"),
+        (3599.2, "about 60 minutes"),
+        (3601.0, "about 61 minutes"),
+        (20.0, "about 1 minute,"),
+    ],
+)
+def test_the_conversation_limit_counts_whole_minutes(wait_seconds: float, shown: str) -> None:
+    assert shown in threads_limited_message(wait_seconds)
 
 
 def test_starting_a_thread_also_purges_expired_ones(tmp_path: Path) -> None:
