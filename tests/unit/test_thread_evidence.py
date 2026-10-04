@@ -122,6 +122,64 @@ def test_thread_state_references_evidence_by_id_not_inline_results(tmp_path: Pat
     assert '"value"' not in raw or "table_rows" not in raw
 
 
+def test_result_saved_before_typed_metadata_still_loads_and_presents(tmp_path: Path) -> None:
+    from financial_analyst_agent.evidence_store import LocalEvidenceStore
+    from financial_analyst_agent.presentation import present_turn
+
+    evidence_id = "result-before-typed-metadata"
+    record = {
+        "evidence_id": evidence_id,
+        "kind": "result",
+        "payload": {
+            "intent": "rank",
+            "tool_traces": [
+                {
+                    "tool": "get_financials",
+                    "args": {"company": "Acme", "metric": "revenue"},
+                    "provenance": {
+                        "error": {
+                            "code": "company_not_found",
+                            "message": "Company not found for query 'Acme'",
+                        }
+                    },
+                }
+            ],
+            "renderer": "refuse",
+            "banners": [
+                "A note before the snapshot.",
+                "Universe snapshot as of 2026-08-17T16:00:00+00:00",
+                "Reused thread evidence",
+            ],
+            "message": "Unknown industry 'AI'. Allowed: Finance, Healthcare, Technology",
+        },
+    }
+    (tmp_path / f"{quote(evidence_id, safe='')}.json").write_text(
+        json.dumps(record), encoding="utf-8"
+    )
+
+    result = LocalEvidenceStore(tmp_path).get_result(evidence_id)
+
+    assert result.model_dump()["refusal"] == {
+        "code": "unknown_industry",
+        "details": {
+            "industry": "AI",
+            "allowed": ["Finance", "Healthcare", "Technology"],
+        },
+    }
+    assert result.model_dump()["snapshot_as_of"] == "2026-08-17T16:00:00+00:00"
+    assert result.model_dump()["reused_evidence"] is True
+    presented = present_turn(result)
+    assert presented.banners == (
+        "A note before the snapshot.",
+        "Universe snapshot as of Aug 17, 2026, 4:00 PM UTC",
+    )
+    assert presented.message is not None and "AI" in presented.message
+    assert dict(presented.traces[0].outputs)["Error"] == (
+        "I couldn't find a company called “Acme” in the filings available here. "
+        "Check the spelling, or try the ticker."
+    )
+
+
 def test_follow_up_reuses_retained_evidence_and_labels_it(tmp_path: Path) -> None:
     from financial_analyst_agent.conversation import run_conversation_turn
     from financial_analyst_agent.graph.analysis_spec import SpecPatch
@@ -155,9 +213,7 @@ def test_follow_up_reuses_retained_evidence_and_labels_it(tmp_path: Path) -> Non
     assert ("Microsoft", "operating_income", None) not in new_calls
     assert any(metric == "research_and_development" for _, metric, _ in new_calls)
 
-    assert any(
-        "thread evidence" in banner.casefold() for banner in turn.result.banners
-    )
+    assert turn.result.reused_evidence is True
     metrics_present = {row.metric for row in turn.result.table_rows}
     assert metrics_present == {"revenue", "operating_margin", "rd_to_sales"}
 

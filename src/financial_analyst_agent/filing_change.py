@@ -20,12 +20,14 @@ from financial_analyst_agent.contracts import (
     Runtime,
     ToolTrace,
     TurnResult,
+    refusal_from_error,
 )
 from financial_analyst_agent.domain.enums import PERIODIC_FORMS
 from financial_analyst_agent.domain.errors import (
     SOURCE_FAILURES,
     AmbiguousCompanyError,
     CompanyNotFoundError,
+    FinancialAnalystError,
     ProviderError,
     ProviderRefusal,
 )
@@ -995,6 +997,11 @@ def run_filing_change(
             tool_traces=traces,
             renderer=RendererKind.REFUSE,
             message=_public_message(exc),
+            refusal=(
+                refusal_from_error(exc)
+                if isinstance(exc, FinancialAnalystError)
+                else None
+            ),
         )
     cik = resolved.cik
     if not sec_identity_is_operating(cik, resolved.name):
@@ -1081,6 +1088,11 @@ def run_filing_change(
             tool_traces=traces,
             renderer=RendererKind.REFUSE,
             message=_public_message(exc),
+            refusal=(
+                refusal_from_error(exc)
+                if isinstance(exc, FinancialAnalystError)
+                else None
+            ),
         )
     traces[0] = traces[0].model_copy(
         update={

@@ -41,12 +41,14 @@ from financial_analyst_agent.contracts import (
     ComparisonBase,
     ComponentProvenance,
     Intent,
+    Refusal,
     RendererKind,
     Runtime,
     TableRow,
     ToolTrace,
     TurnResult,
     WorkflowPlan,
+    refusal_from_error,
     split_between,
     unknown_metric_message,
 )
@@ -54,6 +56,7 @@ from financial_analyst_agent.domain.errors import (
     SOURCE_FAILURES,
     AmbiguousCompanyError,
     CompanyNotFoundError,
+    FinancialAnalystError,
     ProviderError,
     ProviderRefusal,
     SessionQuotaError,
@@ -342,6 +345,7 @@ def _rejection_result(rejection: SpecRejection, intent: Intent) -> TurnResult:
         tool_traces=[],
         renderer=RendererKind.REFUSE,
         message=rejection.message,
+        refusal=Refusal(code=rejection.code, details=rejection.details),
     )
 
 
@@ -630,6 +634,7 @@ def merge_task_results(
     rows: list[TableRow] = []
     traces: list[ToolTrace] = []
     banners: list[str] = []
+    snapshot_as_of = None
     for task, result in zip(tasks, results, strict=True):
         if result.renderer is RendererKind.REFUSE and not result.table_rows:
             rows.extend(_lookup_refuse_as_partial(task, result))
@@ -641,6 +646,7 @@ def merge_task_results(
         for banner in result.banners:
             if banner not in banners:
                 banners.append(banner)
+        snapshot_as_of = snapshot_as_of or result.snapshot_as_of
 
     if not rows and any(r.renderer is RendererKind.REFUSE for r in results):
         # Every task refused with no cells — surface the first refuse.
@@ -665,6 +671,7 @@ def merge_task_results(
         renderer=RendererKind.TABLE,
         table_rows=rows,
         banners=banners,
+        snapshot_as_of=snapshot_as_of,
     )
 
 
@@ -876,7 +883,11 @@ def resolve_request(
         bad = next(m for m in draft.metrics if m not in ALLOWED_METRICS)
         return answered(
             _rejection_result(
-                SpecRejection(code="invalid_metric", message=unknown_metric_message(bad)),
+                SpecRejection(
+                    code="invalid_metric",
+                    message=unknown_metric_message(bad),
+                    details={"term": bad, "allowed": list(ALLOWED_METRICS)},
+                ),
                 asked,
             ),
             None,
@@ -885,7 +896,10 @@ def resolve_request(
     try:
         spec = resolve_spec(draft, ranking=runtime.ranking, identify=sec_identity(runtime))
     except UnknownIndustryError as exc:
-        return answered(_refusal(asked, str(exc)), None)
+        return answered(
+            _refusal(asked, str(exc), refusal=refusal_from_error(exc)),
+            None,
+        )
     except AmbiguousCompanyError as exc:
         return answered(company_clarification(asked, exc), current_spec)
     if not spec.companies and spec.constituents is None and spec.metrics:
@@ -927,7 +941,18 @@ def resolve_request(
         spec = materialize_period_dates(spec, runtime)
     except (CompanyNotFoundError, *SOURCE_FAILURES) as exc:
         public = isinstance(exc, (CompanyNotFoundError, ProviderRefusal))
-        return answered(_refusal(asked, str(exc) if public else SOURCE_UNAVAILABLE_MESSAGE), None)
+        return answered(
+            _refusal(
+                asked,
+                str(exc) if public else SOURCE_UNAVAILABLE_MESSAGE,
+                refusal=(
+                    refusal_from_error(exc)
+                    if isinstance(exc, FinancialAnalystError)
+                    else None
+                ),
+            ),
+            None,
+        )
     if spec.periods.kind == "named" and spec.companies and not spec.periods.report_dates:
         future = all(
             period.year > date.today().year for period in spec.periods.named
@@ -1052,8 +1077,17 @@ def annotate_analysis(
         *capped_ranking_notes(patch),
     ]
     banners = list(dict.fromkeys([*compiled.notes, *merged.banners, *notes]))
-    if banners != merged.banners:
-        merged = merged.model_copy(update={"banners": banners})
+    snapshot_banner_index = merged.snapshot_banner_index
+    if merged.snapshot_as_of is not None:
+        before_snapshot = merged.banners[: merged.snapshot_banner_index]
+        snapshot_banner_index = len(dict.fromkeys([*compiled.notes, *before_snapshot]))
+    if banners != merged.banners or snapshot_banner_index != merged.snapshot_banner_index:
+        merged = merged.model_copy(
+            update={
+                "banners": banners,
+                "snapshot_banner_index": snapshot_banner_index,
+            }
+        )
     return merged, _with_market_date(spec, runtime)
 
 
@@ -1086,12 +1120,15 @@ def no_company_message(metrics: tuple[str, ...]) -> str:
     )
 
 
-def _refusal(intent: Intent | None, message: str) -> TurnResult:
+def _refusal(
+    intent: Intent | None, message: str, *, refusal: Refusal | None = None
+) -> TurnResult:
     return TurnResult(
         intent=intent or Intent.LOOKUP,
         tool_traces=[],
         renderer=RendererKind.REFUSE,
         message=message,
+        refusal=refusal,
     )
 
 
@@ -1128,6 +1165,10 @@ def _not_operating_once(
         tool_traces=merged.tool_traces,
         renderer=RendererKind.REFUSE,
         message=said,
+        refusal=next(
+            (result.refusal for result in results if result.refusal is not None),
+            None,
+        ),
     )
 
 

@@ -12,6 +12,7 @@ from financial_analyst_agent.contracts import (
     WorkflowPlan,
 )
 from financial_analyst_agent.domain.errors import AmbiguousFactError
+from financial_analyst_agent.presentation import present_turn
 from financial_analyst_agent.providers.sec.company_resolver import resolve_company
 from financial_analyst_agent.ranking import SnapshotRanking
 from financial_analyst_agent.runtime import (
@@ -432,6 +433,13 @@ def test_run_turn_refuses_ambiguous_company_prefix() -> None:
 
 GOOGLE_MARKET_CAP_QUERY = "What was Google's market cap?"
 SHOPIFY_MARKET_CAP_QUERY = "What was Shopify's market cap?"
+
+
+def test_snapshot_banner_keeps_a_corrected_company_note_before_it() -> None:
+    answer = present_turn(run_turn("Aple market cap", recorded_runtime()))
+
+    assert answer.banners[0].startswith("Showing Apple for")
+    assert answer.banners[1].startswith("Universe snapshot as of")
 ALPHABET_SNAPSHOT_MARKET_CAP = Decimal("4139313608328")
 SNAPSHOT_AS_OF = "2026-09-27T22:43:45.015184+00:00"
 
@@ -455,7 +463,7 @@ def test_run_turn_lookup_google_market_cap_from_snapshot() -> None:
 
     assert result.intent is Intent.LOOKUP
     assert result.renderer is RendererKind.TABLE
-    assert result.banners == [f"Universe snapshot as of {SNAPSHOT_AS_OF}"]
+    assert result.snapshot_as_of == SNAPSHOT_AS_OF
     assert len(result.table_rows) == 1
     row = result.table_rows[0]
     assert row.company_name == ALPHABET_NAME

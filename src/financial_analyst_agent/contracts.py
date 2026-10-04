@@ -139,13 +139,7 @@ DEFAULT_RANK_LIMIT = 10
 SNAPSHOT_BANNER_PREFIX = "Universe snapshot as of "
 
 
-def snapshot_banner(as_of: str) -> str:
-    """Raw banner naming the ranking snapshot; presentation reformats the timestamp."""
-    return f"{SNAPSHOT_BANNER_PREFIX}{as_of}"
-
-
 def unknown_metric_message(term: str) -> str:
-    # presentation._UNKNOWN_METRIC parses this wording back out; keep the two in step.
     return f"Unknown metric {term!r}. Allowed: {', '.join(ALLOWED_METRICS)}"
 
 PERIOD_MISMATCH = "period_mismatch"
@@ -304,6 +298,13 @@ class NewsHit(BaseModel):
     published: str | None = None
 
 
+class Refusal(BaseModel):
+    """Stable reason for a refused turn, independent of its visitor-facing wording."""
+
+    code: str
+    details: dict[str, Any] = Field(default_factory=dict)
+
+
 class ToolTrace(BaseModel):
     tool: str
     args: dict[str, Any]
@@ -441,6 +442,40 @@ class TurnResult(BaseModel):
     # The same quarter a year earlier as first filed, for a lone fact whose own
     # filing reports no year-earlier figure (ADR 0009).
     year_earlier_rows: list[TableRow] = Field(default_factory=list)
+    refusal: Refusal | None = None
+    snapshot_as_of: str | None = None
+    # Position of a migrated legacy snapshot banner among visible banners.
+    snapshot_banner_index: int = 0
+    reused_evidence: bool = False
+
+    @model_validator(mode="before")
+    @classmethod
+    def _read_legacy_metadata(cls, value: object) -> object:
+        """Lift metadata out of results saved before it had typed fields."""
+        if not isinstance(value, dict):
+            return value
+        data = dict(value)
+        banners = list(data.get("banners") or [])
+        kept: list[str] = []
+        for banner in banners:
+            if (
+                data.get("snapshot_as_of") is None
+                and isinstance(banner, str)
+                and banner.startswith(SNAPSHOT_BANNER_PREFIX)
+            ):
+                data["snapshot_as_of"] = banner[len(SNAPSHOT_BANNER_PREFIX) :]
+                data.setdefault("snapshot_banner_index", len(kept))
+            elif banner == "Reused thread evidence":
+                data.setdefault("reused_evidence", True)
+            else:
+                kept.append(banner)
+        data["banners"] = kept
+        if data.get("refusal") is None and data.get("renderer") == RendererKind.REFUSE:
+            refusal = _legacy_refusal(data.get("message"))
+            if refusal is not None:
+                data["refusal"] = refusal
+        data["tool_traces"] = _migrate_legacy_trace_errors(data.get("tool_traces"))
+        return data
 
     @model_validator(mode="after")
     def _infer_clarify_kind(self) -> Self:
@@ -458,4 +493,127 @@ def refuse_unknown_metric(intent: Intent, term: str) -> TurnResult:
         tool_traces=[],
         renderer=RendererKind.REFUSE,
         message=unknown_metric_message(term),
+        refusal=Refusal(
+            code="unknown_metric",
+            details={"term": term, "allowed": list(ALLOWED_METRICS)},
+        ),
     )
+
+
+def refusal_from_error(exc: Any) -> Refusal:
+    """Copy a domain error's stable public metadata at the workflow boundary."""
+    return Refusal(code=str(exc.code), details=dict(exc.details))
+
+
+def _legacy_refusal(message: object) -> dict[str, Any] | None:
+    """Migrate refusal metadata from result records written before typed refusals."""
+    if not isinstance(message, str):
+        return None
+    if message.startswith("Unknown metric ") and ". Allowed: " in message:
+        named, allowed = message.removeprefix("Unknown metric ").split(". Allowed: ", 1)
+        term = _legacy_single_quoted(named)
+        if term is None:
+            return None
+        return {
+            "code": "unknown_metric",
+            "details": {
+                "term": term,
+                "allowed": [item for item in allowed.split(", ") if item],
+            },
+        }
+    if message.startswith("Unknown industry ") and ". Allowed: " in message:
+        named, allowed = message.removeprefix("Unknown industry ").split(". Allowed: ", 1)
+        industry = _legacy_single_quoted(named, allow_inner_quote=True)
+        if industry is None:
+            return None
+        return {
+            "code": "unknown_industry",
+            "details": {
+                "industry": industry,
+                "allowed": [item for item in allowed.split(", ") if item],
+            },
+        }
+    prefix = "Company not found for query "
+    if message.startswith(prefix):
+        query = _legacy_single_quoted(
+            message.removeprefix(prefix), allow_inner_quote=True
+        )
+        if query is None:
+            return None
+        return {
+            "code": "company_not_found",
+            "details": {"query": query},
+        }
+    legacy = {
+        "No recorded filing document": ("provider_refusal", {"recorded_filing": True}),
+        "Analysis has no companies or ranked constituents": (
+            "empty_spec",
+            {"missing": "companies"},
+        ),
+        "Analysis has no metrics": ("empty_spec", {"missing": "metrics"}),
+        "No 10-Q or 10-Q/A filing found": ("filing_not_found", {}),
+        "No dividend was declared in this quarter; one was declared earlier in the fiscal year": (
+            "no_dividend_this_quarter",
+            {},
+        ),
+        "Per-share figures for this quarter are reported only for a longer period": (
+            "not_reported_for_quarter",
+            {},
+        ),
+        "No reported or derivable quarter exists for metric": (
+            "unsupported_quarterly_fact",
+            {"reason": "not_reported_or_derivable"},
+        ),
+        "SEC's structured data does not yet include this quarter's filing": (
+            "unsupported_quarterly_fact",
+            {"reason": "pending_structured_data"},
+        ),
+        "Multiple directly reported quarterly facts remain after precedence rules": (
+            "ambiguous_fact",
+            {},
+        ),
+        "No directly reported standalone-quarter fact exists for metric": (
+            "unsupported_quarterly_fact",
+            {"reason": "no_standalone_quarter"},
+        ),
+    }
+    found = legacy.get(message)
+    if found is None:
+        return None
+    code, details = found
+    return {"code": code, "details": details}
+
+
+def _legacy_single_quoted(value: str, *, allow_inner_quote: bool = False) -> str | None:
+    """What the old presentation regex accepted: one pair of single quotes."""
+    if len(value) < 2 or not value.startswith("'") or not value.endswith("'"):
+        return None
+    inner = value[1:-1]
+    return inner if allow_inner_quote or "'" not in inner else None
+
+
+def _migrate_legacy_trace_errors(value: object) -> object:
+    """Give stored trace errors the typed details their old message encoded."""
+    if not isinstance(value, list):
+        return value
+    traces: list[object] = []
+    for item in value:
+        if not isinstance(item, dict):
+            traces.append(item)
+            continue
+        trace = dict(item)
+        provenance_value = trace.get("provenance")
+        if not isinstance(provenance_value, dict):
+            traces.append(trace)
+            continue
+        provenance = dict(provenance_value)
+        error_value = provenance.get("error")
+        if isinstance(error_value, dict) and not isinstance(error_value.get("details"), dict):
+            error = dict(error_value)
+            refusal = _legacy_refusal(error.get("message"))
+            if refusal is not None and refusal["code"] == error.get("code"):
+                error["details"] = refusal["details"]
+                provenance["error"] = error
+        trace["provenance"] = provenance
+        traces.append(trace)
+    return traces

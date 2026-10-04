@@ -59,7 +59,7 @@ from financial_analyst_agent.contracts import (
     TableRow,
     ToolTrace,
     TurnResult,
-    snapshot_banner,
+    refusal_from_error,
 )
 from financial_analyst_agent.domain.errors import (
     SOURCE_FAILURES,
@@ -226,6 +226,7 @@ def explain_answer(topic: str, runtime: Runtime, *, grounding_json: str = "") ->
             tool_traces=traces,
             renderer=RendererKind.REFUSE,
             message=str(exc) if isinstance(exc, ProviderRefusal) else ESSAY_UNAVAILABLE_MESSAGE,
+            refusal=refusal_from_error(exc),
         )
     lock_json = grounding_json or json.dumps(
         [trace.model_dump(mode="json") for trace in traces]
@@ -346,6 +347,7 @@ def _news_grounded_essay_turn(
                 "News search is unavailable right now, and I only answer news questions "
                 "from articles I can cite."
             ),
+            refusal=refusal_from_error(exc),
         )
     traces = [
         ToolTrace(
@@ -505,6 +507,7 @@ def _ranked_table(
             tool_traces=[],
             renderer=RendererKind.REFUSE,
             message=str(exc),
+            refusal=refusal_from_error(exc),
         )
     trace = ToolTrace(
         tool="rank_companies",
@@ -533,7 +536,7 @@ def rank_task(task: CompiledTask, runtime: Runtime) -> TurnResult:
         tool_traces=[trace],
         renderer=RendererKind.TABLE,
         table_rows=rows,
-        banners=[snapshot_banner(table.as_of)],
+        snapshot_as_of=table.as_of,
     )
 
 
@@ -967,7 +970,7 @@ def rank_and_lookup_task(task: CompiledTask, runtime: Runtime) -> TurnResult:
         tool_traces=traces,
         renderer=RendererKind.TABLE,
         table_rows=rows,
-        banners=[snapshot_banner(table.as_of)],
+        snapshot_as_of=table.as_of,
     )
 
 
@@ -1082,6 +1085,7 @@ def _snapshot_metrics_turn(
                 tool_traces=[],
                 renderer=RendererKind.REFUSE,
                 message=str(exc),
+                refusal=refusal_from_error(exc),
             )
         rows = [_snapshot_row(member, metric)]
     else:
@@ -1101,7 +1105,7 @@ def _snapshot_metrics_turn(
         ],
         renderer=RendererKind.TABLE,
         table_rows=rows,
-        banners=[snapshot_banner(as_of)],
+        snapshot_as_of=as_of,
     )
 
 
@@ -1160,11 +1164,18 @@ def lookup_task(task: CompiledTask, runtime: Runtime) -> TurnResult:
                 ToolTrace(
                     tool="get_financials",
                     args=args,
-                    provenance={"error": {"code": exc.code, "message": str(exc)}},
+                    provenance={
+                        "error": {
+                            "code": exc.code,
+                            "message": str(exc),
+                            "details": exc.details,
+                        }
+                    },
                 )
             ],
             renderer=RendererKind.REFUSE,
             message=str(exc),
+            refusal=refusal_from_error(exc),
         )
     return TurnResult(
         intent=Intent.LOOKUP,

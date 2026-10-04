@@ -677,3 +677,31 @@ Files changed:
 Blockers / next:
 - The PR stays a draft until ticket 11 is resolved. Before it merges, push `streamlit-redirect` and repoint the Community Cloud app ("Repointing the Streamlit app" in `docs/deploy.md`). An app still on `master` breaks once `app.py` is gone.
 - Only ticket 11 (ready-for-human) remains in this feature.
+
+## 2026-10-04 — simplify-followups 02 Typed refusal and result metadata
+
+Task completed:
+`docs/process/tickets/simplify-followups/issues/02-typed-refusals.md`
+
+Key decisions:
+- `TurnResult.refusal` carries the domain error's code and details; presentation
+  maps those fields to visitor copy and no longer parses error wording.
+- Snapshot time and reused thread evidence are `snapshot_as_of` and
+  `reused_evidence`, not banner protocols.
+- Loading a pre-change result migrates its legacy refusal and metadata banners,
+  so persisted conversation threads retain their old presentation.
+- Unsupported-quarter refusal details name the stable reason needed to preserve
+  distinct visitor explanations.
+
+Files changed:
+- `src/financial_analyst_agent/{contracts,evidence_store,filing_change,presentation,ranking,sec_facts,turn}.py`
+- `src/financial_analyst_agent/graph/{analysis_spec,spec_turn}.py`
+- `src/financial_analyst_agent/services/fact_selector.py`
+- `tests/test_{deploy_wizard,presentation,run_turn_lookup,run_turn_rank,run_turn_rank_and_lookup}.py`
+- `tests/unit/test_{evidence_labels,thread_evidence}.py`
+- `docs/process/tickets/simplify-followups/issues/02-typed-refusals.md`
+
+Blockers / next:
+- None. Ticket 03 is now unblocked.
+- Verification: 1,660 tests passed; ruff and mypy passed; recorded answers were
+  unchanged (`0 of 244 conversations differ`).

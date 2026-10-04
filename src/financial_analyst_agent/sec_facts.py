@@ -557,7 +557,11 @@ class SecFactLookup:
                     ):
                         # Filed, but SEC's company facts have not caught up with it.
                         last_unsupported = UnsupportedQuarterlyFactError(
-                            PENDING_IN_XBRL_MESSAGE, details={"metric": parsed_metric.value}
+                            PENDING_IN_XBRL_MESSAGE,
+                            details={
+                                "metric": parsed_metric.value,
+                                "reason": "pending_structured_data",
+                            },
                         )
                     if period is None or report_date is not None:
                         break
@@ -587,7 +591,10 @@ class SecFactLookup:
             ) from last_missing
         raise UnsupportedQuarterlyFactError(
             "No directly reported standalone-quarter fact exists for metric",
-            details={"metric": parsed_metric.value},
+            details={
+                "metric": parsed_metric.value,
+                "reason": "no_standalone_quarter",
+            },
         )
 
     def _select_with_fallbacks(

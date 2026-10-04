@@ -27,9 +27,6 @@ from financial_analyst_agent.domain.models import FinancialFact
 
 EvidenceKind = Literal["fact", "news", "result"]
 
-THREAD_EVIDENCE_BANNER = "Reused thread evidence"
-
-
 class EvidenceRecord(BaseModel):
     evidence_id: str
     kind: EvidenceKind
@@ -266,7 +263,7 @@ def with_banner(result: TurnResult, banner: str) -> TurnResult:
 
 
 def label_reused_evidence(result: TurnResult, *, reused: bool) -> TurnResult:
-    return with_banner(result, THREAD_EVIDENCE_BANNER) if reused else result
+    return result.model_copy(update={"reused_evidence": True}) if reused else result
 
 
 def retain_result_evidence(store: EvidenceStore, result: TurnResult) -> str:

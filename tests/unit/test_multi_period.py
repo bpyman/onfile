@@ -170,6 +170,43 @@ def test_period_window_reruns_metrics_across_quarters(tmp_path: Path) -> None:
     assert all(row.reason is None for row in turn.result.table_rows)
 
 
+def test_period_materialization_refusal_keeps_provider_error_details(tmp_path: Path) -> None:
+    from financial_analyst_agent.contracts import RendererKind
+    from financial_analyst_agent.conversation import run_conversation_turn
+    from financial_analyst_agent.domain.errors import ProviderError
+    from financial_analyst_agent.graph.analysis_spec import PeriodSelection, SpecPatch
+    from financial_analyst_agent.thread_store import LocalThreadStore
+
+    class _Window:
+        def complete(self, query: str, current_spec: object = None) -> SpecPatch:
+            return SpecPatch(
+                mode="replace",
+                add_companies=("Microsoft",),
+                add_metrics=("revenue",),
+                set_periods=PeriodSelection(kind="last_n_quarters", count=4),
+            )
+
+    class _Unavailable(_PeriodFacts):
+        def list_quarterly_report_dates(
+            self, company: str, *, limit: int
+        ) -> tuple[date, ...]:
+            raise ProviderError("SEC timed out", details={"status_code": 503})
+
+    turn = run_conversation_turn(
+        "t1",
+        "Microsoft revenue for the last four quarters",
+        _runtime(completer=_Window(), facts=_Unavailable({})),
+        store=LocalThreadStore(tmp_path),
+    )
+
+    assert turn.result.renderer is RendererKind.REFUSE
+    assert turn.result.refusal is not None
+    assert turn.result.refusal.model_dump() == {
+        "code": "provider_error",
+        "details": {"status_code": 503},
+    }
+
+
 def test_change_window_keeps_companies_metrics_operations(tmp_path: Path) -> None:
     from financial_analyst_agent.conversation import run_conversation_turn
     from financial_analyst_agent.graph.analysis_spec import PeriodSelection, SpecPatch
