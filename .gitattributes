@@ -1,2 +1,4 @@
 # Parallel Ralph workers each append to the progress log; keep every entry when they merge.
 docs/process/progress.txt merge=union
+# Shell scripts keep LF line endings, or bash in a Windows checkout reads a stray carriage return.
+*.sh text eol=lf
