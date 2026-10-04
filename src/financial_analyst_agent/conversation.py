@@ -39,8 +39,8 @@ from financial_analyst_agent.evidence_store import (
     retain_result_evidence,
     with_banner,
 )
+from financial_analyst_agent.fan_out import DEFAULT_TASK_MAX_WORKERS
 from financial_analyst_agent.graph.analysis_spec import AnalysisSpec, SpecPatch
-from financial_analyst_agent.graph.spec_turn import DEFAULT_TASK_MAX_WORKERS
 from financial_analyst_agent.graph.state import TurnDeps
 from financial_analyst_agent.graph.turn_graph import run_analysis
 from financial_analyst_agent.guide import suggest_follow_ups
