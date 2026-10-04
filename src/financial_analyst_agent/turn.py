@@ -494,13 +494,17 @@ def _lookup_provenance(fact: FinancialFact) -> dict[str, Any]:
 def _ranked_table(
     task: CompiledTask, runtime: Runtime, intent: Intent
 ) -> tuple[Any, ToolTrace] | TurnResult:
-    """Rank the task's industry, or a refusal when the industry is unknown."""
+    """The task's ranked industry, or a refusal when the industry is unknown.
+
+    A task compiled from a resolved spec carries the spec's ranking; only a
+    task without one ranks the industry here.
+    """
     if runtime.ranking is None:
         raise RuntimeError(f"{intent.value} intent requires a ranking adapter")
     industry = task.industry or ""
     limit = task.limit or DEFAULT_RANK_LIMIT
     try:
-        table = runtime.ranking.rank_companies(industry, limit)
+        table = task.ranked or runtime.ranking.rank_companies(industry, limit)
     except UnknownIndustryError as exc:
         return TurnResult(
             intent=intent,

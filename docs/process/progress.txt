@@ -858,3 +858,30 @@ Files changed:
 Blockers / next:
 - None. All 1,701 Python tests pass; ruff and mypy pass; the answer comparison
   reports `0 of 244 conversations differ from HEAD`.
+
+## 2026-10-04 — simplify-followups 10 Rank an industry once per turn
+
+Task completed: `docs/process/tickets/simplify-followups/issues/10-reuse-a-rankings-members.md`
+
+Key decisions:
+- `universe.SnapshotGroups` (sectors and industries) is built once in
+  `SnapshotRanking.__init__`. The industry-resolution functions now take it in
+  place of the snapshot.
+- The spec's ranking travels on `RankedSet.table` and then
+  `CompiledTask.ranked`. Both are `exclude=True`, so serialized specs do not
+  change and a held spec ranks again. `_ranked_table` falls back to
+  `rank_companies` when a task carries no table.
+
+Files changed:
+- `src/financial_analyst_agent/{universe,ranking,turn}.py`
+- `src/financial_analyst_agent/graph/analysis_spec.py`
+- `tests/test_run_turn_rank_and_lookup.py`
+- `tests/unit/{test_planner_rules,test_window_copy}.py`
+- `docs/process/tickets/simplify-followups/issues/10-reuse-a-rankings-members.md`
+- `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,702 Python tests pass; ruff and mypy pass; the answer comparison
+  reports `0 of 244 conversations differ from HEAD`.
+- `tests/test_api.py::test_the_new_conversation_limit_says_how_long_to_wait`
+  failed once ("about 61 minutes") and passed on rerun. It depends on the clock.

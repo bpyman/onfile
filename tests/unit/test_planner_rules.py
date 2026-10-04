@@ -36,7 +36,11 @@ from financial_analyst_agent.request_wording import (
 from financial_analyst_agent.rules_planner import DemoCompleter, issuer_index
 from financial_analyst_agent.runtime import RuntimeKind, recorded_runtime
 from financial_analyst_agent.thread_store import EphemeralThreadStore
-from financial_analyst_agent.universe import load_universe_snapshot, resolve_industry_group
+from financial_analyst_agent.universe import (
+    SnapshotGroups,
+    load_universe_snapshot,
+    resolve_industry_group,
+)
 
 
 def _live() -> DemoCompleter:
@@ -136,18 +140,18 @@ def test_rankings_read_industries_and_limits() -> None:
 
 
 def test_industry_words_name_industries_inside_a_sector() -> None:
-    snapshot = load_universe_snapshot()
+    groups = SnapshotGroups.of(load_universe_snapshot())
 
-    semis = resolve_industry_group("semiconductor", snapshot)
-    software = resolve_industry_group("software companies", snapshot)
-    regional = resolve_industry_group("regional banks", snapshot)
-    tech = resolve_industry_group("tech", snapshot)
+    semis = resolve_industry_group("semiconductor", groups)
+    software = resolve_industry_group("software companies", groups)
+    regional = resolve_industry_group("regional banks", groups)
+    tech = resolve_industry_group("tech", groups)
 
     assert semis is not None and semis.industries == {"Semiconductors"}
     assert software is not None and software.label == "Software"
     assert regional is not None and regional.industries == {"Banks - Regional"}
     assert tech is not None and tech.sector == "Technology"
-    assert resolve_industry_group("spaceships", snapshot) is None
+    assert resolve_industry_group("spaceships", groups) is None
 
 
 def test_a_ranking_by_a_metric_is_ordered_by_it() -> None:
@@ -217,13 +221,13 @@ def test_a_ranking_lists_at_most_25_companies() -> None:
 
 
 def test_gics_sector_names_and_common_industry_words_resolve() -> None:
-    snapshot = load_universe_snapshot()
+    groups = SnapshotGroups.of(load_universe_snapshot())
 
-    staples = resolve_industry_group("consumer staples", snapshot)
-    payments = resolve_industry_group("payments companies", snapshot)
-    hotels = resolve_industry_group("hotels", snapshot)
-    oil = resolve_industry_group("oil & gas", snapshot)
-    healthcare = resolve_industry_group("healthcare", snapshot)
+    staples = resolve_industry_group("consumer staples", groups)
+    payments = resolve_industry_group("payments companies", groups)
+    hotels = resolve_industry_group("hotels", groups)
+    oil = resolve_industry_group("oil & gas", groups)
+    healthcare = resolve_industry_group("healthcare", groups)
 
     assert staples is not None and staples.sector == "Consumer Defensive"
     assert payments is not None and payments.industries == {"Financial - Credit Services"}
@@ -232,7 +236,7 @@ def test_gics_sector_names_and_common_industry_words_resolve() -> None:
     assert all(name.startswith("Oil & Gas") for name in oil.industries)
     assert healthcare is not None and healthcare.sector == "Healthcare"
     for word in ("software", "telecom", "restaurants"):
-        assert resolve_industry_group(word, snapshot) is not None, word
+        assert resolve_industry_group(word, groups) is not None, word
 
 
 def test_oil_and_gas_is_one_industry_in_a_ranking() -> None:

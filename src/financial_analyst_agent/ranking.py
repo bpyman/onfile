@@ -13,6 +13,7 @@ from financial_analyst_agent.domain.errors import (
 from financial_analyst_agent.issuer_index import IssuerIndex, normalize
 from financial_analyst_agent.providers.sec.company_resolver import resolve_company
 from financial_analyst_agent.universe import (
+    SnapshotGroups,
     UniverseCompany,
     UniverseSnapshot,
     allowed_industry_names,
@@ -50,6 +51,7 @@ class SnapshotRanking:
         for company in self._operating:
             self._listings_by_cik.setdefault(company.cik, []).append(company)
         self._by_ticker = {company.ticker.upper(): company for company in self._operating}
+        self._groups = SnapshotGroups.of(snapshot)
         self._ticker_payload: dict[str, Any] = {
             str(index): {
                 "ticker": company.ticker,
@@ -74,9 +76,9 @@ class SnapshotRanking:
         return self._index
 
     def rank_companies(self, industry: str, limit: int) -> RankTable:
-        group = resolve_industry_group(industry, self._snapshot)
+        group = resolve_industry_group(industry, self._groups)
         if group is None:
-            allowed_names = allowed_industry_names(self._snapshot)
+            allowed_names = allowed_industry_names(self._groups)
             allowed = ", ".join(allowed_names)
             raise UnknownIndustryError(
                 f"Unknown industry {industry!r}. Allowed: {allowed}",
