@@ -61,6 +61,7 @@ from financial_analyst_agent.domain.errors import (
     UnknownIndustryError,
     visitor_message,
 )
+from financial_analyst_agent.fan_out import DEFAULT_TASK_MAX_WORKERS, map_in_order
 from financial_analyst_agent.graph.analysis_spec import (
     MAX_QUARTERS_ASKED,
     AnalysisSpec,
@@ -106,9 +107,6 @@ from financial_analyst_agent.turn import (
     rank_and_lookup_task,
     rank_task,
 )
-
-# Bound concurrent provider fan-out so a wide window cannot flood SEC/EDGAR.
-DEFAULT_TASK_MAX_WORKERS = 8
 
 ProgressCallback = Callable[[int, int], None]
 
@@ -191,24 +189,45 @@ def materialize_period_dates(spec: AnalysisSpec, runtime: Runtime) -> AnalysisSp
     known = dict(periods.company_report_dates)
     if listed_first and spec.companies:
         known[first.key] = periods.report_dates
-    for company in spec.companies:
-        key = company.key
-        if key in known:
-            continue
-        try:
-            dates = listing(company.handle, limit=periods.count or 1)
-        except SessionQuotaError:
-            raise
-        except Exception:
-            # This company's cells report their own failure; it must not refuse
-            # the whole window for the companies that do resolve.
-            continue
-        if dates:
-            known[key] = dates
+    count = periods.count or 1
+    pending = _not_yet_listed(spec.companies, known)
+    listed = map_in_order(
+        lambda company: _or_none(partial(listing, company.handle, limit=count)),
+        pending,
+    )
+    for company, company_dates in zip(pending, listed, strict=True):
+        if company_dates:
+            known[company.key] = company_dates
     periods = periods.model_copy(update={"company_report_dates": tuple(known.items())})
     if periods == spec.periods:
         return spec
     return spec.model_copy(update={"periods": periods})
+
+
+def _or_none[T](read: Callable[[], T]) -> T | None:
+    """``read()``, or None when it fails.
+
+    One company's failure must not refuse the whole window for the companies
+    that do resolve: its cells report it. A spent session budget still stops
+    the turn.
+    """
+    try:
+        return read()
+    except SessionQuotaError:
+        raise
+    except Exception:
+        return None
+
+
+def _not_yet_listed(
+    companies: tuple[ResolvedCompany, ...], known: dict[str, Any]
+) -> list[ResolvedCompany]:
+    """The companies without report dates yet, each once, in the spec's order."""
+    pending: dict[str, ResolvedCompany] = {}
+    for company in companies:
+        if company.key not in known:
+            pending.setdefault(company.key, company)
+    return list(pending.values())
 
 
 def _named_dates(periods: Any, named: tuple[NamedPeriodSpec, ...]) -> tuple[date, ...]:
@@ -230,18 +249,13 @@ def _materialize_named_periods(spec: AnalysisSpec, runtime: Runtime) -> Analysis
     lister = runtime.facts.fiscal_periods
     periods = spec.periods
     known = dict(periods.company_report_dates)
-    for company in spec.companies:
-        key = company.key
-        if key in known:
-            continue
-        try:
-            listed = lister(company.handle)
-        except SessionQuotaError:
-            raise
-        except Exception:
-            # This company's cells report their own failure.
-            continue
-        known[key] = _named_dates(listed, periods.named)
+    pending = _not_yet_listed(spec.companies, known)
+    listings = map_in_order(
+        lambda company: _or_none(partial(lister, company.handle)), pending
+    )
+    for company, listed in zip(pending, listings, strict=True):
+        if listed is not None:
+            known[company.key] = _named_dates(listed, periods.named)
     first = next(
         (known[company.key] for company in spec.companies if known.get(company.key)),
         (),
@@ -269,19 +283,16 @@ def drop_annual_filers(spec: AnalysisSpec, runtime: Runtime) -> tuple[AnalysisSp
         return spec, []
     kept: list[Any] = []
     dropped: list[str] = []
-    for company in spec.companies:
-        try:
-            quarterly, name = runtime.facts.files_quarterly(company.handle)
-        except SessionQuotaError:
-            raise
-        except Exception:
-            # Resolution problems surface through the company's own cells.
-            kept.append(company)
-            continue
-        if quarterly:
+    checks = map_in_order(
+        lambda company: _or_none(lambda: runtime.facts.files_quarterly(company.handle)),
+        spec.companies,
+    )
+    for company, check in zip(spec.companies, checks, strict=True):
+        # A company that could not be checked keeps its place; its cells say why.
+        if check is None or check[0]:
             kept.append(company)
         else:
-            dropped.append(short_name(company.name if company.cik else name) or company.query)
+            dropped.append(short_name(company.name if company.cik else check[1]) or company.query)
     if not dropped:
         return spec, []
     return spec.model_copy(update={"companies": tuple(kept)}), dropped

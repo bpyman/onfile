@@ -75,6 +75,7 @@ from financial_analyst_agent.domain.errors import (
     visitor_message,
 )
 from financial_analyst_agent.domain.models import DerivationPart, FinancialFact
+from financial_analyst_agent.fan_out import map_in_order
 from financial_analyst_agent.graph.analysis_spec import CompiledTask
 from financial_analyst_agent.observability import call_provider
 from financial_analyst_agent.services.filing_selector import FISCAL_WEEK_TOLERANCE
@@ -744,20 +745,28 @@ def compare_metrics(
     *,
     report_date: date | None = None,
 ) -> list[TableRow]:
-    """Resolve issuers, fetch formula components, and period-align Decimal results."""
+    """Resolve issuers, fetch formula components, and period-align Decimal results.
+
+    The issuers' facts are fetched at once; the rows are built in issuer order.
+    """
     component_names = _component_metrics(metric)
-    rows: list[TableRow] = []
-    seen_ciks: set[str] = set()
-    for issuer in issuers:
+
+    def fetch(issuer: str) -> list[FinancialFact] | Exception:
         try:
-            fetched = [
+            return [
                 facts.get_financials(issuer, component, report_date=report_date)
                 for component in component_names
             ]
         except _COMPANY_FAILURES as exc:
+            return exc
+
+    rows: list[TableRow] = []
+    seen_ciks: set[str] = set()
+    for issuer, fetched in zip(issuers, map_in_order(fetch, issuers), strict=True):
+        if isinstance(fetched, Exception):
             rows.append(
                 _compare_unresolved_row(
-                    issuer, metric, reason_for(exc), report_date=report_date
+                    issuer, metric, reason_for(fetched), report_date=report_date
                 )
             )
             continue
@@ -842,13 +851,8 @@ def market_formula_rows(
     snapshot_day = _snapshot_date(ranking.snapshot_as_of())
     source = ranking.snapshot_source()
     earnings_metric = FORMULA_COMPONENTS[metric][1]
-    rows: list[TableRow] = []
-    seen_ciks: set[str] = set()
-    for issuer in issuers:
-        member, reason = _snapshot_member(ranking, issuer)
-        if member is None:
-            rows.append(_compare_unresolved_row(issuer, metric, reason, report_date=report_date))
-            continue
+
+    def fetch(issuer: str) -> tuple[FinancialFact, FinancialFact] | Exception:
         try:
             latest = facts.get_financials(issuer, earnings_metric)
             earnings = (
@@ -857,12 +861,28 @@ def market_formula_rows(
                 else facts.get_financials(issuer, earnings_metric, report_date=report_date)
             )
         except (*_COMPANY_FAILURES, PerShareNotDerivableError) as exc:
+            return exc
+        return latest, earnings
+
+    members = {issuer: _snapshot_member(ranking, issuer) for issuer in issuers}
+    in_snapshot = [issuer for issuer, (member, _) in members.items() if member is not None]
+    fetched_by_issuer = dict(zip(in_snapshot, map_in_order(fetch, in_snapshot), strict=True))
+    rows: list[TableRow] = []
+    seen_ciks: set[str] = set()
+    for issuer in issuers:
+        member, reason = members[issuer]
+        if member is None:
+            rows.append(_compare_unresolved_row(issuer, metric, reason, report_date=report_date))
+            continue
+        fetched = fetched_by_issuer[issuer]
+        if isinstance(fetched, Exception):
             rows.append(
                 _compare_unresolved_row(
-                    issuer, metric, reason_for(exc), report_date=report_date
+                    issuer, metric, reason_for(fetched), report_date=report_date
                 )
             )
             continue
+        latest, earnings = fetched
         if member.cik in seen_ciks:
             continue
         seen_ciks.add(member.cik)
@@ -946,32 +966,33 @@ def rank_and_lookup_task(task: CompiledTask, runtime: Runtime) -> TurnResult:
         return ranked
     table, trace = ranked
     metric = _task_metric(task)
-    traces = [trace]
-    rows: list[TableRow] = []
-    for index, company in enumerate(table.companies, start=1):
+
+    def member_row(ranked_member: tuple[int, Any]) -> tuple[TableRow, list[ToolTrace]]:
+        index, company = ranked_member
         if metric in SNAPSHOT_METRICS:
-            rows.append(_snapshot_row(company, metric, rank=index))
-            continue
+            return _snapshot_row(company, metric, rank=index), []
         if metric in FORMULA_COMPONENTS:
             partial = _metrics_turn(Intent.RANK_AND_LOOKUP, [company.cik], metric, runtime)
-            rows.append(_with_rank_identity(partial.table_rows[0], company, index))
-            traces.extend(partial.tool_traces)
-            continue
+            return _with_rank_identity(partial.table_rows[0], company, index), partial.tool_traces
         args = {"company": company.cik, "metric": metric}
         try:
             fact = runtime.facts.get_financials(company.cik, metric)
         except _COMPANY_FAILURES as exc:
-            rows.append(_rank_and_lookup_row(company, index, metric, reason_for(exc)))
-            traces.append(ToolTrace(tool="get_financials", args=args))
-            continue
-        rows.append(_with_rank_identity(_table_row_from_fact(fact), company, index))
-        traces.append(
+            row = _rank_and_lookup_row(company, index, metric, reason_for(exc))
+            return row, [ToolTrace(tool="get_financials", args=args)]
+        return _with_rank_identity(_table_row_from_fact(fact), company, index), [
             ToolTrace(
                 tool="get_financials",
                 args=args,
                 provenance=_lookup_provenance(fact),
             )
-        )
+        ]
+
+    # The members' facts are fetched at once; rows and traces keep rank order.
+    built = map_in_order(member_row, list(enumerate(table.companies, start=1)))
+    rows = [row for row, _ in built]
+    traces = [trace]
+    traces.extend(member_trace for _, member_traces in built for member_trace in member_traces)
     return TurnResult(
         intent=Intent.RANK_AND_LOOKUP,
         tool_traces=traces,

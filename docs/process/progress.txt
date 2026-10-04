@@ -832,6 +832,34 @@ Blockers / next:
 - None. All 1,659 Python tests pass; ruff and mypy pass; the answer comparison
   reports `0 of 244 conversations differ from HEAD`.
 
+## 2026-10-04 — simplify-followups 01 Fetch a ranking's or comparison's companies in parallel
+
+Task completed: `docs/process/tickets/simplify-followups/issues/01-fetch-companies-in-parallel.md`
+(an interactive session: the ticket was ready-for-human, for its live timing)
+
+Key decisions:
+- One helper, `fan_out.map_in_order`, for every per-company loop: bounded pool,
+  a context copy per call, results in item order, the first escaping error raised.
+- Rows are still built in order after the fetches, so deduplication, ranks and
+  traces do not change.
+- The live gain is capped by `SEC_MAX_REQUESTS_PER_SECOND` (at most 5): a cold
+  "top 10 banks by revenue" went from 8.4 to 12.8 s to a steady 8.0 s.
+
+Files changed:
+- `src/financial_analyst_agent/fan_out.py` (new)
+- `src/financial_analyst_agent/{turn,conversation}.py`
+- `src/financial_analyst_agent/graph/spec_turn.py`
+- `tests/unit/test_fan_out.py` (new)
+- `docs/process/tickets/simplify-followups/issues/01-fetch-companies-in-parallel.md`
+- `docs/process/progress.txt`
+
+Blockers / next:
+- Ticket 09 (blocked by this one) can follow the same helper.
+- The SEC rate cap rose from 5 to 8 a second (decided): the same ranking now
+  takes 5.8 s cold.
+- Next: drop the older submissions pages company facts make redundant (13 of
+  the 34 requests above).
+- 1,704 tests pass; ruff and mypy pass; `0 of 244 conversations differ`.
 ## 2026-10-04 — simplify-followups 08 One operating-company rule
 
 Task completed: `docs/process/tickets/simplify-followups/issues/08-one-operating-company-rule.md`
