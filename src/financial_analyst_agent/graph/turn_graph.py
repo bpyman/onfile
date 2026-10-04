@@ -75,7 +75,7 @@ from financial_analyst_agent.guide import (
 )
 from financial_analyst_agent.issuer_index import CompanyNames
 from financial_analyst_agent.observability import call_provider, log_event
-from financial_analyst_agent.request_wording import planner_window
+from financial_analyst_agent.request_wording import planner_window, read_window
 from financial_analyst_agent.turn import (
     current_events_answer,
     explain_answer,
@@ -143,8 +143,11 @@ def request_from_proposal(
         )
     if is_structured_proposal(proposal):
         # A planner's window stands only where the words ask about time.
+        window = read_window(message)
         patch = planner_window(
-            proposal if isinstance(proposal, SpecPatch) else plan_to_spec_patch(proposal), message
+            proposal if isinstance(proposal, SpecPatch) else plan_to_spec_patch(proposal),
+            message,
+            window=window,
         )
         intent = None if isinstance(proposal, SpecPatch) else proposal.intent
         notes = () if isinstance(proposal, SpecPatch) else proposal.notes
@@ -162,6 +165,7 @@ def request_from_proposal(
             patch=patch,
             wording=message,
             question=message,
+            window=window,
             intent=intent,
             notes=notes,
             unrecorded=tuple(unrecorded),

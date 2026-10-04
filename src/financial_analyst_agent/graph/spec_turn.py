@@ -88,8 +88,8 @@ from financial_analyst_agent.request_wording import (
     OVERVIEW_METRICS,
     bind_metrics_from_message,
     comparison_asked,
+    read_window,
     refine_patch_from_message,
-    unique_metrics_from_phrase,
 )
 from financial_analyst_agent.services.filing_selector import FISCAL_WEEK_TOLERANCE
 from financial_analyst_agent.services.fiscal_periods import (
@@ -818,6 +818,7 @@ def resolve_request(
     """
     message = request.wording
     patch = request.patch
+    window = request.window or read_window(message)
     intent = request.intent
 
     def answered(result: TurnResult, spec: AnalysisSpec | None) -> Resolution:
@@ -841,7 +842,11 @@ def resolve_request(
     if forecast is not None:
         return answered(_refusal(intent, forecast_message(forecast.group(0))), current_spec)
     patch = refine_patch_from_message(
-        patch, message, current_spec, index=getattr(runtime.ranking, "index", None)
+        patch,
+        message,
+        current_spec,
+        index=getattr(runtime.ranking, "index", None),
+        window=window,
     )
     if request.company_choice is not None:
         # The held wording reads "Lincoln" again; the analyst already chose which.
@@ -979,6 +984,7 @@ def resolve_request(
             tasks=tasks,
             patch=patch,
             wording=message,
+            window=window,
             prior_spec=current_spec,
             notes=request.notes,
             annual_filers=tuple(annual_filers),
@@ -1000,11 +1006,10 @@ def merge_analysis(compiled: CompiledAnalysis, results: list[TurnResult]) -> Tur
         # "How is SPY doing?": one reason, said once, not a row for each metric.
         merged = _not_operating_once(merged, results, spec.companies[0])
     merged = _fill_identity(merged, spec)
-    message = compiled.wording
     if "order_by_metric" in spec.operations and spec.constituents is not None and spec.metrics:
-        merged = _order_by_metric(merged, _ordering_metric(spec, message))
+        merged = _order_by_metric(merged, _ordering_metric(spec))
     elif "order_by_metric" in spec.operations and spec.companies and spec.metrics:
-        merged = _order_companies_by_metric(merged, _ordering_metric(spec, message))
+        merged = _order_companies_by_metric(merged, _ordering_metric(spec))
     return merged
 
 
@@ -1047,7 +1052,7 @@ def annotate_analysis(
     notes = [
         *([annual_filer_note(list(compiled.annual_filers))] if compiled.annual_filers else []),
         *already_present_notes(patch, compiled.prior_spec, spec),
-        *period_notes(compiled.wording, spec),
+        *period_notes(compiled.wording, spec, window=compiled.window),
         *short_ranking_notes(spec),
         *capped_ranking_notes(patch),
     ]
@@ -1131,11 +1136,8 @@ def _not_operating_once(
     )
 
 
-def _ordering_metric(spec: AnalysisSpec, message: str) -> str:
-    """The metric to order by: named here, chosen by "sort by", else the first."""
-    named = [metric for metric in unique_metrics_from_phrase(message) if metric in spec.metrics]
-    if named:
-        return named[0]
+def _ordering_metric(spec: AnalysisSpec) -> str:
+    """The metric request wording recorded for ordering, else the first."""
     if spec.order_by in spec.metrics:
         return str(spec.order_by)
     return spec.metrics[0]

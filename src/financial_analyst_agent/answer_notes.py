@@ -16,20 +16,15 @@ from financial_analyst_agent.graph.analysis_spec import (
     calendar_groups,
 )
 from financial_analyst_agent.guide import format_date, joined, possessive, short_name
-from financial_analyst_agent.period_window import asked_window
 from financial_analyst_agent.request_wording import (
     EXPLICIT_YOY,
     GROWTH,
     MAX_SINCE_QUARTERS,
-    SINCE_YEAR,
-    SPECIFIC_PERIOD,
-    SUB_QUARTER,
-    TRAILING_YEAR,
     WHY_CHANGE,
     YEAR_OF_QUARTERS,
     YEAR_TO_DATE,
     YOY,
-    since_quarters,
+    WindowReading,
 )
 from financial_analyst_agent.services.fiscal_periods import (
     adjacent_quarters,
@@ -179,21 +174,23 @@ def _named_period_notes(spec: AnalysisSpec) -> list[str]:
     return notes
 
 
-def period_notes(message: str, spec: AnalysisSpec) -> list[str]:
+def period_notes(
+    message: str, spec: AnalysisSpec, *, window: WindowReading
+) -> list[str]:
     """Say plainly when the window shown is not the one the analyst asked for."""
     notes: list[str] = []
-    window = (
+    shown_window = (
         f"the last {spec.periods.count} quarters"
         if spec.periods.kind == "last_n_quarters"
         else "the latest quarter"
     )
-    named = SPECIFIC_PERIOD.search(message)
-    if named is not None and spec.periods.kind != "named":
+    if window.unread_named_period is not None and spec.periods.kind != "named":
         notes.append(
-            f"I couldn't read “{named.group(0)}” as a period; this shows {window}. "
+            f"I couldn't read “{window.unread_named_period}” as a period; "
+            f"this shows {shown_window}. "
             "Try “Q3 2024” or “fiscal 2025”."
         )
-    if spec.periods.kind == "last_n_quarters" and TRAILING_YEAR.search(message):
+    if spec.periods.kind == "last_n_quarters" and window.trailing_year:
         notes.append(TRAILING_YEAR_BANNER)
     elif (
         spec.periods.kind == "last_n_quarters"
@@ -201,8 +198,10 @@ def period_notes(message: str, spec: AnalysisSpec) -> list[str]:
         and not YOY.search(message)
     ):
         notes.append(YEAR_OF_QUARTERS_BANNER)
-    if spec.periods.kind != "named" and SUB_QUARTER.search(message):
-        notes.append(f"Filings report quarters, not months or weeks, so this shows {window}.")
+    if spec.periods.kind != "named" and window.sub_quarter:
+        notes.append(
+            f"Filings report quarters, not months or weeks, so this shows {shown_window}."
+        )
     if (
         "year_over_year" in spec.operations
         and GROWTH.search(message)
@@ -213,7 +212,7 @@ def period_notes(message: str, spec: AnalysisSpec) -> list[str]:
         notes.append(WHY_CHANGE_BANNER)
     if YEAR_TO_DATE.search(message):
         notes.append(
-            f"Year-to-date totals aren't supported yet, so this shows {window}. "
+            f"Year-to-date totals aren't supported yet, so this shows {shown_window}. "
             "Try “last 4 quarters”."
         )
     if spec.periods.kind == "named":
@@ -238,26 +237,20 @@ def period_notes(message: str, spec: AnalysisSpec) -> list[str]:
     ):
         notes.append(FISCAL_Q4_GAP_BANNER)
     if spec.periods.kind == "last_n_quarters":
-        notes.extend(_window_notes(message, windows))
+        notes.extend(_window_notes(window, windows))
     return notes
 
 
-def _window_notes(message: str, windows: list[tuple[date, ...]]) -> list[str]:
+def _window_notes(window: WindowReading, windows: list[tuple[date, ...]]) -> list[str]:
     """Say when a window is shorter than asked: capped, or more than the filings hold."""
-    notes: list[str] = []
-    window = asked_window(message)
-    wanted = window.quarters if window is not None else None
-    since = SINCE_YEAR.search(message)
-    if window is not None:
-        notes.extend(window.notes())
-    elif since is not None:
-        quarters = since_quarters(since)
-        wanted = min(quarters, MAX_SINCE_QUARTERS)
-        if quarters > MAX_SINCE_QUARTERS:
-            notes.append(
-                f"Quarters since {since.group('y')} number {quarters}; a window shows at most "
-                f"{MAX_SINCE_QUARTERS}, so this asks for the latest {MAX_SINCE_QUARTERS}."
-            )
+    notes = list(window.interpretation_notes)
+    wanted = window.asked_quarters
+    if window.since_capped_from is not None:
+        notes.append(
+            f"Quarters since {window.since_year} number {window.since_capped_from}; "
+            f"a window shows at most {MAX_SINCE_QUARTERS}, so this asks for the latest "
+            f"{MAX_SINCE_QUARTERS}."
+        )
     shown = max((len(dates) for dates in windows), default=0)
     if wanted is not None and 0 < shown < wanted:
         notes.append(f"The filings here hold only {shown} of the {wanted} quarters asked for.")

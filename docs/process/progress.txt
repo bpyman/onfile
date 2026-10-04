@@ -677,3 +677,28 @@ Files changed:
 Blockers / next:
 - The PR stays a draft until ticket 11 is resolved. Before it merges, push `streamlit-redirect` and repoint the Community Cloud app ("Repointing the Streamlit app" in `docs/deploy.md`). An app still on `master` breaks once `app.py` is gone.
 - Only ticket 11 (ready-for-human) remains in this feature.
+
+
+## 2026-10-04 — simplify-followups 07 Merge and annotate read the spec
+
+Task completed: `docs/process/tickets/simplify-followups/issues/07-merge-reads-the-spec.md`
+
+Key decisions:
+- Request wording creates one typed window reading and carries it through the
+  structured request and compiled analysis; answer notes no longer parse those
+  window phrases again.
+- Follow-up ordering edits set the spec's `order_by`; merge reads that field,
+  with the first metric retained as the unchanged fallback.
+- Replace-mode one-metric rankings do not persist a redundant `order_by`, so
+  recorded analysis specs and answers remain byte-for-byte unchanged.
+
+Files changed:
+- `src/financial_analyst_agent/request_wording.py`
+- `src/financial_analyst_agent/answer_notes.py`
+- `src/financial_analyst_agent/graph/{state,turn_graph,spec_turn}.py`
+- `tests/unit/test_{planner_wording,window_copy,review_round2,showcase_fixes}.py`
+- `docs/process/tickets/simplify-followups/issues/07-merge-reads-the-spec.md`
+- `docs/process/progress.txt`
+
+Blockers / next:
+- None. The answer comparison reports `0 of 244 conversations differ from HEAD`.

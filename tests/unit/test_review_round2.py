@@ -18,6 +18,7 @@ from financial_analyst_agent.graph.analysis_spec import (
 from financial_analyst_agent.graph.clarify import clarification_reply
 from financial_analyst_agent.graph.spec_turn import materialize_period_dates
 from financial_analyst_agent.presentation import format_usd, present_turn
+from financial_analyst_agent.request_wording import read_window
 from financial_analyst_agent.thread_store import PendingClarification
 
 _MSFT = (date(2026, 3, 31), date(2025, 12, 31), date(2025, 9, 30))
@@ -81,7 +82,10 @@ def test_each_fiscal_calendar_asks_for_its_own_quarters() -> None:
         *((("Microsoft", "Apple"), day) for day in _MSFT),
         *((("Nvidia",), day) for day in _NVDA),
     }
-    assert CALENDARS_DIFFER_BANNER in period_notes("revenue", spec)
+    message = "revenue"
+    assert CALENDARS_DIFFER_BANNER in period_notes(
+        message, spec, window=read_window(message)
+    )
 
 
 def test_adding_a_company_lists_only_that_company() -> None:
@@ -105,7 +109,10 @@ def test_one_calendar_compiles_as_before() -> None:
     spec = materialize_period_dates(_window("Microsoft", "Apple"), _Runtime())  # type: ignore[arg-type]
 
     assert [task.report_date for task in compile_tasks(spec)] == list(_MSFT)
-    assert CALENDARS_DIFFER_BANNER not in period_notes("revenue", spec)
+    message = "revenue"
+    assert CALENDARS_DIFFER_BANNER not in period_notes(
+        message, spec, window=read_window(message)
+    )
 
 
 def _row(name: str, end: date, value: str) -> TableRow:

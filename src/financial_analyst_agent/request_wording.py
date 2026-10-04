@@ -11,6 +11,8 @@ import re
 from datetime import date
 from typing import Any, Literal
 
+from pydantic import BaseModel
+
 from financial_analyst_agent.contracts import (
     ALLOWED_METRICS,
     ComparisonBase,
@@ -312,6 +314,19 @@ SINCE_YEAR = re.compile(r"\bsince\s+(?:fy\s*|fiscal\s+(?:year\s+)?)?(?P<y>(?:19|
 MAX_SINCE_QUARTERS = 20
 
 
+class WindowReading(BaseModel):
+    """The one reading of window wording that compilation and answer notes share."""
+
+    asked_quarters: int | None = None
+    counted_window: bool = False
+    interpretation_notes: tuple[str, ...] = ()
+    trailing_year: bool = False
+    since_year: int | None = None
+    since_capped_from: int | None = None
+    unread_named_period: str | None = None
+    sub_quarter: bool = False
+
+
 # "H1 2026", "first half of fiscal 2026": two named quarters.
 _HALF_YEAR = re.compile(
     rf"\b{_CALENDAR_WORD}(?:h(?P<h>[12])|(?P<hw>first|second|1st|2nd)\s+half(?:\s+of)?)\s*"
@@ -444,12 +459,21 @@ def bind_metrics_from_message(
         )
     phrased = resolved.unique_metrics
     if phrased:
+        order_by = (
+            phrased[0]
+            if patch.mode == "extend" and "order_by_metric" in patch.add_operations
+            else patch.set_order_by
+        )
         if patch.mode == "replace":
-            return patch.model_copy(update={"add_metrics": phrased}), None
+            return patch.model_copy(
+                update={"add_metrics": phrased, "set_order_by": order_by}
+            ), None
         # Extend: add phrased metrics except those this patch is removing.
         to_add = tuple(m for m in phrased if m not in patch.remove_metrics)
         metrics = tuple(dict.fromkeys([*patch.add_metrics, *to_add]))
-        return patch.model_copy(update={"add_metrics": metrics}), None
+        return patch.model_copy(
+            update={"add_metrics": metrics, "set_order_by": order_by}
+        ), None
     # No metric phrase in the analyst's wording.
     if patch.mode == "extend":
         return patch, None
@@ -621,20 +645,17 @@ def comparison_asked(message: str) -> ComparisonBase | Literal["unclear"] | None
     return "unclear"
 
 
-def _window_asked(message: str) -> int | None:
-    """The quarters a window asks for ("past six quarters", "last 3 years"), or None."""
-    window = asked_window(message)
-    return window.quarters if window is not None else None
-
-
 def since_quarters(since: re.Match[str]) -> int:
     """Quarters from the start of the year "since 2020" names to today."""
     today = date.today()
     return max(1, (today.year - int(since.group("y"))) * 4 + (today.month + 2) // 3)
 
 
-def bind_periods_from_message(patch: SpecPatch, message: str) -> SpecPatch:
+def bind_periods_from_message(
+    patch: SpecPatch, message: str, *, window: WindowReading | None = None
+) -> SpecPatch:
     """Period windows come from the analyst's wording, not a model slug."""
+    window = window or read_window(message)
     if drops_comparison(message):
         return patch.model_copy(
             update={
@@ -649,19 +670,18 @@ def bind_periods_from_message(patch: SpecPatch, message: str) -> SpecPatch:
                 ),
             }
         )
-    asked = _window_asked(message)
+    asked = window.asked_quarters if window.counted_window else None
     yoy = YOY.search(message) is not None
     # "quarter over quarter" is a window of sequential changes.
     sequential = _SEQUENTIAL.search(message) is not None
     named = parse_named_periods(message)
-    since = SINCE_YEAR.search(message)
-    if not named and asked is None and not yoy and since is not None:
-        count = min(since_quarters(since), MAX_SINCE_QUARTERS)
+    if not named and asked is None and not yoy and window.since_year is not None:
+        count = window.asked_quarters or 1
         return patch.model_copy(
             update={"set_periods": PeriodSelection(kind="last_n_quarters", count=count)}
         )
     if not named and asked is None and not yoy and (
-        TRAILING_YEAR.search(message) or YEAR_OF_QUARTERS.search(message)
+        window.trailing_year or YEAR_OF_QUARTERS.search(message)
     ):
         # "TTM revenue": show the four quarters that make up the trailing year.
         return patch.model_copy(
@@ -769,7 +789,9 @@ _PERIOD_CUE = re.compile(
 )
 
 
-def planner_window(patch: SpecPatch, message: str) -> SpecPatch:
+def planner_window(
+    patch: SpecPatch, message: str, *, window: WindowReading | None = None
+) -> SpecPatch:
     """A planner's window, kept only where the wording asks about time but names no count.
 
     The wording's grammar decides first: when it reads a window, that window
@@ -779,11 +801,14 @@ def planner_window(patch: SpecPatch, message: str) -> SpecPatch:
     proposed = patch.set_periods
     if proposed is None or proposed.kind != "last_n_quarters":
         return patch
-    read = asked_window(message)
-    if read is not None:
-        if read.quarters != proposed.count:
+    window = window or read_window(message)
+    if window.counted_window:
+        assert window.asked_quarters is not None
+        if window.asked_quarters != proposed.count:
             log_event(
-                "planner_window_overruled", proposed=proposed.count, read=read.quarters
+                "planner_window_overruled",
+                proposed=proposed.count,
+                read=window.asked_quarters,
             )
         return patch
     if _PERIOD_CUE.search(message):
@@ -798,6 +823,7 @@ def refine_patch_from_message(
     current_spec: AnalysisSpec | None,
     *,
     index: CompanyNames | None = None,
+    window: WindowReading | None = None,
 ) -> SpecPatch:
     """Turn follow-up wording into an extend patch when the planner still replaced.
 
@@ -806,7 +832,7 @@ def refine_patch_from_message(
     and "same for" put them in place of the ones on screen. ``index`` reads
     which companies the words name.
     """
-    patch = bind_periods_from_message(patch, message)
+    patch = bind_periods_from_message(patch, message, window=window)
     if current_spec is None:
         return patch
     if drops_comparison(message):
@@ -1020,3 +1046,36 @@ SPECIFIC_PERIOD = re.compile(
     r")\b",
     re.IGNORECASE,
 )
+
+
+def read_window(message: str) -> WindowReading:
+    """Read once the window details that compilation and answer notes both need."""
+    window = asked_window(message)
+    since = SINCE_YEAR.search(message) if window is None else None
+    since_count = since_quarters(since) if since is not None else None
+    specific = SPECIFIC_PERIOD.search(message)
+    unread = (
+        specific.group(0)
+        if specific is not None and not parse_named_periods(message)
+        else None
+    )
+    return WindowReading(
+        asked_quarters=(
+            window.quarters
+            if window is not None
+            else min(since_count, MAX_SINCE_QUARTERS)
+            if since_count is not None
+            else None
+        ),
+        counted_window=window is not None,
+        interpretation_notes=tuple(window.notes()) if window is not None else (),
+        trailing_year=TRAILING_YEAR.search(message) is not None,
+        since_year=int(since.group("y")) if since is not None else None,
+        since_capped_from=(
+            since_count
+            if since_count is not None and since_count > MAX_SINCE_QUARTERS
+            else None
+        ),
+        unread_named_period=unread,
+        sub_quarter=SUB_QUARTER.search(message) is not None,
+    )
