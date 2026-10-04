@@ -11,6 +11,14 @@
 # this again. Exit 3: a check failed after the rebase; fix it, commit, and run this again.
 set -uo pipefail
 
+# On Windows, PowerShell's `bash` is WSL's, whose git cannot read a Windows checkout's
+# worktree links: run again under Git for Windows' bash, from the same directory.
+git_bash="/mnt/c/Program Files/Git/bin/bash.exe"
+if grep -qi microsoft /proc/version 2>/dev/null && [ -x "$git_bash" ]; then
+  exec "$git_bash" -c 'export PATH="/usr/bin:/mingw64/bin:$PATH"; cd "$(cygpath -u "$1")" && shift && exec bash docs/process/ralph/integrate.sh "$@"' \
+    _ "$(wslpath -w "$PWD")" "$@"
+fi
+
 branch="${1:?usage: integrate.sh <integration-branch> [--answers-change]}"
 answers_change="${2:-}"
 common=$(git rev-parse --git-common-dir)
