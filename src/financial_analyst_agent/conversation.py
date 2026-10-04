@@ -65,8 +65,6 @@ class ConversationTurn(BaseModel):
     thread_id: str
     result: TurnResult
     messages: tuple[ThreadMessage, ...] = ()
-    results: tuple[TurnResult, ...] = ()
-    last_result: TurnResult
     analysis_spec: AnalysisSpec | None = None
     proposed_patch: SpecPatch | None = None
 
@@ -176,8 +174,6 @@ def run_conversation_turn(
             updated_at=datetime.now(UTC),
         )
         store.save(state)
-        prior_results = store.resolve_results(prior)
-        results = (*prior_results, result)
         finish(
             turn=state.turn_count,
             intent=result.intent.value,
@@ -187,8 +183,6 @@ def run_conversation_turn(
             thread_id=thread_id,
             result=result,
             messages=messages,
-            results=results,
-            last_result=result,
             analysis_spec=outcome.analysis_spec,
             proposed_patch=outcome.patch,
         )

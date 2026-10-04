@@ -149,12 +149,16 @@ def _companies_from_query(normalized: str) -> list[str]:
     return sorted(first_seen, key=first_seen.__getitem__)
 
 
+# "what was Apple's revenue": the words between the question and a metric.
+_LOOKUP_ISSUER = re.compile(
+    r"\b(?:what (?:was|is|were)|whats)\s+(.+?)(?:'s)?\s+(?:"
+    + "|".join(re.escape(phrase) for phrase in metric_phrases())
+    + r")\b"
+)
+
+
 def _issuer_from_lookup_query(normalized: str) -> str | None:
-    phrases = "|".join(re.escape(phrase) for phrase in metric_phrases())
-    match = re.search(
-        rf"\b(?:what (?:was|is|were)|whats)\s+(.+?)(?:'s)?\s+(?:{phrases})\b",
-        normalized,
-    )
+    match = _LOOKUP_ISSUER.search(normalized)
     if match is None:
         return None
     issuer = match.group(1).strip(" .,?!'")

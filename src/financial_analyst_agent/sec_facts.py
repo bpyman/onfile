@@ -272,6 +272,11 @@ class SecFactLookup:
         self._resolved_by_query: dict[str, Company] = {}
         self._submissions_by_cik: dict[str, dict[str, Any]] = {}
         self._company_facts_by_cik: dict[str, dict[str, Any] | None] = {}
+        # A window asks for each quarter of the same metric: its records are read
+        # from the facts once a turn, not once a quarter.
+        self._records_by_metric: dict[
+            tuple[str, Metric, str], tuple[list[FactRecord], list[dict[str, Any]]]
+        ] = {}
         self._facts_filings_by_cik: dict[str, list[Filing]] = {}
         self._fiscal_labels_by_cik: dict[str, dict[str, FiscalLabel]] = {}
         self._predecessor_ciks: dict[str, str | None] = {}
@@ -394,7 +399,7 @@ class SecFactLookup:
             if exc.details.get("status_code") != 404:
                 raise
             return records, {}
-        older, _rejections = parse_company_facts(payload, metric, unit)
+        older, _rejections = self._metric_records(predecessor, payload, metric, unit)
         seen = {(record.accession_number, record.start_date, record.end_date) for record in records}
         extra = [
             record
@@ -426,6 +431,18 @@ class SecFactLookup:
             if any(item.accession_number == filing.accession_number for item in theirs):
                 return other
         return None
+
+    def _metric_records(
+        self, cik: str, payload: dict[str, Any], metric: Metric, unit: str
+    ) -> tuple[list[FactRecord], list[dict[str, Any]]]:
+        """``parse_company_facts`` for the company's facts, once a turn per metric."""
+        key = (cik, metric, unit)
+        parsed = self._records_by_metric.get(key)
+        if parsed is None:
+            parsed = parse_company_facts(payload, metric, unit)
+            self._records_by_metric[key] = parsed
+        # Callers extend the lists; the cached ones stay as parsed.
+        return list(parsed[0]), list(parsed[1])
 
     def _cached_company_facts(self, cik: str) -> dict[str, Any]:
         if cik in self._company_facts_by_cik:
@@ -502,7 +519,9 @@ class SecFactLookup:
                     raise
                 last_missing = exc
                 continue
-            records, rejections = parse_company_facts(company_facts_payload, parsed_metric, unit)
+            records, rejections = self._metric_records(
+                cik, company_facts_payload, parsed_metric, unit
+            )
             unreadable = unreadable or (not records and bool(rejections))
             filer_ciks: dict[str, str] = {}
             predecessor = self._predecessor_ciks.get(resolved.cik)

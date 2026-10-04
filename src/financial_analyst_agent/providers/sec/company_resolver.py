@@ -1,6 +1,8 @@
 """Deterministic company resolution from SEC ticker mapping."""
 
 import re
+import threading
+from dataclasses import dataclass
 from typing import Any
 
 from financial_analyst_agent.domain.errors import (
@@ -84,35 +86,58 @@ def _unique_cik(
     return next(iter(ciks))
 
 
-def _name_match_ciks(
-    query: str, entries: list[dict[str, str]], *, prefix: bool = True
-) -> set[str]:
+@dataclass(frozen=True)
+class _TickerIndex:
+    """A ticker mapping read once: its rows, each filer's group, each title's readings."""
+
+    entries: list[dict[str, str]]
+    grouped: dict[str, dict[str, Any]]
+    # (cik, normalised title, core name) for each row, in the mapping's order.
+    titles: list[tuple[str, str, str]]
+
+
+# The last few ticker payloads read, each held with its index. Holding the payload
+# keeps its id from being reused; a turn asks of the same payload many times.
+_INDEXES: dict[int, tuple[dict[str, Any], _TickerIndex]] = {}
+_INDEXES_LOCK = threading.Lock()
+_MAX_INDEXES = 4
+
+
+def _ticker_index(payload: dict[str, Any]) -> _TickerIndex:
+    with _INDEXES_LOCK:
+        held = _INDEXES.get(id(payload))
+    if held is not None and held[0] is payload:
+        return held[1]
+    entries = extract_usable_ticker_entries(payload)
+    index = _TickerIndex(
+        entries=entries,
+        grouped=_group_by_cik(entries),
+        titles=[
+            (entry["cik"], _normalize_text(entry["title"]), _core_company_name(entry["title"]))
+            for entry in entries
+        ],
+    )
+    with _INDEXES_LOCK:
+        while len(_INDEXES) >= _MAX_INDEXES:
+            _INDEXES.pop(next(iter(_INDEXES)))
+        _INDEXES[id(payload)] = (payload, index)
+    return index
+
+
+def _name_match_ciks(query: str, index: _TickerIndex, *, prefix: bool = True) -> set[str]:
     normalized_query = _normalize_text(query)
-    exact = {
-        entry["cik"]
-        for entry in entries
-        if _normalize_text(entry["title"]) == normalized_query
-    }
+    exact = {cik for cik, title, _core in index.titles if title == normalized_query}
     if exact:
         return exact
     query_core = _core_company_name(query)
     if not query_core:
         return set()
-    core_matches = {
-        entry["cik"]
-        for entry in entries
-        if _core_company_name(entry["title"]) == query_core
-    }
+    core_matches = {cik for cik, _title, core in index.titles if core == query_core}
     if core_matches:
         return core_matches
     if not prefix or len(query_core) < _MIN_CORE_PREFIX_LEN:
         return set()
-    return {
-        entry["cik"]
-        for entry in entries
-        if (title_core := _core_company_name(entry["title"]))
-        and title_core.startswith(query_core)
-    }
+    return {cik for cik, _title, core in index.titles if core and core.startswith(query_core)}
 
 
 def resolve_company(query: str, tickers_payload: dict[str, Any]) -> Company:
@@ -132,11 +157,12 @@ def resolve_company(query: str, tickers_payload: dict[str, Any]) -> Company:
     ExxonMobil Holdings Corp) without a per-issuer alias list.
     """
     normalized_query = _normalize_text(query)
-    entries = extract_usable_ticker_entries(tickers_payload)
+    index = _ticker_index(tickers_payload)
+    entries = index.entries
     if not entries:
         raise CompanyNotFoundError("SEC ticker mapping was empty")
 
-    grouped = _group_by_cik(entries)
+    grouped = index.grouped
 
     ticker_query = normalized_query.upper()
     ticker_matches = [entry for entry in entries if entry["ticker"] == ticker_query]
@@ -153,7 +179,7 @@ def resolve_company(query: str, tickers_payload: dict[str, Any]) -> Company:
 
     alias_target = ALIASES.get(normalized_query)
     if alias_target is not None:
-        alias_ciks = _name_match_ciks(alias_target, entries)
+        alias_ciks = _name_match_ciks(alias_target, index)
         if not alias_ciks:
             raise CompanyNotFoundError(
                 f"Alias target '{alias_target}' not found in SEC ticker mapping",
@@ -165,7 +191,7 @@ def resolve_company(query: str, tickers_payload: dict[str, Any]) -> Company:
         return _company_from_group(cik, grouped[cik])
 
     name_ciks = _name_match_ciks(
-        query, entries, prefix=_TICKER_SHAPE.fullmatch(query.strip()) is None
+        query, index, prefix=_TICKER_SHAPE.fullmatch(query.strip()) is None
     )
     if not name_ciks:
         raise CompanyNotFoundError(

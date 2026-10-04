@@ -3,9 +3,10 @@
 import json
 import logging
 import threading
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from functools import lru_cache
 from pathlib import Path
+from types import MappingProxyType
 
 from financial_analyst_agent.config import AppMode, Settings, get_settings
 from financial_analyst_agent.contracts import Runtime, RuntimeKind
@@ -165,18 +166,26 @@ def _cached_ranking(path: Path | None, _mtime_ns: int) -> SnapshotRanking:
     return SnapshotRanking.from_path(path, issuer_index(path))
 
 
-def _display_names(path: Path | None) -> dict[str, str]:
-    """Snapshot company names by CIK, for tables that read like the landing page."""
-    return {
-        company.cik: company.name for company in _snapshot_ranking(path).snapshot_companies()
-    }
+@lru_cache(maxsize=4)
+def _cached_snapshot_maps(
+    path: Path | None, mtime_ns: int
+) -> tuple[Mapping[str, str], Mapping[str, str]]:
+    companies = _cached_ranking(path, mtime_ns).snapshot_companies()
+    names = MappingProxyType({company.cik: company.name for company in companies})
+    tickers = MappingProxyType({company.cik: company.ticker for company in companies})
+    return names, tickers
 
 
-def _listed_tickers(path: Path | None) -> dict[str, str]:
-    """The snapshot's ticker for each CIK: the listing rankings show."""
-    return {
-        company.cik: company.ticker for company in _snapshot_ranking(path).snapshot_companies()
-    }
+def _snapshot_maps(path: Path | None) -> tuple[Mapping[str, str], Mapping[str, str]]:
+    """Each snapshot company's name and ticker by CIK, built once per snapshot version.
+
+    The names make tables read like the landing page; the tickers are the
+    listing rankings show.
+    """
+    from financial_analyst_agent.universe import DEFAULT_SNAPSHOT_PATH
+
+    resolved = path or DEFAULT_SNAPSHOT_PATH
+    return _cached_snapshot_maps(path, resolved.stat().st_mtime_ns)
 
 
 def _member_ticker(path: Path | None) -> Callable[[str], str]:
@@ -222,13 +231,14 @@ def _shared_sec_client(settings: Settings) -> SECClient:
 def recorded_runtime() -> Runtime:
     """Replay captured SEC, news, and model responses; never touches the network."""
     source = RecordedSECDataSource()
+    display_names, listed_tickers = _snapshot_maps(FIXTURE_UNIVERSE_SNAPSHOT_PATH)
     return Runtime(
         completer=DemoCompleter(recorded_issuer_index(), recorded=True),
         filings=source,
         facts=SecFactLookup(
             client=source,
-            display_names=_display_names(FIXTURE_UNIVERSE_SNAPSHOT_PATH),
-            listed_tickers=_listed_tickers(FIXTURE_UNIVERSE_SNAPSHOT_PATH),
+            display_names=display_names,
+            listed_tickers=listed_tickers,
             member_ticker=_member_ticker(FIXTURE_UNIVERSE_SNAPSHOT_PATH),
         ),
         ranking=_snapshot_ranking(FIXTURE_UNIVERSE_SNAPSHOT_PATH),
@@ -273,6 +283,7 @@ def live_runtime(
     )
     news = TavilyNewsSearch(resolved) if use_tavily else RecordedNewsSearch()
     cache_dir = resolved.sec_cache_dir or Path(".cache") / "sec"
+    display_names, listed_tickers = _snapshot_maps(None)
     client = CachingSECDataSource(
         _shared_sec_client(resolved),
         Path(cache_dir),
@@ -286,8 +297,8 @@ def live_runtime(
         filings=client,
         facts=SecFactLookup(
             client=client,
-            display_names=_display_names(None),
-            listed_tickers=_listed_tickers(None),
+            display_names=display_names,
+            listed_tickers=listed_tickers,
             member_ticker=_member_ticker(None),
         ),
         ranking=_snapshot_ranking(None),
