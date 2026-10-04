@@ -10,6 +10,8 @@ exploring with one tap.
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
+from datetime import date
 from typing import Any
 
 from financial_analyst_agent.contracts import (
@@ -20,6 +22,7 @@ from financial_analyst_agent.contracts import (
 )
 from financial_analyst_agent.graph.analysis_spec import AnalysisSpec
 from financial_analyst_agent.issuer_index import CompanyNames, expand_groups
+from financial_analyst_agent.services.metric_catalog import METRIC_DISPLAY
 
 STARTER_QUESTIONS: tuple[str, ...] = (
     "How is Nvidia doing?",
@@ -242,7 +245,7 @@ def guide_reply(
             if named is not None
             else list(STARTER_QUESTIONS[:3])
         )
-        return _guide(UNSUPPORTED_MESSAGE.format(names=_joined(unsupported)), suggestions)
+        return _guide(UNSUPPORTED_MESSAGE.format(names=joined(unsupported, "or")), suggestions)
     if _CHART.match(text):
         return _guide(CHART_MESSAGE, ["last 4 quarters", "show year-over-year"])
     if _WHY.match(text) and len(text.split()) <= _WHY_MAX_WORDS and not _names_figure(
@@ -300,12 +303,6 @@ def _unsupported_metrics(text: str) -> list[str]:
     return found
 
 
-def _joined(names: list[str]) -> str:
-    if len(names) == 1:
-        return names[0]
-    return ", ".join(names[:-1]) + " or " + names[-1]
-
-
 def not_recorded_reply(
     message: str, index: CompanyNames | None, outside: CompanyNames | None
 ) -> TurnResult | None:
@@ -331,7 +328,7 @@ def not_recorded_banner(missing: list[str]) -> str:
             f"{missing[0]} isn't in the recorded demo, so it is left out. With live "
             "data, any US-listed operating company works."
         )
-    names = ", ".join(missing[:-1]) + " and " + missing[-1]
+    names = joined(missing)
     return (
         f"{names} aren't in the recorded demo, so they are left out. With live data, "
         "any US-listed operating company works."
@@ -373,6 +370,28 @@ _SUFFIX = re.compile(
 )
 
 
+_MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+
+def format_date(value: date) -> str:
+    """ "Mar 31, 2026", the same whatever the locale."""
+    return f"{_MONTHS[value.month - 1]} {value.day}, {value.year}"
+
+
+def joined(words: Sequence[str], conjunction: str = "and") -> str:
+    """Words in prose: "A", "A and B", "A, B and C"."""
+    if len(words) <= 1:
+        return "".join(words)
+    return f"{', '.join(words[:-1])} {conjunction} {words[-1]}"
+
+
+def in_sentence(label: str) -> str:
+    """ "Net margin" → "net margin" mid-sentence; "EBITDA" and "P/E ratio" keep their case."""
+    if len(label) > 1 and (label[1].isupper() or not label[1].isalpha()):
+        return label
+    return label[:1].lower() + label[1:]
+
+
 def possessive(name: str) -> str:
     """ "Apple's", "Abbott Laboratories'", and "Lowe's" left as it is."""
     if name.endswith(("'s", "’s")):
@@ -389,11 +408,8 @@ def short_name(name: str) -> str:
 
 _METRIC_IDEAS: tuple[str, ...] = ("net_margin", "operating_margin", "revenue", "gross_margin")
 _LABELS = {
-    "net_margin": "net margin",
-    "operating_margin": "operating margin",
-    "gross_margin": "gross margin",
-    "revenue": "revenue",
-    "net_income": "net income",
+    metric: in_sentence(METRIC_DISPLAY[metric].label)
+    for metric in ("net_margin", "operating_margin", "gross_margin", "revenue", "net_income")
 }
 _MAX_SUGGESTIONS = 3
 _MAX_COMPANIES_FOR_PEERS = 4

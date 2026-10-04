@@ -30,7 +30,7 @@ from financial_analyst_agent.domain.errors import (
     ProviderRefusal,
 )
 from financial_analyst_agent.graph.state import FilingChangeRequest
-from financial_analyst_agent.guide import short_name
+from financial_analyst_agent.guide import format_date, joined, short_name
 from financial_analyst_agent.observability import call_provider
 from financial_analyst_agent.providers.sec.company_resolver import resolve_company
 from financial_analyst_agent.providers.sec.submissions import require_recent_filings
@@ -684,12 +684,8 @@ def cap_changes(
         else f"the first {budget[section]} of {counts[section]} in {SECTION_LABELS[section]}"
         for section in counts
     ]
-    banner = f"Showing {_join(parts)} changes, in the order they appear in the filing."
+    banner = f"Showing {joined(parts)} changes, in the order they appear in the filing."
     return shown, banner
-
-
-def _join(parts: list[str]) -> str:
-    return parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + " and " + parts[-1]
 
 
 def parse_sections(raw: str) -> tuple[SectionId, ...]:
@@ -731,7 +727,7 @@ def _pretty(iso: str) -> str:
         day = date.fromisoformat(iso)
     except ValueError:
         return iso
-    return f"{day:%b} {day.day}, {day.year}"
+    return format_date(day)
 
 
 _YEAR = 365

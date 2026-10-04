@@ -35,7 +35,13 @@ from financial_analyst_agent.contracts import (
 )
 from financial_analyst_agent.evidence_store import THREAD_EVIDENCE_BANNER
 from financial_analyst_agent.graph.clarify import clarify_prompt
-from financial_analyst_agent.guide import possessive, short_name
+from financial_analyst_agent.guide import (
+    format_date,
+    in_sentence,
+    joined,
+    possessive,
+    short_name,
+)
 from financial_analyst_agent.services.fact_selector import (
     FOURTH_QUARTER_LABEL,
     TRAILING_YEAR_LABEL,
@@ -50,20 +56,6 @@ from financial_analyst_agent.services.fiscal_periods import (
 )
 from financial_analyst_agent.services.metric_catalog import METRIC_DISPLAY, segment_term
 
-_MONTHS = (
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-)
 _TRILLION = Decimal("1000000000000")
 _BILLION = Decimal("1000000000")
 _MILLION = Decimal("1000000")
@@ -176,10 +168,6 @@ def format_multiple(ratio: Decimal) -> str:
     return f"{scaled:.1f}x"
 
 
-def format_date(value: date) -> str:
-    return f"{_MONTHS[value.month - 1]} {value.day}, {value.year}"
-
-
 def format_datetime_utc(value: datetime) -> str:
     aware = value if value.tzinfo is not None else value.replace(tzinfo=UTC)
     utc = aware.astimezone(UTC)
@@ -194,13 +182,6 @@ def format_field_name(key: str) -> str:
     if label is None:
         return " ".join(part.capitalize() for part in key.split("_"))
     return label
-
-
-def _in_sentence(label: str) -> str:
-    """ "Net margin" → "net margin" mid-sentence; "EBITDA" and "P/E ratio" keep their case."""
-    if len(label) > 1 and (label[1].isupper() or not label[1].isalpha()):
-        return label
-    return label[:1].lower() + label[1:]
 
 
 def format_reason(reason: str) -> str:
@@ -270,7 +251,7 @@ def long_quarter_banner(rows: list[TableRow]) -> str:
     notes: list[str] = []
     for name, quarters in long.items():
         weeks = " or ".join(str(week) for week in sorted({round(days / 7) for _, days in quarters}))
-        ends = _join_words([format_date(end) for end, _ in quarters])
+        ends = joined([format_date(end) for end, _ in quarters])
         plural = "quarters" if len(quarters) > 1 else "quarter"
         owner = possessive(name)
         notes.append(f"{owner} {plural} ended {ends} ran {weeks} weeks")
@@ -326,8 +307,8 @@ def restated_banners(rows: list[TableRow]) -> list[str]:
             if split_between(newer, older) and older.end_date is not None:
                 splits.setdefault(key, []).append(format_date(older.end_date))
     notes = [
-        f"{owner} {_in_sentence(format_field_name(metric))} for the "
-        f"{_plural('quarter', ends)} ended {_join_words(list(dict.fromkeys(ends)))} "
+        f"{owner} {in_sentence(format_field_name(metric))} for the "
+        f"{_plural('quarter', ends)} ended {joined(list(dict.fromkeys(ends)))} "
         f"{'is' if len(set(ends)) == 1 else 'are'} shown as first reported, before a share "
         "split, so "
         f"{'it does' if len(set(ends)) == 1 else 'they do'} not compare with later quarters: "
@@ -336,8 +317,8 @@ def restated_banners(rows: list[TableRow]) -> list[str]:
         for (owner, metric), ends in splits.items()
     ]
     notes.extend(
-        f"{owner} {_in_sentence(format_field_name(metric))} for the "
-        f"{_plural('quarter', ends)} ended {_join_words(list(dict.fromkeys(ends)))} "
+        f"{owner} {in_sentence(format_field_name(metric))} for the "
+        f"{_plural('quarter', ends)} ended {joined(list(dict.fromkeys(ends)))} "
         "is shown as first filed; a later filing restated it, and the year-over-year "
         "change uses the restated figure that filing reports."
         for (owner, metric), ends in restated.items()
@@ -408,17 +389,13 @@ def newer_filing_banner(rows: list[TableRow]) -> str:
         ((name, end),) = pending.items()
         return (
             f"SEC's structured data does not yet include {name}'s filing for the quarter "
-            f"ended {_date(end)}, so {name} is shown for the newest quarter SEC has."
+            f"ended {format_date(end)}, so {name} is shown for the newest quarter SEC has."
         )
-    filings = [f"{name} (quarter ended {_date(end)})" for name, end in pending.items()]
+    filings = [f"{name} (quarter ended {format_date(end)})" for name, end in pending.items()]
     return (
         "SEC's structured data does not yet include the newest filings from "
-        f"{_join_words(filings)}, so those companies are shown for the newest quarter SEC has."
+        f"{joined(filings)}, so those companies are shown for the newest quarter SEC has."
     )
-
-
-def _date(day: date) -> str:
-    return f"{day:%b} {day.day}, {day.year}"
 
 
 def is_derived(row: TableRow) -> bool:
@@ -820,7 +797,7 @@ def spec_chip_edits(spec: Any) -> tuple[ChipEdit, ...]:
     if ranked:
         removals.append(None)
     removals.extend(
-        f"drop {_in_sentence(format_field_name(metric))}" if len(metrics) > 1 else None
+        f"drop {in_sentence(format_field_name(metric))}" if len(metrics) > 1 else None
         for metric in metrics
     )
     edits: list[ChipEdit] = []
@@ -881,7 +858,7 @@ def chip_quick_actions(spec: Any) -> dict[str, tuple[QuickAction, ...]]:
     metrics = tuple(
         QuickAction(
             label=format_field_name(metric),
-            message=f"add {_in_sentence(format_field_name(metric))}",
+            message=f"add {in_sentence(format_field_name(metric))}",
         )
         for metric in _QUICK_METRICS
         if metric not in {str(metric) for metric in getattr(spec, "metrics", ())}
@@ -1108,7 +1085,7 @@ def _growth_chart(
                 )
                 for row in ordered
             ),
-            caption=f"{label} growth in {_in_sentence(humanized)}, quarter by quarter; "
+            caption=f"{label} growth in {in_sentence(humanized)}, quarter by quarter; "
             f"the table lists the amounts{rest}.",
             metric=metric,
             value_kind="percent",
@@ -1122,7 +1099,7 @@ def _growth_chart(
                 _growth_bar(row, name=_row_key(row), key=_row_key(row), evidence=locate(row))
                 for row in rows
             ),
-            caption=f"{label} growth in {_in_sentence(humanized)} in each company's latest "
+            caption=f"{label} growth in {in_sentence(humanized)} in each company's latest "
             "quarter; "
             f"the table lists the amounts{rest}.",
             metric=metric,
@@ -1150,7 +1127,7 @@ def _growth_chart(
         kind="line",
         title="Growth",
         records=tuple(merged[period] for period in periods),
-        caption=f"{label} growth in {_in_sentence(humanized)}, quarter by quarter; "
+        caption=f"{label} growth in {in_sentence(humanized)}, quarter by quarter; "
         f"the table lists the amounts{rest}.",
         period_labels=tuple(format_date(period) for period in periods),
         series=series,
@@ -1225,7 +1202,7 @@ def _bar_caption(
         return f"{caption} Periods differ by issuer." if mixed_periods else caption
     if ranked and metric != "market_cap":
         order = (
-            f"Ordered by {_in_sentence(format_field_name(ordered_by))} among the largest by "
+            f"Ordered by {in_sentence(format_field_name(ordered_by))} among the largest by "
             "market cap"
             if ordered_by
             else "Ordered by market cap"
@@ -1524,7 +1501,7 @@ def present_turn(result: TurnResult) -> Presentation:
     banners.extend(restated_banners(result.table_rows))
     banners.extend(declared_for_year_banners(result.table_rows))
     if result.ordered_by:
-        label = _in_sentence(format_field_name(result.ordered_by))
+        label = in_sentence(format_field_name(result.ordered_by))
         amount = (
             f"a higher {label}"
             if result.ordered_by in (*PERCENT_FORMULAS, *MULTIPLE_FORMULAS, *PER_SHARE_METRICS)
@@ -1690,7 +1667,7 @@ def _friendly_message(message: str | None) -> str | None:
             )
         # Aliases ("finance") are lower case; the snapshot's sectors are titled.
         sectors = [name for name in industry.group("allowed").split(", ") if name[:1].isupper()]
-        covers = f" It covers {_join_words(sectors)} companies." if sectors else ""
+        covers = f" It covers {joined(sectors)} companies." if sectors else ""
         return (
             f"I couldn't find “{named}” companies in this snapshot."
             f"{covers} You can also name an industry within those, such as "
@@ -1728,7 +1705,7 @@ def _formula_inputs(row: TableRow) -> str:
         operator = " + "
     names = []
     for component in row.components:
-        name = _INPUT_NAMES.get(component.metric) or _in_sentence(
+        name = _INPUT_NAMES.get(component.metric) or in_sentence(
             format_field_name(component.metric)
         )
         if component.metric in SNAPSHOT_METRICS:
@@ -2214,7 +2191,7 @@ def _format_cell(row: TableRow, key: str) -> str:
                 formatted = f"+{formatted}"
             percent = change_percent(row)
             if percent is not None:
-                formatted = f"{formatted} ({'+' if percent > 0 else ''}{percent:.1f}%)"
+                formatted = f"{formatted} ({_percent_label(percent)})"
         return formatted + (DERIVED_MARK if is_derived(row) else "")
     if key == "metric":
         return format_field_name(str(value))
@@ -2321,7 +2298,7 @@ def growth_headline(rows: list[TableRow]) -> str | None:
     ordered = sorted(
         latest.values(), key=lambda row: change_percent(row) or Decimal(0), reverse=True
     )
-    label = _in_sentence(format_field_name(next(iter(metrics))))
+    label = in_sentence(format_field_name(next(iter(metrics))))
     parts: list[str] = []
     for index, row in enumerate(ordered):
         percent = change_percent(row) or Decimal(0)
@@ -2337,8 +2314,7 @@ def growth_headline(rows: list[TableRow]) -> str | None:
     if len(parts) == 1:
         ended = format_date(ordered[0].end_date) if ordered[0].end_date else ""
         return f"Year over year, {parts[0]} in the quarter ended {ended}."
-    joined = ", ".join(parts[:-1]) + " and " + parts[-1]
-    return f"Year over year, {joined}, each in its latest quarter."
+    return f"Year over year, {joined(parts)}, each in its latest quarter."
 
 
 def comparison_headline(rows: list[TableRow], intent: Intent) -> str | None:
@@ -2365,7 +2341,7 @@ def comparison_headline(rows: list[TableRow], intent: Intent) -> str | None:
     if top.value == bottom.value:
         return None
     metric = top.metric
-    label = _in_sentence(format_field_name(metric))
+    label = in_sentence(format_field_name(metric))
 
     def amount(row: TableRow) -> str:
         return _format_cell(row, "value")
@@ -2413,7 +2389,7 @@ def _trend_headline(levels: list[TableRow]) -> str | None:
     if first.value == last.value or last.end_date is None:
         return None
     verb = "rose" if Decimal(str(last.value)) > Decimal(str(first.value)) else "fell"
-    label = _in_sentence(format_field_name(last.metric))
+    label = in_sentence(format_field_name(last.metric))
     return (
         f"{_owner(last)} {label} {verb} from {_format_cell(first, 'value')} to "
         f"{_format_cell(last, 'value')} over {len(ordered)} quarters to "
@@ -2772,8 +2748,3 @@ def _display_citation(index: int, hit: Any) -> DisplayCitation:
     return DisplayCitation(index=index, title=hit.title, url=hit.url, published=published)
 
 
-def _join_words(words: list[str]) -> str:
-    """Join words in prose: "A", "A and B", "A, B and C"."""
-    if len(words) <= 1:
-        return "".join(words)
-    return f"{', '.join(words[:-1])} and {words[-1]}"

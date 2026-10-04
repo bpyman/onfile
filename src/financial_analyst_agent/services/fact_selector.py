@@ -24,6 +24,7 @@ from financial_analyst_agent.domain.models import (
     FinancialFact,
 )
 from financial_analyst_agent.services.filing_selector import get_candidate_filings
+from financial_analyst_agent.services.fiscal_periods import one_year_earlier
 from financial_analyst_agent.services.metric_catalog import (
     PER_SHARE_METRICS,
     get_concept_candidates,
@@ -293,7 +294,7 @@ def comparative(
     differs from the figure its older 10-Q gave. A change over the year reads both
     amounts from one filing; None when the filing reports no such comparative.
     """
-    target = _one_year_earlier(current.end_date)
+    target = one_year_earlier(current.end_date)
     length = _days_between(current)
     matches = [
         fact
@@ -557,13 +558,6 @@ def _near(day: date, target: date) -> bool:
     return abs((day - target).days) <= _ONE_YEAR_TOLERANCE_DAYS
 
 
-def _one_year_earlier(day: date) -> date:
-    try:
-        return day.replace(year=day.year - 1)
-    except ValueError:  # 29 February
-        return day.replace(year=day.year - 1, day=28)
-
-
 def derive_trailing_year(
     facts: list[FactRecord],
     filing: Filing,
@@ -617,7 +611,7 @@ def derive_trailing_year(
             [fact for fact in to_date if _days_between(fact) == longest]
         )
         assert current.start_date is not None
-        earlier_end = _one_year_earlier(current.end_date)
+        earlier_end = one_year_earlier(current.end_date)
         earlier = [
             fact
             for fact in concept_facts

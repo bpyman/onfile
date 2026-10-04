@@ -173,27 +173,30 @@ def test_quota_stop_does_not_run_the_queued_tasks(monkeypatch: pytest.MonkeyPatc
     assert len(started) < len(tasks)
 
 
-def test_rate_limiter_spaces_concurrent_requests() -> None:
-    limiter = _RateLimiter(0.05)
-    stamps: list[float] = []
+def test_rate_limiter_spaces_concurrent_requests(monkeypatch: pytest.MonkeyPatch) -> None:
+    # The limiter reserves slots 50 ms apart; the waits it asks for say so exactly,
+    # where wall-clock stamps would read Windows' coarse clock and early wake-ups.
+    from financial_analyst_agent.providers.sec import client
+
+    waits: list[float] = []
     lock = threading.Lock()
 
-    def hit() -> None:
-        limiter.acquire()
+    def record(seconds: float) -> None:
         with lock:
-            stamps.append(time.monotonic())
+            waits.append(seconds)
 
-    threads = [threading.Thread(target=hit) for _ in range(5)]
-    started = time.monotonic()
+    monkeypatch.setattr(client.time, "sleep", record)
+    limiter = _RateLimiter(0.05)
+    threads = [threading.Thread(target=limiter.acquire) for _ in range(5)]
     for thread in threads:
         thread.start()
     for thread in threads:
         thread.join()
 
-    # Slots are reserved 50 ms apart, so the fifth request goes at least 200 ms in.
-    # (Gaps between stamps taken after acquire() returns can shrink with scheduling.)
-    assert len(stamps) == 5
-    assert max(stamps) - started >= 0.19
+    # The first request goes at once; the other four wait for their slots.
+    assert len(waits) == 4
+    assert max(waits) == pytest.approx(0.2, abs=0.02)
+    assert sorted(waits) == pytest.approx([0.05, 0.1, 0.15, 0.2], abs=0.02)
 
 
 def test_dated_lookup_error_is_not_retried_as_latest_quarter() -> None:
