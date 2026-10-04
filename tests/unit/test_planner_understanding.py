@@ -437,20 +437,28 @@ def test_a_net_loss_reads_as_a_loss() -> None:
 
 
 def test_a_fund_overview_is_one_refusal() -> None:
-    from financial_analyst_agent.contracts import NOT_OPERATING_COMPANY, RendererKind, TurnResult
-    from financial_analyst_agent.graph.analysis_spec import ResolvedCompany
-    from financial_analyst_agent.graph.spec_turn import _not_operating_once
+    from financial_analyst_agent.contracts import (
+        NOT_OPERATING_COMPANY,
+        Refusal,
+        RendererKind,
+        TurnResult,
+    )
+    from financial_analyst_agent.graph.spec_turn import _one_company_failure
 
     rows = [
         TableRow(company_name="SPY", ticker="", cik="", metric=metric, reason=NOT_OPERATING_COMPANY)
         for metric in ("revenue", "net_income", "gross_margin")
     ]
     merged = TurnResult(
-        intent=Intent.LOOKUP, tool_traces=[], renderer=RendererKind.TABLE, table_rows=rows
+        intent=Intent.LOOKUP,
+        tool_traces=[],
+        renderer=RendererKind.TABLE,
+        table_rows=rows,
+        message="SPY is not an operating company",
+        refusal=Refusal(code="ineligible_issuer"),
     )
-    company = ResolvedCompany(cik="", name="SPDR S&P 500 ETF TRUST", ticker="", query="SPY")
 
-    result = _not_operating_once(merged, [merged], company)
+    result = _one_company_failure(merged, [merged])
 
     assert result.renderer is RendererKind.REFUSE
     assert result.message is not None and "not an operating company" in result.message

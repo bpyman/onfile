@@ -191,6 +191,7 @@ SUPPORTED_OPERATIONS: frozenset[str] = frozenset(
 class SpecRejection(BaseModel):
     code: Literal["invalid_metric", "empty_spec", "unsupported_combination"]
     message: str
+    details: dict[str, Any] = Field(default_factory=dict)
 
 
 class CompiledTask(BaseModel):
@@ -483,6 +484,7 @@ def validate_spec(spec: AnalysisSpec) -> SpecRejection | None:
         return SpecRejection(
             code="empty_spec",
             message="Analysis has no companies or ranked constituents",
+            details={"missing": "companies"},
         )
     if has_constituents and not spec.metrics:
         return None
@@ -490,6 +492,7 @@ def validate_spec(spec: AnalysisSpec) -> SpecRejection | None:
         return SpecRejection(
             code="empty_spec",
             message="Analysis has no metrics",
+            details={"missing": "metrics"},
         )
     return None
 

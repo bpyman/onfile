@@ -11,7 +11,6 @@ from financial_analyst_agent.contracts import (
     RendererKind,
     TableRow,
     TurnResult,
-    snapshot_banner,
 )
 from financial_analyst_agent.presentation import (
     derived_banner,
@@ -69,7 +68,12 @@ def _row(metric: str, value: str | None, period: tuple[date, date], **fields: ob
     return TableRow.model_validate({**values, **fields})
 
 
-def _present(*rows: TableRow, intent: Intent = Intent.COMPARE, banners: list[str] | None = None):  # type: ignore[no-untyped-def]
+def _present(  # type: ignore[no-untyped-def]
+    *rows: TableRow,
+    intent: Intent = Intent.COMPARE,
+    banners: list[str] | None = None,
+    snapshot_as_of: str | None = None,
+):
     return present_turn(
         TurnResult(
             intent=intent,
@@ -77,6 +81,7 @@ def _present(*rows: TableRow, intent: Intent = Intent.COMPARE, banners: list[str
             renderer=RendererKind.TABLE,
             table_rows=list(rows),
             banners=banners or [],
+            snapshot_as_of=snapshot_as_of,
         )
     )
 
@@ -167,7 +172,10 @@ def test_a_share_price_beside_a_trailing_year_is_dated_by_the_snapshot() -> None
     pe = _row("pe_ratio", "12.7", _YEAR)
 
     table = _present(
-        price, pe, intent=Intent.LOOKUP, banners=[snapshot_banner("2026-09-27T10:54:00+00:00")]
+        price,
+        pe,
+        intent=Intent.LOOKUP,
+        snapshot_as_of="2026-09-27T10:54:00+00:00",
     ).table
 
     assert table is not None

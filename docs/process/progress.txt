@@ -677,3 +677,157 @@ Files changed:
 Blockers / next:
 - The PR stays a draft until ticket 11 is resolved. Before it merges, push `streamlit-redirect` and repoint the Community Cloud app ("Repointing the Streamlit app" in `docs/deploy.md`). An app still on `master` breaks once `app.py` is gone.
 - Only ticket 11 (ready-for-human) remains in this feature.
+
+## 2026-10-04 — simplify-followups 02 Typed refusal and result metadata
+
+Task completed:
+`docs/process/tickets/simplify-followups/issues/02-typed-refusals.md`
+
+Key decisions:
+- `TurnResult.refusal` carries the domain error's code and details; presentation
+  maps those fields to visitor copy and no longer parses error wording.
+- Snapshot time and reused thread evidence are `snapshot_as_of` and
+  `reused_evidence`, not banner protocols.
+- Loading a pre-change result migrates its legacy refusal and metadata banners,
+  so persisted conversation threads retain their old presentation.
+- Unsupported-quarter refusal details name the stable reason needed to preserve
+  distinct visitor explanations.
+
+Files changed:
+- `src/financial_analyst_agent/{contracts,evidence_store,filing_change,presentation,ranking,sec_facts,turn}.py`
+- `src/financial_analyst_agent/graph/{analysis_spec,spec_turn}.py`
+- `src/financial_analyst_agent/services/fact_selector.py`
+- `tests/test_{deploy_wizard,presentation,run_turn_lookup,run_turn_rank,run_turn_rank_and_lookup}.py`
+- `tests/unit/test_{evidence_labels,thread_evidence}.py`
+- `docs/process/tickets/simplify-followups/issues/02-typed-refusals.md`
+
+Blockers / next:
+- None. Ticket 03 is now unblocked.
+- Verification: 1,660 tests passed; ruff and mypy passed; recorded answers were
+  unchanged (`0 of 244 conversations differ`).
+
+## 2026-10-04 — simplify-followups 03 Reasoned lookup cells
+
+Task completed:
+`docs/process/tickets/simplify-followups/issues/03-tasks-return-reasoned-cells.md`
+
+Key decisions:
+- Expected lookup failures return reasoned cells and retain typed refusal
+  metadata; merge no longer recovers the reason from trace JSON.
+- A one-company analysis whose cells all have one failure reason becomes one
+  refusal from the originating typed metadata; wider analyses keep partial
+  cells.
+- Per-share absences remain reasoned cells without adding error output to their
+  trace cards.
+
+Files changed:
+- `src/financial_analyst_agent/turn.py`
+- `src/financial_analyst_agent/graph/spec_turn.py`
+- `tests/test_review_findings.py`
+- `tests/unit/test_planner_understanding.py`
+- `docs/process/tickets/simplify-followups/issues/03-tasks-return-reasoned-cells.md`
+
+Blockers / next:
+- None.
+- Verification: 1,661 tests passed; ruff and mypy passed; recorded answers were
+  unchanged (`0 of 244 conversations differ`).
+
+## 2026-10-04 — simplify-followups 06 One public error rule
+
+Task completed:
+`docs/process/tickets/simplify-followups/issues/06-one-public-error-rule.md`
+
+Key decisions:
+- Domain errors are private by default; the five visitor-written error classes
+  opt in with one `public` flag.
+- `visitor_message` applies the flag with each workflow's own generic fallback.
+- Trace presentation is unchanged: it already hid provider wording and put
+  refusals in the window's words. Showing public trace text verbatim would
+  have replaced the friendly "I couldn't find a company called …" with
+  `Company not found for query 'SPY'`, so the window keeps its rewording.
+
+Files changed:
+- `src/financial_analyst_agent/domain/errors.py`
+- `src/financial_analyst_agent/{api,filing_change,turn}.py`
+- `src/financial_analyst_agent/graph/spec_turn.py`
+- `tests/test_{api,presentation,run_turn_explain}.py`
+- `tests/unit/test_{filing_change,public_errors}.py`
+- `docs/process/tickets/simplify-followups/issues/06-one-public-error-rule.md`
+
+Blockers / next:
+- None.
+- Verification: 1,674 tests passed (deploy wizard deselected on this branch);
+  ruff and mypy passed.
+- Recorded answers: 0 of 244 differ.
+
+## 2026-10-04 — simplify-followups 07 Merge and annotate read the spec
+
+Task completed: `docs/process/tickets/simplify-followups/issues/07-merge-reads-the-spec.md`
+
+Key decisions:
+- Request wording creates one typed window reading and carries it through the
+  structured request and compiled analysis; answer notes no longer parse those
+  window phrases again.
+- Follow-up ordering edits set the spec's `order_by`; merge reads that field,
+  with the first metric retained as the unchanged fallback.
+- Replace-mode one-metric rankings do not persist a redundant `order_by`, so
+  recorded analysis specs and answers remain byte-for-byte unchanged.
+
+Files changed:
+- `src/financial_analyst_agent/request_wording.py`
+- `src/financial_analyst_agent/answer_notes.py`
+- `src/financial_analyst_agent/graph/{state,turn_graph,spec_turn}.py`
+- `tests/unit/test_{planner_wording,window_copy,review_round2,showcase_fixes}.py`
+- `docs/process/tickets/simplify-followups/issues/07-merge-reads-the-spec.md`
+- `docs/process/progress.txt`
+
+Blockers / next:
+- None. The answer comparison reports `0 of 244 conversations differ from HEAD`.
+
+## 2026-10-04 — simplify-followups 12 Re-render only the answer that changed
+
+Task completed: `docs/process/tickets/simplify-followups/issues/12-memoise-the-answer.md`
+
+Key decisions:
+- Keep the event callback stable inside `Thread`, since the audience window
+  recreates its send function when streamed progress changes.
+- Memoise each answer's conversation and clarification props at a child
+  boundary, then wrap `Answer` in `React.memo`.
+- Assert render counts on a progress update, including a changed parent
+  callback, and separately pin the memoised `Answer` export.
+
+Files changed:
+- `web/components/{thread,answer}.tsx`
+- `web/components/thread.test.tsx`
+- `web/components/answer-memo.test.ts`
+- `web/{package.json,package-lock.json,vitest.config.ts}`
+- `docs/process/tickets/simplify-followups/issues/12-memoise-the-answer.md`
+- `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,657 Python tests, 210 Vitest tests, and 46 Playwright tests pass;
+  the answer comparison reports `0 of 244 conversations differ from HEAD`.
+
+## 2026-10-04 — simplify-followups 13 Make the issuer index immutable
+
+Task completed: `docs/process/tickets/simplify-followups/issues/13-immutable-issuer-index.md`
+
+Key decisions:
+- Freeze `IssuerIndex` and copy its phrase, ticker, display-name, CIK, and
+  shared-name maps into read-only proxies at construction.
+- Assemble snapshot aliases and supplemental former, ineligible, and outside
+  filer names in local mutable maps, then construct the index once.
+- Cache the typo-candidate tuple on the finished index and reuse it in every
+  correction call.
+
+Files changed:
+- `src/financial_analyst_agent/issuer_index.py`
+- `src/financial_analyst_agent/rules_planner.py`
+- `tests/unit/test_issuer_index.py`
+- `tests/unit/test_planner_rules.py`
+- `docs/process/tickets/simplify-followups/issues/13-immutable-issuer-index.md`
+- `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,659 Python tests pass; ruff and mypy pass; the answer comparison
+  reports `0 of 244 conversations differ from HEAD`.

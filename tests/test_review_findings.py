@@ -210,36 +210,97 @@ def test_a_clarification_saved_before_its_kind_was_recorded_asks_the_same(
 )
 def test_a_refused_cell_in_a_window_keeps_its_reason(code: str, reason: str) -> None:
     # ADR 0002: a fund in a table of quarters is a typed miss, not a missing filing.
-    from datetime import date
+    from types import SimpleNamespace
 
-    from financial_analyst_agent.contracts import (
-        Intent,
-        RendererKind,
-        ToolTrace,
-        TurnResult,
+    from financial_analyst_agent.contracts import RendererKind, Runtime
+    from financial_analyst_agent.domain.errors import (
+        AmbiguousFactError,
+        CompanyNotFoundError,
+        IneligibleIssuerError,
+        UnsupportedQuarterlyFactError,
     )
     from financial_analyst_agent.graph.analysis_spec import CompiledTask
-    from financial_analyst_agent.graph.spec_turn import _lookup_refuse_as_partial
+    from financial_analyst_agent.turn import lookup_task
 
-    task = CompiledTask(
-        kind="lookup", issuers=("ARCC",), metric="revenue", report_date=date(2026, 6, 30)
-    )
-    refused = TurnResult(
-        intent=Intent.LOOKUP,
-        renderer=RendererKind.REFUSE,
-        tool_traces=[
-            ToolTrace(
-                tool="get_financials",
-                args={"company": "ARCC", "metric": "revenue"},
-                provenance={"error": {"code": code, "message": "..."}},
-            )
-        ],
-        message="...",
+    errors = {
+        "ineligible_issuer": IneligibleIssuerError("ARCC is not an operating company"),
+        "company_not_found": CompanyNotFoundError(
+            "Company not found for query 'Acme'", details={"query": "Acme"}
+        ),
+        "ambiguous_fact": AmbiguousFactError("Several facts match"),
+        "unsupported_quarterly_fact": UnsupportedQuarterlyFactError(
+            "No quarterly fact", details={"reason": "not_reported_or_derivable"}
+        ),
+    }
+
+    class _Facts:
+        def get_financials(self, *_: object, **__: object) -> object:
+            raise errors[code]
+
+    task = CompiledTask(kind="lookup", issuers=("ARCC",), metric="revenue")
+    result = lookup_task(
+        task,
+        Runtime(completer=SimpleNamespace(), facts=_Facts()),  # type: ignore[arg-type]
     )
 
-    [cell] = _lookup_refuse_as_partial(task, refused)
+    assert result.renderer is RendererKind.TABLE
+    [cell] = result.table_rows
 
     assert cell.reason == reason
+
+
+def test_one_company_with_one_failed_reason_is_refused_from_typed_metadata() -> None:
+    from financial_analyst_agent.contracts import (
+        COMPANY_NOT_FOUND,
+        Intent,
+        Refusal,
+        RendererKind,
+        TableRow,
+        TurnResult,
+    )
+    from financial_analyst_agent.graph.analysis_spec import (
+        AnalysisSpec,
+        CompiledTask,
+        ResolvedCompany,
+        SpecPatch,
+    )
+    from financial_analyst_agent.graph.spec_turn import merge_analysis
+    from financial_analyst_agent.graph.state import CompiledAnalysis
+
+    task = CompiledTask(kind="lookup", issuers=("Acme",), metric="revenue")
+    compiled = CompiledAnalysis(
+        spec=AnalysisSpec(
+            companies=(
+                ResolvedCompany(cik="", name="Acme", ticker="", query="Acme"),
+            ),
+            metrics=("revenue",),
+        ),
+        tasks=(task,),
+        patch=SpecPatch(mode="replace"),
+        wording="Acme revenue",
+    )
+    failed = TurnResult(
+        intent=Intent.LOOKUP,
+        renderer=RendererKind.TABLE,
+        tool_traces=[],
+        table_rows=[
+            TableRow(
+                company_name="Acme",
+                ticker="",
+                cik="",
+                metric="revenue",
+                reason=COMPANY_NOT_FOUND,
+            )
+        ],
+        message="Company not found for query 'Acme'",
+        refusal=Refusal(code="company_not_found", details={"query": "Acme"}),
+    )
+
+    result = merge_analysis(compiled, [failed])
+
+    assert result.renderer is RendererKind.REFUSE
+    assert result.message == failed.message
+    assert result.refusal == failed.refusal
 
 
 def test_a_ranking_by_an_ambiguous_metric_keeps_its_order_after_the_answer() -> None:

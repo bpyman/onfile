@@ -54,7 +54,7 @@ def test_run_turn_returns_rank_and_lookup_table_for_healthcare_incomes() -> None
 
     assert result.intent is Intent.RANK_AND_LOOKUP
     assert result.renderer is RendererKind.TABLE
-    assert result.banners == [f"Universe snapshot as of {SNAPSHOT_AS_OF}"]
+    assert result.snapshot_as_of == SNAPSHOT_AS_OF
     assert result.numeral_lock_extras == []
     assert result.message is None
 

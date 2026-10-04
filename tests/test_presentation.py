@@ -711,6 +711,68 @@ def test_present_refuse_keeps_message() -> None:
     assert presented.table is None
 
 
+def test_present_refusal_uses_typed_details_not_error_wording() -> None:
+    result = TurnResult.model_validate(
+        {
+            "intent": "lookup",
+            "renderer": "refuse",
+            "tool_traces": [],
+            "message": "The domain error's wording changed.",
+            "refusal": {
+                "code": "unknown_metric",
+                "details": {"term": "customer acquisition cost", "allowed": ["revenue"]},
+            },
+        }
+    )
+
+    assert present_turn(result).message == (
+        "I can't look up “customer acquisition cost” yet. I answer from 10-Q figures "
+        "such as revenue, net income, margins, EPS, free cash flow and P/E."
+    )
+
+
+def test_legacy_refusal_that_old_parser_did_not_match_stays_verbatim() -> None:
+    message = 'Unknown metric "owner\'s earnings". Allowed: revenue'
+    result = TurnResult(
+        intent=Intent.LOOKUP,
+        renderer=RendererKind.REFUSE,
+        tool_traces=[],
+        message=message,
+    )
+
+    assert result.refusal is None
+    assert present_turn(result).message == message
+
+
+def test_legacy_company_refusal_with_an_apostrophe_still_migrates() -> None:
+    result = TurnResult(
+        intent=Intent.LOOKUP,
+        renderer=RendererKind.REFUSE,
+        tool_traces=[],
+        message="Company not found for query 'McDonald's'",
+    )
+
+    assert result.refusal is not None
+    assert result.refusal.details == {"query": "McDonald's"}
+    assert "McDonald's" in str(present_turn(result).message)
+
+
+def test_present_uses_snapshot_and_reuse_fields_without_parsing_banners() -> None:
+    result = TurnResult.model_validate(
+        {
+            "intent": "rank",
+            "renderer": "table",
+            "tool_traces": [],
+            "snapshot_as_of": "2026-08-17T16:00:00+00:00",
+            "reused_evidence": True,
+        }
+    )
+
+    assert present_turn(result).banners == (
+        "Universe snapshot as of Aug 17, 2026, 4:00 PM UTC",
+    )
+
+
 def test_present_clarify_lists_humanized_candidates() -> None:
     result = TurnResult(
         intent=Intent.LOOKUP,
@@ -1708,6 +1770,37 @@ def test_a_failed_step_shows_no_internal_wording(error: dict[str, str], shown: s
     assert error["message"] not in str(presented)
     if presented.message is not None:
         assert presented.message == shown
+
+
+@pytest.mark.parametrize(
+    ("code", "message"),
+    [
+        # company_not_found is public too, but the window rewords it ("I couldn't
+        # find a company called …"), as it does in the answer itself.
+        ("provider_refusal", "Recorded answer unavailable"),
+        ("ambiguous_company", "Several companies are called Acme"),
+        ("session_quota", "Turn limit reached"),
+        ("runtime_mismatch", "Start a new live thread"),
+    ],
+)
+def test_a_failed_step_shows_errors_written_for_the_visitor(
+    code: str, message: str
+) -> None:
+    result = TurnResult(
+        intent=Intent.LOOKUP,
+        renderer=RendererKind.REFUSE,
+        tool_traces=[
+            ToolTrace(
+                tool="get_financials",
+                args={"company": "Apple", "metric": "revenue"},
+                provenance={"error": {"code": code, "message": message}},
+            )
+        ],
+    )
+
+    presented = present_turn(result)
+
+    assert dict(presented.traces[0].outputs)["Error"] == message
 
 
 def test_an_evidence_item_without_a_value_names_its_reason_in_words() -> None:

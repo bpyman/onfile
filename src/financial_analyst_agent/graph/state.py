@@ -14,7 +14,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Literal, TypedDict
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from financial_analyst_agent.contracts import (
     ClarifyKind,
@@ -24,6 +24,7 @@ from financial_analyst_agent.contracts import (
     TurnResult,
 )
 from financial_analyst_agent.graph.analysis_spec import AnalysisSpec, CompiledTask, SpecPatch
+from financial_analyst_agent.request_wording import WindowReading
 
 
 @dataclass(frozen=True)
@@ -72,6 +73,7 @@ class StructuredRequest(BaseModel):
     patch: SpecPatch
     wording: str
     question: str
+    window: WindowReading | None = None
     intent: Intent | None = None
     # The planner's notes (a corrected company name), shown before the answer's own.
     notes: tuple[str, ...] = ()
@@ -117,6 +119,7 @@ class CompiledAnalysis(BaseModel):
     tasks: tuple[CompiledTask, ...]
     patch: SpecPatch
     wording: str
+    window: WindowReading = Field(default_factory=WindowReading)
     # The analysis the patch was applied to, to say what was already in it.
     prior_spec: AnalysisSpec | None = None
     notes: tuple[str, ...] = ()

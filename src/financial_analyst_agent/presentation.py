@@ -28,13 +28,13 @@ from financial_analyst_agent.contracts import (
     ComparisonBase,
     ComponentProvenance,
     Intent,
+    Refusal,
     RendererKind,
     TableRow,
     ToolTrace,
     TurnResult,
     split_between,
 )
-from financial_analyst_agent.evidence_store import THREAD_EVIDENCE_BANNER
 from financial_analyst_agent.graph.analysis_spec import AnalysisSpec
 from financial_analyst_agent.graph.clarify import clarify_prompt
 from financial_analyst_agent.guide import (
@@ -1425,8 +1425,12 @@ def present_turn(result: TurnResult) -> Presentation:
         )
     cell_rows: list[list[TableRow | None]] = []
     if fact_card is None and result.renderer is RendererKind.TABLE and result.table_rows:
+        snapshot_day = None
+        if result.snapshot_as_of is not None:
+            parsed_snapshot = try_parse_datetime(result.snapshot_as_of)
+            snapshot_day = parsed_snapshot.date() if parsed_snapshot is not None else None
         table, cell_rows = _display_table(
-            result.table_rows, intent=result.intent, snapshot_day=_snapshot_day(result.banners)
+            result.table_rows, intent=result.intent, snapshot_day=snapshot_day
         )
     evidence, locate = _evidence_in_table_order(result.table_rows, cell_rows)
     if table is not None:
@@ -1453,9 +1457,12 @@ def present_turn(result: TurnResult) -> Presentation:
     )
     # Reusing figures already fetched is how a follow-up works, not news to the
     # reader; the evidence still records where every figure came from.
-    banners = [
-        _format_banner(banner) for banner in result.banners if banner != THREAD_EVIDENCE_BANNER
-    ]
+    banners = [_format_banner(banner) for banner in result.banners]
+    if result.snapshot_as_of is not None:
+        banners.insert(
+            min(result.snapshot_banner_index, len(banners)),
+            _format_snapshot_as_of(result.snapshot_as_of),
+        )
     derived = derived_banner(result.table_rows)
     if derived:
         banners.append(derived)
@@ -1506,7 +1513,7 @@ def present_turn(result: TurnResult) -> Presentation:
         disclosures=disclosures,
         essay=result.essay,
         message=(
-            _friendly_message(result.message)
+            _friendly_message(result.message, result.refusal)
             if result.renderer is not RendererKind.CLARIFY
             else None
         ),
@@ -1522,7 +1529,6 @@ def present_turn(result: TurnResult) -> Presentation:
     )
 
 
-_UNKNOWN_METRIC = re.compile(r"^Unknown metric '(?P<term>[^']*)'\. Allowed: .*$", re.DOTALL)
 # Themes people rank by that the snapshot does not group companies by.
 _THEME_HINT = (
     "The snapshot groups companies by industry, and “{theme}” isn't one. Try {instead}, "
@@ -1540,59 +1546,55 @@ _THEME_HINTS = {
         ("unicorn", "unicorn", "an industry such as software", "software"),
     )
 }  # fmt: skip
-_UNKNOWN_INDUSTRY = re.compile(r"^Unknown industry '(?P<industry>.*)'\. Allowed: (?P<allowed>.*)$")
-_COMPANY_NOT_FOUND = re.compile(r"^Company not found for query '(?P<query>.*)'$")
 _METRIC_EXAMPLES = "revenue, net income, R&D, or operating margin"
-_FRIENDLY_MESSAGES = {
-    "No recorded filing document": (
+_RECORDED_FILING_MESSAGE = (
         "The recorded demo holds 10-Q text only for the companies it recorded, and "
         "this filing is not among them. With live data, any company's 10-Qs can be compared."
-    ),
-    "Analysis has no companies or ranked constituents": (
+)
+_MISSING_COMPANIES_MESSAGE = (
         "I couldn't tell which company you mean. Name a company or ticker, "
         "for example “What was Apple's revenue?”"
-    ),
-    "Analysis has no metrics": (
+)
+_MISSING_METRICS_MESSAGE = (
         "That leaves no metric to show. Name one, for example “Apple net income”."
-    ),
-    "No 10-Q or 10-Q/A filing found": (
+)
+_NO_QUARTERLY_FILINGS_MESSAGE = (
         "This company has no 10-Q filings. Foreign private issuers file 20-F and "
         "6-K reports instead, which this app does not read yet."
-    ),
-    "No dividend was declared in this quarter; one was declared earlier in the fiscal year": (
+)
+_NO_DIVIDEND_MESSAGE = (
         "The filing reports no dividend declared in this quarter and one declared "
         "earlier in the fiscal year. Some companies declare the whole year's dividend "
         "at once; a company that suspends its dividend reports the same way, so the "
         "filing's text says which."
-    ),
-    "Per-share figures for this quarter are reported only for a longer period": (
+)
+_PER_SHARE_NOT_DERIVABLE_MESSAGE = (
         "Filings report per-share figures such as EPS for a fiscal fourth quarter "
         "only inside the full-year total, and EPS cannot be subtracted the way "
         "revenue can, so there is no fourth-quarter figure to show."
-    ),
-    "No reported or derivable quarter exists for metric": (
+)
+_NO_REPORTED_OR_DERIVABLE_MESSAGE = (
         "This company's filings do not report that metric for this quarter. Not every "
         "company reports every line item: banks, for example, report no cost of "
         "revenue or capital spending the way operating companies do."
-    ),
-    "SEC's structured data does not yet include this quarter's filing": (
+)
+_PENDING_STRUCTURED_DATA_MESSAGE = (
         "This quarter's report is filed, but SEC's structured data, which the figures "
         "here are read from, does not include it yet. It usually appears within a "
         "few weeks of the filing."
-    ),
-    "Multiple directly reported quarterly facts remain after precedence rules": (
+)
+_AMBIGUOUS_FACT_MESSAGE = (
         "The filing reports different figures for that metric in the same quarter, "
         "so none is shown rather than a guess."
-    ),
-    "No directly reported standalone-quarter fact exists for metric": (
+)
+_NO_STANDALONE_QUARTER_MESSAGE = (
         "This company's 10-Q does not report a standalone quarterly value for that "
         "metric. Not every company reports every line item: banks, for example, "
         "report no cost of revenue or capital spending the way operating companies do."
-    ),
-}
+)
 
 
-def _friendly_message(message: str | None) -> str | None:
+def _friendly_message(message: str | None, refusal: Refusal | None) -> str | None:
     """Put the domain's refusal text in the window's words.
 
     Domain messages name catalog slugs and internal terms (the MCP server and
@@ -1600,11 +1602,12 @@ def _friendly_message(message: str | None) -> str | None:
     """
     if message is None:
         return None
-    if message in _FRIENDLY_MESSAGES:
-        return _FRIENDLY_MESSAGES[message]
-    unknown = _UNKNOWN_METRIC.match(message)
-    if unknown is not None:
-        term = unknown.group("term")
+    if refusal is None:
+        return message
+    code = refusal.code
+    details = refusal.details
+    if code in ("unknown_metric", "invalid_metric"):
+        term = str(details.get("term", ""))
         if term in ("", "unknown"):
             return (
                 "I couldn't find a metric I can look up in that question. I answer "
@@ -1621,9 +1624,8 @@ def _friendly_message(message: str | None) -> str | None:
             f"I can't look up “{term}” yet. I answer from 10-Q figures such as revenue, "
             "net income, margins, EPS, free cash flow and P/E."
         )
-    industry = _UNKNOWN_INDUSTRY.match(message)
-    if industry is not None:
-        named = industry.group("industry").strip()
+    if code == "unknown_industry":
+        named = str(details.get("industry", "")).strip()
         theme = _THEME_HINTS.get(named.casefold())
         if theme is not None:
             return theme
@@ -1633,24 +1635,51 @@ def _friendly_message(message: str | None) -> str | None:
                 "“top 10 semiconductor companies by revenue”."
             )
         # Aliases ("finance") are lower case; the snapshot's sectors are titled.
-        sectors = [name for name in industry.group("allowed").split(", ") if name[:1].isupper()]
+        sectors = [
+            str(name)
+            for name in details.get("allowed", [])
+            if str(name)[:1].isupper()
+        ]
         covers = f" It covers {joined(sectors)} companies." if sectors else ""
         return (
             f"I couldn't find “{named}” companies in this snapshot."
             f"{covers} You can also name an industry within those, such as "
             "semiconductors, software, pharma or banks."
         )
-    missing = _COMPANY_NOT_FOUND.match(message)
-    if missing is not None and missing.group("query").strip().casefold() in ("", "unknown"):
+    if code == "company_not_found":
+        query = str(details.get("query", ""))
+        if query.strip().casefold() in ("", "unknown"):
+            return (
+                "I couldn't tell which company you mean. Name it or use its ticker, "
+                "for example “Apple revenue” or “AAPL revenue”."
+            )
         return (
-            "I couldn't tell which company you mean. Name it or use its ticker, "
-            "for example “Apple revenue” or “AAPL revenue”."
-        )
-    if missing is not None:
-        return (
-            f"I couldn't find a company called “{missing.group('query')}” in the "
+            f"I couldn't find a company called “{query}” in the "
             "filings available here. Check the spelling, or try the ticker."
         )
+    if code == "empty_spec" and details.get("missing") == "companies":
+        return _MISSING_COMPANIES_MESSAGE
+    if code == "empty_spec" and details.get("missing") == "metrics":
+        return _MISSING_METRICS_MESSAGE
+    if code == "filing_not_found":
+        return _NO_QUARTERLY_FILINGS_MESSAGE
+    if code == "no_dividend_this_quarter":
+        return _NO_DIVIDEND_MESSAGE
+    if code == "not_reported_for_quarter":
+        return _PER_SHARE_NOT_DERIVABLE_MESSAGE
+    if code == "ambiguous_fact":
+        return _AMBIGUOUS_FACT_MESSAGE
+    if code == "unsupported_quarterly_fact":
+        by_reason = {
+            "not_reported_or_derivable": _NO_REPORTED_OR_DERIVABLE_MESSAGE,
+            "pending_structured_data": _PENDING_STRUCTURED_DATA_MESSAGE,
+            "no_standalone_quarter": _NO_STANDALONE_QUARTER_MESSAGE,
+        }
+        return by_reason.get(str(details.get("reason")), message)
+    if code == "provider_refusal" and (
+        details.get("recorded_filing") or {"cik", "accession", "document"} <= details.keys()
+    ):
+        return _RECORDED_FILING_MESSAGE
     return message
 
 
@@ -2089,15 +2118,6 @@ def _raw_cell(row: TableRow, key: str, shown: str) -> str:
     return shown
 
 
-def _snapshot_day(banners: list[str]) -> date | None:
-    for banner in banners:
-        if banner.startswith(SNAPSHOT_BANNER_PREFIX):
-            parsed = try_parse_datetime(banner[len(SNAPSHOT_BANNER_PREFIX) :])
-            if parsed is not None:
-                return parsed.date()
-    return None
-
-
 def _display_table(
     rows: list[TableRow], *, intent: Intent | None = None, snapshot_day: date | None = None
 ) -> tuple[DisplayTable, list[list[TableRow | None]]]:
@@ -2382,13 +2402,13 @@ def change_percent(row: TableRow) -> Decimal | None:
 
 
 def _format_banner(banner: str) -> str:
-    if banner in _BANNER_COPY:
-        return _BANNER_COPY[banner]
-    if not banner.startswith(SNAPSHOT_BANNER_PREFIX):
-        return banner
-    parsed = try_parse_datetime(banner[len(SNAPSHOT_BANNER_PREFIX) :])
+    return _BANNER_COPY.get(banner, banner)
+
+
+def _format_snapshot_as_of(as_of: str) -> str:
+    parsed = try_parse_datetime(as_of)
     if parsed is None:
-        return banner
+        return f"{SNAPSHOT_BANNER_PREFIX}{as_of}"
     return f"{SNAPSHOT_BANNER_PREFIX}{format_datetime_utc(parsed)}"
 
 
@@ -2464,9 +2484,12 @@ _SOURCE_ERROR_CODES = frozenset({"provider_error", "data_integrity_error"})
 
 
 def _public_trace_error(error: dict[str, Any]) -> str:
-    if str(error.get("code") or "") in _SOURCE_ERROR_CODES:
+    code = str(error.get("code") or "")
+    if code in _SOURCE_ERROR_CODES:
         return _REASON_LABELS["source_unavailable"]
-    return _friendly_message(str(error.get("message") or "")) or ""
+    details = error.get("details")
+    refusal = Refusal(code=code, details=details if isinstance(details, dict) else {})
+    return _friendly_message(str(error.get("message") or ""), refusal) or ""
 
 
 _USER_TEXT_FIELDS = frozenset({"topic", "query", "message", "question"})

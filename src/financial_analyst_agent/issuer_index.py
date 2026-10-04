@@ -10,11 +10,12 @@ from __future__ import annotations
 
 import difflib
 import re
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from collections.abc import Set as AbstractSet
 from dataclasses import dataclass, field, replace
-from functools import lru_cache
+from functools import cached_property, lru_cache
 from pathlib import Path
+from types import MappingProxyType
 from typing import Protocol
 
 from financial_analyst_agent.services.metric_catalog import metric_phrases
@@ -316,60 +317,76 @@ class CompanyNames(Protocol):
     def display_name(self, query: str) -> str: ...
 
 
-@dataclass
+@dataclass(frozen=True)
 class IssuerIndex:
     """Phrases that name a company, mapped to the query the resolver takes."""
 
-    phrases: dict[str, str] = field(default_factory=dict)
-    tickers: dict[str, str] = field(default_factory=dict)
-    display_names: dict[str, str] = field(default_factory=dict)
-    ciks: dict[str, str] = field(default_factory=dict)
+    phrases: Mapping[str, str] = field(default_factory=dict)
+    tickers: Mapping[str, str] = field(default_factory=dict)
+    display_names: Mapping[str, str] = field(default_factory=dict)
+    ciks: Mapping[str, str] = field(default_factory=dict)
     # First words two large companies share ("lincoln"), by their tickers.
-    shared: dict[str, tuple[str, ...]] = field(default_factory=dict)
+    shared: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "phrases", MappingProxyType(dict(self.phrases)))
+        object.__setattr__(self, "tickers", MappingProxyType(dict(self.tickers)))
+        object.__setattr__(self, "display_names", MappingProxyType(dict(self.display_names)))
+        object.__setattr__(self, "ciks", MappingProxyType(dict(self.ciks)))
+        object.__setattr__(self, "shared", MappingProxyType(dict(self.shared)))
 
     @classmethod
     def build(
         cls,
         companies: Sequence[UniverseCompany],
         aliases: Iterable[tuple[str, str]] = (),
+        *,
+        former: Iterable[tuple[str, str]] = (),
+        outside: Iterable[tuple[str, str]] = (),
+        filers: Iterable[tuple[str, str]] = (),
+        reserved: frozenset[str] = frozenset(),
     ) -> IssuerIndex:
-        index = cls()
+        phrases: dict[str, str] = {}
+        tickers: dict[str, str] = {}
+        display_names: dict[str, str] = {}
+        ciks: dict[str, str] = {}
+        shared: dict[str, tuple[str, ...]] = {}
         for phrase, query in aliases:
-            index.phrases.setdefault(normalize(phrase), query)
+            phrases.setdefault(normalize(phrase), query)
         listed = {company.ticker.upper() for company in companies}
         for phrase, ticker in _NICKNAMES:
             if ticker in listed:
-                index.phrases.setdefault(phrase, ticker)
+                phrases.setdefault(phrase, ticker)
         ranked = sorted(companies, key=lambda company: company.market_cap, reverse=True)
         first_words: dict[str, list[str]] = {}
         short_names: dict[str, list[str]] = {}
         for rank, company in enumerate(ranked):
             ticker = company.ticker.upper()
-            index.tickers.setdefault(ticker, ticker)
-            index.ciks.setdefault(company.cik, ticker)
-            index.display_names.setdefault(ticker, company.name)
+            tickers.setdefault(ticker, ticker)
+            ciks.setdefault(company.cik, ticker)
+            display_names.setdefault(ticker, company.name)
             core = _core_name(company.name)
             # "Power REIT" is named in full too, where "power" alone is not it.
             spoken = _core_name(company.name, _NAME_SUFFIXES - {"reit"})
             if spoken != core and " " in spoken:
-                index.phrases.setdefault(spoken, ticker)
+                phrases.setdefault(spoken, ticker)
             if not core or (" " not in core and (core in _GENERIC_WORDS or len(core) < 3)):
                 # "Southern Company" is not "southern"; "Target" still is "target".
                 continue
             if " " not in core and rank >= _FIRST_WORD_ALIAS_RANK and core in _common_words():
                 # A small listing does not own an everyday word: "power" is not Power REIT.
                 continue
-            index.phrases.setdefault(core, ticker)
+            phrases.setdefault(core, ticker)
             # "Lowe's" is also typed "Lowes".
             joined = _core_name(company.name.replace("'", "").replace("’", ""))
             if joined != core:
-                index.phrases.setdefault(joined, ticker)
+                phrases.setdefault(joined, ticker)
             if "&" in core:
-                index.phrases.setdefault(core.replace("&", "and"), ticker)
+                phrases.setdefault(core.replace("&", "and"), ticker)
             compound = normalize(company.name.split()[0])
             if "-" in company.name.split()[0] and " " in compound and compound != core:
                 # "Take-Two" for Take-Two Interactive: a hyphened word is one name.
-                index.phrases.setdefault(compound, ticker)
+                phrases.setdefault(compound, ticker)
             words = core.split()
             if (
                 rank < _FIRST_WORD_ALIAS_RANK
@@ -392,55 +409,22 @@ class IssuerIndex:
             # Controls International; a start two large companies share
             # ("Bank" of America and "Bank" of New York) names neither.
             if len(owners) == 1 and word not in _NOT_SHORT_NAMES:
-                index.phrases.setdefault(word, owners[0])
-            elif " " not in word and word not in index.phrases and word not in _everyday_words():
-                index.shared[word] = tuple(owners)
-        return index
-
-    def add_former(self, ticker: str, name: str) -> None:
-        """A name a snapshot company used to file under: "Facebook" is Meta.
-
-        It never takes a phrase a current name holds, so a name since reused
-        stays with its present owner, and a one-word former name must not be
-        an ordinary word: "Square" stays a word, while "Raytheon Technologies"
-        names RTX.
-        """
-        query = self.tickers.get(ticker.upper())
-        core = _core_name(_SEC_STATE.sub("", name))
-        if query is None or not core or any(char.isdigit() for char in core):
-            return
-        one_word_name = len(core) >= 4 and core not in _GENERIC_WORDS and not _ordinary(core)
-        if " " in core or one_word_name:
-            self.phrases.setdefault(core, query)
-
-    def add_outside(self, ticker: str, name: str) -> None:
-        """A listing outside the snapshot (a fund), named so a question can reach it.
-
-        It never takes a phrase or ticker an operating company already holds:
-        "Ares" stays Ares Management, while "Ares Capital" names the fund.
-        """
-        query = ticker.upper()
-        self.tickers.setdefault(query, query)
-        self.display_names.setdefault(query, name)
-        for core in {_core_name(name), _core_name(name, _NAME_SUFFIXES | _FUND_WORDS)}:
-            if " " in core:
-                self.phrases.setdefault(core, query)
-
-    def add_filer(self, ticker: str, name: str, *, reserved: frozenset[str]) -> None:
-        """An operating SEC filer outside the snapshot, named by its full name only.
-
-        "Southern California Edison" and "Entergy Texas" then match whole, ahead
-        of "Edison" or "Entergy" alone. A filer never takes a phrase a snapshot
-        company holds, a one-word name, or a name with a ``reserved`` word in it,
-        so "Apple Revenue Trust" could not capture "Apple revenue".
-        """
-        core = _core_name(_SEC_STATE.sub("", name))
-        words = core.split()
-        if len(words) < 2 or any(word in reserved or word.isdigit() for word in words):
-            return
-        query = ticker.upper()
-        if self.phrases.setdefault(core, query) == query:
-            self.display_names.setdefault(query, name)
+                phrases.setdefault(word, owners[0])
+            elif " " not in word and word not in phrases and word not in _everyday_words():
+                shared[word] = tuple(owners)
+        for ticker, name in former:
+            _add_former_name(phrases, tickers, ticker, name)
+        for ticker, name in outside:
+            _add_outside_name(phrases, tickers, display_names, ticker, name)
+        for ticker, name in filers:
+            _add_filer_name(phrases, display_names, ticker, name, reserved=reserved)
+        return cls(
+            phrases=phrases,
+            tickers=tickers,
+            display_names=display_names,
+            ciks=ciks,
+            shared=shared,
+        )
 
     def find(self, question: str, *, company_slot: bool = False) -> list[CompanyMention]:
         """Companies named exactly, longest phrase first, in question order.
@@ -646,7 +630,7 @@ class IssuerIndex:
         A word inside a hyphened phrase ("apples-to-apples", "year-over-year")
         is that phrase's, not a misspelt name.
         """
-        candidates = [phrase for phrase in self.phrases if len(phrase) >= _TYPO_MIN_LENGTH]
+        candidates = self._typo_candidates
         ignore = ignore | {
             part.casefold()
             for compound in re.findall(r"\w+(?:-\w+)+", question)
@@ -688,11 +672,62 @@ class IssuerIndex:
                     mentions.append(CompanyMention(query, start, word, corrected=True))
         return mentions
 
+    @cached_property
+    def _typo_candidates(self) -> tuple[str, ...]:
+        return tuple(phrase for phrase in self.phrases if len(phrase) >= _TYPO_MIN_LENGTH)
+
     def display_name(self, query: str) -> str:
         return self.display_names.get(query.upper(), query)
 
 
-def _one_letter_missing(word: str, candidates: list[str]) -> str | None:
+def _add_former_name(
+    phrases: dict[str, str], tickers: dict[str, str], ticker: str, name: str
+) -> None:
+    """Add a snapshot company's former filing name before the index is frozen."""
+    query = tickers.get(ticker.upper())
+    core = _core_name(_SEC_STATE.sub("", name))
+    if query is None or not core or any(char.isdigit() for char in core):
+        return
+    one_word_name = len(core) >= 4 and core not in _GENERIC_WORDS and not _ordinary(core)
+    if " " in core or one_word_name:
+        phrases.setdefault(core, query)
+
+
+def _add_outside_name(
+    phrases: dict[str, str],
+    tickers: dict[str, str],
+    display_names: dict[str, str],
+    ticker: str,
+    name: str,
+) -> None:
+    """Add a non-snapshot listing before the index is frozen."""
+    query = ticker.upper()
+    tickers.setdefault(query, query)
+    display_names.setdefault(query, name)
+    for core in {_core_name(name), _core_name(name, _NAME_SUFFIXES | _FUND_WORDS)}:
+        if " " in core:
+            phrases.setdefault(core, query)
+
+
+def _add_filer_name(
+    phrases: dict[str, str],
+    display_names: dict[str, str],
+    ticker: str,
+    name: str,
+    *,
+    reserved: frozenset[str],
+) -> None:
+    """Add an operating filer outside the snapshot before the index is frozen."""
+    core = _core_name(_SEC_STATE.sub("", name))
+    words = core.split()
+    if len(words) < 2 or any(word in reserved or word.isdigit() for word in words):
+        return
+    query = ticker.upper()
+    if phrases.setdefault(core, query) == query:
+        display_names.setdefault(query, name)
+
+
+def _one_letter_missing(word: str, candidates: Sequence[str]) -> str | None:
     """The one five-letter single-word name that ``word`` is missing a letter of.
 
     The dropped letter is inside the word: "Appl" is a prefix of several names
@@ -709,7 +744,7 @@ def _one_letter_missing(word: str, candidates: list[str]) -> str | None:
     return found[0] if len(found) == 1 else None
 
 
-def _one_edit_away(word: str, candidates: list[str]) -> str | None:
+def _one_edit_away(word: str, candidates: Sequence[str]) -> str | None:
     """The one single-word name ``word`` is a letter swap, slip, drop or extra from.
 
     Damerau-Levenshtein distance one, same first letter: "Nvidea" is Nvidia,

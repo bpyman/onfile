@@ -42,6 +42,7 @@ from financial_analyst_agent.domain.errors import (
     ConfigurationError,
     RuntimeMismatchError,
     SessionQuotaError,
+    visitor_message,
 )
 from financial_analyst_agent.evidence_store import EvidenceStore
 from financial_analyst_agent.news import FIXTURE_NEWS_QUERY
@@ -124,14 +125,12 @@ def threads_limited_message(wait_seconds: float) -> str:
 
 
 def public_error_message(exc: BaseException) -> str:
-    """What a visitor may read about a failed turn: our own errors verbatim, nothing else.
+    """What a visitor may read about a failed turn.
 
     A ConfigurationError is the operator's to fix ("Set SEC_USER_AGENT…"), so a
     visitor gets the generic message and the log keeps the detail.
     """
-    if isinstance(exc, (SessionQuotaError, RuntimeMismatchError)):
-        return str(exc)
-    return PUBLIC_FAILURE_MESSAGE
+    return visitor_message(exc, PUBLIC_FAILURE_MESSAGE)
 
 
 def thread_store_root() -> Path:

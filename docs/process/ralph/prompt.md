@@ -75,3 +75,5 @@ If the ticket turns out to need a decision the ticket does not make, a paid run,
 # FINAL RULES
 
 Work a single ticket.
+
+You run unattended: nobody will answer a question or approve a design. The ticket is the approved design, so a skill that asks for approval before building takes the ticket as that approval and goes on. Never end your turn waiting for input. If the ticket really needs a decision it does not make, hand it back as `needs-info` (see CLOSE THE TICKET).

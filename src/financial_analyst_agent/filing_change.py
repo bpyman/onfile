@@ -20,14 +20,17 @@ from financial_analyst_agent.contracts import (
     Runtime,
     ToolTrace,
     TurnResult,
+    refusal_from_error,
 )
 from financial_analyst_agent.domain.enums import PERIODIC_FORMS
 from financial_analyst_agent.domain.errors import (
     SOURCE_FAILURES,
     AmbiguousCompanyError,
     CompanyNotFoundError,
+    FinancialAnalystError,
     ProviderError,
     ProviderRefusal,
+    visitor_message,
 )
 from financial_analyst_agent.graph.state import FilingChangeRequest
 from financial_analyst_agent.guide import format_date, joined, short_name
@@ -930,9 +933,7 @@ SUMMARY_UNAVAILABLE_MESSAGE = "The model's summary could not be written just now
 
 def _public_message(exc: BaseException) -> str:
     """A refusal written for the visitor as it is; a source failure in plain words."""
-    if isinstance(exc, (ProviderRefusal, CompanyNotFoundError, AmbiguousCompanyError)):
-        return str(exc)
-    return FILINGS_UNREADABLE_MESSAGE
+    return visitor_message(exc, FILINGS_UNREADABLE_MESSAGE)
 
 
 def _unreadable_sentence(unreadable: list[SectionId]) -> str:
@@ -995,6 +996,11 @@ def run_filing_change(
             tool_traces=traces,
             renderer=RendererKind.REFUSE,
             message=_public_message(exc),
+            refusal=(
+                refusal_from_error(exc)
+                if isinstance(exc, FinancialAnalystError)
+                else None
+            ),
         )
     cik = resolved.cik
     if not sec_identity_is_operating(cik, resolved.name):
@@ -1081,6 +1087,11 @@ def run_filing_change(
             tool_traces=traces,
             renderer=RendererKind.REFUSE,
             message=_public_message(exc),
+            refusal=(
+                refusal_from_error(exc)
+                if isinstance(exc, FinancialAnalystError)
+                else None
+            ),
         )
     traces[0] = traces[0].model_copy(
         update={
@@ -1163,9 +1174,7 @@ def run_filing_change(
         except ProviderError as exc:
             # The changes stand on their own; say plainly why no summary is shown.
             essay = None
-            banners.append(
-                str(exc) if isinstance(exc, ProviderRefusal) else SUMMARY_UNAVAILABLE_MESSAGE
-            )
+            banners.append(visitor_message(exc, SUMMARY_UNAVAILABLE_MESSAGE))
     return TurnResult(
         intent=Intent.FILING_CHANGE,
         tool_traces=traces,

@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2, RotateCcw, RotateCw } from "lucide-react";
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { clarifyChoices, shownMessage } from "@/lib/clarify";
 import { progressLabel, type TurnState } from "@/lib/turn-state";
 import type { Presentation, RuntimeKind, Turn } from "@/lib/types";
@@ -39,6 +39,13 @@ export function Thread({
   onTryRecorded?: (message: string) => void;
 }) {
   const running = turn.status === "running";
+  // The window recreates its send function as progress arrives. Answers need one
+  // stable event callback so that those parent renders do not invalidate memoised props.
+  const onAskRef = useRef(onAsk);
+  useEffect(() => {
+    onAskRef.current = onAsk;
+  }, [onAsk]);
+  const ask = useCallback((message: string) => onAskRef.current(message), []);
   return (
     // Turns sit well apart, a rule between them, so each answer reads as its own.
     <ol
@@ -54,17 +61,16 @@ export function Thread({
           <AnswerScope value={index > 0 ? `answer ${index + 1}` : ""}>
             <Exchange message={shownMessage(item, turns[index - 1])} sent={item.message} heading={`Answer ${index + 1}`}>
               <AnswerBoundary>
-                <Answer
-                  question={shownMessage(item, turns[index - 1])}
-                  conversation={turns.slice(0, index + 1).map((sent) => sent.message)}
-                  presentation={item.presentation}
+                <ThreadAnswer
+                  item={item}
+                  previous={turns[index - 1]}
+                  next={turns[index + 1]}
+                  messages={turns}
+                  index={index}
                   runtime={runtime}
-                  onSuggest={index === turns.length - 1 && turn.status === "idle" && !full ? onAsk : undefined}
-                  clarify={{
-                    choices: clarifyChoices(item, turns[index + 1]),
-                    live: item.clarify_enabled && !running && !full,
-                    onChoose: onAsk,
-                  }}
+                  suggest={index === turns.length - 1 && turn.status === "idle" && !full}
+                  clarifyLive={item.clarify_enabled && !running && !full}
+                  onAsk={ask}
                 />
               </AnswerBoundary>
             </Exchange>
@@ -113,6 +119,52 @@ export function Thread({
         </li>
       )}
     </ol>
+  );
+}
+
+/** Stabilises the two aggregate props that would otherwise defeat Answer's memo. */
+function ThreadAnswer({
+  item,
+  previous,
+  next,
+  messages,
+  index,
+  runtime,
+  suggest,
+  clarifyLive,
+  onAsk,
+}: {
+  item: Turn;
+  previous?: Turn;
+  next?: Turn;
+  messages: Turn[];
+  index: number;
+  runtime: RuntimeKind | null;
+  suggest: boolean;
+  clarifyLive: boolean;
+  onAsk: (message: string) => void;
+}) {
+  const conversation = useMemo(
+    () => messages.slice(0, index + 1).map((sent) => sent.message),
+    [messages, index],
+  );
+  const clarify = useMemo(
+    () => ({
+      choices: clarifyChoices(item, next),
+      live: clarifyLive,
+      onChoose: onAsk,
+    }),
+    [item, next, clarifyLive, onAsk],
+  );
+  return (
+    <Answer
+      question={shownMessage(item, previous)}
+      conversation={conversation}
+      presentation={item.presentation}
+      runtime={runtime}
+      onSuggest={suggest ? onAsk : undefined}
+      clarify={clarify}
+    />
   );
 }
 

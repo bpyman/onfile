@@ -75,9 +75,11 @@ class SnapshotRanking:
     def rank_companies(self, industry: str, limit: int) -> RankTable:
         group = resolve_industry_group(industry, self._snapshot)
         if group is None:
-            allowed = ", ".join(allowed_industry_names(self._snapshot))
+            allowed_names = allowed_industry_names(self._snapshot)
+            allowed = ", ".join(allowed_names)
             raise UnknownIndustryError(
                 f"Unknown industry {industry!r}. Allowed: {allowed}",
+                details={"industry": industry, "allowed": list(allowed_names)},
             )
         ranked = [
             company

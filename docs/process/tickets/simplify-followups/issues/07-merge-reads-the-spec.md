@@ -12,4 +12,20 @@ Spec: ADR 0010 (one reading of names and windows).
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped 2026-10-04.
+
+- `request_wording` now produces one typed `WindowReading` for counted windows,
+  trailing years, since-year caps, sub-quarter wording, and unread named periods.
+  The structured request and `CompiledAnalysis` carry that reading into answer notes.
+- Metric wording records `set_order_by` for follow-up ordering edits. Merge reads
+  `AnalysisSpec.order_by` and never parses the message for an ordering metric.
+- `answer_notes` consumes the compiled reading instead of running the five window
+  regular expressions and grammar again.
+- Focused red/green tests cover ordering and every recorded window detail.
+  `scripts/compare_answers.py` reports `0 of 244 conversations differ from HEAD`.
+
+No blocker remains.

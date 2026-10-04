@@ -202,6 +202,7 @@ def select_quarterly_fact(
             "metric": metric.value,
             "filing_accession": filing.accession_number,
             "report_date": filing.report_date.isoformat(),
+            "reason": "no_standalone_quarter",
         },
     )
 
@@ -244,7 +245,7 @@ def select_quarterly_fact_with_filing_fallback(
 
     raise UnsupportedQuarterlyFactError(
         "No directly reported standalone-quarter fact exists for metric",
-        details={"metric": metric.value},
+        details={"metric": metric.value, "reason": "no_standalone_quarter"},
     )
 
 
@@ -491,6 +492,7 @@ def derive_quarter(
             "metric": metric.value,
             "filing_accession": filing.accession_number,
             "report_date": filing.report_date.isoformat(),
+            "reason": "not_reported_or_derivable",
         },
     )
 

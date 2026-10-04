@@ -16,4 +16,21 @@ Spec: ADR 0002, ADR 0004.
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+`TurnResult` now carries a typed refusal (`code` plus `details`), the snapshot's
+`snapshot_as_of`, and whether it reused thread evidence. Workflow boundaries
+copy domain-error metadata, unknown industries name the industry and every
+known sector, and presentation selects visitor wording from those fields
+instead of matching domain messages.
+
+Legacy evidence records are upgraded while loading: old refusal messages and
+the two old metadata banners become the typed fields, so saved threads still
+present as before. Recorded output is unchanged across all 244 conversations.
+
+Tests cover wording-independent refusals, typed snapshot/reuse presentation,
+unknown-industry details, and a pre-change evidence record. The deploy-wizard
+test helper also quotes POSIX-form paths and decodes Bash output as UTF-8 so the
+required suite runs on Windows.

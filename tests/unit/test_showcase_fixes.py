@@ -25,7 +25,7 @@ from financial_analyst_agent.graph.analysis_spec import (
 from financial_analyst_agent.graph.spec_turn import drop_annual_filers, materialize_period_dates
 from financial_analyst_agent.presentation import long_quarter_banner
 from financial_analyst_agent.ranking import SnapshotRanking
-from financial_analyst_agent.request_wording import refine_patch_from_message
+from financial_analyst_agent.request_wording import read_window, refine_patch_from_message
 from financial_analyst_agent.runtime import FIXTURE_UNIVERSE_SNAPSHOT_PATH
 
 # Costco's quarters end on Sundays of 12- and 16-week periods; Walmart's at month ends.
@@ -75,7 +75,10 @@ def test_a_retailer_ten_days_off_another_calendar_keeps_its_own_quarters() -> No
 def test_a_sixteen_week_fourth_quarter_is_not_a_skipped_quarter() -> None:
     spec = materialize_period_dates(_window(_company("Costco")), _runtime())
 
-    assert FISCAL_Q4_GAP_BANNER not in period_notes("Costco revenue", spec)
+    message = "Costco revenue"
+    assert FISCAL_Q4_GAP_BANNER not in period_notes(
+        message, spec, window=read_window(message)
+    )
 
 
 def _row(end: date, weeks: int) -> TableRow:

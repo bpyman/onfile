@@ -7,8 +7,15 @@ from typing import Any
 import pytest
 
 from financial_analyst_agent.contracts import MODEL_ANALYSIS_BANNER, Intent, RendererKind, Runtime
-from financial_analyst_agent.domain.errors import ProviderError
+from financial_analyst_agent.domain.errors import (
+    AmbiguousCompanyError,
+    CompanyNotFoundError,
+    FinancialAnalystError,
+    ProviderError,
+    ProviderRefusal,
+)
 from financial_analyst_agent.filing_change import (
+    FILINGS_UNREADABLE_MESSAGE,
     SectionId,
     diff_paragraphs,
     extract_section,
@@ -119,6 +126,39 @@ def _runtime(facts: _Facts | None = None, **kwargs: Any) -> Runtime:
         filings=facts._client,
         **kwargs,
     )
+
+
+@pytest.mark.parametrize(
+    ("failure", "shown"),
+    [
+        (ProviderRefusal("Filing unavailable by policy"), "Filing unavailable by policy"),
+        (CompanyNotFoundError("No company called Acme"), "No company called Acme"),
+        (
+            AmbiguousCompanyError("Several companies are called Acme"),
+            "Several companies are called Acme",
+        ),
+        (ProviderError("SEC payload path"), FILINGS_UNREADABLE_MESSAGE),
+    ],
+)
+def test_company_resolution_applies_the_visitor_error_rule(
+    monkeypatch: pytest.MonkeyPatch,
+    failure: FinancialAnalystError,
+    shown: str,
+) -> None:
+    facts = _Facts()
+
+    def fail() -> object:
+        raise failure
+
+    monkeypatch.setattr(facts._client, "get_company_tickers", fail)
+
+    result = run_filing_change(
+        FilingChangeRequest(company="Acme", section="mda"),
+        _runtime(facts),
+    )
+
+    assert result.renderer is RendererKind.REFUSE
+    assert result.message == shown
 
 
 def test_extracts_reviewed_sections() -> None:

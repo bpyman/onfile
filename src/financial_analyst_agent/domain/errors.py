@@ -7,11 +7,19 @@ class FinancialAnalystError(Exception):
     """Base exception for all domain errors."""
 
     code: str = "financial_analyst_error"
+    public: bool = False
 
     def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
         super().__init__(message)
         self.message = message
         self.details = details or {}
+
+
+def visitor_message(exc: BaseException, fallback: str) -> str:
+    """Return domain wording only when its error class marks it visitor-safe."""
+    if isinstance(exc, FinancialAnalystError) and exc.public:
+        return str(exc)
+    return fallback
 
 
 class UnsupportedQuarterlyFactError(FinancialAnalystError):
@@ -57,6 +65,7 @@ class ProviderRefusal(ProviderError):
     answers only for…"), shown as it is."""
 
     code = "provider_refusal"
+    public = True
 
 
 class DataIntegrityError(FinancialAnalystError):
@@ -67,6 +76,7 @@ class DataIntegrityError(FinancialAnalystError):
 
 class CompanyNotFoundError(FinancialAnalystError):
     code = "company_not_found"
+    public = True
 
 
 class IneligibleIssuerError(CompanyNotFoundError):
@@ -77,6 +87,7 @@ class IneligibleIssuerError(CompanyNotFoundError):
 
 class AmbiguousCompanyError(FinancialAnalystError):
     code = "ambiguous_company"
+    public = True
 
 
 class InvalidParameterError(FinancialAnalystError):
@@ -99,12 +110,14 @@ class PlannerError(FinancialAnalystError):
 
 class SessionQuotaError(FinancialAnalystError):
     code = "session_quota"
+    public = True
 
 
 class RuntimeMismatchError(FinancialAnalystError):
     """A turn asked to run on a thread bound to the other runtime."""
 
     code = "runtime_mismatch"
+    public = True
 
 
 # A source that failed, as opposed to data that lacks the fact: the fact may well exist.

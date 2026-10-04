@@ -93,7 +93,7 @@ def test_run_turn_returns_rank_table_for_top_10_healthcare() -> None:
 
     assert result.intent is Intent.RANK
     assert result.renderer is RendererKind.TABLE
-    assert result.banners == [f"Universe snapshot as of {SNAPSHOT_AS_OF}"]
+    assert result.model_dump()["snapshot_as_of"] == SNAPSHOT_AS_OF
     assert result.numeral_lock_extras == []
     assert result.message is None
 
@@ -180,6 +180,19 @@ def test_run_turn_refuses_unknown_ai_industry_with_allowed_names() -> None:
     assert result.tool_traces == []
     assert result.numeral_lock_extras == []
     assert result.message is not None
+    assert result.model_dump()["refusal"] == {
+        "code": "unknown_industry",
+        "details": {
+            "industry": "ai",
+            "allowed": [
+                "Communication Services",
+                "Financial Services",
+                "Healthcare",
+                "Technology",
+                "finance",
+            ],
+        },
+    }
     assert "ai" in result.message.casefold()
     for industry in ALLOWED_INDUSTRIES:
         assert industry in result.message.casefold()

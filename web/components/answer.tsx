@@ -2,6 +2,7 @@
 
 import { ArrowRight, ArrowUpRight, ChevronDown, ChevronsUpDown, Info, Route, ScanSearch, X } from "lucide-react";
 import {
+  memo,
   useCallback,
   useEffect,
   useId,
@@ -59,7 +60,7 @@ const LABEL_TONE: Record<string, Tone> = {
  * The headline, chart and table share one card; the sources sit under it,
  * behind one disclosure.
  */
-export function Answer({
+function AnswerComponent({
   question = "",
   conversation,
   presentation,
@@ -218,6 +219,9 @@ export function Answer({
     </InspectContext.Provider>
   );
 }
+
+export const Answer = memo(AnswerComponent);
+Answer.displayName = "Answer";
 
 /**
  * The Sources disclosure and what a clicked figure does with it: open it and
