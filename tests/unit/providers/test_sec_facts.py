@@ -787,7 +787,7 @@ class _RecordingSource:
         self.calls.append("tickers")
         return {"0": {"cik_str": int(SUCCESSOR_CIK), "ticker": "XOM", "title": "Exxon Mobil"}}
 
-    def get_submissions(self, cik: str) -> dict[str, object]:
+    def get_submissions(self, cik: str, *, with_history: bool = True) -> dict[str, object]:
         self.calls.append(f"submissions:{cik}")
         if self._failing.startswith("submissions"):
             status = 404 if self._failing.endswith("404") else 503
@@ -871,3 +871,66 @@ def test_a_lookup_keeps_only_the_submissions_rows_and_columns_it_reads() -> None
     kept = lookup._submissions_by_cik[SUCCESSOR_CIK]["filings"]["recent"]
     assert kept["form"] == ["10-Q"]
     assert set(kept) == {"form", "accessionNumber", "filingDate", "reportDate", "primaryDocument"}
+
+
+BANK_ACCESSION = "0002115436-26-000093"
+
+
+class _PagedSource(_RecordingSource):
+    """A filer whose first submissions page may leave out its 10-Q, as a bank's does."""
+
+    def __init__(self, *, ten_q_on_first_page: bool, history_fails: bool = False) -> None:
+        super().__init__()
+        self.pages_read: list[str] = []
+        self._ten_q_on_first_page = ten_q_on_first_page
+        self._history_fails = history_fails
+
+    def get_submissions(self, cik: str, *, with_history: bool = True) -> dict[str, object]:
+        self.pages_read.append("history" if with_history else "first page")
+        if with_history and self._history_fails:
+            raise ProviderError("SEC error", details={"status_code": 503})
+        payload = _submissions(cik, BANK_ACCESSION)
+        if not with_history and not self._ten_q_on_first_page:
+            # A year of prospectuses and nothing else.
+            payload["filings"]["recent"] = {  # type: ignore[index]
+                "form": ["424B2"],
+                "accessionNumber": ["0002115436-26-000094"],
+                "filingDate": ["2026-08-04"],
+                "reportDate": [""],
+                "primaryDocument": ["prospectus.htm"],
+            }
+        return payload
+
+    def get_company_facts(self, cik: str) -> dict[str, object]:
+        return _quarterly_net_income_facts(cik, BANK_ACCESSION)
+
+
+def test_a_lookup_reads_only_the_first_submissions_page() -> None:
+    source = _PagedSource(ten_q_on_first_page=True)
+
+    fact = SecFactLookup(client=source).get_financials("XOM", "net_income")
+
+    assert fact.source_url.endswith("/xom-20260630.htm")
+    assert source.pages_read == ["first page"]
+
+
+def test_a_filing_only_company_facts_names_links_to_its_document_from_the_older_pages() -> None:
+    source = _PagedSource(ten_q_on_first_page=False)
+    lookup = SecFactLookup(client=source)
+
+    fact = lookup.get_financials("XOM", "net_income")
+    lookup.get_financials("XOM", "net_income")
+
+    assert fact.value == Decimal("14525000000")
+    assert fact.source_url.endswith("/000211543626000093/xom-20260630.htm")
+    # The older pages are read once a turn, and only because a link needed them.
+    assert source.pages_read == ["first page", "history"]
+
+
+def test_without_the_older_pages_a_link_is_the_filings_index_page() -> None:
+    source = _PagedSource(ten_q_on_first_page=False, history_fails=True)
+
+    fact = SecFactLookup(client=source).get_financials("XOM", "net_income")
+
+    assert fact.value == Decimal("14525000000")
+    assert fact.source_url.endswith("/000211543626000093/0002115436-26-000093-index.htm")

@@ -183,7 +183,8 @@ class CachingSECDataSource:
     def get_company_tickers(self) -> dict[str, Any]:
         return self._json("tickers.json", self._inner.get_company_tickers)
 
-    def get_submissions(self, cik: str) -> dict[str, Any]:
+    def get_submissions(self, cik: str, *, with_history: bool = True) -> dict[str, Any]:
+        """A filer's submissions; ``with_history`` also reads older pages (``with_older_pages``)."""
         page = getattr(self._inner, "get_submissions_page", None)
         if not callable(page):
             fetch = lambda: self._inner.get_submissions(cik)  # noqa: E731
@@ -191,7 +192,7 @@ class CachingSECDataSource:
             # Older pages are read here, one cached and charged request each.
             fetch = lambda: self._inner.get_submissions(cik, with_history=False)  # noqa: E731
         payload = self._json(f"submissions-{cik}.json", fetch)
-        if not callable(page):
+        if not with_history or not callable(page):
             return payload
         return with_older_pages(
             payload, lambda name: self._json(f"submissions-{name}", lambda: page(name))
