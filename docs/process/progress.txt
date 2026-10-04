@@ -934,3 +934,31 @@ Files changed:
 Blockers / next:
 - None. All 1,704 Python tests pass; ruff and mypy pass; the answer comparison
   reports `0 of 244 conversations differ from HEAD`.
+
+## 2026-10-04 — simplify-followups 15 Offline scripts use the app's constants
+
+Task completed: `docs/process/tickets/simplify-followups/issues/15-scripts-share-constants.md`
+
+Key decisions:
+- `_KEPT_COLUMNS` in `providers/sec/submissions.py` becomes `KEPT_COLUMNS`;
+  both SEC fixture scripts import it. `_quarterly_filings` reads the form by
+  name, so it no longer depends on `form` being the first column.
+- Snapshot paths come from `universe.DEFAULT_SNAPSHOT_PATH` and
+  `rules_planner.FIXTURE_UNIVERSE_SNAPSHOT_PATH`. `record_sec_fixtures.DATA`
+  stays for the cassette path.
+- Output checked against recorded data: the same tables on 87 cassette lists
+  and the same rows on 19 test fixtures. A re-trimmed test fixture orders its
+  `recent` columns `form` first; the committed fixtures are left alone.
+
+Files changed:
+- `src/financial_analyst_agent/providers/sec/submissions.py`
+- `scripts/{record_sec_fixtures,trim_sec_test_fixture,build_everyday_words}.py`
+- `tests/unit/test_script_constants.py`
+- `docs/process/tickets/simplify-followups/issues/15-scripts-share-constants.md`
+- `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,707 Python tests pass; ruff and mypy pass; the answer comparison
+  reports `0 of 244 conversations differ from HEAD`. Remaining
+  simplify-followups tickets are ready-for-human.
+

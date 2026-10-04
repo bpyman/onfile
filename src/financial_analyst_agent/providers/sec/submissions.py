@@ -95,7 +95,7 @@ def files_quarterly_reports(payload: dict[str, Any]) -> bool:
 _KEPT_FORMS = (
     PERIODIC_FORMS | _DOMESTIC_PERIODIC_FORMS | _FOREIGN_ANNUAL_FORMS | _FOREIGN_ONLY_FORMS
 )
-_KEPT_COLUMNS = ("form", "accessionNumber", "filingDate", "reportDate", "primaryDocument")
+KEPT_COLUMNS = ("form", "accessionNumber", "filingDate", "reportDate", "primaryDocument")
 
 
 def trim_submissions(payload: dict[str, Any]) -> dict[str, Any]:
@@ -111,7 +111,7 @@ def trim_submissions(payload: dict[str, Any]) -> dict[str, Any]:
     forms = recent.get("form") if isinstance(recent, dict) else None
     if not isinstance(recent, dict) or not isinstance(forms, list):
         return payload
-    columns = {name: recent.get(name) for name in _KEPT_COLUMNS}
+    columns = {name: recent.get(name) for name in KEPT_COLUMNS}
     if any(not isinstance(form, str) for form in forms) or any(
         not isinstance(values, list) or len(values) != len(forms) for values in columns.values()
     ):

@@ -23,9 +23,10 @@ from pathlib import Path
 from financial_analyst_agent.config import get_settings
 from financial_analyst_agent.filing_change import html_to_text
 from financial_analyst_agent.providers.sec.client import SECClient
+from financial_analyst_agent.universe import DEFAULT_SNAPSHOT_PATH
 
 ROOT = Path(__file__).resolve().parent.parent
-SNAPSHOT = ROOT / "src/financial_analyst_agent/data/universe_snapshot.json"
+SNAPSHOT = DEFAULT_SNAPSHOT_PATH
 OUT = ROOT / "src/financial_analyst_agent/data/everyday_words.txt"
 CORPUS = ROOT / ".cache/sec-corpus"
 # Share of filings that must write the word in lower case mid-sentence.
