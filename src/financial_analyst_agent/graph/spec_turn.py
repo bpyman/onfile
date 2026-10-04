@@ -57,9 +57,9 @@ from financial_analyst_agent.domain.errors import (
     CompanyNotFoundError,
     FinancialAnalystError,
     ProviderError,
-    ProviderRefusal,
     SessionQuotaError,
     UnknownIndustryError,
+    visitor_message,
 )
 from financial_analyst_agent.graph.analysis_spec import (
     MAX_QUARTERS_ASKED,
@@ -916,11 +916,10 @@ def resolve_request(
     try:
         spec = materialize_period_dates(spec, runtime)
     except (CompanyNotFoundError, *SOURCE_FAILURES) as exc:
-        public = isinstance(exc, (CompanyNotFoundError, ProviderRefusal))
         return answered(
             _refusal(
                 asked,
-                str(exc) if public else SOURCE_UNAVAILABLE_MESSAGE,
+                visitor_message(exc, SOURCE_UNAVAILABLE_MESSAGE),
                 refusal=(
                     refusal_from_error(exc)
                     if isinstance(exc, FinancialAnalystError)

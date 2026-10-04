@@ -3,6 +3,8 @@
 from datetime import date
 from types import SimpleNamespace
 
+import pytest
+
 from financial_analyst_agent.contracts import (
     MODEL_ANALYSIS_BANNER,
     EssayCompleter,
@@ -11,8 +13,9 @@ from financial_analyst_agent.contracts import (
     Runtime,
     WorkflowPlan,
 )
+from financial_analyst_agent.domain.errors import ProviderError, ProviderRefusal
 from financial_analyst_agent.runtime import FIXTURE_EXPLAIN_ESSAY, recorded_runtime
-from financial_analyst_agent.turn import run_turn
+from financial_analyst_agent.turn import ESSAY_UNAVAILABLE_MESSAGE, run_turn
 
 AI_HEALTHCARE_QUERY = "How can AI disrupt healthcare?"
 AI_MINING_QUERY = "How can AI disrupt mining?"
@@ -56,6 +59,26 @@ def _explain_runtime(essay: EssayCompleter) -> Runtime:
 class _InventedDollarEssay:
     def complete_essay(self, query: str, tool_json: str = "") -> str:
         return "AI imaging will create a $29.8B market without citing a filing."
+
+
+@pytest.mark.parametrize(
+    ("failure", "shown"),
+    [
+        (ProviderRefusal("Written answers are off"), "Written answers are off"),
+        (ProviderError("OpenAI 502 Bad Gateway"), ESSAY_UNAVAILABLE_MESSAGE),
+    ],
+)
+def test_explain_applies_the_visitor_error_rule(
+    failure: ProviderError, shown: str
+) -> None:
+    class _RefusingEssay:
+        def complete_essay(self, query: str, tool_json: str = "") -> str:
+            raise failure
+
+    result = run_turn(AI_HEALTHCARE_QUERY, _explain_runtime(_RefusingEssay()))
+
+    assert result.renderer is RendererKind.REFUSE
+    assert result.message == shown
 
 
 def test_run_turn_explain_returns_model_analysis_essay_without_retrieval() -> None:

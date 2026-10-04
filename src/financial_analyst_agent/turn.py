@@ -70,9 +70,9 @@ from financial_analyst_agent.domain.errors import (
     NoDividendThisQuarterError,
     PerShareNotDerivableError,
     ProviderError,
-    ProviderRefusal,
     UnknownIndustryError,
     UnsupportedQuarterlyFactError,
+    visitor_message,
 )
 from financial_analyst_agent.domain.models import DerivationPart, FinancialFact
 from financial_analyst_agent.graph.analysis_spec import CompiledTask
@@ -225,7 +225,7 @@ def explain_answer(topic: str, runtime: Runtime, *, grounding_json: str = "") ->
             intent=Intent.EXPLAIN,
             tool_traces=traces,
             renderer=RendererKind.REFUSE,
-            message=str(exc) if isinstance(exc, ProviderRefusal) else ESSAY_UNAVAILABLE_MESSAGE,
+            message=visitor_message(exc, ESSAY_UNAVAILABLE_MESSAGE),
             refusal=refusal_from_error(exc),
         )
     lock_json = grounding_json or json.dumps(

@@ -20,4 +20,19 @@ Spec: ADR 0006 (what the window shows).
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped one visitor-error policy. `FinancialAnalystError.public` defaults to
+false; `ProviderRefusal`, `CompanyNotFoundError`, `AmbiguousCompanyError`,
+`SessionQuotaError` and `RuntimeMismatchError` opt in. `visitor_message` now
+applies that policy in the API, filing-change failures, structured-request
+resolution, written answers and filing summaries. Trace presentation keeps
+its existing rule (provider wording hidden, refusals reworded for the window).
+
+Tests cover all five public errors, private fallbacks, and every reachable
+workflow site. The recorded answer comparison shows no change in any of the
+244 conversations.
+
+Verification: 1,674 tests passed; ruff and mypy passed.

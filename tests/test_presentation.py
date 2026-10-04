@@ -1772,6 +1772,37 @@ def test_a_failed_step_shows_no_internal_wording(error: dict[str, str], shown: s
         assert presented.message == shown
 
 
+@pytest.mark.parametrize(
+    ("code", "message"),
+    [
+        # company_not_found is public too, but the window rewords it ("I couldn't
+        # find a company called …"), as it does in the answer itself.
+        ("provider_refusal", "Recorded answer unavailable"),
+        ("ambiguous_company", "Several companies are called Acme"),
+        ("session_quota", "Turn limit reached"),
+        ("runtime_mismatch", "Start a new live thread"),
+    ],
+)
+def test_a_failed_step_shows_errors_written_for_the_visitor(
+    code: str, message: str
+) -> None:
+    result = TurnResult(
+        intent=Intent.LOOKUP,
+        renderer=RendererKind.REFUSE,
+        tool_traces=[
+            ToolTrace(
+                tool="get_financials",
+                args={"company": "Apple", "metric": "revenue"},
+                provenance={"error": {"code": code, "message": message}},
+            )
+        ],
+    )
+
+    presented = present_turn(result)
+
+    assert dict(presented.traces[0].outputs)["Error"] == message
+
+
 def test_an_evidence_item_without_a_value_names_its_reason_in_words() -> None:
     result = TurnResult(
         intent=Intent.LOOKUP,

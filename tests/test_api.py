@@ -23,7 +23,14 @@ from financial_analyst_agent import api
 from financial_analyst_agent.api import PUBLIC_FAILURE_MESSAGE, create_app
 from financial_analyst_agent.config import AppMode, Settings
 from financial_analyst_agent.contracts import Runtime, RuntimeKind
-from financial_analyst_agent.domain.errors import ConfigurationError
+from financial_analyst_agent.domain.errors import (
+    AmbiguousCompanyError,
+    CompanyNotFoundError,
+    ConfigurationError,
+    ProviderRefusal,
+    RuntimeMismatchError,
+    SessionQuotaError,
+)
 from financial_analyst_agent.runtime import recorded_runtime, resolve_runtime_kind
 from financial_analyst_agent.storefront import EXAMPLE_QUERY, GUIDED_STORIES
 from financial_analyst_agent.thread_store import LocalThreadStore, ThreadState
@@ -270,6 +277,14 @@ def test_meta_serves_the_capability_catalog_and_example_query(client: TestClient
 @pytest.mark.parametrize(
     ("failure", "shown"),
     [
+        (ProviderRefusal("Recorded answer unavailable"), "Recorded answer unavailable"),
+        (CompanyNotFoundError("No company called Acme"), "No company called Acme"),
+        (
+            AmbiguousCompanyError("Several companies are called Acme"),
+            "Several companies are called Acme",
+        ),
+        (SessionQuotaError("Turn limit reached"), "Turn limit reached"),
+        (RuntimeMismatchError("Start a new live thread"), "Start a new live thread"),
         (RuntimeError("provider failed"), PUBLIC_FAILURE_MESSAGE),
         # Operator configuration is not the visitor's to read or fix.
         (ConfigurationError("SEC_USER_AGENT is not set"), PUBLIC_FAILURE_MESSAGE),
