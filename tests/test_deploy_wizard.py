@@ -76,7 +76,9 @@ def _run(
         env=env,
         stdin=subprocess.DEVNULL,
         capture_output=True,
+        # The wizard prints ✓, ✗ and →; read them as written, whatever the locale.
         text=True,
+        encoding="utf-8",
         timeout=240,
         check=False,
     )
@@ -255,7 +257,12 @@ def _bash(script: str, *, path: str | None = None) -> subprocess.CompletedProces
         ]
     )
     return subprocess.run(
-        ["bash", "-c", prelude + script], env=env, capture_output=True, text=True, check=False
+        ["bash", "-c", prelude + script],
+        env=env,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
     )
 
 
@@ -267,7 +274,8 @@ def _fake_gh(tmp_path: Path, *, signed_in: bool) -> Path:
     gh.write_text(
         "#!/usr/bin/env bash\n"
         f'if [[ "$1 $2" == "auth status" ]]; then exit {0 if signed_in else 1}; fi\n'
-        f'printf \'%s|%s\\n\' "$*" "$(cat)" >> {record}\n'
+        # A POSIX path: bash reads a Windows path's backslashes as escapes.
+        f'printf \'%s|%s\\n\' "$*" "$(cat)" >> \'{record.as_posix()}\'\n'
     )
     gh.chmod(0o755)
     return bin_dir
