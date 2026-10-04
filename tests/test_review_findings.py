@@ -200,7 +200,13 @@ def test_a_clarification_saved_before_its_kind_was_recorded_asks_the_same(
 
 @pytest.mark.parametrize(
     ("code", "reason"),
-    [("ineligible_issuer", "not_operating_company"), ("company_not_found", "company_not_found")],
+    [
+        ("ineligible_issuer", "not_operating_company"),
+        ("company_not_found", "company_not_found"),
+        # As a comparison's cell says it: the facts disagree, not that none exist.
+        ("ambiguous_fact", "ambiguous_concept"),
+        ("unsupported_quarterly_fact", "missing_fact"),
+    ],
 )
 def test_a_refused_cell_in_a_window_keeps_its_reason(code: str, reason: str) -> None:
     # ADR 0002: a fund in a table of quarters is a typed miss, not a missing filing.

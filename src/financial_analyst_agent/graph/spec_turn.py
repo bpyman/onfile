@@ -29,7 +29,6 @@ from financial_analyst_agent.answer_notes import (
 )
 from financial_analyst_agent.contracts import (
     ALLOWED_METRICS,
-    COMPANY_NOT_FOUND,
     DEFAULT_RANK_LIMIT,
     LOOKUP_FAILED,
     MISSING_FACT,
@@ -55,7 +54,6 @@ from financial_analyst_agent.domain.errors import (
     SOURCE_FAILURES,
     AmbiguousCompanyError,
     CompanyNotFoundError,
-    IneligibleIssuerError,
     ProviderError,
     ProviderRefusal,
     SessionQuotaError,
@@ -105,6 +103,7 @@ from financial_analyst_agent.turn import (
     lookup_task,
     rank_and_lookup_task,
     rank_task,
+    reason_for_code,
 )
 
 # Bound concurrent provider fan-out so a wide window cannot flood SEC/EDGAR.
@@ -487,19 +486,17 @@ def _lookup_refuse_as_partial(task: CompiledTask, result: TurnResult) -> list[Ta
         return list(result.table_rows)
     if task.kind != "lookup" or not task.issuers or not task.metric:
         return list(result.table_rows)
-    # A fund in a window of quarters says so, as it does in a comparison (ADR 0002).
-    codes = {
-        trace.provenance.get("error", {}).get("code")
+    # The refusal's error says why, as it does in a comparison (ADR 0002): a fund in
+    # a window of quarters, or an unknown company, reads alike in every cell.
+    codes = [
+        trace.provenance["error"].get("code")
         for trace in result.tool_traces
         if isinstance(trace.provenance.get("error"), dict)
-    }
-    if IneligibleIssuerError.code in codes:
-        reason = NOT_OPERATING_COMPANY
-    elif CompanyNotFoundError.code in codes:
-        # The same unknown company reads alike in every cell, lookup or formula.
-        reason = COMPANY_NOT_FOUND
-    else:
-        reason = MISSING_FACT
+    ]
+    reason = next(
+        (reason_for_code(code) for code in codes if reason_for_code(code) != MISSING_FACT),
+        MISSING_FACT,
+    )
     return [_missing_cell(task.issuers[0], task.metric, task.report_date, reason)]
 
 
