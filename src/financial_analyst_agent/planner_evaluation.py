@@ -35,8 +35,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from financial_analyst_agent.contracts import RendererKind
+from financial_analyst_agent.contracts import Completer, RendererKind, WorkflowPlan
 from financial_analyst_agent.conversation import ConversationTurn, run_conversation_turn
+from financial_analyst_agent.graph.analysis_spec import SpecPatch
 from financial_analyst_agent.runtime import recorded_runtime
 from financial_analyst_agent.thread_store import EphemeralThreadStore
 
@@ -222,12 +223,14 @@ def score(expect: dict[str, Any], seen: Observation | None) -> dict[str, bool]:
 class MeteredCompleter:
     """Times each planner call; everything else is the wrapped planner's own."""
 
-    def __init__(self, inner: Any, usage: Usage, before_call: Callable[[], None] = lambda: None):
+    def __init__(
+        self, inner: Completer, usage: Usage, before_call: Callable[[], None] = lambda: None
+    ):
         self._inner = inner
         self._usage = usage
         self._before_call = before_call
 
-    def complete(self, query: str, current_spec: Any = None) -> Any:
+    def complete(self, query: str, current_spec: Any = None) -> WorkflowPlan | SpecPatch:
         self._before_call()
         started = time.perf_counter()
         try:

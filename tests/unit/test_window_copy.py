@@ -148,7 +148,7 @@ def test_period_notes_flag_named_periods_and_fiscal_q4_gaps() -> None:
 def test_recorded_planner_knows_every_recorded_company_in_the_order_named() -> None:
     plan = DemoCompleter().complete("Compare Eli Lilly and Merck net margins")
 
-    assert plan.companies == ["LLY", "MRK"]
+    assert plan.companies == ("LLY", "MRK")
     assert _companies_from_query("compare apple and microsoft") == ["Apple", "Microsoft"]
     assert _companies_from_query("an algorithm for amdocs") == []
 

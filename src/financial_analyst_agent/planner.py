@@ -6,12 +6,18 @@ import openai
 from pydantic import AfterValidator, BaseModel, model_validator
 
 from financial_analyst_agent.config import Settings
-from financial_analyst_agent.contracts import ALLOWED_METRICS, DEFAULT_RANK_LIMIT, Intent
+from financial_analyst_agent.contracts import (
+    ALLOWED_METRICS,
+    DEFAULT_RANK_LIMIT,
+    Intent,
+    WorkflowPlan,
+)
 from financial_analyst_agent.domain.errors import PlannerError
 from financial_analyst_agent.graph.analysis_spec import (
     MAX_QUARTERS_ASKED,
     AnalysisSpec,
     PeriodSelection,
+    RankedRequest,
     SpecPatch,
 )
 
@@ -204,13 +210,25 @@ class Plan(_FlatActionModel):
             return self.action.companies
         return []
 
-    def with_companies(self, companies: list[str]) -> "Plan":
-        """This comparison over ``companies``: the conversation adds a company's peers."""
-        if not isinstance(self.action, _ComparePlan):
-            return self
-        return Plan(action=self.action.model_copy(update={"companies": companies}))
+    def workflow_plan(self) -> WorkflowPlan:
+        """The model's answer as the plan both planners return."""
+        return WorkflowPlan(
+            intent=self.intent,
+            company=self.company,
+            companies=tuple(self.companies),
+            metric=self.metric,
+            industry=self.industry,
+            limit=self.limit,
+            order_by_metric=self.order_by_metric,
+            recent_quarters=self.recent_quarters,
+            peers=self.peers,
+            topic=self.topic,
+            older_accession=self.older_accession,
+            newer_accession=self.newer_accession,
+            section=self.section,
+            summarize=self.summarize,
+        )
 
-    # The pipeline reads these with getattr, as it does the rules planner's plans.
     @property
     def order_by_metric(self) -> bool:
         if isinstance(self.action, (_ComparePlan, _RankAndLookupPlan)):
@@ -300,9 +318,12 @@ class _SpecPatchAction(BaseModel):
             )
         elif self.period_kind == "latest_quarter":
             periods = PeriodSelection()
-        ranked = None
+        ranked: RankedRequest | None = None
         if self.ranked_industry:
-            ranked = (self.ranked_industry, int(self.ranked_limit or DEFAULT_RANK_LIMIT))
+            ranked = RankedRequest(
+                industry=self.ranked_industry,
+                limit=int(self.ranked_limit or DEFAULT_RANK_LIMIT),
+            )
         return SpecPatch(
             mode=self.mode,
             add_companies=self.add_companies,
@@ -368,7 +389,9 @@ class OpenAIStructuredCompleter:
     def from_settings(cls, settings: Settings) -> "OpenAIStructuredCompleter":
         return cls(*openai_client_from_settings(settings))
 
-    def complete(self, query: str, current_spec: AnalysisSpec | None = None) -> Plan | SpecPatch:
+    def complete(
+        self, query: str, current_spec: AnalysisSpec | None = None
+    ) -> WorkflowPlan | SpecPatch:
         if current_spec is None:
             system = _SYSTEM_PROMPT
             response_format: type[BaseModel] = Plan
@@ -411,5 +434,5 @@ class OpenAIStructuredCompleter:
         if isinstance(parsed, FollowUpPlan):
             if isinstance(parsed.action, _SpecPatchAction):
                 return parsed.action.to_spec_patch()
-            return Plan(action=parsed.action)
-        return parsed
+            return Plan(action=parsed.action).workflow_plan()
+        return parsed.workflow_plan()

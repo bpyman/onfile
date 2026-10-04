@@ -15,6 +15,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from financial_analyst_agent.contracts import WorkflowPlan
+
 if TYPE_CHECKING:
     from financial_analyst_agent.contracts import Runtime
     from financial_analyst_agent.thread_store import LocalThreadStore
@@ -46,16 +48,14 @@ class _Facts:
 
 
 class _Completer:
-    def complete(self, query: str, current_spec: object = None) -> SimpleNamespace:
+    def complete(self, query: str, current_spec: object = None) -> WorkflowPlan:
         from financial_analyst_agent.contracts import Intent
 
-        return SimpleNamespace(
+        return WorkflowPlan(
             intent=Intent.LOOKUP,
             company="Google",
             metric="net_income",
-            issuers=None,
             industry=None,
-            limit=None,
             topic=None,
         )
 

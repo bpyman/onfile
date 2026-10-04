@@ -17,6 +17,7 @@ from typing import Any
 
 import pytest
 
+from financial_analyst_agent.contracts import WorkflowPlan
 from financial_analyst_agent.runtime import FIXTURE_EXPLAIN_ESSAY, FIXTURE_UNIVERSE_SNAPSHOT_PATH
 
 PROFIT = ("gross_profit", "operating_income", "net_income")
@@ -58,13 +59,13 @@ class _Planner:
     def __init__(self) -> None:
         self.asked: list[str] = []
 
-    def complete(self, query: str, current_spec: object = None) -> SimpleNamespace:
+    def complete(self, query: str, current_spec: object = None) -> WorkflowPlan:
         from financial_analyst_agent.contracts import Intent
 
         self.asked.append(query)
         if "profit" in query.casefold():
-            return SimpleNamespace(intent=Intent.LOOKUP, company="Google", metric="net_income")
-        return SimpleNamespace(intent=Intent.EXPLAIN, topic=query)
+            return WorkflowPlan(intent=Intent.LOOKUP, company="Google", metric="net_income")
+        return WorkflowPlan(intent=Intent.EXPLAIN, topic=query)
 
 
 class _Essay:

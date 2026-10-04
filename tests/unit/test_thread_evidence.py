@@ -15,6 +15,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from urllib.parse import quote
 
+from financial_analyst_agent.contracts import WorkflowPlan
 from financial_analyst_agent.runtime import FIXTURE_UNIVERSE_SNAPSHOT_PATH
 
 
@@ -63,17 +64,15 @@ class _CountingFacts:
 
 
 class _CompareCompleter:
-    def complete(self, query: str, current_spec: object = None) -> SimpleNamespace:
+    def complete(self, query: str, current_spec: object = None) -> WorkflowPlan:
         from financial_analyst_agent.contracts import Intent
 
-        return SimpleNamespace(
+        return WorkflowPlan(
             intent=Intent.COMPARE,
             company=None,
             companies=["Microsoft", "Google"],
             metric="revenue",
-            issuers=None,
             industry=None,
-            limit=None,
             topic=None,
         )
 
@@ -176,14 +175,12 @@ def test_qualitative_after_analysis_receives_deterministic_result(tmp_path: Path
     received: dict[str, str] = {}
 
     class _ExplainCompleter:
-        def complete(self, query: str, current_spec: object = None) -> SimpleNamespace:
-            return SimpleNamespace(
+        def complete(self, query: str, current_spec: object = None) -> WorkflowPlan:
+            return WorkflowPlan(
                 intent=Intent.EXPLAIN,
                 company=None,
                 metric=None,
-                issuers=None,
                 industry=None,
-                limit=None,
                 topic="what do these numbers imply",
             )
 
@@ -214,10 +211,9 @@ def test_explain_after_news_does_not_reuse_prior_news_json(tmp_path: Path) -> No
     store = LocalThreadStore(tmp_path)
 
     class _NewsCompleter:
-        def complete(self, query: str, current_spec: object = None) -> SimpleNamespace:
-            return SimpleNamespace(
+        def complete(self, query: str, current_spec: object = None) -> WorkflowPlan:
+            return WorkflowPlan(
                 intent=Intent.NEWS_AND_EXPLAIN,
-                query=query,
                 topic=query,
             )
 
@@ -254,8 +250,8 @@ def test_explain_after_news_does_not_reuse_prior_news_json(tmp_path: Path) -> No
     received: dict[str, str] = {}
 
     class _ExplainCompleter:
-        def complete(self, query: str, current_spec: object = None) -> SimpleNamespace:
-            return SimpleNamespace(
+        def complete(self, query: str, current_spec: object = None) -> WorkflowPlan:
+            return WorkflowPlan(
                 intent=Intent.EXPLAIN,
                 topic=query,
             )

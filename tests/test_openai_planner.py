@@ -7,7 +7,7 @@ import pytest
 from pydantic import ValidationError
 
 from financial_analyst_agent.config import Settings
-from financial_analyst_agent.contracts import Intent
+from financial_analyst_agent.contracts import Intent, WorkflowPlan
 from financial_analyst_agent.planner import OpenAIStructuredCompleter, Plan
 from financial_analyst_agent.runtime import DemoCompleter, live_runtime, recorded_runtime
 from financial_analyst_agent.turn import run_turn
@@ -36,6 +36,8 @@ def test_openai_completer_emits_closed_intent_from_structured_output() -> None:
 
     plan = completer.complete(GOOGLE_LATEST_QUARTER_NET_INCOME_QUERY)
 
+    # The model's response schema becomes the plan both planners return.
+    assert isinstance(plan, WorkflowPlan)
     assert plan.intent is Intent.LOOKUP
     assert plan.intent.value in _CLOSED_INTENTS
     assert plan.company == "Google"

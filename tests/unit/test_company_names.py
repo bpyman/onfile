@@ -16,7 +16,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from financial_analyst_agent.contracts import RendererKind, Runtime
+from financial_analyst_agent.contracts import RendererKind, Runtime, WorkflowPlan
 from financial_analyst_agent.conversation import run_conversation_turn
 from financial_analyst_agent.domain.errors import AmbiguousCompanyError
 from financial_analyst_agent.issuer_index import _everyday_words, _ordinary
@@ -213,17 +213,15 @@ class _ModelPlan:
     def __init__(self, *companies: str) -> None:
         self.companies = companies
 
-    def complete(self, query: str, current_spec: object = None) -> SimpleNamespace:
+    def complete(self, query: str, current_spec: object = None) -> WorkflowPlan:
         from financial_analyst_agent.contracts import Intent
 
-        return SimpleNamespace(
+        return WorkflowPlan(
             intent=Intent.COMPARE if len(self.companies) > 1 else Intent.LOOKUP,
             company=self.companies[0],
             companies=list(self.companies),
             metric="net_income",
-            issuers=None,
             industry=None,
-            limit=None,
             topic=None,
         )
 

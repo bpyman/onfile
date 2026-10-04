@@ -79,6 +79,23 @@ class ResolvedCompany(BaseModel):
     query: str
 
 
+class RankedRequest(BaseModel):
+    """A ranking asked for, before its members are read: the top ``limit`` of ``industry``."""
+
+    model_config = ConfigDict(frozen=True)
+
+    industry: str
+    limit: int
+
+    @model_validator(mode="before")
+    @classmethod
+    def _read_stored_pair(cls, value: Any) -> Any:
+        # A clarification held before rankings had a type stores ("banks", 5).
+        if isinstance(value, (list, tuple)) and len(value) == 2:
+            return {"industry": value[0], "limit": value[1]}
+        return value
+
+
 class RankedSet(BaseModel):
     industry: str
     limit: int
@@ -122,7 +139,7 @@ class SpecPatch(BaseModel):
     add_operations: tuple[str, ...] = ()
     remove_operations: tuple[str, ...] = ()
     set_presentation: Literal["table"] | None = None
-    ranked_request: tuple[str, int] | None = None
+    ranked_request: RankedRequest | None = None
     set_order_by: str | None = None
 
 
@@ -134,7 +151,7 @@ class SpecDraft(BaseModel):
     periods: PeriodSelection = Field(default_factory=PeriodSelection)
     operations: tuple[str, ...] = ()
     presentation: Literal["table"] = "table"
-    ranked_request: tuple[str, int] | None = None
+    ranked_request: RankedRequest | None = None
     earlier_companies: tuple[str, ...] = ()
     seen_companies: tuple[str, ...] = ()
     order_by: str | None = None
@@ -266,7 +283,9 @@ def apply_patch(current: AnalysisSpec | None, patch: SpecPatch) -> SpecDraft:
         if patch.ranked_request is not None:
             ranked = patch.ranked_request
         elif current.constituents is not None:
-            ranked = (current.constituents.industry, current.constituents.limit)
+            ranked = RankedRequest(
+                industry=current.constituents.industry, limit=current.constituents.limit
+            )
         else:
             ranked = None
         order_by = patch.set_order_by or current.order_by
@@ -321,8 +340,8 @@ def resolve_spec(draft: SpecDraft, *, ranking: Any | None = None) -> AnalysisSpe
     if draft.ranked_request is not None:
         if ranking is None:
             raise RuntimeError("ranked analysis requires a ranking adapter")
-        industry, asked = draft.ranked_request
-        limit = min(asked, MAX_RANKED_COMPANIES)
+        industry = draft.ranked_request.industry
+        limit = min(draft.ranked_request.limit, MAX_RANKED_COMPANIES)
         table = ranking.rank_companies(industry, limit)
         members = tuple(
             ResolvedCompany(

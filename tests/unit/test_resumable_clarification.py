@@ -13,6 +13,7 @@ from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
 
+from financial_analyst_agent.contracts import WorkflowPlan
 from financial_analyst_agent.runtime import FIXTURE_EXPLAIN_ESSAY, FIXTURE_UNIVERSE_SNAPSHOT_PATH
 
 
@@ -59,46 +60,40 @@ class _LookupFacts:
 
 
 class _GuessNetIncome:
-    def complete(self, query: str, current_spec: object = None) -> SimpleNamespace:
+    def complete(self, query: str, current_spec: object = None) -> WorkflowPlan:
         from financial_analyst_agent.contracts import Intent
 
-        return SimpleNamespace(
+        return WorkflowPlan(
             intent=Intent.LOOKUP,
             company="Google",
             metric="net_income",
-            issuers=None,
             industry=None,
-            limit=None,
             topic=None,
         )
 
 
 class _UnknownMetricCompleter:
-    def complete(self, query: str, current_spec: object = None) -> SimpleNamespace:
+    def complete(self, query: str, current_spec: object = None) -> WorkflowPlan:
         from financial_analyst_agent.contracts import Intent
 
-        return SimpleNamespace(
+        return WorkflowPlan(
             intent=Intent.LOOKUP,
             company="Google",
             metric="debt",
-            issuers=None,
             industry=None,
-            limit=None,
             topic=None,
         )
 
 
 class _ExplainCompleter:
-    def complete(self, query: str, current_spec: object = None) -> SimpleNamespace:
+    def complete(self, query: str, current_spec: object = None) -> WorkflowPlan:
         from financial_analyst_agent.contracts import Intent
 
-        return SimpleNamespace(
+        return WorkflowPlan(
             intent=Intent.EXPLAIN,
             company=None,
             metric=None,
-            issuers=None,
             industry=None,
-            limit=None,
             topic="AI disruption in healthcare",
         )
 

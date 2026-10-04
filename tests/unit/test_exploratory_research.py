@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+from financial_analyst_agent.contracts import WorkflowPlan
+
 FIXTURE_RESEARCH_QUERY = (
     "What themes are emerging in coverage of Hormuz closures and energy markets?"
 )
@@ -19,10 +21,10 @@ class _SilentCompleter:
 
 
 class _ExploratoryCompleter:
-    def complete(self, query: str, current_spec: object = None) -> SimpleNamespace:
+    def complete(self, query: str, current_spec: object = None) -> WorkflowPlan:
         from financial_analyst_agent.contracts import Intent
 
-        return SimpleNamespace(intent=Intent.EXPLORATORY_RESEARCH, topic=query)
+        return WorkflowPlan(intent=Intent.EXPLORATORY_RESEARCH, topic=query)
 
 
 class _GroundedResearchEssay:

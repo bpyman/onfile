@@ -670,3 +670,21 @@ def test_a_filer_name_never_takes_a_company_word_or_a_metric() -> None:
 
     # A metric word, a one-word name, or a phrase a company holds: not indexed.
     assert index.phrases == {"apple": "Apple", "consumers bancorp": "CBK"}
+
+
+def test_the_rules_planner_returns_a_frozen_workflow_plan() -> None:
+    import pytest
+    from pydantic import ValidationError
+
+    from financial_analyst_agent.contracts import Intent, WorkflowPlan
+
+    plan = DemoCompleter().complete("Apple and Microsoft revenue")
+
+    assert isinstance(plan, WorkflowPlan)
+    assert (plan.intent, plan.companies, plan.metric) == (
+        Intent.COMPARE,
+        ("Apple", "Microsoft"),
+        "revenue",
+    )
+    with pytest.raises(ValidationError):
+        plan.metric = "net_income"  # type: ignore[misc]

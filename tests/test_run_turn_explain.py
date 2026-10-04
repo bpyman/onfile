@@ -9,6 +9,7 @@ from financial_analyst_agent.contracts import (
     Intent,
     RendererKind,
     Runtime,
+    WorkflowPlan,
 )
 from financial_analyst_agent.runtime import FIXTURE_EXPLAIN_ESSAY, recorded_runtime
 from financial_analyst_agent.turn import run_turn
@@ -18,10 +19,10 @@ AI_MINING_QUERY = "How can AI disrupt mining?"
 
 
 class _ExplainCompleter:
-    def complete(self, query: str, current_spec: object = None) -> SimpleNamespace:
+    def complete(self, query: str, current_spec: object = None) -> WorkflowPlan:
         if query != AI_HEALTHCARE_QUERY:
             raise AssertionError(f"unexpected query: {query!r}")
-        return SimpleNamespace(intent=Intent.EXPLAIN, topic=query)
+        return WorkflowPlan(intent=Intent.EXPLAIN, topic=query)
 
 
 class _NumberFreeEssay:

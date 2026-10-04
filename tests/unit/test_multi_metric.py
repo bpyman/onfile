@@ -11,6 +11,7 @@ from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
 
+from financial_analyst_agent.contracts import WorkflowPlan
 from financial_analyst_agent.domain.errors import UnsupportedQuarterlyFactError
 from financial_analyst_agent.runtime import FIXTURE_UNIVERSE_SNAPSHOT_PATH
 
@@ -61,17 +62,15 @@ class _MultiMetricFacts:
 
 
 class _CompareCompleter:
-    def complete(self, query: str, current_spec: object = None) -> SimpleNamespace:
+    def complete(self, query: str, current_spec: object = None) -> WorkflowPlan:
         from financial_analyst_agent.contracts import Intent
 
-        return SimpleNamespace(
+        return WorkflowPlan(
             intent=Intent.COMPARE,
             company=None,
             companies=["Microsoft", "Google"],
             metric="revenue",
-            issuers=None,
             industry=None,
-            limit=None,
             topic=None,
         )
 

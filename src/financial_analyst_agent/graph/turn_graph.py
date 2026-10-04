@@ -36,7 +36,7 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.runtime import Runtime as GraphRuntime
 from langgraph.types import Command, interrupt
 
-from financial_analyst_agent.contracts import Intent, RendererKind, TurnResult
+from financial_analyst_agent.contracts import Intent, RendererKind, TurnResult, WorkflowPlan
 from financial_analyst_agent.evidence_store import with_banner
 from financial_analyst_agent.filing_change import run_filing_change
 from financial_analyst_agent.graph.analysis_spec import AnalysisSpec, SpecPatch
@@ -105,9 +105,9 @@ def _answered(result: TurnResult, spec: AnalysisSpec | None) -> dict[str, Any]:
     return {"result": result, "analysis_spec": spec, "thread_spec": spec}
 
 
-def with_peers(proposal: Any, ranking: Any) -> Any:
+def with_peers(proposal: WorkflowPlan | SpecPatch, ranking: Any) -> WorkflowPlan | SpecPatch:
     """Add the largest companies in the named company's industry ("… to its peers")."""
-    if getattr(proposal, "peers", False) is not True or not getattr(proposal, "companies", None):
+    if not isinstance(proposal, WorkflowPlan) or not proposal.peers or not proposal.companies:
         return proposal
     lookup = getattr(ranking, "lookup_member", None)
     peers = getattr(ranking, "peers", None)
@@ -118,43 +118,36 @@ def with_peers(proposal: Any, ranking: Any) -> Any:
     except Exception:
         return proposal
     found = peers(member.cik, limit=_PEER_COUNT)
-    companies = [*proposal.companies, *(peer.ticker for peer in found)]
-    # The model planner's plan is immutable; the rules planner's is a namespace.
-    with_companies = getattr(proposal, "with_companies", None)
-    if callable(with_companies):
-        return with_companies(companies)
-    proposal.companies = companies
-    return proposal
+    companies = (*proposal.companies, *(peer.ticker for peer in found))
+    return proposal.model_copy(update={"companies": companies})
 
 
-def request_from_proposal(proposal: Any, message: str, deps: TurnDeps) -> AnalystRequest:
+def request_from_proposal(
+    proposal: WorkflowPlan | SpecPatch, message: str, deps: TurnDeps
+) -> AnalystRequest:
     """Type the planner's proposal: one of the closed request kinds, or an error."""
-    if is_filing_change_proposal(proposal):
-        action = getattr(proposal, "action", proposal)
+    if isinstance(proposal, WorkflowPlan) and is_filing_change_proposal(proposal):
         return FilingChangeRequest(
-            company=str(getattr(action, "company", "") or ""),
-            older_accession=str(getattr(action, "older_accession", "") or ""),
-            newer_accession=str(getattr(action, "newer_accession", "") or ""),
-            section=str(getattr(action, "section", "mda")),
-            summarize=bool(getattr(action, "summarize", False)),
-            other_companies=tuple(
-                getattr(proposal, "other_companies", None)
-                or getattr(action, "other_companies", ())
-                or ()
-            ),
+            company=proposal.company or "",
+            older_accession=proposal.older_accession,
+            newer_accession=proposal.newer_accession,
+            section=proposal.section,
+            summarize=proposal.summarize,
+            other_companies=proposal.other_companies,
         )
-    if is_qualitative_proposal(proposal):
-        topic = getattr(proposal, "topic", None)
-        return QualitativeRequest(
-            intent=proposal.intent,
-            topic=topic if isinstance(topic, str) and topic.strip() else message,
+    if isinstance(proposal, WorkflowPlan) and is_qualitative_proposal(proposal):
+        topic = proposal.topic
+        # Validated: the intent is one of the qualitative three.
+        return QualitativeRequest.model_validate(
+            {"intent": proposal.intent, "topic": topic if topic and topic.strip() else message}
         )
     if is_structured_proposal(proposal):
-        planned = isinstance(proposal, SpecPatch)
         # A planner's window stands only where the words ask about time.
-        patch = planner_window(proposal if planned else plan_to_spec_patch(proposal), message)
-        intent = None if planned else getattr(proposal, "intent", None)
-        notes = getattr(proposal, "notes", ()) or ()
+        patch = planner_window(
+            proposal if isinstance(proposal, SpecPatch) else plan_to_spec_patch(proposal), message
+        )
+        intent = None if isinstance(proposal, SpecPatch) else proposal.intent
+        notes = () if isinstance(proposal, SpecPatch) else proposal.notes
         runtime = deps.runtime
         unrecorded = (
             []
@@ -169,8 +162,8 @@ def request_from_proposal(proposal: Any, message: str, deps: TurnDeps) -> Analys
             patch=patch,
             wording=message,
             question=message,
-            intent=Intent(intent) if intent is not None else None,
-            notes=tuple(note for note in notes if isinstance(note, str)),
+            intent=intent,
+            notes=notes,
             unrecorded=tuple(unrecorded),
         )
     # The three request kinds cover every closed intent.
