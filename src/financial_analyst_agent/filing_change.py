@@ -33,7 +33,10 @@ from financial_analyst_agent.graph.state import FilingChangeRequest
 from financial_analyst_agent.guide import format_date, joined, short_name
 from financial_analyst_agent.observability import call_provider
 from financial_analyst_agent.providers.sec.company_resolver import resolve_company
-from financial_analyst_agent.providers.sec.submissions import require_recent_filings
+from financial_analyst_agent.providers.sec.submissions import (
+    ACCESSION_PATTERN,
+    require_recent_filings,
+)
 from financial_analyst_agent.providers.sec.urls import build_filing_document_url
 from financial_analyst_agent.universe import sec_identity_is_operating
 
@@ -63,7 +66,6 @@ _SENTENCE = re.compile(r"\.\s+[A-Za-z].*\w\.\s*$")
 _STUB_BODY = re.compile(r"^\W*(?:pages?\s*)?\d{0,3}(?:\s*[-–]\s*\d{1,3})?\W*$", re.IGNORECASE)
 # What may precede a heading on its line: "PART II — OTHER INFORMATION Item 1A. …".
 _PART_LABEL = re.compile(r"part\s+i{1,2}\b.{0,60}", re.IGNORECASE)
-ACCESSION_PATTERN = re.compile(r"\d{10}-\d{2}-\d{6}")
 _SECTION_ALIASES: dict[str, SectionId] = {
     "md&a": "mda",
     "mda": "mda",

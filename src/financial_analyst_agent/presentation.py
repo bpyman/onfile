@@ -10,7 +10,6 @@ from typing import Any
 from urllib.parse import urlparse
 
 from financial_analyst_agent.contracts import (
-    ALLOWED_METRICS,
     DIFFERENCE_FORMULAS,
     EXPLORATORY_RESEARCH_BANNER,
     FORMULA_METRICS,
@@ -27,13 +26,16 @@ from financial_analyst_agent.contracts import (
     SUM_FORMULAS,
     TRAILING_YEAR_FORMULAS,
     ComparisonBase,
+    ComponentProvenance,
     Intent,
     RendererKind,
     TableRow,
+    ToolTrace,
     TurnResult,
     split_between,
 )
 from financial_analyst_agent.evidence_store import THREAD_EVIDENCE_BANNER
+from financial_analyst_agent.graph.analysis_spec import AnalysisSpec
 from financial_analyst_agent.graph.clarify import clarify_prompt
 from financial_analyst_agent.guide import (
     format_date,
@@ -44,6 +46,7 @@ from financial_analyst_agent.guide import (
 )
 from financial_analyst_agent.services.fact_selector import (
     FOURTH_QUARTER_LABEL,
+    MAX_QUARTER_DAYS,
     TRAILING_YEAR_LABEL,
     YEAR_TO_DATE_LABEL,
 )
@@ -427,15 +430,14 @@ def _as_iso_date(raw: object) -> date | None:
         return None
 
 
-def _trace_period(trace: Any) -> str:
-    provenance = getattr(trace, "provenance", None) or {}
+def _trace_period(trace: ToolTrace) -> str:
+    provenance = trace.provenance
     start = _as_iso_date(provenance.get("start_date"))
     end = _as_iso_date(provenance.get("end_date"))
     labeled = _period_label(start, end)
     if labeled:
         return labeled
-    args = getattr(trace, "args", None) or {}
-    report = _as_iso_date(args.get("report_date"))
+    report = _as_iso_date(trace.args.get("report_date"))
     if report is None:
         return ""
     return format_date(report)
@@ -621,10 +623,6 @@ class Presentation:
     trends: tuple[ChartSpec, ...] = ()
 
 
-def metric_legend() -> tuple[str, ...]:
-    return tuple(format_field_name(metric) for metric in ALLOWED_METRICS)
-
-
 def metric_groups() -> tuple[tuple[str, tuple[str, ...]], ...]:
     return (
         (
@@ -723,40 +721,9 @@ def intent_label(intent: str) -> str:
     return _INTENT_LABELS.get(intent, format_field_name(intent))
 
 
-def spec_chips(spec: Any) -> tuple[str, ...]:
+def spec_chips(spec: AnalysisSpec) -> tuple[str, ...]:
     """Compact labels for the active analysis spec."""
-    chips: list[str] = []
-    companies = getattr(spec, "companies", ())
-    for company in companies:
-        label = company.ticker or company.name
-        if label and label != "unknown":
-            chips.append(label)
-    constituents = getattr(spec, "constituents", None)
-    if constituents is not None:
-        chips.append(f"Top {constituents.limit} {constituents.industry}")
-    for metric in getattr(spec, "metrics", ()):
-        chips.append(format_field_name(str(metric)))
-    periods = getattr(spec, "periods", None)
-    as_of = getattr(spec, "as_of", None)
-    if isinstance(as_of, date):
-        # Market cap and price are the snapshot's, not a quarter's.
-        chips.append(f"As of {format_date(as_of)}")
-    elif constituents is not None:
-        # A ranking shows each company's latest quarter whatever period was named.
-        chips.append("Latest quarter")
-    elif periods is not None:
-        kind = getattr(periods, "kind", "")
-        if kind == "last_n_quarters":
-            chips.append("Last quarter" if periods.count == 1 else f"Last {periods.count} quarters")
-        elif kind == "named":
-            chips.append(getattr(periods, "label", "") or "Named period")
-        else:
-            chips.append("Latest quarter")
-    for operation in getattr(spec, "operations", ()):
-        label = _OPERATION_CHIPS.get(str(operation))
-        if label:
-            chips.append(label)
-    return tuple(chips)
+    return tuple(edit.label for edit in spec_chip_edits(spec))
 
 
 _KEEP_LAST = {
@@ -769,52 +736,56 @@ _LATEST_QUARTER_EDIT = "latest quarter"
 _REMOVE_OPERATION = {"Year over year": "remove year over year"}
 
 
-def spec_chip_edits(spec: Any) -> tuple[ChipEdit, ...]:
-    """``spec_chips`` with what kind each is and the follow-up its × sends.
+def _period_chip(spec: AnalysisSpec) -> tuple[str, bool]:
+    """The period chip's label, and whether its × goes back to the latest quarter."""
+    if spec.as_of is not None:
+        # Market cap and price are the snapshot's, not a quarter's.
+        return f"As of {format_date(spec.as_of)}", False
+    if spec.constituents is not None:
+        # A ranking shows each company's latest quarter whatever period was named.
+        return "Latest quarter", False
+    periods = spec.periods
+    if periods.kind == "last_n_quarters":
+        return ("Last quarter" if periods.count == 1 else f"Last {periods.count} quarters"), True
+    if periods.kind == "named":
+        return periods.label or "Named period", True
+    return "Latest quarter", False
+
+
+def spec_chip_edits(spec: AnalysisSpec) -> tuple[ChipEdit, ...]:
+    """Each active-analysis chip, what kind it is, and the follow-up its × sends.
 
     The follow-ups are the planner's own words ("remove Apple", "drop revenue",
     "latest quarter", "remove year over year"). The last company or metric, and a
     ranking, have none: removing it would leave nothing to show, and ``keep``
     says so.
     """
-    companies = [
-        company
-        for company in getattr(spec, "companies", ())
-        if (company.ticker or company.name) and (company.ticker or company.name) != "unknown"
-    ]
-    metrics = [str(metric) for metric in getattr(spec, "metrics", ())]
-    ranked = getattr(spec, "constituents", None) is not None
-    kinds: list[str] = ["company"] * len(companies)
-    if ranked:
-        kinds.append("constituents")
-    kinds.extend(["metric"] * len(metrics))
-    removals: list[str | None] = [
-        f"remove {short_name(company.name) or company.query or company.ticker}"
-        if len(companies) > 1
-        else None
-        for company in companies
-    ]
-    if ranked:
-        removals.append(None)
-    removals.extend(
-        f"drop {in_sentence(format_field_name(metric))}" if len(metrics) > 1 else None
-        for metric in metrics
-    )
     edits: list[ChipEdit] = []
-    for index, label in enumerate(spec_chips(spec)):
-        kind = kinds[index] if index < len(kinds) else "period"
-        if kind == "period" and label in _OPERATION_CHIPS.values():
-            kind = "operation"
-        if index < len(removals):
-            remove = removals[index]
-        elif kind == "operation":
-            remove = _REMOVE_OPERATION.get(label)
-        else:
-            # A ranking and a snapshot figure show their own period, not one asked for.
-            moved = label != "Latest quarter" and not label.startswith("As of")
-            remove = _LATEST_QUARTER_EDIT if moved and not ranked else None
+
+    def chip(label: str, kind: str, remove: str | None = None) -> None:
         keep = _KEEP_LAST.get(kind) if remove is None else None
         edits.append(ChipEdit(label=label, kind=kind, remove=remove, keep=keep))
+
+    companies = [
+        company
+        for company in spec.companies
+        if (company.ticker or company.name) and (company.ticker or company.name) != "unknown"
+    ]
+    for company in companies:
+        name = short_name(company.name) or company.query or company.ticker
+        remove = f"remove {name}" if len(companies) > 1 else None
+        chip(company.ticker or company.name, "company", remove)
+    if spec.constituents is not None:
+        chip(f"Top {spec.constituents.limit} {spec.constituents.industry}", "constituents")
+    for metric in spec.metrics:
+        label = format_field_name(metric)
+        chip(label, "metric", f"drop {in_sentence(label)}" if len(spec.metrics) > 1 else None)
+    period, moved = _period_chip(spec)
+    chip(period, "period", _LATEST_QUARTER_EDIT if moved else None)
+    for operation in spec.operations:
+        shown = _OPERATION_CHIPS.get(operation)
+        if shown:
+            chip(shown, "operation", _REMOVE_OPERATION.get(shown))
     return tuple(edits)
 
 
@@ -831,18 +802,16 @@ class QuickAction:
     message: str
 
 
-def chip_quick_actions(spec: Any) -> dict[str, tuple[QuickAction, ...]]:
+def chip_quick_actions(spec: AnalysisSpec) -> dict[str, tuple[QuickAction, ...]]:
     """Follow-ups the active analysis's "+" offers: a company, a metric, or a period.
 
     Each is a message the planner already reads ("add Apple", "make that the last
     four quarters"); a ranking's members come from the snapshot, so it takes none.
     """
-    if spec is None:
-        return {}
-    ranked = getattr(spec, "constituents", None) is not None
+    ranked = spec.constituents is not None
     held = {
         name.casefold()
-        for company in getattr(spec, "companies", ())
+        for company in spec.companies
         for name in (company.query, company.ticker, short_name(company.name) or company.name)
         if name
     }
@@ -861,12 +830,11 @@ def chip_quick_actions(spec: Any) -> dict[str, tuple[QuickAction, ...]]:
             message=f"add {in_sentence(format_field_name(metric))}",
         )
         for metric in _QUICK_METRICS
-        if metric not in {str(metric) for metric in getattr(spec, "metrics", ())}
+        if metric not in spec.metrics
     )[:_QUICK_SHOWN]
     periods: tuple[QuickAction, ...] = ()
-    if not ranked and getattr(spec, "as_of", None) is None:
-        kind = getattr(getattr(spec, "periods", None), "kind", "latest_quarter")
-        operations = {str(operation) for operation in getattr(spec, "operations", ())}
+    if not ranked and spec.as_of is None:
+        kind = spec.periods.kind
         periods = tuple(
             action
             for action, offered in (
@@ -876,11 +844,11 @@ def chip_quick_actions(spec: Any) -> dict[str, tuple[QuickAction, ...]]:
                 ),
                 (
                     QuickAction("Last four quarters", "make that the last four quarters"),
-                    kind != "last_n_quarters" or getattr(spec.periods, "count", 0) != 4,
+                    kind != "last_n_quarters" or spec.periods.count != 4,
                 ),
                 (
                     QuickAction("Year over year", "show year-over-year"),
-                    "year_over_year" not in operations,
+                    "year_over_year" not in spec.operations,
                 ),
             )
             if offered
@@ -1330,15 +1298,14 @@ def _evidence_item(row: TableRow) -> EvidenceItem:
     )
 
 
-def _component_rule(component: Any) -> str:
+def _component_rule(component: ComponentProvenance) -> str:
     if component.metric in SNAPSHOT_METRICS:
         return _SNAPSHOT_RULE
-    derivation = getattr(component, "derivation", None)
-    if derivation:
-        return f"Derived: {derivation}. The reported facts are listed."
+    if component.derivation:
+        return f"Derived: {component.derivation}. The reported facts are listed."
     if component.start_date == component.end_date:
         return f"Balance-sheet amount the {component.form} reports at the stated date."
-    if (component.end_date - component.start_date).days > 110:
+    if (component.end_date - component.start_date).days > MAX_QUARTER_DAYS:
         return f"Reported {component.form} amount for the stated period."
     return (
         f"Standalone {component.form} component fact for the stated period; "
@@ -2521,7 +2488,7 @@ def _names_by_cik(rows: list[TableRow]) -> dict[str, str]:
     }
 
 
-def _display_trace(trace: Any, *, names: dict[str, str] | None = None) -> DisplayTrace:
+def _display_trace(trace: ToolTrace, *, names: dict[str, str] | None = None) -> DisplayTrace:
     args = dict(trace.args)
     company = args.get("company")
     if names and isinstance(company, str) and company in names:

@@ -24,7 +24,6 @@ from financial_analyst_agent.presentation import (
     format_reason,
     format_usd,
     metric_groups,
-    metric_legend,
     present_turn,
     try_parse_datetime,
 )
@@ -766,8 +765,8 @@ def test_present_qualitative_banner_codes_become_sentences(code: str, opening: s
     assert code not in banner
 
 
-def test_metric_legend_lists_closed_catalog() -> None:
-    legend = metric_legend()
+def test_metric_groups_list_the_closed_catalog() -> None:
+    legend = [name for _, names in metric_groups() for name in names]
     assert legend[0] == "Revenue"
     assert "Cost of revenue" in legend
     assert "Operating margin" in legend
@@ -1406,25 +1405,28 @@ def test_a_quarter_sec_has_not_added_yet_is_named() -> None:
 
 
 def test_spec_chips_read_as_plain_labels() -> None:
-    from types import SimpleNamespace
-
+    from financial_analyst_agent.graph.analysis_spec import (
+        AnalysisSpec,
+        PeriodSelection,
+        RankedSet,
+        ResolvedCompany,
+    )
     from financial_analyst_agent.presentation import spec_chips
 
-    ranking = SimpleNamespace(
+    ranking = AnalysisSpec(
         companies=(),
-        constituents=SimpleNamespace(industry="banks", limit=5),
+        constituents=RankedSet(industry="banks", limit=5),
         metrics=("net_income",),
-        periods=None,
         operations=("rank", "order_by_metric"),
     )
-    compare = SimpleNamespace(
+    compare = AnalysisSpec(
         companies=(
-            SimpleNamespace(ticker="NVDA", name="NVIDIA"),
-            SimpleNamespace(ticker="AMD", name="AMD"),
+            ResolvedCompany(cik="", name="NVIDIA", ticker="NVDA", query="NVDA"),
+            ResolvedCompany(cik="", name="AMD", ticker="AMD", query="AMD"),
         ),
         constituents=None,
         metrics=("revenue",),
-        periods=SimpleNamespace(kind="last_n_quarters", count=4),
+        periods=PeriodSelection(kind="last_n_quarters", count=4),
         operations=("across_companies", "across_periods", "year_over_year"),
     )
 

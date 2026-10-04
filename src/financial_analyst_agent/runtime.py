@@ -24,9 +24,6 @@ from financial_analyst_agent.providers.sec.cache import CachingSECDataSource
 from financial_analyst_agent.providers.sec.client import SECClient
 from financial_analyst_agent.ranking import SnapshotRanking
 from financial_analyst_agent.rules_planner import (
-    _ISSUER_PHRASES as _ISSUER_PHRASES,
-)
-from financial_analyst_agent.rules_planner import (
     FIXTURE_UNIVERSE_SNAPSHOT_PATH as FIXTURE_UNIVERSE_SNAPSHOT_PATH,
 )
 from financial_analyst_agent.rules_planner import (
@@ -37,9 +34,6 @@ from financial_analyst_agent.rules_planner import (
 )
 from financial_analyst_agent.rules_planner import (
     DemoCompleter as DemoCompleter,
-)
-from financial_analyst_agent.rules_planner import (
-    _companies_from_query as _companies_from_query,
 )
 from financial_analyst_agent.rules_planner import issuer_index, recorded_issuer_index
 from financial_analyst_agent.sec_facts import SecFactLookup

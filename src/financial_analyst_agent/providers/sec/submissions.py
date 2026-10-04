@@ -9,7 +9,8 @@ from financial_analyst_agent.domain.errors import ProviderError
 from financial_analyst_agent.domain.models import Filing
 from financial_analyst_agent.providers.sec.identity import require_matching_payload_cik
 
-_ACCESSION_PATTERN = re.compile(r"^\d{10}-\d{2}-\d{6}$")
+# An SEC accession number: "0000320193-26-000013".
+ACCESSION_PATTERN = re.compile(r"\d{10}-\d{2}-\d{6}")
 _DOMESTIC_PERIODIC_FORMS = frozenset({"10-K", "10-KT", "10-Q", "10-QT"})
 _FOREIGN_ANNUAL_FORMS = frozenset({"20-F", "40-F"})
 # Only foreign private issuers furnish 6-Ks or register on a 20-F/40-F.
@@ -160,7 +161,7 @@ def parse_submissions(payload: dict[str, Any]) -> list[Filing]:
         accession_number = _require_provider_string(
             accession_numbers[index], "accessionNumber", index
         )
-        if not _ACCESSION_PATTERN.match(accession_number):
+        if not ACCESSION_PATTERN.fullmatch(accession_number):
             continue
         filed_date = _parse_iso_date(filing_dates[index], "filingDate", index)
         report_date = _parse_iso_date(report_dates[index], "reportDate", index)

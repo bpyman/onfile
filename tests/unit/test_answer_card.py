@@ -2,7 +2,6 @@
 
 from datetime import date
 from decimal import Decimal
-from types import SimpleNamespace
 
 from financial_analyst_agent.contracts import (
     ComponentProvenance,
@@ -10,6 +9,12 @@ from financial_analyst_agent.contracts import (
     RendererKind,
     TableRow,
     TurnResult,
+)
+from financial_analyst_agent.graph.analysis_spec import (
+    AnalysisSpec,
+    PeriodSelection,
+    RankedSet,
+    ResolvedCompany,
 )
 from financial_analyst_agent.presentation import present_turn, spec_chip_edits
 
@@ -294,14 +299,14 @@ def test_ranking_and_comparison_get_a_headline() -> None:
 
 
 def test_spec_chip_edits_say_the_follow_up_each_chip_sends() -> None:
-    spec = SimpleNamespace(
+    spec = AnalysisSpec(
         companies=(
-            SimpleNamespace(ticker="MSFT", name="Microsoft Corporation", query="Microsoft"),
-            SimpleNamespace(ticker="AAPL", name="Apple Inc.", query="Apple"),
+            ResolvedCompany(cik="", name="Microsoft Corporation", ticker="MSFT", query="Microsoft"),
+            ResolvedCompany(cik="", name="Apple Inc.", ticker="AAPL", query="Apple"),
         ),
         constituents=None,
         metrics=("revenue", "net_income"),
-        periods=SimpleNamespace(kind="last_n_quarters", count=4),
+        periods=PeriodSelection(kind="last_n_quarters", count=4),
         operations=("year_over_year",),
     )
     edits = spec_chip_edits(spec)
@@ -313,11 +318,13 @@ def test_spec_chip_edits_say_the_follow_up_each_chip_sends() -> None:
         ("Last 4 quarters", "latest quarter"),
         ("Year over year", "remove year over year"),
     ]
-    alone = SimpleNamespace(
-        companies=(SimpleNamespace(ticker="MSFT", name="Microsoft Corporation", query="msft"),),
+    alone = AnalysisSpec(
+        companies=(
+            ResolvedCompany(cik="", name="Microsoft Corporation", ticker="MSFT", query="msft"),
+        ),
         constituents=None,
         metrics=("revenue",),
-        periods=SimpleNamespace(kind="latest_quarter"),
+        periods=PeriodSelection(kind="latest_quarter"),
         operations=(),
     )
     # The last company or metric has no ×: removing it would leave nothing to
@@ -332,11 +339,11 @@ def test_spec_chip_edits_say_the_follow_up_each_chip_sends() -> None:
 
 
 def test_a_ranking_chip_keeps_its_period_and_says_why_it_has_no_remove() -> None:
-    spec = SimpleNamespace(
+    spec = AnalysisSpec(
         companies=(),
-        constituents=SimpleNamespace(limit=5, industry="banks"),
+        constituents=RankedSet(limit=5, industry="banks"),
         metrics=("net_income",),
-        periods=SimpleNamespace(kind="last_n_quarters", count=4),
+        periods=PeriodSelection(kind="last_n_quarters", count=4),
         operations=(),
     )
     edits = spec_chip_edits(spec)
@@ -352,15 +359,14 @@ def test_a_ranking_chip_keeps_its_period_and_says_why_it_has_no_remove() -> None
 def test_quick_actions_offer_follow_ups_the_planner_reads() -> None:
     from financial_analyst_agent.presentation import chip_quick_actions
 
-    spec = SimpleNamespace(
+    spec = AnalysisSpec(
         companies=(
-            SimpleNamespace(ticker="MSFT", name="Microsoft Corporation", query="Microsoft"),
+            ResolvedCompany(cik="", name="Microsoft Corporation", ticker="MSFT", query="Microsoft"),
         ),
         constituents=None,
         metrics=("revenue",),
-        periods=SimpleNamespace(kind="latest_quarter"),
+        periods=PeriodSelection(kind="latest_quarter"),
         operations=(),
-        as_of=None,
     )
     actions = chip_quick_actions(spec)
     assert [action.message for action in actions["company"]][:2] == ["add Apple", "add Alphabet"]

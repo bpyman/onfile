@@ -42,7 +42,8 @@ class FactOwner:
 
 
 _MIN_QUARTER_DAYS = 70
-_MAX_QUARTER_DAYS = 110
+# Longer than this, a duration fact is not one quarter.
+MAX_QUARTER_DAYS = 110
 
 
 def _duration_days(start: date, end: date) -> int:
@@ -59,7 +60,7 @@ def _is_standalone_quarter_duration(start_date: date | None, end_date: date) -> 
     if start_date is None:
         return False
     days = _duration_days(start_date, end_date)
-    return _MIN_QUARTER_DAYS <= days <= _MAX_QUARTER_DAYS
+    return _MIN_QUARTER_DAYS <= days <= MAX_QUARTER_DAYS
 
 
 def _filter_quarterly_candidates(
@@ -251,7 +252,7 @@ def select_quarterly_fact_with_filing_fallback(
 
 _ANNUAL_DAYS = (350, 380)
 _NINE_MONTH_DAYS = (250, 290)
-_CUMULATIVE_MIN_DAYS = _MAX_QUARTER_DAYS + 1
+_CUMULATIVE_MIN_DAYS = MAX_QUARTER_DAYS + 1
 # The shorter cumulative amount ends one quarter before the longer one.
 _ONE_QUARTER_EARLIER_DAYS = (60, 120)
 FOURTH_QUARTER_LABEL = "Fiscal year (10-K) minus nine months (10-Q)"

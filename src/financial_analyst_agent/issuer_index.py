@@ -969,30 +969,30 @@ def _word_before(words: list[str], shapes: list[_Shape], start: int) -> bool:
     return start > 0 and (words[start - 1] in _WORD_BEFORE or shapes[start - 1].possessive)
 
 
-@lru_cache(maxsize=1)
+@lru_cache(maxsize=2)
+def _word_list(name: str) -> frozenset[str]:
+    """A word list in data/, one word per line; empty if it is missing."""
+    path = Path(__file__).parent / "data" / name
+    try:
+        return frozenset(path.read_text(encoding="utf-8").split())
+    except OSError:
+        return frozenset()
+
+
 def _everyday_words() -> frozenset[str]:
     """Words 10-Qs mostly write in lower case mid-sentence: English, not a name.
 
     Built by scripts/build_everyday_words.py.
     """
-    path = Path(__file__).parent / "data" / "everyday_words.txt"
-    try:
-        return frozenset(path.read_text(encoding="utf-8").split())
-    except OSError:
-        return frozenset()
+    return _word_list("everyday_words.txt")
 
 
-@lru_cache(maxsize=1)
 def _common_words() -> frozenset[str]:
     """Words most 10-Qs use ("being", "inflation"): English, not a misspelt name.
 
     Built by scripts/build_common_words.py.
     """
-    path = Path(__file__).parent / "data" / "common_words.txt"
-    try:
-        return frozenset(path.read_text(encoding="utf-8").split())
-    except OSError:
-        return frozenset()
+    return _word_list("common_words.txt")
 
 
 def _char_to_word_offset(question: str, match: re.Match[str]) -> int:

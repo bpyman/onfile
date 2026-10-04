@@ -51,7 +51,6 @@ from financial_analyst_agent.presentation import (
     metric_groups,
     present_turn,
     spec_chip_edits,
-    spec_chips,
 )
 from financial_analyst_agent.providers.sec.client import sec_turn_budget
 from financial_analyst_agent.runtime import (
@@ -421,8 +420,9 @@ def thread_view(
         pending = state.pending_clarification is not None
         turn_count = state.turn_count
         if state.analysis_spec is not None:
-            chips = spec_chips(state.analysis_spec)
-            edits = [asdict(edit) for edit in spec_chip_edits(state.analysis_spec)]
+            chip_edits = spec_chip_edits(state.analysis_spec)
+            chips = tuple(edit.label for edit in chip_edits)
+            edits = [asdict(edit) for edit in chip_edits]
             actions = {
                 group: [asdict(action) for action in items]
                 for group, items in chip_quick_actions(state.analysis_spec).items()

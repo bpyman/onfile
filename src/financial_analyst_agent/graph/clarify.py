@@ -73,12 +73,6 @@ def _candidate_named_by_word(candidates: tuple[str, ...], message: str) -> str |
     return named[0] if len(named) == 1 else None
 
 
-def match_clarification_answer(pending: PendingClarification, message: str) -> str | None:
-    """The one candidate the message chooses, or None."""
-    reply = clarification_reply(pending, message)
-    return reply.chosen[0] if reply is not None and len(reply.chosen) == 1 else None
-
-
 def clarification_reply(
     pending: PendingClarification, message: str, index: CompanyNames | None = None
 ) -> ClarifyReply | None:

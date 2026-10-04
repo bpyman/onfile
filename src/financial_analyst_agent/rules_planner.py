@@ -18,11 +18,7 @@ from financial_analyst_agent.contracts import (
     Intent,
     WorkflowPlan,
 )
-from financial_analyst_agent.filing_change import (
-    ACCESSION_PATTERN,
-    REVIEWED_SECTIONS,
-    requested_sections,
-)
+from financial_analyst_agent.filing_change import REVIEWED_SECTIONS, requested_sections
 from financial_analyst_agent.graph.analysis_spec import AnalysisSpec, RankedRequest, SpecPatch
 from financial_analyst_agent.guide import short_name
 from financial_analyst_agent.issuer_index import (
@@ -32,6 +28,7 @@ from financial_analyst_agent.issuer_index import (
     normalize,
     plain_text,
 )
+from financial_analyst_agent.providers.sec.submissions import ACCESSION_PATTERN
 from financial_analyst_agent.request_wording import (
     OVERVIEW_PLAN,
     asks_to_swap,
@@ -173,13 +170,6 @@ _NOT_A_NAME = frozenset(
     last current quarterly annual reported company's company companies firm stock
     """.split()  # noqa: SIM905
 )
-
-
-def _limit_from_query(normalized: str) -> int:
-    match = re.search(r"\btop\s+(\d+)\b", normalized)
-    if match is None:
-        return 10
-    return int(match.group(1))
 
 
 def _normalize_industry_label(raw: str) -> str:
@@ -438,7 +428,7 @@ def _limit(normalized: str) -> int:
     counted = _GROUP_COUNT.search(normalized)
     if counted is not None:
         return int(counted.group(2))
-    return _limit_from_query(normalized)
+    return DEFAULT_RANK_LIMIT
 
 
 def _clean_group(industry: str) -> str:
