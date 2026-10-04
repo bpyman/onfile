@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Repeat Ralph until NO MORE TASKS or the iteration cap.
 # Usage: bash docs/process/ralph/afk.sh <iterations> [feature-slug]
+#        RALPH_AGENT=cursor ... runs Cursor's agent instead of Claude Code (see lib.sh).
 set -eo pipefail
 
 # shellcheck source=lib.sh
@@ -14,24 +15,6 @@ fi
 
 iterations="$1"
 feature="${2:-}"
-
-# Extract only new streaming text, excluding Cursor's duplicate flush events.
-stream_text='
-  select(
-    .type == "assistant"
-    and has("timestamp_ms")
-    and (has("model_call_id") | not)
-  )
-  | .message.content[]?
-  | select(.type == "text")
-  | .text // empty
-'
-
-# Extract the completed assistant response.
-final_result='
-  select(.type == "result" and .subtype == "success")
-  | .result // empty
-'
 
 for ((i=1; i<=iterations; i++)); do
   tmpfile=$(mktemp)
@@ -53,11 +36,11 @@ Instructions:
 
 $prompt" \
   | tee "$tmpfile" \
-  | jq --unbuffered -rj "$stream_text"
+  | jq --unbuffered -rj "$RALPH_STREAM_TEXT"
 
   echo
 
-  result=$(jq -r "$final_result" "$tmpfile")
+  result=$(jq -r "$RALPH_SUCCESS | .result // empty" "$tmpfile")
 
   rm -f "$tmpfile"
   trap - EXIT
