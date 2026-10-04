@@ -8,6 +8,7 @@ from financial_analyst_agent.domain.errors import ProviderError
 from financial_analyst_agent.news import FIXTURE_NEWS_QUERY
 from financial_analyst_agent.runtime import recorded_runtime
 from financial_analyst_agent.turn import run_turn
+from helpers import FakeFacts
 
 NVIDIA_SUPPLY_QUERY = "What is going on with NVIDIA supply chain?"
 MICROSOFT_NEWS_QUERY = "What's going on with Microsoft?"
@@ -52,7 +53,7 @@ class _ExplodingEssay:
         raise AssertionError("empty news hits must not fall back to a memory essay")
 
 
-class _ExplodingFacts:
+class _ExplodingFacts(FakeFacts):
     def get_financials(
         self, company: str, metric: str, *, report_date: date | None = None
     ) -> SimpleNamespace:

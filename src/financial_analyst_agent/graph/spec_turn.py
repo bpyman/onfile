@@ -157,10 +157,6 @@ def _lifted_plan(plan: WorkflowPlan) -> SpecPatch:
     )
 
 
-def _listed_dates(listing: Any, company: str, count: int) -> tuple[date, ...]:
-    return tuple(listing(company, limit=count))
-
-
 def materialize_period_dates(spec: AnalysisSpec, runtime: Runtime) -> AnalysisSpec:
     """Fill last_n_quarters report dates from the facts port.
 
@@ -173,9 +169,7 @@ def materialize_period_dates(spec: AnalysisSpec, runtime: Runtime) -> AnalysisSp
         return _materialize_named_periods(spec, runtime)
     if spec.periods.kind != "last_n_quarters":
         return spec
-    listing = getattr(runtime.facts, "list_quarterly_report_dates", None)
-    if listing is None:
-        return spec
+    listing = runtime.facts.list_quarterly_report_dates
     first = spec.companies[0] if spec.companies else None
     if first is None and spec.constituents is not None and spec.constituents.members:
         first = spec.constituents.members[0]
@@ -184,7 +178,7 @@ def materialize_period_dates(spec: AnalysisSpec, runtime: Runtime) -> AnalysisSp
     periods = spec.periods
     listed_first = False
     if not periods.report_dates:
-        dates = _listed_dates(listing, first.handle, periods.count or 1)
+        dates = listing(first.handle, limit=periods.count or 1)
         if not dates:
             return spec
         asked = periods.count if periods.count and len(dates) < periods.count else None
@@ -198,7 +192,7 @@ def materialize_period_dates(spec: AnalysisSpec, runtime: Runtime) -> AnalysisSp
     count = periods.count or 1
     pending = _not_yet_listed(spec.companies, known)
     listed = map_in_order(
-        lambda company: _or_none(partial(_listed_dates, listing, company.handle, count)),
+        lambda company: _or_none(partial(listing, company.handle, limit=count)),
         pending,
     )
     for company, company_dates in zip(pending, listed, strict=True):
@@ -252,9 +246,7 @@ def _materialize_named_periods(spec: AnalysisSpec, runtime: Runtime) -> Analysis
     each company's filings say which is which. A company without a filing for
     the period gets no cells, and the turn says so.
     """
-    lister = getattr(runtime.facts, "fiscal_periods", None)
-    if lister is None:
-        return spec
+    lister = runtime.facts.fiscal_periods
     periods = spec.periods
     known = dict(periods.company_report_dates)
     pending = _not_yet_listed(spec.companies, known)
@@ -287,13 +279,13 @@ def drop_annual_filers(spec: AnalysisSpec, runtime: Runtime) -> tuple[AnalysisSp
     A foreign private issuer such as Novo Nordisk has no quarterly facts, so
     every cell would read "Missing fact"; the turn says why instead.
     """
-    checker = getattr(runtime.facts, "files_quarterly", None)
-    if checker is None or not spec.companies:
+    if not spec.companies:
         return spec, []
     kept: list[Any] = []
     dropped: list[str] = []
     checks = map_in_order(
-        lambda company: _or_none(partial(checker, company.handle)), spec.companies
+        lambda company: _or_none(lambda: runtime.facts.files_quarterly(company.handle)),
+        spec.companies,
     )
     for company, check in zip(spec.companies, checks, strict=True):
         # A company that could not be checked keeps its place; its cells say why.
@@ -1161,11 +1153,10 @@ def _with_market_date(spec: AnalysisSpec, runtime: Runtime) -> AnalysisSpec:
 
 def _after_latest_filing(spec: AnalysisSpec, runtime: Runtime) -> bool:
     """Whether every named period ends after the first company's newest filed quarter."""
-    lister = getattr(runtime.facts, "fiscal_periods", None)
-    if lister is None or not spec.companies:
+    if not spec.companies:
         return False
     try:
-        listed = tuple(lister(spec.companies[0].handle))
+        listed = runtime.facts.fiscal_periods(spec.companies[0].handle)
     except SessionQuotaError:
         raise
     except Exception:

@@ -9,6 +9,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 from financial_analyst_agent.contracts import WorkflowPlan
+from helpers import FakeFacts
 
 FIXTURE_RESEARCH_QUERY = (
     "What themes are emerging in coverage of Hormuz closures and energy markets?"
@@ -42,7 +43,7 @@ class _InventedDollarEssay:
         return "Coverage invents a $99.9B energy windfall with no source."
 
 
-class _ExplodingFacts:
+class _ExplodingFacts(FakeFacts):
     def get_financials(self, company: str, metric: str, **_kwargs: object) -> object:
         raise AssertionError("exploratory research must not look up financials")
 

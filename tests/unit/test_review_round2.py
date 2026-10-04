@@ -20,6 +20,7 @@ from financial_analyst_agent.graph.spec_turn import materialize_period_dates
 from financial_analyst_agent.presentation import format_usd, present_turn
 from financial_analyst_agent.request_wording import read_window
 from financial_analyst_agent.thread_store import PendingClarification
+from helpers import FakeFacts
 
 _MSFT = (date(2026, 3, 31), date(2025, 12, 31), date(2025, 9, 30))
 _AAPL = (date(2026, 6, 27), date(2026, 3, 28), date(2025, 12, 27))
@@ -45,7 +46,7 @@ def test_a_new_question_naming_a_candidate_is_not_an_answer() -> None:
     assert clarification_reply(_pending(), "compare Apple and Microsoft net income") is None
 
 
-class _Listing:
+class _Listing(FakeFacts):
     def __init__(self) -> None:
         self.listed: list[str] = []
 

@@ -12,4 +12,20 @@ Spec: ADR 0001 (snapshot membership).
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+- `universe.SnapshotGroups` holds a snapshot's sectors and industries.
+  `SnapshotRanking.__init__` builds it once, and `resolve_industry_group`,
+  `resolve_industry` and `allowed_industry_names` read it instead of rescanning
+  the snapshot rows on every ranking.
+- `resolve_spec` keeps the ranking port's table on `RankedSet.table`, and
+  `_base_tasks` copies it to `CompiledTask.ranked`. `turn._ranked_table` uses
+  that table, so rank and rank-and-lookup tasks no longer rank again. A task
+  with no table, such as one built by hand or from a held spec, still ranks.
+- Both fields are excluded from serialization, so a stored spec looks the same.
+- Test: `test_an_industry_is_ranked_once_for_every_metric_of_a_turn`. A
+  two-metric ranked question calls `rank_companies` once (it called it three
+  times before).
+- `compare_answers.py`: `0 of 244 conversations differ from HEAD`.

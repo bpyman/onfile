@@ -20,4 +20,15 @@ Spec: ADR 0001, ADR 0002.
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+2026-10-04: `universe.require_operating(cik, title, listed_ciks)` is now the one rule. A CIK on the ineligible list is never operating. A snapshot member is otherwise operating. Any other company is judged by its SEC title. It raises `IneligibleIssuerError` with the wording lookups used.
+
+- `SecFactLookup.get_financials` calls it with its listed-ticker map.
+- `run_filing_change` calls it right after resolving the company, inside the same `try` that catches `CompanyNotFoundError`. A refused filing change now carries the `ineligible_issuer` refusal, and its wording is the lookup's.
+- Filing change reads snapshot members from the runtime's ranking, through a new `RankingPort.member_ciks()`. Without a ranking, every company is judged by its title.
+- `graph/spec_turn._not_operating_once` was already gone (ticket 03 removed it), so nothing was left to trim there.
+- Tests: filing change compares a member whose SEC title reads like a note listing, and refuses a non-member with the same title. A table test covers `require_operating` directly. The test where a member is later listed ineligible now patches `universe`, where the list is read.
+- `scripts/compare_answers.py`: `0 of 244 conversations differ from HEAD`.

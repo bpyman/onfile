@@ -29,6 +29,7 @@ from financial_analyst_agent.universe import (
     build_universe_snapshot,
     load_universe_snapshot,
 )
+from helpers import FakeFacts
 
 HEALTHCARE_TOP_10_QUERY = "What are the top 10 companies in healthcare?"
 FIXTURE_SNAPSHOT_PATH = FIXTURE_UNIVERSE_SNAPSHOT_PATH
@@ -280,7 +281,7 @@ def test_run_turn_consolidates_share_classes() -> None:
     assert [(row.ticker, row.cik) for row in result.table_rows] == [("GOOG", "0001652044")]
 
 
-class _ExplodingFacts:
+class _ExplodingFacts(FakeFacts):
     def get_financials(
         self, company: str, metric: str, *, report_date: date | None = None
     ) -> SimpleNamespace:
@@ -908,7 +909,7 @@ def test_fetch_fmp_rows_includes_us_listed_foreign_issuers() -> None:
     }
 
 
-class _LillyUnavailableFacts:
+class _LillyUnavailableFacts(FakeFacts):
     """SEC fails for Eli Lilly; the other ranked companies report revenue."""
 
     def get_financials(

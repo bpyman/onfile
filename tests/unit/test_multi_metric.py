@@ -14,13 +14,13 @@ from types import SimpleNamespace
 from financial_analyst_agent.contracts import WorkflowPlan
 from financial_analyst_agent.domain.errors import UnsupportedQuarterlyFactError
 from financial_analyst_agent.runtime import FIXTURE_UNIVERSE_SNAPSHOT_PATH
-from helpers import named_by_cik
+from helpers import FakeFacts, named_by_cik
 
 # Resolved companies are asked for by CIK; these fakes answer by name.
 _NAMED = named_by_cik('Microsoft', 'Google')
 
 
-class _MultiMetricFacts:
+class _MultiMetricFacts(FakeFacts):
     """Reported + formula components; one cell can be missing without sinking others."""
 
     def __init__(self, *, missing: set[tuple[str, str]] | None = None) -> None:

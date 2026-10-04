@@ -860,3 +860,133 @@ Blockers / next:
 - Next: drop the older submissions pages company facts make redundant (13 of
   the 34 requests above).
 - 1,704 tests pass; ruff and mypy pass; `0 of 244 conversations differ`.
+## 2026-10-04 — simplify-followups 08 One operating-company rule
+
+Task completed: `docs/process/tickets/simplify-followups/issues/08-one-operating-company-rule.md`
+
+Key decisions:
+- `universe.require_operating(cik, title, listed_ciks)` raises
+  `IneligibleIssuerError`. The ineligible list comes first, then snapshot
+  members pass, then everyone else is judged by SEC title.
+- Filing change gets the member CIKs from `RankingPort.member_ciks()` (the
+  snapshot ranking's members). Both snapshots hold only members, so this set
+  matches the listed-ticker map lookups use.
+- A refused filing change goes through the same `except` as
+  `CompanyNotFoundError`, so it carries a typed refusal and uses the lookup's
+  wording.
+- `_not_operating_once` was already removed by ticket 03.
+
+Files changed:
+- `src/financial_analyst_agent/{universe,sec_facts,filing_change,ranking,contracts}.py`
+- `tests/unit/test_filing_change.py`
+- `tests/test_review_findings.py`
+- `docs/process/tickets/simplify-followups/issues/08-one-operating-company-rule.md`
+- `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,701 Python tests pass; ruff and mypy pass; the answer comparison
+  reports `0 of 244 conversations differ from HEAD`.
+
+## 2026-10-04 — simplify-followups 10 Rank an industry once per turn
+
+Task completed: `docs/process/tickets/simplify-followups/issues/10-reuse-a-rankings-members.md`
+
+Key decisions:
+- `universe.SnapshotGroups` (sectors and industries) is built once in
+  `SnapshotRanking.__init__`. The industry-resolution functions now take it in
+  place of the snapshot.
+- The spec's ranking travels on `RankedSet.table` and then
+  `CompiledTask.ranked`. Both are `exclude=True`, so serialized specs do not
+  change and a held spec ranks again. `_ranked_table` falls back to
+  `rank_companies` when a task carries no table.
+
+Files changed:
+- `src/financial_analyst_agent/{universe,ranking,turn}.py`
+- `src/financial_analyst_agent/graph/analysis_spec.py`
+- `tests/test_run_turn_rank_and_lookup.py`
+- `tests/unit/{test_planner_rules,test_window_copy}.py`
+- `docs/process/tickets/simplify-followups/issues/10-reuse-a-rankings-members.md`
+- `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,702 Python tests pass; ruff and mypy pass; the answer comparison
+  reports `0 of 244 conversations differ from HEAD`.
+- `tests/test_api.py::test_the_new_conversation_limit_says_how_long_to_wait`
+  failed once ("about 61 minutes") and passed on rerun. It depends on the clock.
+
+## 2026-10-04 — simplify-followups 11 Type the facts port
+
+Task completed: `docs/process/tickets/simplify-followups/issues/11-type-the-facts-port.md`
+
+Key decisions:
+- `FactsPort` declares the four methods the turn used to probe for. Real ports
+  (`SecFactsService`, `EvidenceCachedFacts`) already had them.
+- `tests/helpers.FakeFacts` gives the four defaults. Its defaults match what
+  the old probes did when a method was missing, except `fiscal_periods`, which
+  returns `()`. No test depended on the difference.
+- Fact fields are read directly. `turn.py` types the company and the identity
+  arguments as `UniverseCompany` and `FinancialFact`.
+
+Files changed:
+- `src/financial_analyst_agent/{contracts,evidence_store,filing_change,turn}.py`
+- `src/financial_analyst_agent/graph/spec_turn.py`
+- `tests/helpers.py` and 28 test files whose fakes now subclass `FakeFacts`
+- `docs/process/tickets/simplify-followups/issues/11-type-the-facts-port.md`
+- `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,702 Python tests pass; ruff and mypy pass; the answer comparison
+  reports `0 of 244 conversations differ from HEAD`.
+
+## 2026-10-04 — simplify-followups 14 Read a filing change's submissions once
+
+Task completed: `docs/process/tickets/simplify-followups/issues/14-read-submissions-once.md`
+
+Key decisions:
+- `_read_filings(recent)` returns `_Filing` rows keyed by accession (first
+  occurrence wins). It raises the old `ProviderError` messages for missing or
+  uneven columns, so a malformed table is refused before anything is
+  downloaded, on either path.
+- The helpers take the rows. `_filing_date` is now `_report_date`; it still
+  falls back to `filingDate` only when the `reportDate` column is absent.
+- `_order_accessions` runs once, on the given-accessions path; the banner gets
+  the ordered pair.
+
+Files changed:
+- `src/financial_analyst_agent/filing_change.py`
+- `scripts/record_sec_fixtures.py`
+- `tests/unit/{test_filing_change,test_planner_rules}.py`
+- `docs/process/tickets/simplify-followups/issues/14-read-submissions-once.md`
+- `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,704 Python tests pass; ruff and mypy pass; the answer comparison
+  reports `0 of 244 conversations differ from HEAD`.
+
+## 2026-10-04 — simplify-followups 15 Offline scripts use the app's constants
+
+Task completed: `docs/process/tickets/simplify-followups/issues/15-scripts-share-constants.md`
+
+Key decisions:
+- `_KEPT_COLUMNS` in `providers/sec/submissions.py` becomes `KEPT_COLUMNS`;
+  both SEC fixture scripts import it. `_quarterly_filings` reads the form by
+  name, so it no longer depends on `form` being the first column.
+- Snapshot paths come from `universe.DEFAULT_SNAPSHOT_PATH` and
+  `rules_planner.FIXTURE_UNIVERSE_SNAPSHOT_PATH`. `record_sec_fixtures.DATA`
+  stays for the cassette path.
+- Output checked against recorded data: the same tables on 87 cassette lists
+  and the same rows on 19 test fixtures. A re-trimmed test fixture orders its
+  `recent` columns `form` first; the committed fixtures are left alone.
+
+Files changed:
+- `src/financial_analyst_agent/providers/sec/submissions.py`
+- `scripts/{record_sec_fixtures,trim_sec_test_fixture,build_everyday_words}.py`
+- `tests/unit/test_script_constants.py`
+- `docs/process/tickets/simplify-followups/issues/15-scripts-share-constants.md`
+- `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,707 Python tests pass; ruff and mypy pass; the answer comparison
+  reports `0 of 244 conversations differ from HEAD`. Remaining
+  simplify-followups tickets are ready-for-human.
+
