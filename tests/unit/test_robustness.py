@@ -75,7 +75,7 @@ def test_sequential_change_skips_a_missing_quarter() -> None:
 
 
 def test_provider_failure_is_not_reported_as_a_missing_fact() -> None:
-    task = CompiledTask(kind="lookup", company_queries=("Apple",), metric="revenue")
+    task = CompiledTask(kind="lookup", issuers=("Apple",), metric="revenue")
 
     outage = _task_failure_result(task, ProviderError("SEC server error"))
     bug = _task_failure_result(task, ValueError("boom"))
@@ -92,7 +92,7 @@ def test_provider_failure_is_not_reported_as_a_missing_fact() -> None:
 def test_a_source_failure_that_is_not_a_provider_error_is_still_unavailable(
     failure: Exception,
 ) -> None:
-    task = CompiledTask(kind="compare", company_queries=("Apple", "Microsoft"), metric="revenue")
+    task = CompiledTask(kind="compare", issuers=("Apple", "Microsoft"), metric="revenue")
 
     result = _task_failure_result(task, failure)
 
@@ -116,8 +116,8 @@ def test_tasks_still_running_when_the_turn_runs_out_answer_unavailable(
     monkeypatch.setattr(spec_turn, "_TASK_GRACE_SECONDS", 0.1)
     task = analysis_spec.CompiledTask
     tasks = (
-        task(kind="lookup", company_queries=("Apple",), metric="revenue"),
-        task(kind="lookup", company_queries=("Apple",), metric="net_income"),
+        task(kind="lookup", issuers=("Apple",), metric="revenue"),
+        task(kind="lookup", issuers=("Apple",), metric="net_income"),
     )
 
     started = time.monotonic()
@@ -163,8 +163,8 @@ def test_quota_stop_does_not_run_the_queued_tasks(monkeypatch: pytest.MonkeyPatc
 
     monkeypatch.setattr(spec_turn, "execute_compiled_task", fake_execute)
     task = analysis_spec.CompiledTask
-    tasks = (task(kind="lookup", company_queries=("Apple",), metric="revenue"),) + tuple(
-        task(kind="lookup", company_queries=("Apple",), metric=f"m{i}") for i in range(40)
+    tasks = (task(kind="lookup", issuers=("Apple",), metric="revenue"),) + tuple(
+        task(kind="lookup", issuers=("Apple",), metric=f"m{i}") for i in range(40)
     )
 
     with pytest.raises(errors.SessionQuotaError):

@@ -17,6 +17,10 @@ from financial_analyst_agent.facts import RecordedSECDataSource
 from financial_analyst_agent.runtime import recorded_runtime
 from financial_analyst_agent.sec_facts import SecFactLookup
 from financial_analyst_agent.turn import PERIODS_DIFFER_BANNER, run_turn
+from helpers import named_by_cik
+
+# Resolved companies are asked for by CIK; these fakes answer by name.
+_NAMED = named_by_cik('Microsoft', 'Google')
 
 MSFT_GOOG_OPERATING_MARGINS_QUERY = "compare Microsoft and Google operating margins"
 UNKNOWN_RATIO_QUERY = "compare Microsoft and Google ROA"
@@ -71,7 +75,8 @@ def test_run_turn_compares_microsoft_and_google_margins_for_the_same_quarter() -
     assert len(result.tool_traces) == 1
     trace = result.tool_traces[0]
     assert trace.tool == "compare_metrics"
-    assert trace.args["issuers"] == ["Microsoft", "Google"]
+    # Each company is asked for by the CIK the analysis resolved it to.
+    assert trace.args["issuers"] == [MICROSOFT_CIK, ALPHABET_CIK]
     assert trace.args["metric"] == "operating_margin"
 
     assert len(result.table_rows) == 2
@@ -178,6 +183,7 @@ class _MismatchedPeriodFacts:
     def get_financials(
         self, company: str, metric: str, *, report_date: date | None = None
     ) -> SimpleNamespace:
+        company = _NAMED(company)
         if company == "Microsoft":
             return _component_fact(
                 company_name=MICROSOFT_NAME,
@@ -306,6 +312,7 @@ class _MissingMicrosoftFacts:
     def get_financials(
         self, company: str, metric: str, *, report_date: date | None = None
     ) -> SimpleNamespace:
+        company = _NAMED(company)
         if company == "Microsoft":
             raise UnsupportedQuarterlyFactError(
                 "No directly reported standalone-quarter fact exists for metric"
@@ -354,6 +361,7 @@ def test_run_turn_preserves_ambiguous_fact_reason_in_partial_compare_row() -> No
         def get_financials(
             self, company: str, metric: str, *, report_date: date | None = None
         ) -> SimpleNamespace:
+            company = _NAMED(company)
             if company == "Microsoft":
                 raise AmbiguousFactError("Supported concepts produced conflicting values")
             return super().get_financials(company, metric)
@@ -373,6 +381,7 @@ class _ZeroRevenueFacts(_MissingMicrosoftFacts):
     def get_financials(
         self, company: str, metric: str, *, report_date: date | None = None
     ) -> SimpleNamespace:
+        company = _NAMED(company)
         if company == "Microsoft":
             return _component_fact(
                 company_name=MICROSOFT_NAME,
@@ -417,6 +426,7 @@ def test_run_turn_compare_does_not_pick_one_conflicting_concept() -> None:
         def get_financials(
             self, company: str, metric: str, *, report_date: date | None = None
         ) -> SimpleNamespace:
+            company = _NAMED(company)
             if company == "Microsoft" and metric == "operating_income":
                 raise AmbiguousFactError("Supported concepts produced conflicting values")
             return super().get_financials(company, metric)
@@ -465,7 +475,7 @@ def test_run_turn_compare_snapshot_market_caps() -> None:
     assert alphabet.value == ALPHABET_SNAPSHOT_MARKET_CAP
     assert result.tool_traces[0].tool == "compare_metrics"
     assert result.tool_traces[0].args == {
-        "issuers": ["Microsoft", "Google"],
+        "issuers": [MICROSOFT_CIK, ALPHABET_CIK],
         "metric": "market_cap",
     }
 
@@ -479,6 +489,7 @@ class _OneSourceFails:
     def get_financials(
         self, company: str, metric: str, *, report_date: date | None = None
     ) -> SimpleNamespace:
+        company = _NAMED(company)
         if company == "Microsoft":
             raise self._failure
         return _MissingMicrosoftFacts().get_financials(company, metric, report_date=report_date)

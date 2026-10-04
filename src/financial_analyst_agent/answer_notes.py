@@ -152,22 +152,22 @@ def _named_period_notes(spec: AnalysisSpec) -> list[str]:
     missing = [
         short_name(company.name) or company.query
         for company in spec.companies
-        if not own.get(company.query.casefold())
+        if not own.get(company.key)
     ]
     single = len(periods.named) == 1 and periods.named[0].quarter is not None
-    dated = [company for company in spec.companies if own.get(company.query.casefold())]
+    dated = [company for company in spec.companies if own.get(company.key)]
     if single and not periods.named[0].calendar and len(dated) == 1:
         company = dated[0]
         notes.append(
             f"{possessive(short_name(company.name) or company.query)} {label} ended "
-            f"{_short_date(own[company.query.casefold()][0])}."
+            f"{_short_date(own[company.key][0])}."
         )
     elif single and not periods.named[0].calendar and dated:
         ends = [
             f"{possessive(short_name(company.name) or company.query)} ended "
-            f"{_short_date(own[company.query.casefold()][0])}"
+            f"{_short_date(own[company.key][0])}"
             for company in spec.companies
-            if own.get(company.query.casefold())
+            if own.get(company.key)
         ]
         if ends:
             notes.append(
@@ -178,7 +178,7 @@ def _named_period_notes(spec: AnalysisSpec) -> list[str]:
     # "Apple revenue 2024" is four quarters; say when the filings here hold fewer.
     expected = sum(4 if period.quarter is None else 1 for period in periods.named)
     for company in dated:
-        held = len(own[company.query.casefold()])
+        held = len(own[company.key])
         if held < expected:
             name = short_name(company.name) or company.query
             notes.append(

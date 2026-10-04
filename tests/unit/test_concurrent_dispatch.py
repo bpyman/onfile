@@ -20,6 +20,10 @@ import pytest
 
 from financial_analyst_agent.domain.errors import UnsupportedQuarterlyFactError
 from financial_analyst_agent.runtime import FIXTURE_UNIVERSE_SNAPSHOT_PATH
+from helpers import named_by_cik
+
+# Resolved companies are asked for by CIK; these fakes answer by name.
+_NAMED = named_by_cik('Microsoft')
 
 Q1 = date(2025, 3, 31)
 Q2 = date(2025, 6, 30)
@@ -47,11 +51,13 @@ class _SlowFacts:
         self.calls: list[tuple[str, str, date | None]] = []
 
     def list_quarterly_report_dates(self, company: str, *, limit: int) -> tuple[date, ...]:
+        company = _NAMED(company)
         return FOUR_QUARTERS[:limit]
 
     def get_financials(
         self, company: str, metric: str, *, report_date: date | None = None
     ) -> SimpleNamespace:
+        company = _NAMED(company)
         with self._lock:
             self.in_flight += 1
             self.peak_in_flight = max(self.peak_in_flight, self.in_flight)
@@ -211,6 +217,7 @@ def test_session_quota_error_is_not_isolated_as_missing_fact(tmp_path: Path) -> 
 
     class _QuotaFacts(_SlowFacts):
         def get_financials(self, company: str, metric: str, *, report_date: date | None = None):
+            company = _NAMED(company)
             raise SessionQuotaError("This thread has reached its live SEC request limit.")
 
     store = LocalThreadStore(tmp_path)
@@ -234,6 +241,7 @@ def test_worker_provider_logs_include_thread_and_turn(
 
     class _LoggedFacts(_SlowFacts):
         def get_financials(self, company: str, metric: str, *, report_date: date | None = None):
+            company = _NAMED(company)
             return call_provider(
                 "sec",
                 lambda: _SlowFacts.get_financials(

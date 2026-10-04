@@ -204,7 +204,8 @@ def test_a_shared_name_asks_which_company_then_answers(tmp_path: Path, answer: s
 
     assert answered.renderer is not RendererKind.CLARIFY
     assert [row.ticker for row in answered.table_rows] == ["LNC"]
-    assert {company for company in facts.companies} == {"LNC"}
+    # The chosen company is asked for by its CIK: Lincoln National's.
+    assert {company for company in facts.companies} == {"0000059558"}
 
 
 class _ModelPlan:

@@ -1,6 +1,7 @@
 """Pure deterministic quarterly fact selection from normalized XBRL records."""
 
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import date, timedelta
 
 from financial_analyst_agent.domain.enums import (
@@ -27,6 +28,17 @@ from financial_analyst_agent.services.metric_catalog import (
     PER_SHARE_METRICS,
     get_concept_candidates,
 )
+
+
+@dataclass(frozen=True)
+class FactOwner:
+    """The company a selected fact is reported by, and the unit it is read in."""
+
+    company_name: str
+    ticker: str
+    cik: str
+    currency: str = "USD"
+
 
 _MIN_QUARTER_DAYS = 70
 _MAX_QUARTER_DAYS = 110
@@ -111,10 +123,7 @@ def _resolve_same_concept_candidates(candidates: list[FactRecord]) -> FactRecord
 def _build_financial_fact(
     selected: FactRecord,
     metric: Metric,
-    currency: str,
-    company_name: str,
-    ticker: str,
-    cik: str,
+    owner: FactOwner,
     source_url: str,
     *,
     year_earlier: DerivationPart | None = None,
@@ -125,12 +134,12 @@ def _build_financial_fact(
             details={"concept": selected.concept},
         )
     return FinancialFact(
-        company_name=company_name,
-        ticker=ticker,
-        cik=cik,
+        company_name=owner.company_name,
+        ticker=owner.ticker,
+        cik=owner.cik,
         metric=metric,
         value=selected.value,
-        currency=currency.upper(),
+        currency=owner.currency.upper(),
         start_date=selected.start_date,
         end_date=selected.end_date,
         form=selected.form,
@@ -149,10 +158,7 @@ def select_quarterly_fact(
     facts: list[FactRecord],
     filing: Filing,
     metric: Metric,
-    currency: str,
-    company_name: str,
-    ticker: str,
-    cik: str,
+    owner: FactOwner,
     source_url: str,
 ) -> tuple[FinancialFact, ...]:
     """
@@ -172,7 +178,7 @@ def select_quarterly_fact(
             continue
 
         candidates = _filter_quarterly_candidates(
-            concept_facts, filing, taxonomy, concept, currency
+            concept_facts, filing, taxonomy, concept, owner.currency
         )
         if not candidates:
             continue
@@ -182,10 +188,7 @@ def select_quarterly_fact(
             _build_financial_fact(
                 selected,
                 metric,
-                currency,
-                company_name,
-                ticker,
-                cik,
+                owner,
                 source_url,
                 year_earlier=comparative(concept_facts, selected, source_url),
             ),
@@ -205,10 +208,7 @@ def select_quarterly_fact_with_filing_fallback(
     facts: list[FactRecord],
     filings: list[Filing],
     metric: Metric,
-    currency: str,
-    company_name: str,
-    ticker: str,
-    cik: str,
+    owner: FactOwner,
     source_url_for_filing: Callable[[Filing], str],
     *,
     report_date: date | None = None,
@@ -231,10 +231,7 @@ def select_quarterly_fact_with_filing_fallback(
                 facts,
                 filing,
                 metric,
-                currency,
-                company_name,
-                ticker,
-                cik,
+                owner,
                 source_url_for_filing(filing),
             )
         except UnsupportedQuarterlyFactError as exc:
@@ -365,10 +362,7 @@ def _derived_fact(
     method: str,
     label: str,
     metric: Metric,
-    currency: str,
-    company_name: str,
-    ticker: str,
-    cik: str,
+    owner: FactOwner,
     source_url: str,
     source_url_for_accession: Callable[[str], str],
 ) -> FinancialFact:
@@ -389,12 +383,12 @@ def _derived_fact(
             }
         )
     return FinancialFact(
-        company_name=company_name,
-        ticker=ticker,
-        cik=cik,
+        company_name=owner.company_name,
+        ticker=owner.ticker,
+        cik=owner.cik,
         metric=metric,
         value=longer.value - shorter.value,
-        currency=currency.upper(),
+        currency=owner.currency.upper(),
         start_date=shorter.end_date + timedelta(days=1),
         end_date=longer.end_date,
         form=longer.form,
@@ -418,10 +412,7 @@ def derive_quarter(
     facts: list[FactRecord],
     filing: Filing,
     metric: Metric,
-    currency: str,
-    company_name: str,
-    ticker: str,
-    cik: str,
+    owner: FactOwner,
     source_url: str,
     source_url_for_accession: Callable[[str], str],
 ) -> FinancialFact:
@@ -440,7 +431,7 @@ def derive_quarter(
             for fact in facts
             if fact.taxonomy == taxonomy
             and fact.concept == concept
-            and fact.unit.upper() == currency.upper()
+            and fact.unit.upper() == owner.currency.upper()
         ]
         in_filing = [
             fact
@@ -459,10 +450,7 @@ def derive_quarter(
                 return _build_financial_fact(
                     selected,
                     metric,
-                    currency,
-                    company_name,
-                    ticker,
-                    cik,
+                    owner,
                     source_url,
                     year_earlier=comparative(concept_facts, selected, source_url),
                 )
@@ -486,10 +474,7 @@ def derive_quarter(
             method="annual_minus_nine_months" if annual else "year_to_date_difference",
             label=FOURTH_QUARTER_LABEL if annual else YEAR_TO_DATE_LABEL,
             metric=metric,
-            currency=currency,
-            company_name=company_name,
-            ticker=ticker,
-            cik=cik,
+            owner=owner,
             source_url=source_url,
             source_url_for_accession=source_url_for_accession,
         )
@@ -522,10 +507,7 @@ def select_instant_fact(
     facts: list[FactRecord],
     filing: Filing,
     metric: Metric,
-    currency: str,
-    company_name: str,
-    ticker: str,
-    cik: str,
+    owner: FactOwner,
     source_url: str,
 ) -> FinancialFact:
     """A balance-sheet amount at ``filing``'s report date, as that filing reports it.
@@ -541,7 +523,7 @@ def select_instant_fact(
             and fact.start_date is None
             and fact.accession_number == filing.accession_number
             and fact.end_date == filing.report_date
-            and fact.unit.upper() == currency.upper()
+            and fact.unit.upper() == owner.currency.upper()
         ]
         if not candidates:
             continue
@@ -549,10 +531,7 @@ def select_instant_fact(
         return _build_financial_fact(
             selected.model_copy(update={"start_date": selected.end_date}),
             metric,
-            currency,
-            company_name,
-            ticker,
-            cik,
+            owner,
             source_url,
             year_earlier=comparative(
                 [fact for fact in facts if fact.concept == concept], selected, source_url
@@ -589,10 +568,7 @@ def derive_trailing_year(
     facts: list[FactRecord],
     filing: Filing,
     metric: Metric,
-    currency: str,
-    company_name: str,
-    ticker: str,
-    cik: str,
+    owner: FactOwner,
     source_url: str,
     source_url_for_accession: Callable[[str], str],
 ) -> FinancialFact:
@@ -609,7 +585,7 @@ def derive_trailing_year(
             for fact in facts
             if fact.taxonomy == taxonomy
             and fact.concept == concept
-            and fact.unit.upper() == currency.upper()
+            and fact.unit.upper() == owner.currency.upper()
             and fact.start_date is not None
         ]
         in_filing = [
@@ -625,10 +601,7 @@ def derive_trailing_year(
             return _build_financial_fact(
                 _resolve_same_concept_candidates(years),
                 metric,
-                currency,
-                company_name,
-                ticker,
-                cik,
+                owner,
                 source_url,
             )
         to_date = [
@@ -669,12 +642,12 @@ def derive_trailing_year(
         prior = _resolve_same_concept_candidates(same_filing or _newest_filed(earlier))
         year = _resolve_same_concept_candidates(_newest_filed(last_year))
         return FinancialFact(
-            company_name=company_name,
-            ticker=ticker,
-            cik=cik,
+            company_name=owner.company_name,
+            ticker=owner.ticker,
+            cik=owner.cik,
             metric=metric,
             value=year.value + current.value - prior.value,
-            currency=currency.upper(),
+            currency=owner.currency.upper(),
             start_date=prior.end_date + timedelta(days=1),
             end_date=current.end_date,
             form=current.form,

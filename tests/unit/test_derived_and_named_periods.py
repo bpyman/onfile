@@ -26,6 +26,7 @@ from financial_analyst_agent.request_wording import bind_periods_from_message, p
 from financial_analyst_agent.services.fact_selector import (
     FOURTH_QUARTER_LABEL,
     YEAR_TO_DATE_LABEL,
+    FactOwner,
     derive_quarter,
 )
 from financial_analyst_agent.services.filing_selector import list_quarterly_report_dates
@@ -80,10 +81,7 @@ def _derive(facts: list[FactRecord], filing: Filing, metric: Metric, unit: str =
         facts,
         filing,
         metric,
-        unit,
-        "Apple Inc.",
-        "AAPL",
-        "0000320193",
+        FactOwner(company_name="Apple Inc.", ticker="AAPL", cik="0000320193", currency=unit),
         "https://www.sec.gov/primary.htm",
         lambda accession: f"https://www.sec.gov/{accession}.htm",
     )
@@ -315,8 +313,8 @@ def test_a_named_quarter_asks_each_company_for_its_own_quarter_end() -> None:
             report_dates=(date(2024, 6, 29),),
             count=1,
             company_report_dates=(
-                ("aapl", (date(2024, 6, 29),)),
-                ("msft", (date(2024, 3, 31),)),
+                ("1", (date(2024, 6, 29),)),
+                ("2", (date(2024, 3, 31),)),
             ),
         ),
         operations=("across_companies",),
@@ -324,9 +322,10 @@ def test_a_named_quarter_asks_each_company_for_its_own_quarter_end() -> None:
 
     tasks = compile_tasks(spec)
 
-    assert {(task.company_queries, task.report_date) for task in tasks} == {
-        (("AAPL",), date(2024, 6, 29)),
-        (("MSFT",), date(2024, 3, 31)),
+    assert {(task.issuers, task.report_date) for task in tasks} == {
+        # Each company is asked for by its CIK.
+        (("1",), date(2024, 6, 29)),
+        (("2",), date(2024, 3, 31)),
     }
 
 

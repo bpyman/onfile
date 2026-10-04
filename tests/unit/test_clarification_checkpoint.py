@@ -19,6 +19,10 @@ import pytest
 
 from financial_analyst_agent.contracts import WorkflowPlan
 from financial_analyst_agent.runtime import FIXTURE_EXPLAIN_ESSAY, FIXTURE_UNIVERSE_SNAPSHOT_PATH
+from helpers import named_by_cik
+
+# Resolved companies are asked for by CIK; these fakes answer by name.
+_NAMED = named_by_cik('Google')
 
 PROFIT = ("gross_profit", "operating_income", "net_income")
 
@@ -28,11 +32,13 @@ class _Facts:
         self.calls: list[tuple[str, str]] = []
 
     def list_quarterly_report_dates(self, company: str, *, limit: int) -> tuple[date, ...]:
+        company = _NAMED(company)
         return (date(2026, 3, 31), date(2025, 12, 31), date(2025, 9, 30))[:limit]
 
     def get_financials(
         self, company: str, metric: str, *, report_date: date | None = None
     ) -> SimpleNamespace:
+        company = _NAMED(company)
         self.calls.append((company, metric))
         return SimpleNamespace(
             company_name="Alphabet Inc.",

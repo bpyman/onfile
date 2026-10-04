@@ -13,6 +13,10 @@ from types import SimpleNamespace
 
 from financial_analyst_agent.contracts import WorkflowPlan
 from financial_analyst_agent.runtime import FIXTURE_UNIVERSE_SNAPSHOT_PATH
+from helpers import named_by_cik
+
+# Resolved companies are asked for by CIK; these fakes answer by name.
+_NAMED = named_by_cik('Apple', 'Nvidia', 'Google', 'Microsoft')
 
 
 class _LookupFacts:
@@ -24,6 +28,7 @@ class _LookupFacts:
         self, company: str, metric: str, *, report_date: date | None = None
 
     ) -> SimpleNamespace:
+        company = _NAMED(company)
         self.calls.append((company, metric))
         values = {
             ("Google", "net_income"): Decimal("62578000000"),
@@ -60,6 +65,7 @@ class _SilentFacts:
     def get_financials(
         self, company: str, metric: str, *, report_date: date | None = None
     ) -> SimpleNamespace:
+        company = _NAMED(company)
         raise AssertionError(f"provider must not run for invalid patch: {company} {metric}")
 
 

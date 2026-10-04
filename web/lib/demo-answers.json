@@ -15,7 +15,7 @@
       "inputs": [
        [
         "Company",
-        "Microsoft"
+        "0000789019"
        ],
        [
         "Metric",
@@ -82,7 +82,7 @@
       "inputs": [
        [
         "Company",
-        "Microsoft"
+        "0000789019"
        ],
        [
         "Metric",
@@ -234,7 +234,7 @@
       "inputs": [
        [
         "Company",
-        "Microsoft"
+        "0000789019"
        ],
        [
         "Metric",
@@ -305,7 +305,7 @@
       "inputs": [
        [
         "Company",
-        "Microsoft"
+        "0000789019"
        ],
        [
         "Metric",
@@ -356,7 +356,7 @@
       "inputs": [
        [
         "Company",
-        "Microsoft"
+        "0000789019"
        ],
        [
         "Metric",
@@ -407,7 +407,7 @@
       "inputs": [
        [
         "Company",
-        "Microsoft"
+        "0000789019"
        ],
        [
         "Metric",
@@ -803,7 +803,7 @@
       ]
      },
      {
-      "header": "Looked up NVIDIA Corporation · Research and development in SEC filings (Apr 27, 2026 – Jul 26, 2026)",
+      "header": "Looked up NVIDIA · Research and development in SEC filings (Apr 27, 2026 – Jul 26, 2026)",
       "inputs": [
        [
         "Company",
@@ -850,7 +850,7 @@
       ]
      },
      {
-      "header": "Looked up Apple Inc. · Research and development in SEC filings (Mar 29, 2026 – Jun 27, 2026)",
+      "header": "Looked up Apple · Research and development in SEC filings (Mar 29, 2026 – Jun 27, 2026)",
       "inputs": [
        [
         "Company",
@@ -897,7 +897,7 @@
       ]
      },
      {
-      "header": "Looked up Microsoft Corporation · Research and development in SEC filings (Apr 1, 2026 – Jun 30, 2026)",
+      "header": "Looked up Microsoft · Research and development in SEC filings (Apr 1, 2026 – Jun 30, 2026)",
       "inputs": [
        [
         "Company",
@@ -964,7 +964,7 @@
       ]
      },
      {
-      "header": "Looked up Broadcom Inc. · Research and development in SEC filings (May 4, 2026 – Aug 2, 2026)",
+      "header": "Looked up Broadcom · Research and development in SEC filings (May 4, 2026 – Aug 2, 2026)",
       "inputs": [
        [
         "Company",
@@ -1011,7 +1011,7 @@
       ]
      },
      {
-      "header": "Looked up Micron Technology, Inc. · Research and development in SEC filings (Feb 27, 2026 – May 28, 2026)",
+      "header": "Looked up Micron Technology · Research and development in SEC filings (Feb 27, 2026 – May 28, 2026)",
       "inputs": [
        [
         "Company",
@@ -1058,7 +1058,7 @@
       ]
      },
      {
-      "header": "Looked up Advanced Micro Devices, Inc. · Research and development in SEC filings (Mar 29, 2026 – Jun 27, 2026)",
+      "header": "Looked up Advanced Micro Devices · Research and development in SEC filings (Mar 29, 2026 – Jun 27, 2026)",
       "inputs": [
        [
         "Company",
@@ -1105,7 +1105,7 @@
       ]
      },
      {
-      "header": "Looked up Intel Corp. · Research and development in SEC filings (Mar 29, 2026 – Jun 27, 2026)",
+      "header": "Looked up Intel · Research and development in SEC filings (Mar 29, 2026 – Jun 27, 2026)",
       "inputs": [
        [
         "Company",
@@ -1152,7 +1152,7 @@
       ]
      },
      {
-      "header": "Looked up Palantir Technologies Inc. · Research and development in SEC filings (Apr 1, 2026 – Jun 30, 2026)",
+      "header": "Looked up Palantir Technologies · Research and development in SEC filings (Apr 1, 2026 – Jun 30, 2026)",
       "inputs": [
        [
         "Company",
@@ -1199,7 +1199,7 @@
       ]
      },
      {
-      "header": "Looked up Cisco Systems, Inc. · Research and development in SEC filings (Apr 26, 2026 – Jul 25, 2026)",
+      "header": "Looked up Cisco Systems · Research and development in SEC filings (Apr 26, 2026 – Jul 25, 2026)",
       "inputs": [
        [
         "Company",
@@ -1266,7 +1266,7 @@
       ]
      },
      {
-      "header": "Looked up Oracle Corporation · Research and development in SEC filings (Jun 1, 2026 – Aug 31, 2026)",
+      "header": "Looked up Oracle · Research and development in SEC filings (Jun 1, 2026 – Aug 31, 2026)",
       "inputs": [
        [
         "Company",

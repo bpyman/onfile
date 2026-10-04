@@ -85,7 +85,7 @@ The provider set that calls SEC EDGAR, the news search, and the model provider. 
 _Avoid_: production mode, real mode
 
 **Analysis spec**:
-The typed, resolved statement of the analyst's current quantitative question: companies or constituents, closed-catalog metrics, period selection, operations, and requested presentation. Resolved means CIKs and catalog slugs, so it can execute. It is the thing a follow-up edits.
+The typed, resolved statement of the analyst's current quantitative question: companies or constituents, closed-catalog metrics, period selection, operations, and requested presentation. Resolved means CIKs and catalog slugs, so it can execute: a company's CIK comes from the market snapshot, or SEC's ticker map for one the snapshot leaves out, and every lookup and every per-company date asks by it. A name neither knows stays a name, and its cells say it was not found. It is the thing a follow-up edits.
 _Avoid_: query, plan, intent, request
 
 **Spec patch**:

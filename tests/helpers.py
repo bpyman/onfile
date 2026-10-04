@@ -48,3 +48,27 @@ def make_fact(
         taxonomy=taxonomy,
         filed_date=filed_date,
     )
+
+
+def named_by_cik(*names: str):  # type: ignore[no-untyped-def]
+    """Map the CIK a turn asks a test fake for back to the name the fake knows.
+
+    A resolved company is asked for by CIK (CONTEXT.md, Analysis spec); fakes keep
+    their readable names. A name the fixture snapshot does not hold maps to itself.
+    """
+    from financial_analyst_agent.domain.errors import CompanyNotFoundError
+    from financial_analyst_agent.ranking import SnapshotRanking
+    from financial_analyst_agent.runtime import FIXTURE_UNIVERSE_SNAPSHOT_PATH
+
+    ranking = SnapshotRanking.from_path(FIXTURE_UNIVERSE_SNAPSHOT_PATH)
+    by_cik: dict[str, str] = {}
+    for name in names:
+        try:
+            by_cik[ranking.lookup_member(name).cik] = name
+        except CompanyNotFoundError:
+            continue
+
+    def named(company: str) -> str:
+        return by_cik.get(company, company)
+
+    return named

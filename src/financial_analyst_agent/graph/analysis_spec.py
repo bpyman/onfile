@@ -7,6 +7,7 @@ should not depend on these helpers; the conversation seam owns the public API.
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from datetime import date
 from typing import Any, Literal
 
@@ -39,7 +40,7 @@ class PeriodSelection(BaseModel):
     metrics across a window; ``report_dates`` (newest first) are concrete bounds
     when known, otherwise execution discovers them from the facts adapter.
     ``company_report_dates`` holds another company's own quarter ends, keyed by
-    its casefolded query, for companies whose fiscal calendar differs from the
+    its ``ResolvedCompany.key``, for companies whose fiscal calendar differs from the
     first company's (Walmart's April quarter beside Microsoft's March one).
     ``named`` periods are fiscal quarters or years the analyst named; each
     company's own filings say which quarter ends they cover (ADR 0007).
@@ -73,10 +74,27 @@ class PeriodSelection(BaseModel):
 
 
 class ResolvedCompany(BaseModel):
+    """A company the analyst named, pinned to its SEC identity.
+
+    ``cik`` is empty only for a name neither the snapshot nor SEC's ticker map
+    resolves; its cells then say the company was not found.
+    """
+
     cik: str
     name: str
     ticker: str
+    # The analyst's own word for it ("Google"): what follow-ups match against.
     query: str
+
+    @property
+    def key(self) -> str:
+        """What per-company state is keyed on: the CIK, or the name SEC does not know."""
+        return self.cik or self.query.casefold()
+
+    @property
+    def handle(self) -> str:
+        """What the providers are asked for: the CIK, or the name SEC does not know."""
+        return self.cik or self.query
 
 
 class RankedRequest(BaseModel):
@@ -177,7 +195,8 @@ class SpecRejection(BaseModel):
 
 class CompiledTask(BaseModel):
     kind: Literal["lookup", "compare", "rank", "rank_and_lookup"]
-    company_queries: tuple[str, ...] = ()
+    # The companies' ``ResolvedCompany.handle``: their CIKs, or a name SEC does not know.
+    issuers: tuple[str, ...] = ()
     metric: str | None = None
     industry: str | None = None
     limit: int | None = None
@@ -332,7 +351,12 @@ def emptied_by(
     return None
 
 
-def resolve_spec(draft: SpecDraft, *, ranking: Any | None = None) -> AnalysisSpec:
+def resolve_spec(
+    draft: SpecDraft,
+    *,
+    ranking: Any | None = None,
+    identify: Callable[[str], ResolvedCompany | None] | None = None,
+) -> AnalysisSpec:
     """Resolve company identity and ranked constituents. Metrics stay catalog slugs."""
     companies: list[ResolvedCompany] = []
     constituents: RankedSet | None = None
@@ -356,7 +380,7 @@ def resolve_spec(draft: SpecDraft, *, ranking: Any | None = None) -> AnalysisSpe
     else:
         seen: set[str] = set()
         for query in draft.company_queries:
-            company = _resolve_company(query, ranking=ranking)
+            company = _resolve_company(query, ranking=ranking, identify=identify)
             if company.cik and company.cik in seen:
                 # "add Apple" to an analysis that already has AAPL.
                 continue
@@ -386,7 +410,16 @@ def resolve_spec(draft: SpecDraft, *, ranking: Any | None = None) -> AnalysisSpe
     )
 
 
-def _resolve_company(query: str, *, ranking: Any | None) -> ResolvedCompany:
+def _resolve_company(
+    query: str,
+    *,
+    ranking: Any | None,
+    identify: Callable[[str], ResolvedCompany | None] | None = None,
+) -> ResolvedCompany:
+    """The snapshot's company for ``query``, else SEC's (``identify``), else the bare name.
+
+    An ambiguous snapshot name is raised: the analyst picks the company.
+    """
     if ranking is not None:
         try:
             member = ranking.lookup_member(query)
@@ -397,9 +430,12 @@ def _resolve_company(query: str, *, ranking: Any | None) -> ResolvedCompany:
                 query=query,
             )
         except CompanyNotFoundError:
-            # Lookup does not require freeze presence; keep the query token.
-            # An ambiguous name is raised: the analyst picks the company.
             pass
+    if identify is not None:
+        # A company the snapshot leaves out (Tesla on the recorded demo): SEC's.
+        found = identify(query)
+        if found is not None:
+            return found
     return ResolvedCompany(cik="", name=query, ticker="", query=query)
 
 
@@ -478,13 +514,12 @@ def _base_tasks(spec: AnalysisSpec) -> tuple[CompiledTask, ...]:
             for metric in spec.metrics
         )
 
-    queries = tuple(company.query for company in spec.companies)
-    if not queries or not spec.metrics:
+    issuers = tuple(company.handle for company in spec.companies)
+    if not issuers or not spec.metrics:
         return ()
-    kind: Literal["lookup", "compare"] = "lookup" if len(queries) == 1 else "compare"
+    kind: Literal["lookup", "compare"] = "lookup" if len(issuers) == 1 else "compare"
     return tuple(
-        CompiledTask(kind=kind, company_queries=queries, metric=metric)
-        for metric in spec.metrics
+        CompiledTask(kind=kind, issuers=issuers, metric=metric) for metric in spec.metrics
     )
 
 
@@ -525,15 +560,15 @@ def calendar_groups(spec: AnalysisSpec) -> list[tuple[tuple[str, ...], tuple[dat
     named = spec.periods.kind == "named"
     groups: dict[tuple[date, ...], list[str]] = {}
     for company in spec.companies:
-        dates = own.get(company.query.casefold(), reference)
+        dates = own.get(company.key, reference)
         if named:
             # "Q3 FY2024" is each company's own third quarter, wherever it ends.
             if not dates:
                 continue
         elif not dates or not reference or _same_grid(dates, reference):
             dates = reference
-        groups.setdefault(dates, []).append(company.query)
-    return [(tuple(queries), dates) for dates, queries in groups.items()]
+        groups.setdefault(dates, []).append(company.handle)
+    return [(tuple(issuers), dates) for dates, issuers in groups.items()]
 
 
 def compile_tasks(spec: AnalysisSpec) -> tuple[CompiledTask, ...]:
@@ -567,13 +602,13 @@ def compile_tasks(spec: AnalysisSpec) -> tuple[CompiledTask, ...]:
         return tuple(
             CompiledTask(
                 kind="compare" if len(spec.companies) > 1 else task.kind,
-                company_queries=queries,
+                issuers=issuers,
                 metric=task.metric,
                 report_date=dates[index],
             )
             for index in range(longest)
             for task in expandable
-            for queries, dates in groups
+            for issuers, dates in groups
             if index < len(dates)
         )
     return tuple(

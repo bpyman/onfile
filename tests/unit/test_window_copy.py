@@ -116,7 +116,8 @@ def test_trace_headers_name_the_company_not_its_cik() -> None:
 
     header = present_turn(result).traces[0].header
 
-    assert "Microsoft Corporation" in header
+    # The short name the answer's notes use, not the legal name or the CIK.
+    assert header.startswith("Looked up Microsoft · Revenue")
     assert row.cik not in header
 
 

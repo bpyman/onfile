@@ -14,6 +14,10 @@ from types import SimpleNamespace
 from financial_analyst_agent.contracts import WorkflowPlan
 from financial_analyst_agent.domain.errors import UnsupportedQuarterlyFactError
 from financial_analyst_agent.runtime import FIXTURE_UNIVERSE_SNAPSHOT_PATH
+from helpers import named_by_cik
+
+# Resolved companies are asked for by CIK; these fakes answer by name.
+_NAMED = named_by_cik('Microsoft', 'Google')
 
 
 class _MultiMetricFacts:
@@ -28,6 +32,7 @@ class _MultiMetricFacts:
         self, company: str, metric: str, *, report_date: date | None = None
 
     ) -> SimpleNamespace:
+        company = _NAMED(company)
         self.calls.append((company, metric))
         if (company, metric) in self.missing:
             raise UnsupportedQuarterlyFactError(f"no standalone quarter for {company} {metric}")

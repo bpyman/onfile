@@ -91,7 +91,7 @@ def test_compiled_task_lookup_returns_table() -> None:
     from financial_analyst_agent.contracts import Intent, RendererKind, TurnResult
     from financial_analyst_agent.graph.spec_turn import execute_compiled_task
 
-    task = CompiledTask(kind="lookup", company_queries=("Google",), metric="net_income")
+    task = CompiledTask(kind="lookup", issuers=("Google",), metric="net_income")
     result = execute_compiled_task(task, _runtime(facts=_LookupFacts()))  # type: ignore[arg-type]
 
     assert type(result).__name__ == TurnResult.__name__
@@ -106,7 +106,7 @@ def test_compiled_task_compare_returns_table() -> None:
     from financial_analyst_agent.graph.spec_turn import execute_compiled_task
 
     task = CompiledTask(
-        kind="compare", company_queries=("Microsoft", "Google"), metric="operating_margin"
+        kind="compare", issuers=("Microsoft", "Google"), metric="operating_margin"
     )
     result = execute_compiled_task(task, _runtime(facts=_CompareFacts()))  # type: ignore[arg-type]
 

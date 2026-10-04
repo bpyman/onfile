@@ -14,6 +14,10 @@ from types import SimpleNamespace
 from financial_analyst_agent.domain.errors import UnsupportedQuarterlyFactError
 from financial_analyst_agent.runtime import FIXTURE_UNIVERSE_SNAPSHOT_PATH
 from financial_analyst_agent.services.fiscal_periods import FiscalPeriod
+from helpers import named_by_cik
+
+# Resolved companies are asked for by CIK; these fakes answer by name.
+_NAMED = named_by_cik('Microsoft', 'Google')
 
 Q1 = date(2025, 3, 31)
 Q2 = date(2025, 6, 30)
@@ -41,11 +45,13 @@ class _PeriodFacts:
         self.calls: list[tuple[str, str, date | None]] = []
 
     def list_quarterly_report_dates(self, company: str, *, limit: int) -> tuple[date, ...]:
+        company = _NAMED(company)
         dates = self.dates_by_company.get(company, FOUR_QUARTERS)
         return dates[:limit]
 
     def fiscal_periods(self, company: str) -> tuple[FiscalPeriod, ...]:
         # Calendar-year filers: each quarter end names its own calendar quarter.
+        company = _NAMED(company)
         return tuple(
             FiscalPeriod(
                 end=end, fiscal_year=end.year, quarter=(end.month - 1) // 3 + 1, form="10-Q"
@@ -56,6 +62,7 @@ class _PeriodFacts:
     def get_financials(
         self, company: str, metric: str, *, report_date: date | None = None
     ) -> SimpleNamespace:
+        company = _NAMED(company)
         self.calls.append((company, metric, report_date))
         if report_date is None:
             report_date = self.list_quarterly_report_dates(company, limit=1)[0]
@@ -323,11 +330,13 @@ def test_mismatched_periods_and_zero_denominator_do_not_compute(tmp_path: Path) 
 
     class _Facts:
         def list_quarterly_report_dates(self, company: str, *, limit: int) -> tuple[date, ...]:
+            company = _NAMED(company)
             return (Q2,)[:limit]
 
         def get_financials(
             self, company: str, metric: str, *, report_date: date | None = None
         ) -> SimpleNamespace:
+            company = _NAMED(company)
             target = report_date or Q2
             if company == "Google" and metric == "revenue":
                 # Force component period mismatch for Google formula

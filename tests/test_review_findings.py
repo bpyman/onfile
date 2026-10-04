@@ -216,7 +216,7 @@ def test_a_refused_cell_in_a_window_keeps_its_reason(code: str, reason: str) -> 
     from financial_analyst_agent.graph.spec_turn import _lookup_refuse_as_partial
 
     task = CompiledTask(
-        kind="lookup", company_queries=("ARCC",), metric="revenue", report_date=date(2026, 6, 30)
+        kind="lookup", issuers=("ARCC",), metric="revenue", report_date=date(2026, 6, 30)
     )
     refused = TurnResult(
         intent=Intent.LOOKUP,

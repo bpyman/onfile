@@ -16,4 +16,8 @@ Spec: `CONTEXT.md` (Analysis spec), ADR 0002, ADR 0005, `docs/design.md` ("ident
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** done
+
+## Answer
+
+Every company in a spec is pinned to its CIK before any provider call. A name the market snapshot leaves out is resolved through SEC's ticker map (`spec_turn.sec_identity`, the same resolution the facts lookup uses), so Tesla on the recorded demo is TSLA from the start; a name neither knows stays a name, and its cells say it was not found. `ResolvedCompany.key` (CIK, or the unknown name) keys every per-company state: `company_report_dates`, `calendar_groups`, the period dating, the answer notes, the quarter before and the year earlier. `ResolvedCompany.handle` (the same) is what tasks carry (`CompiledTask.issuers`, renamed from `company_queries`) and what every provider is asked for, so evidence ids are by CIK and "Google" and "GOOGL" share evidence (tested). A failed cell is named from the spec by its handle (`_fill_identity`), and `_identity_from_rows`, which named a snapshot miss from its filings after the fact, is gone. The identity that travelled positionally through `fact_selector` and the `sec_facts` helpers is one `FactOwner`. Test fakes that answer by name read the CIK back through `tests/helpers.named_by_cik`. `_companies_named_in` matches the analyst's words, not state, and keeps the query. What the recorded runtime shows was compared across 244 conversations before and after: tables, chips, notes and evidence are unchanged except one intended fix (a company SEC knows but the snapshot lacks now reads "Not in the market snapshot" for market cap, price and P/E, not "Company not found" or its CIK in a message); trace headers name companies by their short name ("NVIDIA", not "NVDA"), as ranked lookups already did, and trace inputs show the CIK each lookup asked for. The rules planner scores the same on all 219 evaluation cases.
