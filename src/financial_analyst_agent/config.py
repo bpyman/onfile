@@ -49,12 +49,18 @@ def _reject_non_finite(value: float, field_name: str) -> float:
     return value
 
 
+# SEC's fair-access limit is 10 requests a second for everything on one address.
+# One limiter paces the whole process; 8 leaves room for anything else on the
+# address (a snapshot build, a second process).
+SEC_MAX_REQUESTS_PER_SECOND = 8.0
+
+
 class Settings(BaseSettings):
     """Typed settings loaded from environment variables."""
 
     sec_user_agent: str = ""
     sec_base_url: str = "https://data.sec.gov"
-    sec_max_requests_per_second: float = 5.0
+    sec_max_requests_per_second: float = SEC_MAX_REQUESTS_PER_SECOND
     # Per connect or read: a hung SEC must not hold a three-company turn for 90 s.
     sec_timeout_seconds: float = 10.0
     # Wall clock for one SEC request, body included: a server that drips a byte
@@ -125,8 +131,11 @@ class Settings(BaseSettings):
     @classmethod
     def validate_max_requests_per_second(cls, value: float) -> float:
         value = _reject_non_finite(value, "SEC_MAX_REQUESTS_PER_SECOND")
-        if value <= 0 or value > 5:
-            raise ValueError("SEC_MAX_REQUESTS_PER_SECOND must be greater than 0 and at most 5")
+        if value <= 0 or value > SEC_MAX_REQUESTS_PER_SECOND:
+            raise ValueError(
+                "SEC_MAX_REQUESTS_PER_SECOND must be greater than 0 and at most "
+                f"{SEC_MAX_REQUESTS_PER_SECOND:g}"
+            )
         return value
 
     @field_validator(

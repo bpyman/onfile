@@ -43,11 +43,14 @@ a slot and 7.8 s downloading. With the limiter at SEC's own 10 a second (an
 experiment, not a setting), the same turns took 4.8 s here against 11.8 s on
 master, and the six-company comparison 2.9 s against 4.7 s.
 
-Two follow-ups would turn this into the larger speed-up, both decisions for a
-person: raising the rate cap toward SEC's 10 a second, and dropping the older
-submissions pages that 13 of the 34 requests fetch (JPMorgan, Bank of America
-and Citi, pages 001 to 004) when company facts already supply that history
-(`SecFactLookup._with_facts_filings`).
+Decided afterwards: the cap rises to 8 a second (`config.SEC_MAX_REQUESTS_PER_SECOND`,
+the default and the most the settings accept), leaving SEC's 10 room for anything
+else on the address. At 8, cold: top 10 banks by revenue 5.8 s, by net margin
+5.9 s, the six-company comparison 3.4 s.
+
+Left for its own change: the older submissions pages that 13 of the 34 requests
+fetch (JPMorgan, Bank of America and Citi, pages 001 to 004), when company facts
+already supply that history (`SecFactLookup._with_facts_filings`).
 
 Checks: 1,704 tests pass, including `tests/unit/test_fan_out.py` (order,
 overlap, the shared deadline, a quota stop, and a ranked lookup whose members

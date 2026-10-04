@@ -855,6 +855,8 @@ Files changed:
 
 Blockers / next:
 - Ticket 09 (blocked by this one) can follow the same helper.
-- For a person: whether to raise the SEC rate cap, and whether to drop the older
-  submissions pages company facts make redundant (13 of 34 requests above).
+- The SEC rate cap rose from 5 to 8 a second (decided): the same ranking now
+  takes 5.8 s cold.
+- Next: drop the older submissions pages company facts make redundant (13 of
+  the 34 requests above).
 - 1,704 tests pass; ruff and mypy pass; `0 of 244 conversations differ`.
