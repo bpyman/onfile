@@ -11,6 +11,8 @@ When a skill says “the spec,” read `docs/process/prd.md`. (`/to-spec` produc
 - Implementation issues are one file per ticket at `docs/process/tickets/<feature-slug>/issues/<NN>-<slug>.md`, numbered from `01` — never a single combined tickets file
 - Triage state is recorded as a `Status:` line near the top of each issue file (see `triage-labels.md` for the role strings)
 - Comments and conversation history append to the bottom of the file under a `## Comments` heading
+- A finished ticket has `Status: resolved` (or `done`) and an `## Answer` section; it may move to `issues/done/`, which counts as resolved for `Blocked by:`
+- Only `ready-for-agent` tickets are picked up by the Ralph loop; `ready-for-human` and `needs-info` wait for a person
 
 ## When a skill says "publish to the issue tracker"
 
