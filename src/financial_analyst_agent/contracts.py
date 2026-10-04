@@ -4,6 +4,7 @@ Workflow implementations live in ``turn``; a graph package can import this modul
 without loading those workflows.
 """
 
+from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
@@ -241,6 +242,8 @@ class RankingPort(Protocol):
     def rank_companies(self, industry: str, limit: int) -> "RankTable": ...
 
     def lookup_member(self, company: str) -> "UniverseCompany": ...
+
+    def member_ciks(self) -> Collection[str]: ...
 
     def snapshot_as_of(self) -> str: ...
 

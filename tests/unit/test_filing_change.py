@@ -814,6 +814,44 @@ def test_run_filing_change_refuses_a_fund(monkeypatch: pytest.MonkeyPatch) -> No
     assert "not an operating company" in (result.message or "")
 
 
+_NOTE_TITLE = "MICROSOFT CAPITAL TRUST II 7.875% NOTES"
+
+
+class _NoteTitledClient(_Client):
+    def get_company_tickers(self) -> dict[str, object]:
+        return {"0": {"cik_str": "789019", "ticker": "MSFT", "title": _NOTE_TITLE}}
+
+
+def _note_titled_runtime(members: frozenset[str]) -> Runtime:
+    facts = _Facts()
+    facts._client = _NoteTitledClient()
+    ranking = SimpleNamespace(member_ciks=lambda: members)
+    return _runtime(facts, ranking=ranking)
+
+
+def test_a_snapshot_member_whose_sec_title_reads_like_a_note_is_compared() -> None:
+    # ADR 0001, 0002: the snapshot already judged a member, as lookups take it.
+    result = run_filing_change(
+        FilingChangeRequest(company="MSFT", section="mda"),
+        _note_titled_runtime(frozenset({CIK})),
+    )
+
+    assert result.renderer is RendererKind.TABLE
+    assert result.disclosure_changes
+
+
+def test_a_non_member_whose_sec_title_reads_like_a_note_is_refused() -> None:
+    result = run_filing_change(
+        FilingChangeRequest(company="MSFT", section="mda"),
+        _note_titled_runtime(frozenset()),
+    )
+
+    assert result.renderer is RendererKind.REFUSE
+    assert "not an operating company" in (result.message or "")
+    assert result.refusal is not None
+    assert result.refusal.code == "ineligible_issuer"
+
+
 def test_numeral_lock_does_not_ground_figures_on_links_or_accessions() -> None:
     from financial_analyst_agent.turn import _numeral_lock_extras
 

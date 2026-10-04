@@ -831,3 +831,30 @@ Files changed:
 Blockers / next:
 - None. All 1,659 Python tests pass; ruff and mypy pass; the answer comparison
   reports `0 of 244 conversations differ from HEAD`.
+
+## 2026-10-04 — simplify-followups 08 One operating-company rule
+
+Task completed: `docs/process/tickets/simplify-followups/issues/08-one-operating-company-rule.md`
+
+Key decisions:
+- `universe.require_operating(cik, title, listed_ciks)` raises
+  `IneligibleIssuerError`. The ineligible list comes first, then snapshot
+  members pass, then everyone else is judged by SEC title.
+- Filing change gets the member CIKs from `RankingPort.member_ciks()` (the
+  snapshot ranking's members). Both snapshots hold only members, so this set
+  matches the listed-ticker map lookups use.
+- A refused filing change goes through the same `except` as
+  `CompanyNotFoundError`, so it carries a typed refusal and uses the lookup's
+  wording.
+- `_not_operating_once` was already removed by ticket 03.
+
+Files changed:
+- `src/financial_analyst_agent/{universe,sec_facts,filing_change,ranking,contracts}.py`
+- `tests/unit/test_filing_change.py`
+- `tests/test_review_findings.py`
+- `docs/process/tickets/simplify-followups/issues/08-one-operating-company-rule.md`
+- `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,701 Python tests pass; ruff and mypy pass; the answer comparison
+  reports `0 of 244 conversations differ from HEAD`.

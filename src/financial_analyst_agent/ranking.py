@@ -1,5 +1,6 @@
 """Rank companies from a dated universe snapshot."""
 
+from collections.abc import Collection
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -98,6 +99,10 @@ class SnapshotRanking:
             sector=group.label,
             companies=tuple(selected),
         )
+
+    def member_ciks(self) -> Collection[str]:
+        """Every snapshot member's CIK: the companies the snapshot has already judged."""
+        return self._listings_by_cik.keys()
 
     def snapshot_companies(self) -> tuple[UniverseCompany, ...]:
         return tuple(self._snapshot.companies)

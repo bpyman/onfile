@@ -3,13 +3,14 @@
 import json
 import re
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Container, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
 from pydantic import BaseModel, Field
 
+from financial_analyst_agent.domain.errors import IneligibleIssuerError
 from financial_analyst_agent.domain.serialization import DecimalStr
 
 DEFAULT_SNAPSHOT_PATH = Path(__file__).parent / "data" / "universe_snapshot.json"
@@ -146,6 +147,25 @@ def sec_identity_is_operating(cik: str, title: str) -> bool:
     California Edison) still files 10-Qs as an operating company.
     """
     return cik not in INELIGIBLE_ISSUER_CIKS and _INSTRUMENT_TITLE.search(title) is None
+
+
+def require_operating(cik: str, title: str, listed_ciks: Container[str]) -> None:
+    """Refuse a company that is not an operating company (ADR 0001, 0002).
+
+    A CIK on the ineligible list is never operating, even a snapshot member's
+    listed there since the snapshot was built. A snapshot member is otherwise
+    operating: the snapshot already applied the membership rule. Any other
+    company is judged by its SEC title.
+    """
+    if cik in INELIGIBLE_ISSUER_CIKS or (
+        cik not in listed_ciks and not sec_identity_is_operating(cik, title)
+    ):
+        raise IneligibleIssuerError(
+            f"{title} is not an operating company (it is a fund, business "
+            "development company or similar listing), so its 10-Q figures are "
+            "outside what this analyst covers.",
+            details={"cik": cik},
+        )
 
 
 def _is_common_share(company: UniverseCompany) -> bool:

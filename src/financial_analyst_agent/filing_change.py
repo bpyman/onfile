@@ -41,7 +41,7 @@ from financial_analyst_agent.providers.sec.submissions import (
     require_recent_filings,
 )
 from financial_analyst_agent.providers.sec.urls import build_filing_document_url
-from financial_analyst_agent.universe import sec_identity_is_operating
+from financial_analyst_agent.universe import require_operating
 
 SectionId = Literal["mda", "risk_factors"]
 
@@ -988,8 +988,11 @@ def run_filing_change(
             renderer=RendererKind.REFUSE,
             message="Filing documents are not available on this runtime.",
         )
+    members = runtime.ranking.member_ciks() if runtime.ranking is not None else frozenset()
     try:
         resolved = resolve_company(company, filings.get_company_tickers())
+        # The same membership rule lookups and rankings apply (ADR 0001, 0002).
+        require_operating(resolved.cik, resolved.name, members)
     except (CompanyNotFoundError, AmbiguousCompanyError, *SOURCE_FAILURES) as exc:
         return TurnResult(
             intent=Intent.FILING_CHANGE,
@@ -1003,18 +1006,6 @@ def run_filing_change(
             ),
         )
     cik = resolved.cik
-    if not sec_identity_is_operating(cik, resolved.name):
-        # The same membership rule lookups and rankings apply (ADR 0001, 0002).
-        return TurnResult(
-            intent=Intent.FILING_CHANGE,
-            tool_traces=traces,
-            renderer=RendererKind.REFUSE,
-            message=(
-                f"{resolved.name} is not an operating company (it is a fund, business "
-                "development company or similar listing), so its filings are outside "
-                "what this analyst covers."
-            ),
-        )
     # SEC titles companies "PFIZER INC"; the snapshot knows them as "Pfizer Inc.".
     display = getattr(runtime.facts, "display_name", None)
     name = display(cik, resolved.name) if callable(display) else resolved.name
