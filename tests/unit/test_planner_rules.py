@@ -660,13 +660,19 @@ def test_a_filer_outside_the_snapshot_is_named_by_its_full_name(
 def test_a_filer_name_never_takes_a_company_word_or_a_metric() -> None:
     from financial_analyst_agent.issuer_index import IssuerIndex
 
-    index = IssuerIndex(phrases={"apple": "Apple"})
     reserved = frozenset({"revenue", "cash", "flow"})
-    index.add_filer("ART", "APPLE REVENUE TRUST", reserved=reserved)
-    index.add_filer("CFC", "Cash Flow Corp", reserved=reserved)
-    index.add_filer("ACM", "Acme", reserved=reserved)
-    index.add_filer("XAP", "Apple Inc /DE/", reserved=reserved)
-    index.add_filer("CBK", "CONSUMERS BANCORP INC /OH/", reserved=reserved)
+    index = IssuerIndex.build(
+        [],
+        [("apple", "Apple")],
+        filers=[
+            ("ART", "APPLE REVENUE TRUST"),
+            ("CFC", "Cash Flow Corp"),
+            ("ACM", "Acme"),
+            ("XAP", "Apple Inc /DE/"),
+            ("CBK", "CONSUMERS BANCORP INC /OH/"),
+        ],
+        reserved=reserved,
+    )
 
     # A metric word, a one-word name, or a phrase a company holds: not indexed.
     assert index.phrases == {"apple": "Apple", "consumers bancorp": "CBK"}

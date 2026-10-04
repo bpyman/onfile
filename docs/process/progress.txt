@@ -726,3 +726,27 @@ Files changed:
 Blockers / next:
 - None. All 1,657 Python tests, 210 Vitest tests, and 46 Playwright tests pass;
   the answer comparison reports `0 of 244 conversations differ from HEAD`.
+
+## 2026-10-04 — simplify-followups 13 Make the issuer index immutable
+
+Task completed: `docs/process/tickets/simplify-followups/issues/13-immutable-issuer-index.md`
+
+Key decisions:
+- Freeze `IssuerIndex` and copy its phrase, ticker, display-name, CIK, and
+  shared-name maps into read-only proxies at construction.
+- Assemble snapshot aliases and supplemental former, ineligible, and outside
+  filer names in local mutable maps, then construct the index once.
+- Cache the typo-candidate tuple on the finished index and reuse it in every
+  correction call.
+
+Files changed:
+- `src/financial_analyst_agent/issuer_index.py`
+- `src/financial_analyst_agent/rules_planner.py`
+- `tests/unit/test_issuer_index.py`
+- `tests/unit/test_planner_rules.py`
+- `docs/process/tickets/simplify-followups/issues/13-immutable-issuer-index.md`
+- `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,659 Python tests pass; ruff and mypy pass; the answer comparison
+  reports `0 of 244 conversations differ from HEAD`.
