@@ -496,6 +496,31 @@ def test_run_filing_change_refuses_unresolved_document(
     assert result.tool_traces[0].provenance["error"]
 
 
+@pytest.mark.parametrize("accessions", [(OLDER, NEWER), ("", "")], ids=["given", "latest"])
+def test_a_malformed_submissions_table_is_refused_the_same_way_on_either_path(
+    monkeypatch: pytest.MonkeyPatch, accessions: tuple[str, str]
+) -> None:
+    facts = _Facts()
+    payload: dict[str, Any] = facts._client.get_submissions(CIK)
+    payload["filings"]["recent"]["primaryDocument"].pop()
+    monkeypatch.setattr(facts._client, "get_submissions", lambda cik: payload)
+
+    def unexpected_download(*args: object) -> str:
+        pytest.fail("A malformed table must be refused before downloading")
+
+    monkeypatch.setattr(facts._client, "get_filing_document", unexpected_download)
+    older, newer = accessions
+    result = run_filing_change(
+        FilingChangeRequest(
+            company="Microsoft", older_accession=older, newer_accession=newer, section="mda"
+        ),
+        _runtime(facts),
+    )
+
+    assert result.renderer is RendererKind.REFUSE
+    assert result.tool_traces[0].provenance["error"]["code"] == ProviderError.code
+
+
 @pytest.mark.parametrize(
     "failure",
     [
@@ -977,11 +1002,18 @@ def test_filing_change_requests_it_cannot_compare_say_why(
 
 
 def test_a_10k_question_compares_10ks_and_20f_filers_are_named() -> None:
-    from financial_analyst_agent.filing_change import _form_asked, _too_few_message
+    from financial_analyst_agent.filing_change import (
+        _form_asked,
+        _read_filings,
+        _too_few_message,
+    )
 
     assert _form_asked("What changed in Microsoft's latest 10-K?") == "10-K"
     assert _form_asked("What changed in Microsoft's latest 10-Q?") == "10-Q"
-    assert "20-F" in _too_few_message({"form": ["20-F", "6-K"]}, "Taiwan Semiconductor", "10-Q")
+    filings = _read_filings(
+        {"accessionNumber": ["a", "b"], "form": ["20-F", "6-K"], "primaryDocument": ["a", "b"]}
+    )
+    assert "20-F" in _too_few_message(filings, "Taiwan Semiconductor", "10-Q")
 
 
 def test_an_annual_report_or_accession_question_is_a_filing_change() -> None:

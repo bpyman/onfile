@@ -46,6 +46,7 @@ from typing import Any
 
 from financial_analyst_agent.filing_change import (
     REVIEWED_SECTIONS,
+    _read_filings,
     _year_apart_quarterlies,
     extract_section,
 )
@@ -197,13 +198,13 @@ def _year_apart_documents(
     cik: str, recent: dict[str, list[Any]], user_agent: str
 ) -> tuple[dict[str, str], tuple[str, str]] | None:
     """The newest 10-Q and the one a year before it, as ``filing_change`` pairs them."""
-    pair = _year_apart_quarterlies(recent)
+    filings = _read_filings(recent)
+    pair = _year_apart_quarterlies(filings)
     if pair is None:
         return None
     documents: dict[str, str] = {}
     for accession in pair:
-        index = recent["accessionNumber"].index(accession)
-        document = recent["primaryDocument"][index]
+        document = filings[accession].primary_document
         url = build_filing_document_url(cik, accession, document)
         raw = _get(url, user_agent).decode("utf-8", errors="replace")
         documents[f"{cik}:{accession}:{document}"] = _section_excerpt(raw)

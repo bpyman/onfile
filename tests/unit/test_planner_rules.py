@@ -12,7 +12,7 @@ from financial_analyst_agent.answer_notes import capped_ranking_notes
 from financial_analyst_agent.contracts import Intent, RendererKind, TableRow, TurnResult
 from financial_analyst_agent.conversation import run_conversation_turn, start_thread
 from financial_analyst_agent.domain.errors import UnknownIndustryError
-from financial_analyst_agent.filing_change import _year_apart_quarterlies
+from financial_analyst_agent.filing_change import _read_filings, _year_apart_quarterlies
 from financial_analyst_agent.graph.analysis_spec import (
     AnalysisSpec,
     PeriodSelection,
@@ -366,9 +366,10 @@ def test_year_apart_pair_prefers_the_same_quarter() -> None:
         "accessionNumber": ["n", "k", "p", "y"],
         "form": ["10-Q", "10-K", "10-Q", "10-Q"],
         "reportDate": ["2026-03-31", "2025-06-30", "2025-12-31", "2025-03-31"],
+        "primaryDocument": ["n.htm", "k.htm", "p.htm", "y.htm"],
     }
 
-    assert _year_apart_quarterlies(recent) == ("y", "n")
+    assert _year_apart_quarterlies(_read_filings(recent)) == ("y", "n")
 
 
 def test_guide_replies_answer_help_greetings_advice_and_why() -> None:

@@ -910,3 +910,27 @@ Blockers / next:
 - None. All 1,702 Python tests pass; ruff and mypy pass; the answer comparison
   reports `0 of 244 conversations differ from HEAD`.
 
+## 2026-10-04 — simplify-followups 14 Read a filing change's submissions once
+
+Task completed: `docs/process/tickets/simplify-followups/issues/14-read-submissions-once.md`
+
+Key decisions:
+- `_read_filings(recent)` returns `_Filing` rows keyed by accession (first
+  occurrence wins). It raises the old `ProviderError` messages for missing or
+  uneven columns, so a malformed table is refused before anything is
+  downloaded, on either path.
+- The helpers take the rows. `_filing_date` is now `_report_date`; it still
+  falls back to `filingDate` only when the `reportDate` column is absent.
+- `_order_accessions` runs once, on the given-accessions path; the banner gets
+  the ordered pair.
+
+Files changed:
+- `src/financial_analyst_agent/filing_change.py`
+- `scripts/record_sec_fixtures.py`
+- `tests/unit/{test_filing_change,test_planner_rules}.py`
+- `docs/process/tickets/simplify-followups/issues/14-read-submissions-once.md`
+- `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,704 Python tests pass; ruff and mypy pass; the answer comparison
+  reports `0 of 244 conversations differ from HEAD`.
