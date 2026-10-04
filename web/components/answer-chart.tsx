@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useId, useMemo, useState, type ReactNode } from "react";
 import {
   Area,
   Bar,
@@ -39,6 +39,7 @@ import { emphasis, NO_LEGEND, toggleSeries, type LegendState } from "@/lib/legen
 import type { BarChartSpec, ChartSpec, LineChartSpec, ValueKind } from "@/lib/types";
 import { useInspect } from "./inspect-context";
 import { SectionLabel } from "./ui";
+import { usePhone } from "@/lib/browser";
 
 /**
  * A trend line or comparison bars. Marks are placed from the server's numbers;
@@ -67,8 +68,11 @@ export function AnswerChart({
   const single =
     !compact && chart.kind === "line" && chart.series.length === 1 ? chart.series[0] : null;
   const [legend, setLegend] = useState<LegendState>(NO_LEGEND);
-  const series = chart.kind === "line" ? lineSeries(chart) : [];
-  const derived = chart.kind === "line" ? lineRows(chart).some((row) => row.derived.length > 0) : false;
+  const series = useMemo(() => (chart.kind === "line" ? lineSeries(chart) : []), [chart]);
+  const derived = useMemo(
+    () => chart.kind === "line" && lineRows(chart).some((row) => row.derived.length > 0),
+    [chart],
+  );
   // Bars that follow the table's sort are no longer in the server's order.
   const caption = chart.kind === "bar" && order && chart.resorted_caption ? chart.resorted_caption : chart.caption;
   return (
@@ -223,19 +227,6 @@ function LineKey({ color }: { color: string }) {
 
 const AXIS_TICK = { fill: "var(--subtle)", fontSize: 11 } as const;
 const GRID = "var(--border)";
-const PHONE = "(max-width: 639px)";
-
-function subscribePhone(onChange: () => void) {
-  const query = window.matchMedia(PHONE);
-  query.addEventListener("change", onChange);
-  return () => query.removeEventListener("change", onChange);
-}
-
-/** A phone pins the tooltip under the plot, so a finger never hides the line it reads. */
-function usePhone(): boolean {
-  return useSyncExternalStore(subscribePhone, () => window.matchMedia(PHONE).matches, () => false);
-}
-
 function TrendChart({
   chart,
   height,
@@ -250,9 +241,10 @@ function TrendChart({
   const gradientId = useId().replace(/:/g, "");
   const inspect = useInspect();
   const phone = usePhone();
-  const series = lineSeries(chart);
+  // Built once per chart: hovering the legend re-renders without rebuilding the rows.
+  const series = useMemo(() => lineSeries(chart), [chart]);
   const shown = series.filter(({ key }) => !legend.hidden.includes(key));
-  const rows = lineRows(chart);
+  const rows = useMemo(() => lineRows(chart), [chart]);
   const values = rows.flatMap((row) => shown.map(({ key }) => row[key] as number | null));
   // A small trend needs only its floor, middle and top.
   const ticks = niceTicks(valueDomain(values, { zero: false }), compact ? 3 : 5);
@@ -632,7 +624,7 @@ function TooltipBox({ title, wide = false, children }: { title: string; wide?: b
 const BAR_FILL = "var(--chart-1)";
 
 function ComparisonChart({ chart, order }: { chart: BarChartSpec; order: string[] | null }) {
-  const rows = orderedBars(barRows(chart), order);
+  const rows = useMemo(() => orderedBars(barRows(chart), order), [chart, order]);
   const ticks = barTicks(rows.map((row) => (row.missing ? null : row.value)));
   // Sorted by another column, a rank number no longer matches the bar's place.
   const props = { rows, ticks, kind: chart.value_kind, metric: chart.metric_label, ranked: !order };

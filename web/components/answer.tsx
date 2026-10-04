@@ -8,7 +8,6 @@ import {
   useMemo,
   useRef,
   useState,
-  useSyncExternalStore,
   type ReactNode,
   type RefObject,
 } from "react";
@@ -38,6 +37,7 @@ import { InspectContext } from "./inspect-context";
 import { SafeMarkdown } from "./markdown";
 import { Badge, Callout, ExternalLink, FilingButton, SectionLabel, type Tone } from "./ui";
 import { WrittenAnswer } from "./written-answer";
+import { isPhone, usePhone } from "@/lib/browser";
 
 /** A clarification's buttons, as the thread wires them. */
 export interface ClarifyControls {
@@ -52,18 +52,6 @@ const LABEL_TONE: Record<string, Tone> = {
   "Question for you": "neutral",
   Guide: "neutral",
 };
-
-const PHONE = "(max-width: 639px)";
-
-function isPhone(): boolean {
-  return typeof window !== "undefined" && window.matchMedia(PHONE).matches;
-}
-
-function subscribePhone(onChange: () => void) {
-  const query = window.matchMedia(PHONE);
-  query.addEventListener("change", onChange);
-  return () => query.removeEventListener("change", onChange);
-}
 
 /**
  * One answer. Every amount and label here is a string from the server's
@@ -95,15 +83,17 @@ export function Answer({
 }) {
   const { fact_card, chart, table, message, evidence, traces, banners } = presentation;
   const { essay, citations, disclosures } = presentation;
-  const trends = presentation.trends ?? [];
+  const trends = presentation.trends;
   // Several companies over several quarters read across: quarters down, companies along.
   const shown: ShownTable | null = useMemo(() => (table ? (pivotTable(table) ?? table) : null), [table]);
   const pivoted = Boolean(table && shown !== table);
   // Sorting the table re-orders the comparison chart's bars to match.
   const [sort, setSort] = useState<TableSort | null>(null);
-  const rowOrder = shown && sort ? sortedRowIndices(shown, sort) : null;
-  const order = shown && !pivoted ? sortedRowKeys(shown, sort) : null;
-  const sortNote = shown && sort ? sortDescription(shown, sort) : null;
+  // Memoised on the table and the sort: a new array each render would also undo
+  // the inspector's own memo below.
+  const rowOrder = useMemo(() => (shown && sort ? sortedRowIndices(shown, sort) : null), [shown, sort]);
+  const order = useMemo(() => (shown && !pivoted ? sortedRowKeys(shown, sort) : null), [shown, pivoted, sort]);
+  const sortNote = useMemo(() => (shown && sort ? sortDescription(shown, sort) : null), [shown, sort]);
   const { footnotes, snapshot, notes } = splitNotes(banners);
   const filings = useMemo(() => answerFilings(presentation), [presentation]);
 
@@ -234,7 +224,7 @@ export function Answer({
  * select the figure's source (a bottom sheet on a phone instead).
  */
 function useSources(count: number) {
-  const phone = useSyncExternalStore(subscribePhone, isPhone, () => false);
+  const phone = usePhone();
   // Open on a wide screen; a phone keeps the answer short until asked.
   const [choice, setOpen] = useState<boolean | null>(null);
   const open = choice ?? !phone;

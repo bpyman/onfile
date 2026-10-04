@@ -1,4 +1,4 @@
-import { safeHref } from "./format";
+import { filingLabel, filingUrl } from "./format";
 import type { Presentation } from "./types";
 
 /**
@@ -34,11 +34,9 @@ export interface FilingLink {
 export function answerFilings(presentation: Presentation): FilingLink[] {
   const seen = new Map<string, string>();
   const add = (url: string, company: string, form: string, accession: string) => {
-    if (!safeHref(url)) return;
-    const filing = new URL(url);
-    filing.hash = "";
-    const label = [company, [form, accession].filter(Boolean).join(" ")].filter(Boolean).join(", ");
-    if (!seen.has(filing.href)) seen.set(filing.href, label || filing.hostname);
+    const filing = filingUrl(url);
+    if (filing === null || seen.has(filing)) return;
+    seen.set(filing, filingLabel(company, form, accession) || new URL(filing).hostname);
   };
   const card = presentation.fact_card;
   if (card) add(card.source_url, card.company_name, card.form, card.accession_number);

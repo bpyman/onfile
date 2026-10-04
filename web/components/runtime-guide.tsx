@@ -4,6 +4,7 @@ import { CalendarClock, CircleHelp, Database, Info, Radio } from "lucide-react";
 import { useId, useRef, type ToggleEvent } from "react";
 import { cn } from "@/lib/format";
 import type { RuntimeGuide as Guide, RuntimeKind } from "@/lib/types";
+import { placeBelow } from "@/lib/browser";
 
 const PANEL_WIDTH = 352;
 const GUTTER = 12;
@@ -30,13 +31,7 @@ export function RuntimeGuide({
 
   function place(event: ToggleEvent<HTMLDivElement>) {
     if (event.newState !== "open" || !button.current) return;
-    const anchor = button.current.getBoundingClientRect();
-    const panel = event.currentTarget;
-    const width = Math.min(PANEL_WIDTH, window.innerWidth - GUTTER * 2);
-    const left = Math.min(Math.max(GUTTER, anchor.left), window.innerWidth - width - GUTTER);
-    panel.style.width = `${width}px`;
-    panel.style.left = `${left}px`;
-    panel.style.top = `${anchor.bottom + 8}px`;
+    placeBelow(event.currentTarget, button.current.getBoundingClientRect(), PANEL_WIDTH, 8, GUTTER);
   }
 
   return (

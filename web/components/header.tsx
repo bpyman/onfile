@@ -3,11 +3,12 @@
 import { Ellipsis, Lock, Monitor, Moon, RotateCcw, Sun } from "lucide-react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import { useId, useRef, useSyncExternalStore, type ToggleEvent } from "react";
+import { useId, useRef, type ToggleEvent } from "react";
 import { cn } from "@/lib/format";
 import type { RuntimeKind } from "@/lib/types";
 import { ConfirmPanel, type ConfirmRequest } from "./confirm-panel";
 import { LogoMark } from "./ui";
+import { useHydrated } from "@/lib/browser";
 
 const RUNTIMES: { kind: RuntimeKind; label: string }[] = [
   { kind: "recorded", label: "Recorded" },
@@ -191,12 +192,8 @@ const MENU_ITEM =
   "focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:opacity-50";
 
 function PhoneTheme({ onDone }: { onDone: () => void }) {
-  const { theme, setTheme } = useTheme();
-  const mounted = useSyncExternalStore(subscribeNothing, () => true, () => false);
-  const shown = mounted ? (theme ?? "dark") : "dark";
-  const index = Math.max(0, THEMES.findIndex(({ value }) => value === shown));
-  const next = THEMES[(index + 1) % THEMES.length];
-  const Current = THEMES[index].Icon;
+  const { current, next, setTheme } = useThemeCycle();
+  const Current = current.Icon;
   return (
     <button
       type="button"
@@ -208,7 +205,7 @@ function PhoneTheme({ onDone }: { onDone: () => void }) {
       className={MENU_ITEM}
     >
       <Current className="size-4 text-muted" aria-hidden />
-      Theme: {THEMES[index].label}
+      Theme: {current.label}
       <span className="ml-auto text-[11.5px] text-subtle">{next.label} next</span>
     </button>
   );
@@ -316,18 +313,20 @@ const THEMES = [
   { value: "dark", label: "Dark", Icon: Moon },
 ] as const;
 
-const subscribeNothing = () => () => {};
+/** The theme shown, the one after it in System → Light → Dark, and how to switch. */
+function useThemeCycle() {
+  const { theme, setTheme } = useTheme();
+  // next-themes only knows the stored theme after hydration; the server cannot
+  // know it either, so its default is shown until then.
+  const mounted = useHydrated();
+  const shown = mounted ? (theme ?? "dark") : "dark";
+  const index = Math.max(0, THEMES.findIndex(({ value }) => value === shown));
+  return { mounted, current: THEMES[index], next: THEMES[(index + 1) % THEMES.length], setTheme };
+}
 
 /** One button that steps System → Light → Dark; its icon shows the current choice. */
 function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
-  // next-themes only knows the stored theme after hydration.
-  const mounted = useSyncExternalStore(subscribeNothing, () => true, () => false);
-  // The server cannot know the stored theme; render its default until hydrated.
-  const shown = mounted ? (theme ?? "dark") : "dark";
-  const index = Math.max(0, THEMES.findIndex(({ value }) => value === shown));
-  const current = THEMES[index];
-  const next = THEMES[(index + 1) % THEMES.length];
+  const { mounted, current, next, setTheme } = useThemeCycle();
   const label = `Theme: ${current.label}. Switch to ${next.label.toLowerCase()}`;
   return (
     <button

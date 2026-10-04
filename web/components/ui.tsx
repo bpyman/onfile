@@ -122,17 +122,6 @@ export function Badge({
   );
 }
 
-export function Code({ children, title }: { children: ReactNode; title?: string }) {
-  return (
-    <code
-      title={title}
-      className="num rounded-md border border-border bg-surface-2 px-1.5 py-0.5 text-[11px] text-muted"
-    >
-      {children}
-    </code>
-  );
-}
-
 const CALLOUT_ICON = { info: Info, warning: TriangleAlert, error: OctagonAlert } as const;
 const CALLOUT_TONE = {
   info: "border-primary/20 bg-primary-soft text-fg [&_svg]:text-primary",

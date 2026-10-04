@@ -1,4 +1,4 @@
-import { safeHref } from "./format";
+import { filingLabel, filingUrl, safeHref } from "./format";
 import type { DisplayTable, Presentation } from "./types";
 
 /**
@@ -30,7 +30,7 @@ export function answerMarkdown(
     blocks.push(lines.filter(Boolean).join("  \n"));
   }
 
-  for (const trend of presentation.trends ?? []) {
+  for (const trend of presentation.trends) {
     const name = trend.series[0] ?? "";
     const points = trend.period_labels.map((period, index) => `${period}: ${trend.amounts[index]?.[name] ?? "—"}`);
     blocks.push(`**${plain(trend.metric_label)}, recent quarters:** ${plain(points.join(" · "))}`);
@@ -168,14 +168,12 @@ export function safeEssay(essay: string, cited: string[]): string {
 function filingLinks(presentation: Presentation): string[] {
   const seen = new Map<string, string>();
   const add = (url: string, label: string) => {
-    if (!safeHref(url)) return;
-    const filing = new URL(url);
-    filing.hash = "";
-    if (!seen.has(filing.href)) seen.set(filing.href, plain(label));
+    const filing = filingUrl(url);
+    if (filing !== null && !seen.has(filing)) seen.set(filing, plain(label));
   };
   // A filing is named by whose it is and its accession; several figures often share one.
   const filing = (company: string, form: string, accession: string, fallback: string) =>
-    [company, [form, accession].filter(Boolean).join(" ")].filter(Boolean).join(", ") || fallback;
+    filingLabel(company, form, accession) || fallback;
   const card = presentation.fact_card;
   if (card) add(card.source_url, filing(card.company_name, card.form, card.accession_number, card.metric_header));
   for (const item of presentation.evidence) {

@@ -6,6 +6,7 @@ import { cn, splitBanner } from "@/lib/format";
 import { turnCounterLabel } from "@/lib/turn-state";
 import type { ChipEdit, QuickAction, QuickActions, RuntimeGuide as Guide, RuntimeKind } from "@/lib/types";
 import { RuntimeGuide } from "./runtime-guide";
+import { placeBelow } from "@/lib/browser";
 
 const SNAPSHOT_HELP =
   "Rankings read this dated list of US-listed operating companies (the universe snapshot); lookups do not need it.";
@@ -221,12 +222,7 @@ function AddMenu({
 
   function place(event: ToggleEvent<HTMLDivElement>) {
     if (event.newState !== "open" || !button.current) return;
-    const anchor = button.current.getBoundingClientRect();
-    const width = Math.min(288, window.innerWidth - 24);
-    const target = event.currentTarget;
-    target.style.width = `${width}px`;
-    target.style.left = `${Math.min(Math.max(12, anchor.left), window.innerWidth - width - 12)}px`;
-    target.style.top = `${anchor.bottom + 6}px`;
+    placeBelow(event.currentTarget, button.current.getBoundingClientRect(), 288, 6);
   }
 
   function choose(run: () => void) {
