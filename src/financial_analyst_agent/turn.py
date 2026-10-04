@@ -1141,39 +1141,37 @@ def lookup_task(task: CompiledTask, runtime: Runtime) -> TurnResult:
     try:
         fact = runtime.facts.get_financials(company, metric, report_date=report_date)
     except _LOOKUP_FAILURES as exc:
-        if isinstance(exc, PerShareNotDerivableError):
-            # Not a failure: the filings say this figure exists only for the year.
-            return TurnResult(
-                intent=Intent.LOOKUP,
-                tool_traces=[ToolTrace(tool="get_financials", args=args)],
-                renderer=RendererKind.TABLE,
-                table_rows=[
-                    TableRow(
-                        company_name=company,
-                        ticker="",
-                        cik="",
-                        metric=metric,
-                        end_date=report_date,
-                        reason=reason_for(exc),
-                    )
-                ],
-            )
+        provenance = (
+            {}
+            if isinstance(exc, PerShareNotDerivableError)
+            else {
+                "error": {
+                    "code": exc.code,
+                    "message": str(exc),
+                    "details": exc.details,
+                }
+            }
+        )
         return TurnResult(
             intent=Intent.LOOKUP,
             tool_traces=[
                 ToolTrace(
                     tool="get_financials",
                     args=args,
-                    provenance={
-                        "error": {
-                            "code": exc.code,
-                            "message": str(exc),
-                            "details": exc.details,
-                        }
-                    },
+                    provenance=provenance,
                 )
             ],
-            renderer=RendererKind.REFUSE,
+            renderer=RendererKind.TABLE,
+            table_rows=[
+                TableRow(
+                    company_name=company,
+                    ticker="",
+                    cik="",
+                    metric=metric,
+                    end_date=report_date,
+                    reason=reason_for(exc),
+                )
+            ],
             message=str(exc),
             refusal=refusal_from_error(exc),
         )

@@ -12,4 +12,17 @@ Spec: ADR 0002 (a refused cell keeps its reason).
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+`lookup_task` now returns a reasoned table cell for every expected lookup
+failure and carries the error's typed refusal metadata alongside it. The merge
+step no longer reconstructs reasons from trace JSON: a one-company analysis
+whose cells all failed for the same reason becomes one refusal using that typed
+metadata, while a wider analysis keeps the failed cells as partial results.
+
+The lookup-refusal conversion helper and the special not-operating-company
+sentence rewrite are gone. Per-share absences keep their existing empty trace
+output. All 1,661 offline tests, ruff, and mypy pass; recorded output is
+unchanged across all 244 conversations.

@@ -32,7 +32,6 @@ from financial_analyst_agent.contracts import (
     DEFAULT_RANK_LIMIT,
     LOOKUP_FAILED,
     MISSING_FACT,
-    NOT_OPERATING_COMPANY,
     QUALITATIVE_INTENTS,
     SNAPSHOT_METRICS,
     SOURCE_UNAVAILABLE,
@@ -106,7 +105,6 @@ from financial_analyst_agent.turn import (
     lookup_task,
     rank_and_lookup_task,
     rank_task,
-    reason_for_code,
 )
 
 # Bound concurrent provider fan-out so a wide window cannot flood SEC/EDGAR.
@@ -484,26 +482,6 @@ def dispatch_compiled_tasks(
     return [result for result in ordered if result is not None]
 
 
-def _lookup_refuse_as_partial(task: CompiledTask, result: TurnResult) -> list[TableRow]:
-    """Convert a whole-lookup refuse into a cell so multi-metric tables stay partial."""
-    if result.renderer is not RendererKind.REFUSE:
-        return list(result.table_rows)
-    if task.kind != "lookup" or not task.issuers or not task.metric:
-        return list(result.table_rows)
-    # The refusal's error says why, as it does in a comparison (ADR 0002): a fund in
-    # a window of quarters, or an unknown company, reads alike in every cell.
-    codes = [
-        trace.provenance["error"].get("code")
-        for trace in result.tool_traces
-        if isinstance(trace.provenance.get("error"), dict)
-    ]
-    reason = next(
-        (reason_for_code(code) for code in codes if reason_for_code(code) != MISSING_FACT),
-        MISSING_FACT,
-    )
-    return [_missing_cell(task.issuers[0], task.metric, task.report_date, reason)]
-
-
 def _subtracted_level_provenance(row: TableRow) -> ComponentProvenance:
     """The level a change row subtracts, with the facts it came from.
 
@@ -635,10 +613,8 @@ def merge_task_results(
     traces: list[ToolTrace] = []
     banners: list[str] = []
     snapshot_as_of = None
-    for task, result in zip(tasks, results, strict=True):
+    for _task, result in zip(tasks, results, strict=True):
         if result.renderer is RendererKind.REFUSE and not result.table_rows:
-            rows.extend(_lookup_refuse_as_partial(task, result))
-            # The trace says why the cell is empty, as a single lookup's refusal does.
             traces.extend(result.tool_traces)
             continue
         rows.extend(result.table_rows)
@@ -1022,8 +998,7 @@ def merge_analysis(compiled: CompiledAnalysis, results: list[TurnResult]) -> Tur
         sequential="year_over_year" not in spec.operations,
     )
     if len(spec.companies) == 1 and spec.constituents is None:
-        # "How is SPY doing?": one reason, said once, not a row for each metric.
-        merged = _not_operating_once(merged, results, spec.companies[0])
+        merged = _one_company_failure(merged, results)
     merged = _fill_identity(merged, spec)
     message = compiled.wording
     if "order_by_metric" in spec.operations and spec.constituents is not None and spec.metrics:
@@ -1132,43 +1107,21 @@ def _refusal(
     )
 
 
-def _not_operating_once(
-    merged: TurnResult, results: list[TurnResult], company: ResolvedCompany
-) -> TurnResult:
-    """One refusal where every cell of one company failed for the same reason.
-
-    "How is SPY doing?" is a fund, not five "Not an operating company" rows.
-    """
+def _one_company_failure(merged: TurnResult, results: list[TurnResult]) -> TurnResult:
+    """Say one typed refusal when every cell failed for the same reason."""
     rows = merged.table_rows
     reasons = {row.reason for row in rows}
     if not rows or any(row.value is not None for row in rows) or len(reasons) != 1:
         return merged
-    said = next(
-        (
-            result.message
-            for result in results
-            if result.renderer is RendererKind.REFUSE and result.message
-        ),
-        None,
-    )
-    if said is None and reasons == {NOT_OPERATING_COMPANY}:
-        name = short_name(company.name) or company.query
-        said = (
-            f"{name} is not an operating company (it is a fund, business development "
-            "company or similar listing), so its 10-Q figures are outside what this "
-            "analyst covers."
-        )
-    if said is None:
+    failed = next((result for result in results if result.message), None)
+    if failed is None:
         return merged
     return TurnResult(
         intent=merged.intent,
         tool_traces=merged.tool_traces,
         renderer=RendererKind.REFUSE,
-        message=said,
-        refusal=next(
-            (result.refusal for result in results if result.refusal is not None),
-            None,
-        ),
+        message=failed.message,
+        refusal=failed.refusal,
     )
 
 

@@ -705,3 +705,29 @@ Blockers / next:
 - None. Ticket 03 is now unblocked.
 - Verification: 1,660 tests passed; ruff and mypy passed; recorded answers were
   unchanged (`0 of 244 conversations differ`).
+
+## 2026-10-04 — simplify-followups 03 Reasoned lookup cells
+
+Task completed:
+`docs/process/tickets/simplify-followups/issues/03-tasks-return-reasoned-cells.md`
+
+Key decisions:
+- Expected lookup failures return reasoned cells and retain typed refusal
+  metadata; merge no longer recovers the reason from trace JSON.
+- A one-company analysis whose cells all have one failure reason becomes one
+  refusal from the originating typed metadata; wider analyses keep partial
+  cells.
+- Per-share absences remain reasoned cells without adding error output to their
+  trace cards.
+
+Files changed:
+- `src/financial_analyst_agent/turn.py`
+- `src/financial_analyst_agent/graph/spec_turn.py`
+- `tests/test_review_findings.py`
+- `tests/unit/test_planner_understanding.py`
+- `docs/process/tickets/simplify-followups/issues/03-tasks-return-reasoned-cells.md`
+
+Blockers / next:
+- None.
+- Verification: 1,661 tests passed; ruff and mypy passed; recorded answers were
+  unchanged (`0 of 244 conversations differ`).
