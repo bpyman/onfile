@@ -33,6 +33,7 @@ from financial_analyst_agent.domain.errors import (
     ProviderRefusal,
     visitor_message,
 )
+from financial_analyst_agent.fan_out import map_in_order
 from financial_analyst_agent.graph.state import FilingChangeRequest
 from financial_analyst_agent.guide import format_date, joined, short_name
 from financial_analyst_agent.observability import call_provider
@@ -1055,8 +1056,11 @@ def run_filing_change(
         )
         older_doc = _primary_document(submitted, older)
         newer_doc = _primary_document(submitted, newer)
-        older_text = html_to_text(filings.get_filing_document(cik, older, older_doc))
-        newer_text = html_to_text(filings.get_filing_document(cik, newer, newer_doc))
+        # The two filings are independent: download and read them at once (ADR 0005).
+        older_text, newer_text = map_in_order(
+            lambda pair: html_to_text(filings.get_filing_document(cik, *pair)),
+            [(older, older_doc), (newer, newer_doc)],
+        )
         older_url = build_filing_document_url(cik, older, older_doc)
         newer_url = build_filing_document_url(cik, newer, newer_doc)
         for section in sections:

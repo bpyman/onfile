@@ -399,6 +399,45 @@ def test_run_filing_change_maps_both_reviewed_sections() -> None:
     assert result.tool_traces[0].tool == "filing_change"
 
 
+def test_both_filings_are_downloaded_at_once_and_keep_their_places() -> None:
+    import threading
+
+    # Two downloads that each wait for the other: one after the other, they never meet.
+    meeting = threading.Barrier(2, timeout=5)
+
+    class _Meeting(_Client):
+        def get_filing_document(self, cik: str, accession: str, document: str) -> str:
+            meeting.wait()
+            return super().get_filing_document(cik, accession, document)
+
+    facts = _Facts()
+    facts._client = _Meeting()
+
+    result = run_filing_change(
+        FilingChangeRequest(
+            company="Microsoft",
+            older_accession=OLDER,
+            newer_accession=NEWER,
+            section="MD&A and Risk Factors",
+            summarize=False,
+        ),
+        _runtime(facts),
+    )
+
+    baseline = run_filing_change(
+        FilingChangeRequest(
+            company="Microsoft",
+            older_accession=OLDER,
+            newer_accession=NEWER,
+            section="MD&A and Risk Factors",
+            summarize=False,
+        ),
+        _runtime(),
+    )
+    assert result.disclosure_changes == baseline.disclosure_changes
+    assert result.disclosure_changes
+
+
 @pytest.mark.parametrize("form", ["10-K", "10-K/A", "10-Q", "10-Q/A"])
 def test_run_filing_change_resolves_actual_primary_document(
     monkeypatch: pytest.MonkeyPatch, form: str
