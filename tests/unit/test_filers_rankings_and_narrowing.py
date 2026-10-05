@@ -1,5 +1,5 @@
-"""Fixes from the showcase run: retail calendars, long quarters, annual filers,
-narrowing follow-ups, whole-snapshot rankings, and date-only 10-Q changes."""
+"""Retail calendars and long quarters, annual filers, narrowing follow-ups,
+whole-snapshot rankings, and 10-Q paragraphs that changed only a date."""
 
 from __future__ import annotations
 

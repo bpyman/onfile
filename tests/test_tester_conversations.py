@@ -1,7 +1,8 @@
-"""Third round of user testing: conversations replayed on the recorded runtime.
+"""Conversations testers had with the public demo, replayed on the recorded runtime.
 
-Each test is a conversation a tester had with the public demo, with the answer
-it should have got.
+Each test is one conversation with the answer it should have got: periods and
+companies named mid-conversation, companies the demo did not record, named and
+derived quarters, change rows, and rankings shorter than asked.
 """
 
 from __future__ import annotations

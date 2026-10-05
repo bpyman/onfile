@@ -11,7 +11,7 @@ import pytest
 from conversation_replay import ask, column_of, replay
 
 
-# Imported per test, as in test_user_testing_round3.
+# Imported per test, as in test_tester_conversations.
 @pytest.fixture
 def runtime():  # type: ignore[no-untyped-def]
     from financial_analyst_agent.runtime import recorded_runtime
