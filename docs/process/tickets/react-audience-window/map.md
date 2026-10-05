@@ -1,6 +1,6 @@
 # React audience window — map
 
-Spec: [ADR 0006](../../docs/adr/0006-react-audience-window.md). Glossary: [CONTEXT.md](../../CONTEXT.md).
+Spec: [ADR 0006](../../../adr/0006-react-audience-window.md). Glossary: [CONTEXT.md](../../../../CONTEXT.md).
 
 ## PRs
 

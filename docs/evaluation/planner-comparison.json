@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-10-03T18:33:09.678331+00:00",
-  "case_count": 219,
+  "generated_at": "2026-10-05T13:25:46.947527+00:00",
+  "case_count": 285,
   "scorecard_count": 28,
-  "dev_count": 122,
-  "held_out_count": 69,
+  "dev_count": 191,
+  "held_out_count": 66,
   "planners": {
     "rules": {
       "label": "Rules planner",
@@ -14,8 +14,6 @@
           "accuracy_by_run": [
             1,
             1,
-            1,
-            1,
             1
           ],
           "accuracy_sd": 0.0,
@@ -31,78 +29,73 @@
           "agreement": 1
         },
         "dev": {
-          "cases": 122,
-          "accuracy": 1,
+          "cases": 191,
+          "accuracy": 0.9842931937172775,
           "accuracy_by_run": [
-            1,
-            1,
-            1,
-            1,
-            1
+            0.9842931937172775,
+            0.9842931937172775,
+            0.9842931937172775
           ],
           "accuracy_sd": 0.0,
           "fields": {
-            "outcome": 1,
+            "outcome": 0.9893617021276596,
             "intent": 1,
-            "tickers": 1,
-            "tickers_include": 1,
-            "metrics": 1,
+            "tickers": 0.9929577464788732,
+            "tickers_include": 0.875,
+            "metrics": 0.9933774834437086,
             "periods": 1,
             "operations_include": 1
           },
           "agreement": 1
         },
         "held_out": {
-          "cases": 69,
-          "accuracy": 0.9130434782608695,
+          "cases": 66,
+          "accuracy": 0.8484848484848485,
           "accuracy_by_run": [
-            0.9130434782608695,
-            0.9130434782608695,
-            0.9130434782608695,
-            0.9130434782608695,
-            0.9130434782608695
+            0.8484848484848485,
+            0.8484848484848485,
+            0.8484848484848485
           ],
           "accuracy_sd": 0.0,
           "fields": {
-            "outcome": 0.9420289855072463,
-            "intent": 1,
-            "tickers": 0.9807692307692307,
-            "tickers_include": 0.6,
-            "metrics": 0.9821428571428571,
-            "periods": 1,
-            "operations_include": 0.5
+            "outcome": 0.967741935483871,
+            "intent": 0.98,
+            "tickers": 0.9545454545454546,
+            "tickers_include": 1,
+            "metrics": 0.9565217391304348,
+            "periods": 0.8695652173913043,
+            "operations_include": 0.8571428571428571
           },
           "agreement": 1
         },
         "all": {
-          "cases": 219,
-          "accuracy": 0.9726027397260274,
+          "cases": 285,
+          "accuracy": 0.9543859649122807,
           "accuracy_by_run": [
-            0.9726027397260274,
-            0.9726027397260274,
-            0.9726027397260274,
-            0.9726027397260274,
-            0.9726027397260274
+            0.9543859649122807,
+            0.9543859649122807,
+            0.9543859649122807
           ],
           "accuracy_sd": 0.0,
           "fields": {
-            "outcome": 0.9813953488372092,
-            "intent": 1,
-            "tickers": 0.9935064935064936,
-            "tickers_include": 0.9,
-            "metrics": 0.9939393939393939,
-            "periods": 1,
-            "operations_include": 0.875
+            "outcome": 0.9855595667870036,
+            "intent": 0.9932885906040269,
+            "tickers": 0.9849246231155779,
+            "tickers_include": 0.9230769230769231,
+            "metrics": 0.9858490566037735,
+            "periods": 0.941747572815534,
+            "operations_include": 0.9333333333333333
           },
           "agreement": 1
         }
       },
-      "runs": 5,
-      "case_runs": 1095,
-      "planner_calls": 1265,
-      "planner_ms_p50": 1.3686000020243227,
-      "planner_ms_p95": 2.897300000768155,
-      "turn_ms_p50": 10.089499992318451,
+      "runs": 3,
+      "stopped_in_run": null,
+      "case_runs": 855,
+      "planner_calls": 993,
+      "planner_ms_p50": 1.045599998178659,
+      "planner_ms_p95": 2.239099998405436,
+      "turn_ms_p50": 7.230700000945944,
       "input_tokens": 0,
       "output_tokens": 0,
       "reasoning_tokens": 0,
@@ -110,14 +103,6 @@
       "cost_per_planner_call_usd": null,
       "failures": [
         {
-          "id": "h3_what_about_keeps_window",
-          "run": 0,
-          "error": "",
-          "wrong": [
-            "outcome"
-          ]
-        },
-        {
           "id": "h3_apples_to_apples",
           "run": 0,
           "error": "",
@@ -145,7 +130,67 @@
           ]
         },
         {
-          "id": "h3_bac_jpm_ni_growth",
+          "id": "h4_bac_nii_couple_quarters",
+          "run": 0,
+          "error": "",
+          "wrong": [
+            "metrics",
+            "outcome",
+            "periods",
+            "tickers"
+          ]
+        },
+        {
+          "id": "h4_fu_amgn_gild_yoy",
+          "run": 0,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_fu_jpm_and_wfc_remove_jpm",
+          "run": 0,
+          "error": "",
+          "wrong": [
+            "metrics",
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_fu_tmo_dhr_too_growth",
+          "run": 0,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_ow_apples_word_mrk_pfe",
+          "run": 0,
+          "error": "",
+          "wrong": [
+            "tickers"
+          ]
+        },
+        {
+          "id": "h4_growth_nvda_how_fast",
+          "run": 0,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_growth_three_tickers_operating_income",
+          "run": 0,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_growth_unh_ocf_year_on_year",
           "run": 0,
           "error": "",
           "wrong": [
@@ -153,7 +198,7 @@
           ]
         },
         {
-          "id": "h3_amgn_two_metrics",
+          "id": "h4_clarify_intel_change_no_base",
           "run": 0,
           "error": "",
           "wrong": [
@@ -161,11 +206,11 @@
           ]
         },
         {
-          "id": "h3_what_about_keeps_window",
-          "run": 1,
+          "id": "h4_other_explain_ai_drug_discovery",
+          "run": 0,
           "error": "",
           "wrong": [
-            "outcome"
+            "intent"
           ]
         },
         {
@@ -196,7 +241,67 @@
           ]
         },
         {
-          "id": "h3_bac_jpm_ni_growth",
+          "id": "h4_bac_nii_couple_quarters",
+          "run": 1,
+          "error": "",
+          "wrong": [
+            "metrics",
+            "outcome",
+            "periods",
+            "tickers"
+          ]
+        },
+        {
+          "id": "h4_fu_amgn_gild_yoy",
+          "run": 1,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_fu_jpm_and_wfc_remove_jpm",
+          "run": 1,
+          "error": "",
+          "wrong": [
+            "metrics",
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_fu_tmo_dhr_too_growth",
+          "run": 1,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_ow_apples_word_mrk_pfe",
+          "run": 1,
+          "error": "",
+          "wrong": [
+            "tickers"
+          ]
+        },
+        {
+          "id": "h4_growth_nvda_how_fast",
+          "run": 1,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_growth_three_tickers_operating_income",
+          "run": 1,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_growth_unh_ocf_year_on_year",
           "run": 1,
           "error": "",
           "wrong": [
@@ -204,7 +309,7 @@
           ]
         },
         {
-          "id": "h3_amgn_two_metrics",
+          "id": "h4_clarify_intel_change_no_base",
           "run": 1,
           "error": "",
           "wrong": [
@@ -212,11 +317,11 @@
           ]
         },
         {
-          "id": "h3_what_about_keeps_window",
-          "run": 2,
+          "id": "h4_other_explain_ai_drug_discovery",
+          "run": 1,
           "error": "",
           "wrong": [
-            "outcome"
+            "intent"
           ]
         },
         {
@@ -247,7 +352,67 @@
           ]
         },
         {
-          "id": "h3_bac_jpm_ni_growth",
+          "id": "h4_bac_nii_couple_quarters",
+          "run": 2,
+          "error": "",
+          "wrong": [
+            "metrics",
+            "outcome",
+            "periods",
+            "tickers"
+          ]
+        },
+        {
+          "id": "h4_fu_amgn_gild_yoy",
+          "run": 2,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_fu_jpm_and_wfc_remove_jpm",
+          "run": 2,
+          "error": "",
+          "wrong": [
+            "metrics",
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_fu_tmo_dhr_too_growth",
+          "run": 2,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_ow_apples_word_mrk_pfe",
+          "run": 2,
+          "error": "",
+          "wrong": [
+            "tickers"
+          ]
+        },
+        {
+          "id": "h4_growth_nvda_how_fast",
+          "run": 2,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_growth_three_tickers_operating_income",
+          "run": 2,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_growth_unh_ocf_year_on_year",
           "run": 2,
           "error": "",
           "wrong": [
@@ -255,7 +420,7 @@
           ]
         },
         {
-          "id": "h3_amgn_two_metrics",
+          "id": "h4_clarify_intel_change_no_base",
           "run": 2,
           "error": "",
           "wrong": [
@@ -263,105 +428,11 @@
           ]
         },
         {
-          "id": "h3_what_about_keeps_window",
-          "run": 3,
+          "id": "h4_other_explain_ai_drug_discovery",
+          "run": 2,
           "error": "",
           "wrong": [
-            "outcome"
-          ]
-        },
-        {
-          "id": "h3_apples_to_apples",
-          "run": 3,
-          "error": "",
-          "wrong": [
-            "tickers"
-          ]
-        },
-        {
-          "id": "h3_healthcare_market_cap",
-          "run": 3,
-          "error": "",
-          "wrong": [
-            "outcome",
-            "tickers_include"
-          ]
-        },
-        {
-          "id": "h3_tech_top_ten_revenue",
-          "run": 3,
-          "error": "",
-          "wrong": [
-            "metrics",
-            "outcome",
-            "tickers_include"
-          ]
-        },
-        {
-          "id": "h3_bac_jpm_ni_growth",
-          "run": 3,
-          "error": "",
-          "wrong": [
-            "operations_include"
-          ]
-        },
-        {
-          "id": "h3_amgn_two_metrics",
-          "run": 3,
-          "error": "",
-          "wrong": [
-            "outcome"
-          ]
-        },
-        {
-          "id": "h3_what_about_keeps_window",
-          "run": 4,
-          "error": "",
-          "wrong": [
-            "outcome"
-          ]
-        },
-        {
-          "id": "h3_apples_to_apples",
-          "run": 4,
-          "error": "",
-          "wrong": [
-            "tickers"
-          ]
-        },
-        {
-          "id": "h3_healthcare_market_cap",
-          "run": 4,
-          "error": "",
-          "wrong": [
-            "outcome",
-            "tickers_include"
-          ]
-        },
-        {
-          "id": "h3_tech_top_ten_revenue",
-          "run": 4,
-          "error": "",
-          "wrong": [
-            "metrics",
-            "outcome",
-            "tickers_include"
-          ]
-        },
-        {
-          "id": "h3_bac_jpm_ni_growth",
-          "run": 4,
-          "error": "",
-          "wrong": [
-            "operations_include"
-          ]
-        },
-        {
-          "id": "h3_amgn_two_metrics",
-          "run": 4,
-          "error": "",
-          "wrong": [
-            "outcome"
+            "intent"
           ]
         }
       ]
@@ -369,109 +440,386 @@
     "llm": {
       "label": "LLM planner (`gpt-5.6-terra`)",
       "splits": {
-        "scorecard": {
-          "cases": 28,
-          "accuracy": 1,
-          "accuracy_by_run": [
-            1,
-            1,
-            1,
-            1,
-            1
-          ],
-          "accuracy_sd": 0.0,
-          "fields": {
-            "outcome": 1,
-            "intent": 1,
-            "tickers": 1,
-            "tickers_include": 1,
-            "metrics": 1,
-            "periods": 1,
-            "operations_include": 1
-          },
-          "agreement": 1
-        },
-        "dev": {
-          "cases": 122,
-          "accuracy": 1,
-          "accuracy_by_run": [
-            1,
-            1,
-            1,
-            1,
-            1
-          ],
-          "accuracy_sd": 0.0,
-          "fields": {
-            "outcome": 1,
-            "intent": 1,
-            "tickers": 1,
-            "tickers_include": 1,
-            "metrics": 1,
-            "periods": 1,
-            "operations_include": 1
-          },
-          "agreement": 1
-        },
         "held_out": {
-          "cases": 69,
-          "accuracy": 0.9565217391304348,
+          "cases": 66,
+          "accuracy": 0.8787878787878788,
           "accuracy_by_run": [
-            0.9565217391304348,
-            0.9565217391304348,
-            0.9565217391304348,
-            0.9565217391304348,
-            0.9565217391304348
+            0.8787878787878788,
+            0.8787878787878788,
+            0.8787878787878788
           ],
           "accuracy_sd": 0.0,
           "fields": {
-            "outcome": 0.9710144927536232,
+            "outcome": 0.967741935483871,
             "intent": 1,
-            "tickers": 1,
+            "tickers": 0.9772727272727273,
             "tickers_include": 1,
-            "metrics": 1,
-            "periods": 1,
-            "operations_include": 0.5
+            "metrics": 0.9565217391304348,
+            "periods": 0.8695652173913043,
+            "operations_include": 0.8571428571428571
+          },
+          "agreement": 0.9848484848484849
+        },
+        "all": {
+          "cases": 66,
+          "accuracy": 0.8787878787878788,
+          "accuracy_by_run": [
+            0.8787878787878788,
+            0.8787878787878788,
+            0.8787878787878788
+          ],
+          "accuracy_sd": 0.0,
+          "fields": {
+            "outcome": 0.967741935483871,
+            "intent": 1,
+            "tickers": 0.9772727272727273,
+            "tickers_include": 1,
+            "metrics": 0.9565217391304348,
+            "periods": 0.8695652173913043,
+            "operations_include": 0.8571428571428571
+          },
+          "agreement": 0.9848484848484849
+        }
+      },
+      "runs": 3,
+      "stopped_in_run": null,
+      "case_runs": 198,
+      "planner_calls": 234,
+      "planner_ms_p50": 1313.7639999986277,
+      "planner_ms_p95": 1971.3758000034431,
+      "turn_ms_p50": 1319.106400002056,
+      "input_tokens": 327705,
+      "output_tokens": 10335,
+      "reasoning_tokens": 718,
+      "cost_usd": 0.77943,
+      "cost_per_planner_call_usd": 0.0033308974358974355,
+      "failures": [
+        {
+          "id": "h4_bac_nii_couple_quarters",
+          "run": 0,
+          "error": "",
+          "wrong": [
+            "metrics",
+            "outcome",
+            "periods",
+            "tickers"
+          ]
+        },
+        {
+          "id": "h4_fu_amgn_gild_yoy",
+          "run": 0,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_fu_jpm_and_wfc_remove_jpm",
+          "run": 0,
+          "error": "",
+          "wrong": [
+            "metrics",
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_fu_tmo_dhr_too_growth",
+          "run": 0,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_growth_nvda_how_fast",
+          "run": 0,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_growth_three_tickers_operating_income",
+          "run": 0,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_growth_unh_ocf_year_on_year",
+          "run": 0,
+          "error": "",
+          "wrong": [
+            "operations_include"
+          ]
+        },
+        {
+          "id": "h4_clarify_intel_change_no_base",
+          "run": 0,
+          "error": "",
+          "wrong": [
+            "outcome"
+          ]
+        },
+        {
+          "id": "h4_bac_nii_couple_quarters",
+          "run": 1,
+          "error": "",
+          "wrong": [
+            "metrics",
+            "outcome",
+            "periods",
+            "tickers"
+          ]
+        },
+        {
+          "id": "h4_fu_amgn_gild_yoy",
+          "run": 1,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_fu_jpm_and_wfc_remove_jpm",
+          "run": 1,
+          "error": "",
+          "wrong": [
+            "metrics",
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_fu_tmo_dhr_too_growth",
+          "run": 1,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_growth_nvda_how_fast",
+          "run": 1,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_growth_three_tickers_operating_income",
+          "run": 1,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_growth_unh_ocf_year_on_year",
+          "run": 1,
+          "error": "",
+          "wrong": [
+            "operations_include"
+          ]
+        },
+        {
+          "id": "h4_clarify_intel_change_no_base",
+          "run": 1,
+          "error": "",
+          "wrong": [
+            "outcome"
+          ]
+        },
+        {
+          "id": "h4_bac_nii_couple_quarters",
+          "run": 2,
+          "error": "",
+          "wrong": [
+            "metrics",
+            "outcome",
+            "periods",
+            "tickers"
+          ]
+        },
+        {
+          "id": "h4_fu_amgn_gild_yoy",
+          "run": 2,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_fu_jpm_and_wfc_remove_jpm",
+          "run": 2,
+          "error": "",
+          "wrong": [
+            "metrics",
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_fu_tmo_dhr_too_growth",
+          "run": 2,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_growth_nvda_how_fast",
+          "run": 2,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_growth_three_tickers_operating_income",
+          "run": 2,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_growth_unh_ocf_year_on_year",
+          "run": 2,
+          "error": "",
+          "wrong": [
+            "operations_include"
+          ]
+        },
+        {
+          "id": "h4_clarify_intel_change_no_base",
+          "run": 2,
+          "error": "",
+          "wrong": [
+            "outcome"
+          ]
+        }
+      ]
+    },
+    "cascade": {
+      "label": "Cascade (rules planner, then `gpt-5.6-terra` where it is unsure)",
+      "llm_calls": 48,
+      "splits": {
+        "held_out": {
+          "cases": 66,
+          "accuracy": 0.8787878787878788,
+          "accuracy_by_run": [
+            0.8787878787878788,
+            0.8787878787878788,
+            0.8787878787878788
+          ],
+          "accuracy_sd": 0.0,
+          "fields": {
+            "outcome": 0.967741935483871,
+            "intent": 1,
+            "tickers": 0.9772727272727273,
+            "tickers_include": 1,
+            "metrics": 0.9565217391304348,
+            "periods": 0.8695652173913043,
+            "operations_include": 0.8571428571428571
           },
           "agreement": 1
         },
         "all": {
-          "cases": 219,
-          "accuracy": 0.9863013698630136,
+          "cases": 66,
+          "accuracy": 0.8787878787878788,
           "accuracy_by_run": [
-            0.9863013698630136,
-            0.9863013698630136,
-            0.9863013698630136,
-            0.9863013698630136,
-            0.9863013698630136
+            0.8787878787878788,
+            0.8787878787878788,
+            0.8787878787878788
           ],
           "accuracy_sd": 0.0,
           "fields": {
-            "outcome": 0.9906976744186047,
+            "outcome": 0.967741935483871,
             "intent": 1,
-            "tickers": 1,
+            "tickers": 0.9772727272727273,
             "tickers_include": 1,
-            "metrics": 1,
-            "periods": 1,
-            "operations_include": 0.875
+            "metrics": 0.9565217391304348,
+            "periods": 0.8695652173913043,
+            "operations_include": 0.8571428571428571
           },
           "agreement": 1
         }
       },
-      "runs": 5,
-      "case_runs": 1095,
-      "planner_calls": 1265,
-      "planner_ms_p50": 1045.6993999832775,
-      "planner_ms_p95": 1382.368899998255,
-      "turn_ms_p50": 1051.8102000060026,
-      "input_tokens": 1772155,
-      "output_tokens": 51680,
-      "reasoning_tokens": 114,
-      "cost_usd": 4.16447,
-      "cost_per_planner_call_usd": 0.003292071146245059,
+      "runs": 3,
+      "stopped_in_run": null,
+      "case_runs": 198,
+      "planner_calls": 234,
+      "planner_ms_p50": 1.071299997420283,
+      "planner_ms_p95": 1471.4663000013388,
+      "turn_ms_p50": 7.176600000093458,
+      "input_tokens": 68088,
+      "output_tokens": 2088,
+      "reasoning_tokens": 360,
+      "cost_usd": 0.161232,
+      "cost_per_planner_call_usd": 0.000689025641025641,
       "failures": [
         {
-          "id": "h3_what_about_keeps_window",
+          "id": "h4_bac_nii_couple_quarters",
+          "run": 0,
+          "error": "",
+          "wrong": [
+            "metrics",
+            "outcome",
+            "periods",
+            "tickers"
+          ]
+        },
+        {
+          "id": "h4_fu_amgn_gild_yoy",
+          "run": 0,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_fu_jpm_and_wfc_remove_jpm",
+          "run": 0,
+          "error": "",
+          "wrong": [
+            "metrics",
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_fu_tmo_dhr_too_growth",
+          "run": 0,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_growth_nvda_how_fast",
+          "run": 0,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_growth_three_tickers_operating_income",
+          "run": 0,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_growth_unh_ocf_year_on_year",
+          "run": 0,
+          "error": "",
+          "wrong": [
+            "operations_include"
+          ]
+        },
+        {
+          "id": "h4_clarify_intel_change_no_base",
           "run": 0,
           "error": "",
           "wrong": [
@@ -479,23 +827,67 @@
           ]
         },
         {
-          "id": "h3_bac_jpm_ni_growth",
-          "run": 0,
+          "id": "h4_bac_nii_couple_quarters",
+          "run": 1,
+          "error": "",
+          "wrong": [
+            "metrics",
+            "outcome",
+            "periods",
+            "tickers"
+          ]
+        },
+        {
+          "id": "h4_fu_amgn_gild_yoy",
+          "run": 1,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_fu_jpm_and_wfc_remove_jpm",
+          "run": 1,
+          "error": "",
+          "wrong": [
+            "metrics",
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_fu_tmo_dhr_too_growth",
+          "run": 1,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_growth_nvda_how_fast",
+          "run": 1,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_growth_three_tickers_operating_income",
+          "run": 1,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_growth_unh_ocf_year_on_year",
+          "run": 1,
           "error": "",
           "wrong": [
             "operations_include"
           ]
         },
         {
-          "id": "h3_amgn_two_metrics",
-          "run": 0,
-          "error": "",
-          "wrong": [
-            "outcome"
-          ]
-        },
-        {
-          "id": "h3_what_about_keeps_window",
+          "id": "h4_clarify_intel_change_no_base",
           "run": 1,
           "error": "",
           "wrong": [
@@ -503,31 +895,59 @@
           ]
         },
         {
-          "id": "h3_bac_jpm_ni_growth",
-          "run": 1,
-          "error": "",
-          "wrong": [
-            "operations_include"
-          ]
-        },
-        {
-          "id": "h3_amgn_two_metrics",
-          "run": 1,
-          "error": "",
-          "wrong": [
-            "outcome"
-          ]
-        },
-        {
-          "id": "h3_what_about_keeps_window",
+          "id": "h4_bac_nii_couple_quarters",
           "run": 2,
           "error": "",
           "wrong": [
-            "outcome"
+            "metrics",
+            "outcome",
+            "periods",
+            "tickers"
           ]
         },
         {
-          "id": "h3_bac_jpm_ni_growth",
+          "id": "h4_fu_amgn_gild_yoy",
+          "run": 2,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_fu_jpm_and_wfc_remove_jpm",
+          "run": 2,
+          "error": "",
+          "wrong": [
+            "metrics",
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_fu_tmo_dhr_too_growth",
+          "run": 2,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_growth_nvda_how_fast",
+          "run": 2,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_growth_three_tickers_operating_income",
+          "run": 2,
+          "error": "",
+          "wrong": [
+            "periods"
+          ]
+        },
+        {
+          "id": "h4_growth_unh_ocf_year_on_year",
           "run": 2,
           "error": "",
           "wrong": [
@@ -535,56 +955,8 @@
           ]
         },
         {
-          "id": "h3_amgn_two_metrics",
+          "id": "h4_clarify_intel_change_no_base",
           "run": 2,
-          "error": "",
-          "wrong": [
-            "outcome"
-          ]
-        },
-        {
-          "id": "h3_what_about_keeps_window",
-          "run": 3,
-          "error": "",
-          "wrong": [
-            "outcome"
-          ]
-        },
-        {
-          "id": "h3_bac_jpm_ni_growth",
-          "run": 3,
-          "error": "",
-          "wrong": [
-            "operations_include"
-          ]
-        },
-        {
-          "id": "h3_amgn_two_metrics",
-          "run": 3,
-          "error": "",
-          "wrong": [
-            "outcome"
-          ]
-        },
-        {
-          "id": "h3_what_about_keeps_window",
-          "run": 4,
-          "error": "",
-          "wrong": [
-            "outcome"
-          ]
-        },
-        {
-          "id": "h3_bac_jpm_ni_growth",
-          "run": 4,
-          "error": "",
-          "wrong": [
-            "operations_include"
-          ]
-        },
-        {
-          "id": "h3_amgn_two_metrics",
-          "run": 4,
           "error": "",
           "wrong": [
             "outcome"
@@ -596,5 +968,122 @@
   "prices": {
     "input": 2.0,
     "output": 12.0
-  }
+  },
+  "paid_split": "Held out",
+  "paired": [
+    {
+      "first": "Rules planner",
+      "second": "LLM planner",
+      "splits": {
+        "held_out": {
+          "cases": 66,
+          "both": 56,
+          "only_first": 0,
+          "only_second": 2,
+          "neither": 8,
+          "first_interval": [
+            0.7430687139857184,
+            0.9155645361116449
+          ],
+          "second_interval": [
+            0.7786234136612515,
+            0.9372822929663172
+          ],
+          "p_value": 0.5
+        },
+        "all": {
+          "cases": 66,
+          "both": 56,
+          "only_first": 0,
+          "only_second": 2,
+          "neither": 8,
+          "first_interval": [
+            0.7430687139857184,
+            0.9155645361116449
+          ],
+          "second_interval": [
+            0.7786234136612515,
+            0.9372822929663172
+          ],
+          "p_value": 0.5
+        }
+      }
+    },
+    {
+      "first": "Rules planner",
+      "second": "Cascade",
+      "splits": {
+        "held_out": {
+          "cases": 66,
+          "both": 56,
+          "only_first": 0,
+          "only_second": 2,
+          "neither": 8,
+          "first_interval": [
+            0.7430687139857184,
+            0.9155645361116449
+          ],
+          "second_interval": [
+            0.7786234136612515,
+            0.9372822929663172
+          ],
+          "p_value": 0.5
+        },
+        "all": {
+          "cases": 66,
+          "both": 56,
+          "only_first": 0,
+          "only_second": 2,
+          "neither": 8,
+          "first_interval": [
+            0.7430687139857184,
+            0.9155645361116449
+          ],
+          "second_interval": [
+            0.7786234136612515,
+            0.9372822929663172
+          ],
+          "p_value": 0.5
+        }
+      }
+    },
+    {
+      "first": "LLM planner",
+      "second": "Cascade",
+      "splits": {
+        "held_out": {
+          "cases": 66,
+          "both": 58,
+          "only_first": 0,
+          "only_second": 0,
+          "neither": 8,
+          "first_interval": [
+            0.7786234136612515,
+            0.9372822929663172
+          ],
+          "second_interval": [
+            0.7786234136612515,
+            0.9372822929663172
+          ],
+          "p_value": 1.0
+        },
+        "all": {
+          "cases": 66,
+          "both": 58,
+          "only_first": 0,
+          "only_second": 0,
+          "neither": 8,
+          "first_interval": [
+            0.7786234136612515,
+            0.9372822929663172
+          ],
+          "second_interval": [
+            0.7786234136612515,
+            0.9372822929663172
+          ],
+          "p_value": 1.0
+        }
+      }
+    }
+  ]
 }

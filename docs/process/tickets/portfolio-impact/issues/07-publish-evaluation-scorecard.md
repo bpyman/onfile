@@ -13,7 +13,7 @@
 
 ## Answer
 
-`financial_analyst_agent.evaluation` runs eight fixture cases (routing, refusal/clarify, follow-up, numeral lock, filing change). Checked-in scorecard: [`docs/evaluation/scorecard.md`](../../../docs/evaluation/scorecard.md) — **8/8**, p50/p95, $0 fixture cost, `fixture DemoCompleter`. `observability.timed` logs `conversation_turn` with thread, turn, intent, renderer, and elapsed_ms. SEC cache + 429/5xx retries are documented on the scorecard and in `docs/design.md`.
+`financial_analyst_agent.evaluation` runs eight fixture cases (routing, refusal/clarify, follow-up, numeral lock, filing change). Checked-in scorecard: [`docs/evaluation/scorecard.md`](../../../../evaluation/scorecard.md) — **8/8**, p50/p95, $0 fixture cost, `fixture DemoCompleter`. `observability.timed` logs `conversation_turn` with thread, turn, intent, renderer, and elapsed_ms. SEC cache + 429/5xx retries are documented on the scorecard and in `docs/design.md`.
 
 ## Comments
 

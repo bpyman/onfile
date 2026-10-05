@@ -14,7 +14,7 @@ New multi-turn behaviour is asserted at ``run_conversation_turn``.
 import json
 import re
 from datetime import date, datetime
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from typing import Any
 
 from financial_analyst_agent.contracts import (
@@ -186,15 +186,80 @@ def _figures(text: str) -> list[str]:
     return _NUMERIC_TOKEN.findall(_DATE_TEXT.sub(" ", text))
 
 
+_UNIT_SCALE = {
+    "k": Decimal(1_000),
+    "thousand": Decimal(1_000),
+    "m": Decimal(1_000_000),
+    "million": Decimal(1_000_000),
+    "b": Decimal(1_000_000_000),
+    "billion": Decimal(1_000_000_000),
+    "t": Decimal(1_000_000_000_000),
+    "trillion": Decimal(1_000_000_000_000),
+}
+_FIGURE_PARTS = re.compile(r"\$?(?P<number>\d[\d,]*(?:\.(?P<decimals>\d+))?)\s*(?P<unit>[A-Za-z]*)")
+_PERCENT_AFTER = re.compile(r"\s*(?:%|percent\b|per cent\b)", re.IGNORECASE)
+# A figure shown to fewer significant digits than this ("$2 billion", "3%") is
+# too coarse to tie to one grounded value, so only an exact match lets it pass.
+_MIN_SIGNIFICANT_DIGITS = 2
+
+
+def _grounded_amounts(grounding: str) -> list[Decimal]:
+    """Every number in the grounding, as an amount (sign dropped, as an essay's has none)."""
+    amounts = []
+    for token in _figures(grounding):
+        try:
+            amounts.append(abs(Decimal(token.lstrip("$").split()[0].replace(",", ""))))
+        except ArithmeticError:
+            continue
+    return amounts
+
+
+def _rounds_from_grounding(token: str, percent: bool, amounts: list[Decimal]) -> bool:
+    """Whether ``token`` is a grounded amount written as the window or a reader would.
+
+    "$22.97 B", "$22.97 billion" and "about $23 billion" round from 22974000000 at
+    the precision they show; "30.9%" rounds from the ratio 0.3088. A digit changed
+    at that precision ("$22.98 B", "31.9%") rounds from nothing grounded.
+    """
+    parts = _FIGURE_PARTS.fullmatch(token.strip())
+    if parts is None:
+        return False
+    shown = Decimal(parts.group("number").replace(",", ""))
+    decimals = len(parts.group("decimals") or "")
+    if len(shown.as_tuple().digits) < _MIN_SIGNIFICANT_DIGITS or shown == 0:
+        return False
+    unit = parts.group("unit").casefold()
+    if unit and unit not in _UNIT_SCALE:
+        return False
+    scale = _UNIT_SCALE.get(unit, Decimal(1)) / (Decimal(100) if percent else Decimal(1))
+    step = Decimal(1).scaleb(-decimals)
+    for amount in amounts:
+        try:
+            if (amount / scale).quantize(step, rounding=ROUND_HALF_UP) == shown:
+                return True
+        except InvalidOperation:
+            continue
+    return False
+
+
 def _numeral_lock_extras(essay: str, tool_json: str, *, hit_count: int = 0) -> list[str]:
-    scanned = _strip_valid_citation_markers(essay, hit_count)
+    scanned = _DATE_TEXT.sub(" ", _strip_valid_citation_markers(essay, hit_count))
     grounding = _grounding_text(tool_json)
     # A source's dates do not unlock their day or month, but their years may be quoted.
     years = {
         year for date in _DATE_TEXT.findall(grounding) for year in _YEAR.findall(date)
     }
     allowed = set(_figures(grounding)) | years
-    return list(dict.fromkeys(token for token in _figures(scanned) if token not in allowed))
+    amounts = _grounded_amounts(grounding)
+    extras = []
+    for match in _NUMERIC_TOKEN.finditer(scanned):
+        token = match.group(0)
+        if token in allowed:
+            continue
+        percent = _PERCENT_AFTER.match(scanned, match.end()) is not None
+        if not _rounds_from_grounding(token, percent, amounts):
+            extras.append(token)
+    return list(dict.fromkeys(extras))
 
 
 def _numeral_lock_message(invented: str) -> str:

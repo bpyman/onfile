@@ -13,13 +13,13 @@
 
 ## Answer
 
-README Try-it has the hosted URL, a looping GIF, two stills, and a walkthrough mp4. Scorecard copy is **9/9**. LinkedIn draft is [`docs/portfolio/release.md`](../../../docs/portfolio/release.md). GitHub social preview is uploaded.
+README Try-it has the hosted URL, a looping GIF, two stills, and a walkthrough mp4. Scorecard copy is **9/9**. LinkedIn draft is [`docs/portfolio/release.md`](../../../../portfolio/release.md). GitHub social preview is uploaded.
 
-- [`docs/portfolio/images/demo-walkthrough.gif`](../../../docs/portfolio/images/demo-walkthrough.gif)
-- [`docs/portfolio/images/demo-walkthrough.mp4`](../../../docs/portfolio/images/demo-walkthrough.mp4) — Compare four quarters → `add Apple` → two-series chart → inspect Apple 10-Q
-- [`docs/portfolio/images/compare-four-quarters.png`](../../../docs/portfolio/images/compare-four-quarters.png)
-- [`docs/portfolio/images/inspect-exact-source.png`](../../../docs/portfolio/images/inspect-exact-source.png)
-- [`docs/portfolio/images/social-preview.png`](../../../docs/portfolio/images/social-preview.png) (1280×640)
+- [`docs/portfolio/images/demo-walkthrough.gif`](../../../../portfolio/images/demo-walkthrough.gif)
+- [`docs/portfolio/images/demo-walkthrough.mp4`](../../../../portfolio/images/demo-walkthrough.mp4) — Compare four quarters → `add Apple` → two-series chart → inspect Apple 10-Q
+- [`docs/portfolio/images/compare-four-quarters.png`](../../../../portfolio/images/compare-four-quarters.png)
+- [`docs/portfolio/images/inspect-exact-source.png`](../../../../portfolio/images/inspect-exact-source.png)
+- [`docs/portfolio/images/social-preview.png`](../../../../portfolio/images/social-preview.png) (1280×640)
 
 The mp4 was recorded against the fixture demo at this commit (~27s). Apple fills overlapping 10-Q cells; 2024-09-30 stays `missing_fact`.
 

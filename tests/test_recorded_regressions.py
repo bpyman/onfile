@@ -1,4 +1,10 @@
-"""Regressions for the PRD/ADR review findings, run on the recorded runtime."""
+"""Regressions on the recorded runtime: membership, typed refusals, cached facts and replayed news.
+
+Each pins a defect a review against the PRD and ADRs found: who counts as an
+operating company, a refusal that keeps its reason, a cached fact that reads
+back the same, news replayed on the live runtime, and a clarification restored
+from an older thread.
+"""
 
 from __future__ import annotations
 

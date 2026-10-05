@@ -924,6 +924,29 @@ def test_numeral_lock_treats_dates_as_dates_not_figures() -> None:
     assert _numeral_lock_extras("In 2025, revenue rose.", grounding) == []
 
 
+def test_numeral_lock_accepts_a_grounded_value_as_the_window_shows_it() -> None:
+    from financial_analyst_agent.turn import _numeral_lock_extras
+
+    grounding = json.dumps([{"value": "22974000000"}, {"value": "0.3088273701"}])
+
+    # As the window shows it, with its unit in words, or rounded at the precision shown.
+    for essay in (
+        "Revenue was $22.97 B.",
+        "Revenue was $22.97 billion.",
+        "Revenue was about $23 billion.",
+        "Net margin was 30.9%.",
+        "Net margin was 30.88 percent.",
+        "Net margin was 31%.",
+    ):
+        assert _numeral_lock_extras(essay, grounding) == [], essay
+    # A digit changed at the precision shown rounds from nothing grounded.
+    assert _numeral_lock_extras("Revenue was $22.98 B.", grounding) == ["$22.98 B"]
+    assert _numeral_lock_extras("Revenue was $24 billion.", grounding) == ["$24 billion"]
+    assert _numeral_lock_extras("Net margin was 31.9%.", grounding) == ["31.9"]
+    # One significant digit is too coarse to tie to a grounded value.
+    assert _numeral_lock_extras("Revenue was $2 billion more.", grounding) == ["$2 billion"]
+
+
 def test_table_cells_are_separated_in_filing_text() -> None:
     html = "<table><tr><td>Noninterest revenue</td><td>$24,470</td></tr></table>"
 

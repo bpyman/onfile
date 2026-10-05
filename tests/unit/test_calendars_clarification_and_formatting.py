@@ -1,4 +1,4 @@
-"""Second review: clarification answers, fiscal calendars, chart buckets, formatting."""
+"""Fiscal calendars per company, clarification answers, chart buckets, and number formatting."""
 
 from __future__ import annotations
 

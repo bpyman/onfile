@@ -1,8 +1,9 @@
-"""Fourth round of user testing: conversations replayed on the recorded runtime.
+"""When the app cannot do what was asked, it says so instead of answering a different question.
 
-Each test is a question a tester asked the public demo, with the answer it
-should have got. The common thread: when the app cannot do what was asked, it
-says so instead of answering a different question.
+Each test is a question a tester asked the public demo, replayed on the recorded
+runtime, with the answer it should have got: rankings by a metric, unsupported
+metrics and periods, missing companies, misspelled names and group names,
+undo, advice, and changes with no base.
 """
 
 from __future__ import annotations
@@ -12,7 +13,7 @@ import pytest
 from conversation_replay import ask, column_of, replay, tickers_of
 
 
-# Imported per test, as in test_user_testing_round3.
+# Imported per test, as in test_tester_conversations.
 @pytest.fixture
 def runtime():  # type: ignore[no-untyped-def]
     from financial_analyst_agent.runtime import recorded_runtime

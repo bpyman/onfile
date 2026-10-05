@@ -9,7 +9,7 @@ from pathlib import Path
 from types import MappingProxyType
 
 from financial_analyst_agent.config import AppMode, Settings, get_settings
-from financial_analyst_agent.contracts import Runtime, RuntimeKind
+from financial_analyst_agent.contracts import Completer, Runtime, RuntimeKind
 from financial_analyst_agent.domain.errors import ProviderError, ProviderRefusal
 from financial_analyst_agent.essay import OpenAIEssayCompleter
 from financial_analyst_agent.facts import RecordedSECDataSource
@@ -21,6 +21,7 @@ from financial_analyst_agent.news import (
     replay_key,
 )
 from financial_analyst_agent.planner import OpenAIStructuredCompleter
+from financial_analyst_agent.planner_cascade import CascadeCompleter
 from financial_analyst_agent.providers.sec.cache import CachingSECDataSource
 from financial_analyst_agent.providers.sec.client import SECClient
 from financial_analyst_agent.ranking import SnapshotRanking
@@ -268,13 +269,18 @@ def live_runtime(
     budget: SessionBudget | None = None,
 ) -> Runtime:
     resolved = settings or get_settings()
-    # Without an OpenAI key (or with public OpenAI turned off) the rules planner plans.
     use_openai = openai_enabled(resolved)
     use_tavily = tavily_enabled(resolved)
-    completer = (
-        OpenAIStructuredCompleter.from_settings(resolved)
+    ranking = _snapshot_ranking(None)
+    rules = DemoCompleter(issuer_index())
+    # The rules planner plans, and the LLM planner only where it is unsure (ADR 0012).
+    # Without an OpenAI key (or with public OpenAI turned off) the rules planner plans alone.
+    completer: Completer = (
+        CascadeCompleter(
+            rules, OpenAIStructuredCompleter.from_settings(resolved), ranking.knows_industry
+        )
         if use_openai
-        else DemoCompleter(issuer_index())
+        else rules
     )
     essay = (
         OpenAIEssayCompleter.from_settings(resolved)
@@ -301,7 +307,7 @@ def live_runtime(
             listed_tickers=listed_tickers,
             member_ticker=_member_ticker(None),
         ),
-        ranking=_snapshot_ranking(None),
+        ranking=ranking,
         news=news,
         essay=essay,
         kind=RuntimeKind.LIVE,

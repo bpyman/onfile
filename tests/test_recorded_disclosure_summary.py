@@ -1,6 +1,6 @@
 """The recorded runtime summarizes only the filing changes its summary was written for.
 
-Kept out of tests/unit for the reason tests/test_user_testing_round3.py gives:
+Kept out of tests/unit for the reason tests/test_tester_conversations.py gives:
 a recorded runtime used after tests/unit/test_contracts_import reloads the
 conversation modules carries enum members the reloaded seam does not recognise.
 """
