@@ -258,14 +258,19 @@ def render_markdown(report: dict[str, Any]) -> str:
         )
     lines += [
         "",
-        "How to read it: the lock compares digits. A number passes only when the same "
-        "digits appear in the grounding, so it withholds any changed or invented figure, "
-        "and also a true figure written the way the window shows it ($22.97 B, 30.9%) or "
-        "rounded, because the grounding holds 22974000000 and 0.3088273701. It does not "
-        "check meaning: a true value given to the wrong company passes, and so does a "
-        "figure written in words. The essay prompt asks for numbers from the JSON as "
-        "they are, so how often real essays are withheld depends on the model following "
-        "that; this report does not measure that.",
+        "How to read it: a number passes when the grounding holds it, or when it rounds "
+        "from a grounded value at the precision it is written to, with at least two "
+        "significant digits: $22.97 B, $22.97 billion, about $23 billion and 30.9% all "
+        "round from 22974000000 or 0.3088273701. A digit changed at that precision, or a "
+        "number nothing grounded rounds to, is withheld. A figure rounded to one "
+        "significant digit (about $2 for $2.46) is too coarse to tie to one value and is "
+        "withheld too: those are the rounded sentences withheld above.",
+        "",
+        "It checks numbers, not meaning: a true value given to the wrong company passes, "
+        "and so does a figure written in words. Until 5 October 2026 the lock matched "
+        "digits exactly, and withheld every true figure written as the window shows it or "
+        "rounded (100% of those sentences); exact quotes and changed or invented numbers "
+        "were treated as now.",
     ]
     lines += ["", "<details><summary>One sentence of each kind</summary>", ""]
     for kind in report["kinds"]:

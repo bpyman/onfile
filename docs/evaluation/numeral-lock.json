@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-05T12:34:44.466088+00:00",
+  "generated_at": "2026-10-05T13:37:31.577751+00:00",
   "answers": 10,
   "questions": [
     "Compare Eli Lilly and Pfizer revenue and net margin",
@@ -30,10 +30,10 @@
       "description": "the value as the window shows it ($22.97 B, 30.9%)",
       "should_withhold": false,
       "sentences": 36,
-      "withheld": 36,
+      "withheld": 0,
       "example": {
         "sentence": "Eli Lilly and Company reported revenue of $22.97 B for the quarter.",
-        "withheld": true
+        "withheld": false
       }
     },
     {
@@ -41,10 +41,10 @@
       "description": "the shown value with its unit in words ($22.97 billion)",
       "should_withhold": false,
       "sentences": 36,
-      "withheld": 36,
+      "withheld": 0,
       "example": {
         "sentence": "Eli Lilly and Company reported revenue of $22.97 billion for the quarter.",
-        "withheld": true
+        "withheld": false
       }
     },
     {
@@ -52,10 +52,10 @@
       "description": "the shown value rounded to a whole number (about $23 billion)",
       "should_withhold": false,
       "sentences": 36,
-      "withheld": 36,
+      "withheld": 12,
       "example": {
         "sentence": "Eli Lilly and Company reported revenue of about $23 billion for the quarter.",
-        "withheld": true
+        "withheld": false
       }
     },
     {

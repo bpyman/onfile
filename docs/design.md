@@ -186,7 +186,9 @@ their filing or snapshot provenance. Partial results keep valid rows while marki
 Ambiguous metric phrases clarify without running tools; unknown metrics and industries refuse.
 
 Qualitative essays are separated from financial tables. Current-event essays use returned news
-hits and citations; a numeral lock rejects numeric tokens absent from the supplied evidence.
+hits and citations; a numeral lock rejects any number the supplied evidence does not hold,
+exactly or rounded to the precision written (at least two significant digits), and
+[its measurement](evaluation/numeral-lock.md) says what it catches and what it cannot.
 
 **Trade-off:** responses are more conservative and sometimes require the user to rephrase.
 
