@@ -35,6 +35,9 @@ def _case(case_id: str) -> PlannerCase:
         "h4_bac_nii_couple_quarters",
         # A change that names no base asks what to compare against.
         "h4_clarify_intel_change_no_base",
+        # Removing a company keeps the metric and window. It reset only because the
+        # first turn asked about "interest", so "and Wells Fargo" was a new question.
+        "h4_fu_jpm_and_wfc_remove_jpm",
     ],
 )
 def test_a_fixed_held_out_case_passes_with_the_rules_planner(

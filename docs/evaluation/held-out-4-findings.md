@@ -49,6 +49,13 @@ that disagrees with the design. Once "year on year" is read, it answers as
 "year over year" does. A year-over-year question that names no period shows two
 years of quarters, but the label says the latest quarter.
 
+`h4_fu_jpm_and_wfc_remove_jpm` had the same cause as `h4_bac_nii_couple_quarters`.
+The first turn asked which "interest" was meant. "and Wells Fargo" did not answer
+that question, so it discarded the pending clarification and showed Wells Fargo's
+overview. "remove JPMorgan" then had nothing to remove. Once "net interest income"
+was read as one metric, the removal kept the metric and window, as it already did
+for revenue.
+
 ## What follows
 
 - The difference between the planners is two cases on 66, both planning errors

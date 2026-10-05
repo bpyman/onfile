@@ -1073,3 +1073,28 @@ Blockers / next:
   past 10 quarters?" still asks, because `YOY` reads it before the span rule.
   The span rule covers only the new wording.
 
+
+
+## 2026-10-05 — held-out-4-findings 04 Removing a company keeps the metric and window
+
+Task completed: `docs/process/tickets/held-out-4-findings/issues/04-removing-a-company-keeps-the-analysis.md`
+
+Key decisions:
+- No code change. The cause was the metric, and ticket 01 fixed it. The first
+  turn asked which "interest" was meant, "and Wells Fargo" discarded that pending
+  clarification (Wells Fargo's overview), and "remove JPMorgan" removed nothing.
+  At ac2b514 the case fails; at HEAD it passes. The same turns with revenue
+  passed before ticket 01.
+- The case is pinned in `tests/test_held_out_4_findings.py`, and the case file's
+  `about` lists it as fixed. No label changed.
+
+Files changed:
+- `tests/test_held_out_4_findings.py`
+- `docs/evaluation/{planner-cases-held-out-4.json (about only),held-out-4-findings.md}`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,772 Python tests pass; ruff and mypy pass; the answer comparison
+  reports `0 of 244 conversations differ from HEAD`. Removing down to one company
+  keeps `across_companies` in operations, as `ho_follow_drop_company` already
+  does. It is harmless and unlabelled. Ticket 05 is next.
