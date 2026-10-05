@@ -112,6 +112,8 @@ Connect the application to SEC EDGAR, a packaged FMP snapshot, Tavily, and OpenA
 adapters provide the same contracts in the recorded runtime. Live SEC responses are disk-cached,
 and a company's cached data lasts until SEC's latest-filings feed shows it has filed a 10-Q, a
 10-K or an amendment ([ADR 0013](adr/0013-cached-sec-data-lasts-until-the-company-files.md)).
+A company's facts are kept as a small digest, and the largest companies' are fetched in the
+background before anyone asks ([ADR 0014](adr/0014-a-warm-set-of-company-digests.md)).
 
 ### `TurnResult` — presentation boundary
 

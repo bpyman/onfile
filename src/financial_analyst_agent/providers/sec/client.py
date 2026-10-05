@@ -104,6 +104,11 @@ class _RateLimiter:
         self._lock = threading.Lock()
         self._next_slot = 0.0
 
+    def idle(self) -> bool:
+        """Whether no request is queued for a slot."""
+        with self._lock:
+            return time.monotonic() >= self._next_slot
+
     def acquire(self) -> None:
         with self._lock:
             now = time.monotonic()
@@ -208,6 +213,10 @@ class SECClient:
         self._limiter = _shared_limiter(1.0 / settings.sec_max_requests_per_second)
         self._closed = False
         self._client_lock = threading.Lock()
+
+    def idle(self) -> bool:
+        """Whether SEC is neither paused nor busy with queued requests: background work may go."""
+        return SEC_PAUSE.remaining() == 0 and self._limiter.idle()
 
     def close(self) -> None:
         if self._closed:

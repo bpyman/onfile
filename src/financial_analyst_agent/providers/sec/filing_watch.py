@@ -128,15 +128,20 @@ class FilingWatch:
                 return filings, True
         return filings, False
 
+    def healthy(self) -> bool:
+        """Whether the watch has polled every form lately, and so can vouch for a file."""
+        with self._lock:
+            return (
+                self._last_poll is not None
+                and self._clock() - self._last_poll <= _MISSED_POLLS * self._interval
+                and len(self._covered_from) == len(WATCHED_FORMS)
+            )
+
     def lifetime(self, cik: str, written: float) -> float:
         """How long a company file written at ``written`` stays fresh, in seconds from then."""
         now = self._clock()
+        healthy = self.healthy()
         with self._lock:
-            healthy = (
-                self._last_poll is not None
-                and now - self._last_poll <= _MISSED_POLLS * self._interval
-                and len(self._covered_from) == len(WATCHED_FORMS)
-            )
             covered_from = max(self._covered_from.values(), default=None)
             filed = self._last_filed.get(cik)
         if not healthy or covered_from is None or written < covered_from:
@@ -147,6 +152,22 @@ class FilingWatch:
         if filed is not None and now - filed < AFTER_FILING_WINDOW_SECONDS:
             return AFTER_FILING_SECONDS
         return VOUCHED_SECONDS
+
+    def needs_warming(self, cik: str, written: float | None) -> bool:
+        """Whether a warm-up should fetch a company file written at ``written`` (None: not cached).
+
+        Only while the watch is healthy: otherwise every file would be fetched
+        hourly. A company that filed within a day is left to its visitors, whose
+        questions refresh it every 15 minutes while SEC's structured data catches up.
+        """
+        if not self.healthy():
+            return False
+        if written is None:
+            return True
+        lifetime = self.lifetime(cik, written)
+        if self._clock() - written < lifetime:
+            return False
+        return lifetime != AFTER_FILING_SECONDS
 
     def run(self, stop: threading.Event) -> None:
         """Poll every interval until ``stop`` is set; a failed poll is logged and retried."""
