@@ -213,6 +213,14 @@ def test_effective_tax_rate_is_unique() -> None:
     assert resolved.metric == "effective_tax_rate"
 
 
+def test_net_interest_income_is_unique_not_ambiguous_interest() -> None:
+    # Neither "net", "interest" nor "income" is read on its own (ADR 0004).
+    resolved = resolve_metric_phrase("Bank of America's net interest income")
+    assert resolved.kind == "unique"
+    assert resolved.metric == "net_interest_income"
+    assert "net_interest_income" in ALLOWED_METRICS
+
+
 def test_interest_coverage_is_unique() -> None:
     resolved = resolve_metric_phrase("What was Google's interest coverage?")
     assert resolved.kind == "unique"

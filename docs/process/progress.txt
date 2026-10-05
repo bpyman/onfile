@@ -990,3 +990,31 @@ Blockers / next:
   reports `0 of 244 conversations differ from HEAD`. Remaining
   simplify-followups tickets are ready-for-human.
 
+## 2026-10-05 — held-out-4-findings 01 "Net interest income" names one metric
+
+Task completed: `docs/process/tickets/held-out-4-findings/issues/01-net-interest-income-is-not-ambiguous.md`
+
+Key decisions:
+- "net interest income" (and its slug) are unique phrases. The longest span wins
+  over the ambiguous "interest", "net" and "income" (ADR 0004).
+- `net_interest_income` becomes an askable reported metric (`REPORTED_METRICS`).
+  It stays a bank-revenue component in `sec_facts`. Non-banks are refused as
+  missing the fact. `noninterest_income` was left internal because no case asks
+  for it.
+- `tests/test_held_out_4_findings.py` runs a held-out-4 case through
+  `run_planner` with the rules planner on the recorded runtime.
+- The case file's `about` says the set is now development data. No label changed.
+
+Files changed:
+- `src/financial_analyst_agent/{contracts.py,services/metric_catalog.py}`
+- `tests/test_held_out_4_findings.py`, `tests/unit/services/test_metric_phrase.py`,
+  `tests/test_presentation.py` (legend now 34 names)
+- `docs/evaluation/planner-cases-held-out-4.json` (`about` only)
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,747 Python tests pass; ruff and mypy pass; the answer comparison
+  reports `0 of 244 conversations differ from HEAD`. Tickets 02-05 can add their
+  cases to `tests/test_held_out_4_findings.py`. Ticket 04 also uses net interest
+  income.
+
