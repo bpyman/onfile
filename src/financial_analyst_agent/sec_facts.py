@@ -1,8 +1,8 @@
 """SEC fact lookup over an injectable live or recorded data source."""
 
 import threading
-from collections import Counter
-from collections.abc import Callable, Mapping
+from collections import Counter, OrderedDict
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
@@ -104,6 +104,59 @@ _READ_CONCEPTS = READ_CONCEPTS
 _FACTS_PARSE_SLOTS = threading.BoundedSemaphore(2)
 # Fewer periodic reports than this marks a new registrant worth a predecessor check.
 _THIN_HISTORY = 4
+
+
+# Companies whose parsed facts stay in memory across turns. A company's trimmed
+# facts and summaries take about 2.5 to 4 MB, so this holds about 130 MB at most.
+_PARSED_FACTS_LIMIT = 32
+
+
+@dataclass(frozen=True)
+class _ParsedFacts:
+    """A company's facts as a lookup reads them: the catalog's concepts and two summaries."""
+
+    concepts: dict[str, Any]
+    labels: dict[str, FiscalLabel]
+    filings: tuple[Filing, ...]
+
+
+class _ParsedFactsCache:
+    """Parsed company facts shared by every turn, keyed by the stamp of the file they came from.
+
+    Reading a company's facts file decodes megabytes of JSON and summarises it
+    again on every turn. A turn that asks about a company whose cached file has
+    not changed reuses the last parse; a refreshed file has a new stamp and is
+    parsed again. Shared across threads and turns, so nothing that reads a
+    parse may change it. The least recently used company goes first.
+    """
+
+    def __init__(self, limit: int) -> None:
+        self._limit = limit
+        self._parsed: OrderedDict[tuple[str, int, int], _ParsedFacts] = OrderedDict()
+        self._lock = threading.Lock()
+
+    def get(self, stamp: tuple[str, int, int]) -> _ParsedFacts | None:
+        with self._lock:
+            parsed = self._parsed.get(stamp)
+            if parsed is not None:
+                self._parsed.move_to_end(stamp)
+            return parsed
+
+    def put(self, stamp: tuple[str, int, int], parsed: _ParsedFacts) -> None:
+        with self._lock:
+            # An older copy of the same file is never asked for again.
+            for older in [key for key in self._parsed if key[0] == stamp[0]]:
+                del self._parsed[older]
+            self._parsed[stamp] = parsed
+            while len(self._parsed) > self._limit:
+                self._parsed.popitem(last=False)
+
+    def clear(self) -> None:
+        with self._lock:
+            self._parsed.clear()
+
+
+_PARSED_FACTS = _ParsedFactsCache(_PARSED_FACTS_LIMIT)
 
 
 # A quarter whose filing SEC lists but whose facts its structured data lacks yet.
@@ -296,7 +349,7 @@ class SecFactLookup:
         self._records_by_metric: dict[
             tuple[str, Metric, str], tuple[list[FactRecord], list[dict[str, Any]]]
         ] = {}
-        self._facts_filings_by_cik: dict[str, list[Filing]] = {}
+        self._facts_filings_by_cik: dict[str, Sequence[Filing]] = {}
         self._fiscal_labels_by_cik: dict[str, dict[str, FiscalLabel]] = {}
         self._predecessor_ciks: dict[str, str | None] = {}
         if client is not None:
@@ -511,12 +564,25 @@ class SecFactLookup:
         prefetch = getattr(self._client, "prefetch_company_facts", None)
         if callable(prefetch):
             prefetch(cik)
-        with _FACTS_PARSE_SLOTS:
-            payload = self._client.get_company_facts(cik)
-            # The summaries read every concept; the rest of the turn reads only the catalog's.
-            self._fiscal_labels_by_cik.setdefault(cik, fiscal_labels(payload))
-            self._facts_filings_by_cik[cik] = filings_from_company_facts(payload)
-            return _read_concepts_only(payload)
+        # A cached file's stamp, where the source keeps one: an unchanged file is not
+        # parsed again (_PARSED_FACTS). The recording has none, so it parses each turn.
+        stamp_of = getattr(self._client, "company_facts_stamp", None)
+        stamp = stamp_of(cik) if callable(stamp_of) else None
+        parsed = _PARSED_FACTS.get(stamp) if stamp is not None else None
+        if parsed is None:
+            with _FACTS_PARSE_SLOTS:
+                payload = self._client.get_company_facts(cik)
+                # The summaries read every concept; the rest of the turn reads only the catalog's.
+                parsed = _ParsedFacts(
+                    concepts=_read_concepts_only(payload),
+                    labels=fiscal_labels(payload),
+                    filings=tuple(filings_from_company_facts(payload)),
+                )
+            if stamp is not None:
+                _PARSED_FACTS.put(stamp, parsed)
+        self._fiscal_labels_by_cik.setdefault(cik, parsed.labels)
+        self._facts_filings_by_cik[cik] = parsed.filings
+        return parsed.concepts
 
     def get_financials(
         self,

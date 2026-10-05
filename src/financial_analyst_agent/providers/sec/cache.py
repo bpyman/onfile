@@ -198,6 +198,21 @@ class CachingSECDataSource:
             payload, lambda name: self._json(f"submissions-{name}", lambda: page(name))
         )
 
+    def company_facts_stamp(self, cik: str) -> tuple[str, int, int] | None:
+        """Which copy of a company's facts file is on disk: its path, modified time and size.
+
+        None without a fresh file on disk (none yet, expired, or held in memory
+        after a failed write). A refresh rewrites the file, so its stamp changes.
+        """
+        path = self._dir / f"facts-{cik}.json"
+        if cik in self._held or not self._json_is_fresh(path):
+            return None
+        try:
+            info = path.stat()
+        except OSError:
+            return None
+        return (str(path.resolve()), info.st_mtime_ns, info.st_size)
+
     def prefetch_company_facts(self, cik: str) -> None:
         """Bring a company's facts file in without parsing it.
 
