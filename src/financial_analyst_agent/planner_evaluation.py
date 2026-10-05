@@ -519,6 +519,48 @@ def _pct(value: float | None) -> str:
     return "—" if value is None else f"{value:.0%}"
 
 
+PROTOCOL = (
+    "## Protocol",
+    "",
+    "Held-out cases measure how a planner generalises only until someone changing a "
+    "planner reads them. Each set so far was held out once and then became development "
+    "data:",
+    "",
+    "1. **First set** ([`planner-cases.json`](planner-cases.json), 50 development "
+    "cases). Written for the first comparison and labelled before either planner ran. "
+    "The planner changes that followed were diagnosed on them.",
+    "2. **Second set** ([`planner-cases-v2.json`](planner-cases-v2.json), 72). Written by "
+    "a separate session, but its hand-back included the cases, so the engineer saw them "
+    "partway through the planner work. It was never held out.",
+    "3. **Third set** ([`planner-cases-v3.json`](planner-cases-v3.json), 69). Written blind "
+    "by a separate session and held out for the run of 2026-10-03, which scored the rules "
+    "planner 91% and the LLM planner 96%. After that run its results were read, one label "
+    "changed with a product decision (ADR 0004: a question naming two metrics is answered "
+    "with both; recorded in the file's `label_changes`), and the recorded SEC data was "
+    "refreshed. Scores on it since are not blind.",
+    "4. **Fourth set** ([`planner-cases-held-out-4.json`](planner-cases-held-out-4.json), "
+    "66), the held-out split here. Its brief was committed before any case existed "
+    "([`held-out-4-brief.md`](held-out-4-brief.md), commit `54a0e22`). A separate Claude "
+    "session wrote and labelled the cases from it, reading only `README.md`, `CONTEXT.md` "
+    "and ADRs 0004, 0007 and 0008, and the cases were committed (`bc237f0`) before any "
+    "planner ran on them. The engineer checked only their format and counts. The cascade "
+    "and the significance test were committed (`3ce77ea`) before this run, so neither "
+    "was tuned on these cases. A cost estimate just before the run also ran the free "
+    "rules planner on them; only its cost line was read.",
+    "",
+    "Labels are not edited to fit a result. A label found wrong after a run is recorded in "
+    "the case file's `label_changes` with the reason, and this report scores the labels as "
+    "committed.",
+    "",
+    "Two limits. The cases were written by a Claude model, and the rules planner was "
+    "written with Claude-based coding agents, so shared habits of phrasing may favour the "
+    "rules planner; the LLM planner is an OpenAI model. And 66 cases detect only large "
+    "differences: McNemar's test needs about six cases passed by one planner alone, and "
+    "none by the other, before p falls below 0.05.",
+    "",
+)
+
+
 def render_markdown(report: dict[str, Any]) -> str:
     lines = [
         "# Rules planner vs LLM planner",
@@ -535,6 +577,18 @@ def render_markdown(report: dict[str, Any]) -> str:
         "and were not read by whoever changed a planner until this run; see "
         "[Protocol](#protocol).",
         "",
+        *(
+            [
+                "The planners that call OpenAI ran on the "
+                f"{report['paid_split'].lower().replace(' ', '-')} cases only, to keep "
+                "within the evaluation budget; the rules planner ran on every case. What "
+                "each held-out failure was is in "
+                "[held-out-4-findings.md](held-out-4-findings.md).",
+                "",
+            ]
+            if report.get("paid_split")
+            else []
+        ),
         "Each case is a conversation run end to end with only the planner swapped, and is "
         "scored on the last turn's outcome (answer, clarify or refuse), intent, companies, "
         "metrics, period and operations. A case passes when every labelled field is right.",
@@ -621,7 +675,11 @@ def render_markdown(report: dict[str, Any]) -> str:
         lines.append("| --- | --- | ---: | ---: | ---: | ---: | ---: | --- | --- | ---: |")
         labels = dict((*SPLITS, ("all", "All")))
         for pair in report["paired"]:
-            for split, row in pair["splits"].items():
+            rows = pair["splits"]
+            if len(rows) == 2 and "all" in rows:
+                # Both planners ran on one split only: its "All" row would repeat it.
+                rows = {split: row for split, row in rows.items() if split != "all"}
+            for split, row in rows.items():
                 first = row["first_interval"]
                 second = row["second_interval"]
                 a_share = (row["both"] + row["only_first"]) / row["cases"]
@@ -634,6 +692,7 @@ def render_markdown(report: dict[str, Any]) -> str:
                     f"{row['p_value']:.2f} |"
                 )
         lines.append("")
+    lines.extend(PROTOCOL)
     if report.get("estimate"):
         est = report["estimate"]
         lines.append("## Estimated cost of an LLM run")
@@ -650,9 +709,6 @@ def render_markdown(report: dict[str, Any]) -> str:
         )
         lines.append("")
     lines.append(
-        "The held-out cases measure how a planner generalises only while no planner is "
-        "tuned on them: once a planner is changed because of them, they become development "
-        "cases and a fresh held-out set is written before comparing again. "
         "The rules planner is deterministic, so its spread is zero by construction. The "
         "recorded runtime replays SEC data, so the comparison isolates planning; it says "
         "nothing about EDGAR freshness. See [the scorecard](scorecard.md) and "
@@ -696,12 +752,26 @@ def main(argv: Sequence[str] | None = None) -> None:
         "--split", choices=("all", *(name for name, _ in SPLITS)), default="all"
     )
     parser.add_argument("--limit", type=int, default=0, help="only the first N cases (a pilot)")
+    parser.add_argument(
+        "--paid-split",
+        choices=[name for name, _ in SPLITS],
+        help="run the planners that call OpenAI on this split only; rules runs on all",
+    )
     parser.add_argument("--input-price", type=float, help="USD per million input tokens")
     parser.add_argument("--output-price", type=float, help="USD per million output tokens")
     parser.add_argument("--budget-usd", type=float, help="stop the LLM run once this is spent")
     parser.add_argument("--estimate", action="store_true", help="price an LLM run; call nothing")
     parser.add_argument("--no-write", action="store_true", help="print, do not write the report")
+    parser.add_argument(
+        "--from-json",
+        action="store_true",
+        help="render the report again from planner-comparison.json; run nothing",
+    )
     args = parser.parse_args(argv)
+    if args.from_json:
+        saved = json.loads(REPORT_JSON_PATH.read_text(encoding="utf-8"))
+        REPORT_PATH.write_text(render_markdown(saved), encoding="utf-8")
+        return
 
     cases = load_cases()
     if args.split != "all":
@@ -730,6 +800,10 @@ def main(argv: Sequence[str] | None = None) -> None:
     }
     if prices is not None:
         report["prices"] = {"input": prices.input, "output": prices.output}
+    paid_cases = cases
+    if args.paid_split:
+        paid_cases = [case for case in cases if case.split == args.paid_split]
+        report["paid_split"] = dict(SPLITS)[args.paid_split]
     runtime = recorded_runtime()
     results_by_planner: dict[str, list[CaseRun]] = {}
     spent = 0.0
@@ -747,12 +821,12 @@ def main(argv: Sequence[str] | None = None) -> None:
         assert prices is not None and args.budget_usd
         usage = Usage()
         completer, model = _llm_completer(usage, prices, args.budget_usd)
-        results = run_planner(cases, completer, runs=args.runs, runtime=runtime)
+        results = run_planner(paid_cases, completer, runs=args.runs, runtime=runtime)
         spent += prices.cost(usage.input_tokens, usage.output_tokens)
         results_by_planner["llm"] = results
         report["planners"]["llm"] = {
             "label": f"LLM planner (`{model}`)",
-            **summarize(cases, results, usage, prices),
+            **summarize(paid_cases, results, usage, prices),
         }
     else:
         report["planners"]["llm"] = {
@@ -768,7 +842,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         usage = Usage()
         cascade = CascadeCompleter(runtime.completer, llm, ranking.knows_industry)
         results = run_planner(
-            cases, MeteredCompleter(cascade, usage), runs=args.runs, runtime=runtime
+            paid_cases, MeteredCompleter(cascade, usage), runs=args.runs, runtime=runtime
         )
         # Time is the whole cascade's; tokens and dollars are its LLM calls'.
         usage.input_tokens = llm_usage.input_tokens
@@ -778,7 +852,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         report["planners"]["cascade"] = {
             "label": f"Cascade (rules planner, then `{model}` where it is unsure)",
             "llm_calls": llm_usage.calls,
-            **summarize(cases, results, usage, prices),
+            **summarize(paid_cases, results, usage, prices),
         }
     names = list(results_by_planner)
     report["paired"] = [
