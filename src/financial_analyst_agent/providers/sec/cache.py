@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import stat
 import tempfile
 import threading
@@ -22,9 +23,12 @@ from financial_analyst_agent.providers.sec.client import (
     with_older_pages,
 )
 from financial_analyst_agent.providers.sec.company_facts import validate_companyfacts_response
+from financial_analyst_agent.providers.sec.filing_watch import FilingWatch
 from financial_analyst_agent.session import SessionBudget
 
 _JSON_FRESH_SECONDS = 3600
+# A company's files: its facts, its no-facts marker, its submissions and their older pages.
+_COMPANY_FILE = re.compile(r"(?:facts|submissions)-(?:CIK)?(\d{10})")
 # A temp file this old belongs to no write in progress: its writer died.
 _STALE_TEMP_SECONDS = 3600
 _SWEEP_INTERVAL_SECONDS = 600
@@ -147,6 +151,9 @@ def _sweep_soon(directory: Path, max_bytes: int) -> None:
 class CachingSECDataSource:
     """Cache SEC JSON for one hour and accession-pinned HTML indefinitely.
 
+    With a filing ``watch``, a company's files (its facts and submissions) last
+    until it files again instead, up to a week (ADR 0013); the watch says how long.
+
     Nothing is cached that is not a whole document: JSON must be an object and
     a filing must look like one. Writes are best effort, a fill waits at most
     ``fill_wait_seconds`` for another request fetching the same file, and the
@@ -161,8 +168,10 @@ class CachingSECDataSource:
         budget: SessionBudget | None = None,
         fill_wait_seconds: float = 30.0,
         max_bytes: int | None = None,
+        watch: FilingWatch | None = None,
     ) -> None:
         self._inner = inner
+        self._watch = watch
         self._dir = cache_dir
         try:
             self._dir.mkdir(parents=True, exist_ok=True)
@@ -359,6 +368,11 @@ class CachingSECDataSource:
 
     def _json_is_fresh(self, path: Path) -> bool:
         try:
-            return time.time() - path.stat().st_mtime < _JSON_FRESH_SECONDS
+            written = path.stat().st_mtime
         except OSError:
             return False
+        lifetime: float = _JSON_FRESH_SECONDS
+        company = _COMPANY_FILE.match(path.name)
+        if self._watch is not None and company is not None:
+            lifetime = self._watch.lifetime(company.group(1), written)
+        return time.time() - written < lifetime

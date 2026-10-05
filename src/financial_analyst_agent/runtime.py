@@ -24,6 +24,7 @@ from financial_analyst_agent.planner import OpenAIStructuredCompleter
 from financial_analyst_agent.planner_cascade import CascadeCompleter
 from financial_analyst_agent.providers.sec.cache import CachingSECDataSource
 from financial_analyst_agent.providers.sec.client import SECClient
+from financial_analyst_agent.providers.sec.filing_watch import ensure_filing_watch
 from financial_analyst_agent.ranking import SnapshotRanking
 from financial_analyst_agent.rules_planner import (
     FIXTURE_UNIVERSE_SNAPSHOT_PATH as FIXTURE_UNIVERSE_SNAPSHOT_PATH,
@@ -290,13 +291,16 @@ def live_runtime(
     news = TavilyNewsSearch(resolved) if use_tavily else RecordedNewsSearch()
     cache_dir = resolved.sec_cache_dir or Path(".cache") / "sec"
     display_names, listed_tickers = _snapshot_maps(None)
+    sec = _shared_sec_client(resolved)
     client = CachingSECDataSource(
-        _shared_sec_client(resolved),
+        sec,
         Path(cache_dir),
         budget=budget,
         # Waiting on another turn's fetch longer than one request may take is pointless.
         fill_wait_seconds=resolved.sec_request_deadline_seconds,
         max_bytes=resolved.sec_cache_max_bytes,
+        # A company's cached data lasts until it files again (ADR 0013).
+        watch=ensure_filing_watch(sec.get_latest_filings, resolved.sec_filing_watch_seconds),
     )
     return Runtime(
         completer=completer,

@@ -75,6 +75,9 @@ class Settings(BaseSettings):
     # undeclared automated tool (its 403 page asks for about ten minutes).
     sec_block_pause_seconds: float = 600.0
     sec_cache_dir: Path | None = None
+    # How often the live runtime reads SEC's latest 10-Q and 10-K filings, so a
+    # company's cached data lasts until it files again (ADR 0013); 0 turns it off.
+    sec_filing_watch_seconds: float = 300.0
     # The SEC disk cache is trimmed, oldest files first, past this size.
     sec_cache_max_bytes: int = 1024 * 1024 * 1024
     fmp_api_key: str = ""
@@ -158,6 +161,14 @@ class Settings(BaseSettings):
         value = _reject_non_finite(value, "SEC_BLOCK_PAUSE_SECONDS")
         if value < 0:
             raise ValueError("SEC_BLOCK_PAUSE_SECONDS must not be negative")
+        return value
+
+    @field_validator("sec_filing_watch_seconds")
+    @classmethod
+    def validate_filing_watch_seconds(cls, value: float) -> float:
+        value = _reject_non_finite(value, "SEC_FILING_WATCH_SECONDS")
+        if value < 0:
+            raise ValueError("SEC_FILING_WATCH_SECONDS must not be negative (0 turns it off)")
         return value
 
     @field_validator("sec_max_response_bytes", "sec_cache_max_bytes")

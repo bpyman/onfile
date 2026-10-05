@@ -109,7 +109,9 @@ model-generated ticker text.
 ### Runtime adapters — provider boundary
 
 Connect the application to SEC EDGAR, a packaged FMP snapshot, Tavily, and OpenAI. Recorded
-adapters provide the same contracts in the recorded runtime. Live SEC responses are disk-cached.
+adapters provide the same contracts in the recorded runtime. Live SEC responses are disk-cached,
+and a company's cached data lasts until SEC's latest-filings feed shows it has filed a 10-Q, a
+10-K or an amendment ([ADR 0013](adr/0013-cached-sec-data-lasts-until-the-company-files.md)).
 
 ### `TurnResult` — presentation boundary
 

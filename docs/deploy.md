@@ -111,6 +111,7 @@ The live runtime bounds what a slow or failing SEC can cost, also with defaults 
 | `TURN_TIMEOUT_SECONDS` | 150 | A whole turn. Past it the API ends the turn with an error and frees its thread and slot. |
 | `SEC_BLOCK_PAUSE_SECONDS` | 600 | How long SEC requests stop after SEC's "Undeclared Automated Tool" page. A request during the pause is refused at once and its cells read "Source unavailable"; only a pause of 5 seconds or less, within the turn's time, is waited out. A `Retry-After` pauses requests the same way. |
 | `SEC_CACHE_MAX_BYTES` | 1 GiB | The SEC disk cache, trimmed oldest files first. |
+| `SEC_FILING_WATCH_SECONDS` | 300 | How often the API reads SEC's latest 10-Q and 10-K filings (two requests). A company's cached data then lasts until it files again, up to a week ([ADR 0013](adr/0013-cached-sec-data-lasts-until-the-company-files.md)). `0` turns it off, and cached data is fetched again after an hour. The watch needs the process to stay up: after a restart, cached data falls back to the hour until the watch has polled. |
 
 **Who a visitor is.** The per-visitor limits count by client address. With
 `API_PROXY_TOKEN` set, the API answers only the proxy and reads the visitor's address
