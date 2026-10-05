@@ -78,11 +78,13 @@ _DROP_EDIT = re.compile(
     r"^\s*(?:drop|remove|without)\s+(.+?)\s*$",
     re.IGNORECASE,
 )
+# "year over year", "year-on-year", "YoY", "y/y": one comparison, however spelt.
+YEAR_OVER_YEAR = r"year[\s-]*o(?:ver|n)[\s-]*year|yoy|y/y"
 # "remove year over year": the change goes, the quarters on screen stay. Read
 # before the year-over-year wording, which would otherwise ask for it.
 _DROP_COMPARISON = re.compile(
     r"^\s*(?:drop|remove|without|no|hide)\s+(?:the\s+)?"
-    r"(?:year[\s-]*over[\s-]*year|yoy)(?:\s+(?:change|changes|growth|comparison|column))?"
+    rf"(?:{YEAR_OVER_YEAR})(?:\s+(?:change|changes|growth|comparison|column))?"
     r"\s*[.!]?\s*$",
     re.IGNORECASE,
 )
@@ -120,7 +122,7 @@ _DROP_AND_ADD_EDIT = re.compile(
 
 
 YOY = re.compile(
-    r"\b(?:year[\s-]*over[\s-]*year|yoy|show yoy|compare to last year|(?:a|one) year ago"
+    rf"\b(?:{YEAR_OVER_YEAR}|show yoy|compare to last year|(?:a|one) year ago"
     # "over the past year" alone is the year's quarters; "grew over the past year" is growth.
     r"|(?:from|since|vs\.?|versus) (?:a year ago|last year)"
     r"|grow(?:th|n|ing)?|grew|how (?:has|have|did) .+ change[d]?|trend(?:ing)?"
@@ -237,7 +239,7 @@ FORECAST = re.compile(
 
 # Wording that asks for year-over-year change only, not quarter-to-quarter too.
 EXPLICIT_YOY = re.compile(
-    r"\b(?:year[\s-]*over[\s-]*year|yoy|(?:a|one) year (?:ago|earlier|before)"
+    rf"\b(?:{YEAR_OVER_YEAR}|(?:a|one) year (?:ago|earlier|before)"
     r"|(?:from|since|vs\.?|versus|compared? (?:to|with)) "
     r"(?:a year ago|last year|the (?:prior|previous) year))\b",
     re.IGNORECASE,
@@ -248,6 +250,13 @@ _SEQUENTIAL = re.compile(
     r"\b(?:sequential(?:ly)?|quarter[\s-]*(?:over|on)[\s-]*quarter|qoq"
     r"|(?:from|since|vs\.?|versus|than|compared? (?:to|with)) (?:the )?"
     r"(?:last|previous|prior|preceding) quarter)\b",
+    re.IGNORECASE,
+)
+
+
+# "How much did revenue change?", "did it move?": a change that may name no base.
+_CHANGE = re.compile(
+    r"\b(?:how (?:much )?)?(?:has|have|did) .+ (?:change|move)d?\b",
     re.IGNORECASE,
 )
 
@@ -633,7 +642,7 @@ def comparison_asked(message: str) -> ComparisonBase | Literal["unclear"] | None
     against what ("why did revenue drop?"), and None where it asks for no change.
     """
     if YOY.search(message) is None and _SEQUENTIAL.search(message) is None:
-        return None
+        return "unclear" if _asks_change_without_base(message) else None
     if _SEQUENTIAL.search(message) is not None:
         return "sequential"
     if (
@@ -643,6 +652,25 @@ def comparison_asked(message: str) -> ComparisonBase | Literal["unclear"] | None
     ):
         return "year_over_year"
     return "unclear"
+
+
+def _asks_change_without_base(message: str) -> bool:
+    """A change asked about ("how much did revenue change?") with no base named."""
+    return _CHANGE.search(message) is not None and not _names_a_span(message)
+
+
+def _names_a_span(message: str) -> bool:
+    """Whether the wording names quarters a change runs across ("over the past 10 quarters").
+
+    The span's first quarter is the change's base, so the span is the answer.
+    """
+    window = asked_window(message)
+    return (
+        (window is not None and window.quarters > 1)
+        or SINCE_YEAR.search(message) is not None
+        or _YEAR_BASE.search(message) is not None
+        or len(parse_named_periods(message)) > 1
+    )
 
 
 def since_quarters(since: re.Match[str]) -> int:
@@ -671,7 +699,8 @@ def bind_periods_from_message(
             }
         )
     asked = window.asked_quarters if window.counted_window else None
-    yoy = YOY.search(message) is not None
+    # "How much did revenue change?" shows the quarters "how has it changed?" does.
+    yoy = YOY.search(message) is not None or _asks_change_without_base(message)
     # "quarter over quarter" is a window of sequential changes.
     sequential = _SEQUENTIAL.search(message) is not None
     named = parse_named_periods(message)
@@ -832,9 +861,49 @@ def refine_patch_from_message(
     and "same for" put them in place of the ones on screen. ``index`` reads
     which companies the words name.
     """
+    window = window or read_window(message)
     patch = bind_periods_from_message(patch, message, window=window)
     if current_spec is None:
         return patch
+    return _keep_window_for_change(
+        _refine_against(patch, message, current_spec, index), message, current_spec, window
+    )
+
+
+def _keep_window_for_change(
+    patch: SpecPatch, message: str, current_spec: AnalysisSpec, window: WindowReading
+) -> SpecPatch:
+    """ "Show that year over year" keeps the quarters on screen.
+
+    With no window named, year over year shows 8 quarters and growth 5: the 8
+    were four quarters with the year before each, the 5 four with the year-earlier
+    base of the newest. Each quarter's base is now the comparative its own filing
+    reports (ADR 0009), so a window the analyst already has needs no extra rows.
+    A sequential change still needs the quarter before the oldest one shown.
+    """
+    on_screen = current_spec.periods
+    if (
+        patch.mode != "extend"
+        or patch.set_periods is None
+        or on_screen.kind != "last_n_quarters"
+        or (on_screen.count or 1) <= 1
+        or comparison_asked(message) != "year_over_year"
+        or window.counted_window
+        or window.trailing_year
+        or _names_a_span(message)
+        or parse_named_periods(message)
+    ):
+        return patch
+    return patch.model_copy(update={"set_periods": None})
+
+
+def _refine_against(
+    patch: SpecPatch,
+    message: str,
+    current_spec: AnalysisSpec,
+    index: CompanyNames | None,
+) -> SpecPatch:
+    """The follow-up's edit of the analysis on screen."""
     if drops_comparison(message):
         # Nothing else on screen changes: not a company called "year over year".
         return _extend(

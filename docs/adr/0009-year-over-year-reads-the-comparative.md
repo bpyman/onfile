@@ -10,6 +10,8 @@ Every 10-Q and 10-K reports the same income-statement and cash-flow line a year 
 
 When the analyst asks for year over year alone, every quarter in the window gets its change from its own comparative, so an eight-quarter window no longer leaves its older half blank. Otherwise a change is shown only where the year-earlier quarter is in the window, as before.
 
+So year over year adds no rows to a window the analyst chose: "amgen and gilead revenue, last 6 quarters" then "show that year over year" shows the same 6 quarters, each with its change. Only a question that names no window gets a default: 8 quarters for year over year (once four quarters and the year before each) and 5 for growth (once four quarters and the newest one's year-earlier base). A sequential change still needs the quarter before the oldest one shown, so it can widen a window to 5.
+
 The table keeps each quarter as first filed, so a note says where a level differs from the base a change used: a restatement, or a share split. A split also shows as weighted diluted shares moving by half again or more between two quarters; no quarter-over-quarter per-share change crosses it.
 
 ## Considered options

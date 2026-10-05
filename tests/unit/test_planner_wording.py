@@ -136,11 +136,23 @@ def test_over_the_past_year_is_the_years_quarters_not_growth() -> None:
         ("Microsoft net income trend", "year_over_year"),
         ("How has Tesla's revenue changed over the last year?", "year_over_year"),
         ("Apple revenue year over year", "year_over_year"),
+        ("Is Apple's revenue up year on year?", "year_over_year"),
+        ("Apple revenue year-on-year", "year_over_year"),
+        ("Apple revenue y/y", "year_over_year"),
         ("Apple revenue sequential growth", "sequential"),
         ("Apple revenue vs last quarter", "sequential"),
         ("Apple revenue quarter-over-quarter", "sequential"),
         ("Why did Apple's revenue drop last quarter?", "unclear"),
         ("How has Microsoft revenue changed?", "unclear"),
+        ("How much did Intel's revenue change?", "unclear"),
+        ("How much has Intel's revenue changed?", "unclear"),
+        ("Did Intel's revenue change?", "unclear"),
+        ("How did Intel's net income move?", "unclear"),
+        ("How much did Intel's revenue change year over year?", "year_over_year"),
+        ("How much did Intel's revenue change since last quarter?", "sequential"),
+        ("How much did Intel's revenue change over the last year?", None),
+        ("Over the past 10 quarters, how has Thermo Fisher's revenue moved?", None),
+        ("How much did Intel's revenue change since 2023?", None),
         ("Apple revenue last quarter", None),
     ],
 )
@@ -159,6 +171,8 @@ def test_what_a_change_is_measured_against(message: str, base: str | None) -> No
         ("the quarter before", "sequential"),
         ("same quarter a year earlier", "year_over_year"),
         ("yoy", "year_over_year"),
+        ("y/y", "year_over_year"),
+        ("year on year", "year_over_year"),
         ("vs the previous quarter", "sequential"),
     ],
 )
@@ -183,6 +197,7 @@ def test_an_answer_names_the_base_of_a_change(answer: str, base: str) -> None:
         "remove year over year",
         "drop the year-over-year change",
         "no YoY",
+        "remove year on year",
         "without year over year growth",
     ],
 )
@@ -199,6 +214,18 @@ def test_year_over_year_on_its_own_still_asks_for_it() -> None:
 
     assert "year_over_year" in patch.add_operations
     assert not patch.remove_operations
+
+
+@pytest.mark.parametrize(
+    "spelling", ["year on year", "year-on-year", "YoY", "y/y", "Y/Y"]
+)
+def test_year_over_year_spelt_another_way_reads_the_same(spelling: str) -> None:
+    def bound(wording: str) -> SpecPatch:
+        message = f"is unitedhealth's operating cash flow up {wording}"
+        return bind_periods_from_message(SpecPatch(mode="replace"), message)
+
+    assert bound(spelling) == bound("year over year")
+    assert "year_over_year" in bound(spelling).add_operations
 
 
 def test_every_kind_of_clarification_is_one_entry_in_the_table() -> None:
@@ -225,3 +252,52 @@ def test_asking_the_scope_question_again_names_its_own_answers() -> None:
     assert asked.result.banners == [
         "There are 2 options: pick 1 to 2, or type “extend” or “replace”."
     ]
+
+
+def _window(count: int) -> PeriodSelection:
+    return PeriodSelection(kind="last_n_quarters", count=count)
+
+
+@pytest.mark.parametrize(
+    ("message", "shown"),
+    [("show that year over year", 6), ("as growth", 4), ("yoy please", 2)],
+)
+def test_a_year_over_year_follow_up_keeps_the_window_on_screen(message: str, shown: int) -> None:
+    spec, index = _spec("AMGN", "GILD", metrics=("revenue",))
+    spec = spec.model_copy(update={"periods": _window(shown)})
+
+    patch = refine_patch_from_message(SpecPatch(mode="extend"), message, spec, index=index)
+    draft = apply_patch(spec, patch)
+
+    assert draft.periods == _window(shown)
+    assert "year_over_year" in draft.operations
+
+
+@pytest.mark.parametrize(
+    ("message", "count"),
+    [
+        # A window the follow-up names is the window.
+        ("show that year over year for the last 3 quarters", 3),
+        # A sequential change needs the quarter before the oldest one shown.
+        ("show that quarter over quarter", 5),
+    ],
+)
+def test_a_change_follow_up_that_needs_or_names_quarters_sets_them(
+    message: str, count: int
+) -> None:
+    spec, index = _spec("AMGN", "GILD", metrics=("revenue",))
+    spec = spec.model_copy(update={"periods": _window(4)})
+
+    patch = refine_patch_from_message(SpecPatch(mode="extend"), message, spec, index=index)
+
+    assert apply_patch(spec, patch).periods == _window(count)
+
+
+def test_year_over_year_after_the_latest_quarter_shows_two_years() -> None:
+    spec, index = _spec("AMGN", metrics=("revenue",))
+
+    patch = refine_patch_from_message(
+        SpecPatch(mode="extend"), "show that year over year", spec, index=index
+    )
+
+    assert apply_patch(spec, patch).periods == _window(8)

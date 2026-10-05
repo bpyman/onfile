@@ -10,4 +10,23 @@ Found by the fourth held-out planner set ([findings](../../../../evaluation/held
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+The cause was the metric, fixed by ticket 01. Before it, the first turn asked
+which "interest" was meant. "and Wells Fargo" did not answer that question, so it
+discarded the pending clarification and showed Wells Fargo's overview, and
+"remove JPMorgan" had nothing to remove. At ac2b514 the case fails. Since 5433fab
+it answers Wells Fargo net interest income for the last 4 quarters. The removal
+itself was never wrong: the same three turns with revenue kept the metric and
+window before the fix.
+
+No code changed. `tests/test_held_out_4_findings.py` pins the case with the rules
+planner on the recorded runtime. The case file's `about` lists it among the fixed
+cases. `held-out-4-findings.md` records the cause. `compare_answers`: 0 of 244
+conversations differ.
+
+The spec keeps `across_companies` after removing down to one company. The
+development case `ho_follow_drop_company` does the same, and no label checks
+operations, so it was left alone.

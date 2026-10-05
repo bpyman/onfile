@@ -76,6 +76,8 @@ REPORTED_METRICS: tuple[str, ...] = (
     "dividends_per_share",
     "cash",
     "shareholders_equity",
+    # A bank's; other companies report none (missing_fact).
+    "net_interest_income",
 )
 FORMULA_METRICS: tuple[str, ...] = (
     "gross_margin",

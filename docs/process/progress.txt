@@ -990,3 +990,145 @@ Blockers / next:
   reports `0 of 244 conversations differ from HEAD`. Remaining
   simplify-followups tickets are ready-for-human.
 
+## 2026-10-05 — held-out-4-findings 01 "Net interest income" names one metric
+
+Task completed: `docs/process/tickets/held-out-4-findings/issues/01-net-interest-income-is-not-ambiguous.md`
+
+Key decisions:
+- "net interest income" (and its slug) are unique phrases. The longest span wins
+  over the ambiguous "interest", "net" and "income" (ADR 0004).
+- `net_interest_income` becomes an askable reported metric (`REPORTED_METRICS`).
+  It stays a bank-revenue component in `sec_facts`. Non-banks are refused as
+  missing the fact. `noninterest_income` was left internal because no case asks
+  for it.
+- `tests/test_held_out_4_findings.py` runs a held-out-4 case through
+  `run_planner` with the rules planner on the recorded runtime.
+- The case file's `about` says the set is now development data. No label changed.
+
+Files changed:
+- `src/financial_analyst_agent/{contracts.py,services/metric_catalog.py}`
+- `tests/test_held_out_4_findings.py`, `tests/unit/services/test_metric_phrase.py`,
+  `tests/test_presentation.py` (legend now 34 names)
+- `docs/evaluation/planner-cases-held-out-4.json` (`about` only)
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,747 Python tests pass; ruff and mypy pass; the answer comparison
+  reports `0 of 244 conversations differ from HEAD`. Tickets 02-05 can add their
+  cases to `tests/test_held_out_4_findings.py`. Ticket 04 also uses net interest
+  income.
+
+
+## 2026-10-05 — held-out-4-findings 02 "Year on year" means year over year
+
+Task completed: `docs/process/tickets/held-out-4-findings/issues/02-year-on-year-is-year-over-year.md`
+
+Key decisions:
+- One `YEAR_OVER_YEAR` pattern in `request_wording.py` covers "year over year",
+  "year on year", "year-on-year", "YoY" and "y/y". `YOY`, `EXPLICIT_YOY` and the
+  remove-the-change wording all use it. The clarify reply reader also takes "y/y".
+- "Year on year" answers as "year over year" does: 8 quarters when no window is
+  named. The case's label says the latest quarter, which disagrees with that
+  design in the same way as the two growth labels in held-out-4-findings.md. No
+  label changed. The test checks every field except periods, and checks that
+  the plan matches the "year over year" phrasing's.
+
+Files changed:
+- `src/financial_analyst_agent/{request_wording.py,graph/clarify.py}`
+- `tests/test_held_out_4_findings.py`, `tests/unit/test_planner_wording.py`
+- `docs/evaluation/{planner-cases-held-out-4.json (about only),held-out-4-findings.md}`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,759 Python tests pass; ruff and mypy pass; the answer comparison
+  reports `0 of 244 conversations differ from HEAD`. Whether a yes/no question
+  ("is X up year over year?") should show only the latest quarter is a design
+  question for a person; ticket 05 also touches the year-over-year window.
+
+
+## 2026-10-05 — held-out-4-findings 03 A change with no base asks what to compare against
+
+Task completed: `docs/process/tickets/held-out-4-findings/issues/03-a-change-with-no-base-asks.md`
+
+Key decisions:
+- `_CHANGE` ("how much did/has … change", "did … change", "how did … move") is a
+  change. `comparison_asked` returns "unclear" for it when no base is named.
+  `YOY` is unchanged.
+- A named span of quarters (counted window, "since 2023", "over the last year",
+  two or more named periods) is its own base, so it answers. This keeps
+  `h3_tmo_rev_past_ten` ("how has … moved" over 10 quarters) as recorded.
+- After the clarify reply, the window matches "how has … changed?". The
+  base-less change counts as a change in `bind_periods_from_message`.
+
+Files changed:
+- `src/financial_analyst_agent/request_wording.py`
+- `tests/test_held_out_4_findings.py`, `tests/unit/test_planner_wording.py`,
+  `tests/unit/test_conversation_edges.py`
+- `docs/evaluation/planner-cases-held-out-4.json` (`about` only)
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,771 Python tests pass; ruff and mypy pass; the answer comparison
+  reports `0 of 244 conversations differ from HEAD`. "How has X changed over the
+  past 10 quarters?" still asks, because `YOY` reads it before the span rule.
+  The span rule covers only the new wording.
+
+
+
+## 2026-10-05 — held-out-4-findings 04 Removing a company keeps the metric and window
+
+Task completed: `docs/process/tickets/held-out-4-findings/issues/04-removing-a-company-keeps-the-analysis.md`
+
+Key decisions:
+- No code change. The cause was the metric, and ticket 01 fixed it. The first
+  turn asked which "interest" was meant, "and Wells Fargo" discarded that pending
+  clarification (Wells Fargo's overview), and "remove JPMorgan" removed nothing.
+  At ac2b514 the case fails; at HEAD it passes. The same turns with revenue
+  passed before ticket 01.
+- The case is pinned in `tests/test_held_out_4_findings.py`, and the case file's
+  `about` lists it as fixed. No label changed.
+
+Files changed:
+- `tests/test_held_out_4_findings.py`
+- `docs/evaluation/{planner-cases-held-out-4.json (about only),held-out-4-findings.md}`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,772 Python tests pass; ruff and mypy pass; the answer comparison
+  reports `0 of 244 conversations differ from HEAD`. Removing down to one company
+  keeps `across_companies` in operations, as `ho_follow_drop_company` already
+  does. It is harmless and unlabelled. Ticket 05 is next.
+
+
+## 2026-10-05 — held-out-4-findings 05 Year over year keeps the window
+
+Task completed: `docs/process/tickets/held-out-4-findings/issues/05-year-over-year-keeps-the-window.md`
+
+Key decisions:
+- The 8 (year over year with no window) and the 5 (growth with no window, and the
+  floor for a change) date from before ADR 0009. Back then the year-earlier
+  quarters had to be rows. Both stay as defaults for a question that names no
+  window.
+- A follow-up asking for year over year or growth keeps the window on screen when
+  it names no window or period and the screen shows more than one quarter. It does
+  this in `_keep_window_for_change`, called from `refine_patch_from_message`. A
+  sequential change can still widen to 5. After the latest quarter alone, year over
+  year still shows 8.
+- ADR 0009 records the decision. The case file's `about` lists both cases as fixed.
+  No label changed.
+
+Files changed:
+- `src/financial_analyst_agent/request_wording.py`
+- `tests/test_held_out_4_findings.py`, `tests/unit/test_planner_wording.py`,
+  `tests/test_tester_conversations.py` (4 quarters, not 8, after "last 4 quarters")
+- `docs/adr/0009-year-over-year-reads-the-comparative.md`,
+  `docs/evaluation/{planner-cases-held-out-4.json (about only),held-out-4-findings.md}`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,780 Python tests pass; ruff and mypy pass. The answer comparison
+  reports `1 of 244 conversations differ from HEAD`. That conversation is
+  `ho_follow_yoy`, which now keeps its four quarters. All six shared defects from
+  the fourth held-out set are fixed. The next planner comparison needs a fifth
+  held-out set.
+
