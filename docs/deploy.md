@@ -82,7 +82,7 @@ look for instead. See [what was checked](#what-was-checked-against-current-docs)
 | Render (API) | `ALLOW_PUBLIC_OPENAI` | `true` | `render.yaml` |
 | Render (API) | `ALLOW_PUBLIC_TAVILY` | `true` | `render.yaml` |
 | Render (API) | `SEC_USER_AGENT` | app name and contact email, e.g. `FinancialAnalystAgent (you@example.com)` | Render dashboard (`sync: false`). Without it the live runtime is locked: every thread runs on the recorded runtime, the window says "Live runtime is off on this server", and the API logs a warning at startup. |
-| Render (API) | `OPENAI_API_KEY` | an OpenAI key | Render dashboard (`sync: false`). Optional: without it the live runtime uses the rules planner and recorded essays. |
+| Render (API) | `OPENAI_API_KEY` | an OpenAI key | Render dashboard (`sync: false`). Optional: with it the rules planner asks the LLM planner about the turns it is unsure of ([ADR 0012](adr/0012-the-live-planner-is-a-rules-first-cascade.md)) and essays are written live; without it the rules planner plans alone and essays are recorded. |
 | Render (API) | `TAVILY_API_KEY` | a Tavily key | Render dashboard (`sync: false`). Optional: without it the live runtime replays the recorded news. |
 | Render (API) | `API_PROXY_TOKEN` | a random secret (for example `openssl rand -hex 32`) | Render dashboard. `render.yaml` declares it with `sync: false`, so the Blueprint prompts for it on first sync and never stores it. |
 | Render (API) | `PORT` | `10000` by default | Render sets it. The image listens on `$PORT`. |

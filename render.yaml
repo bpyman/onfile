@@ -32,7 +32,8 @@ services:
     envVars:
       # The public demo: lands on the live runtime (SEC EDGAR, plus OpenAI and
       # Tavily when their keys are set), and visitors can switch to the recorded
-      # one. Without OPENAI_API_KEY the live runtime plans with the rules planner.
+      # one. Live turns plan with the rules planner, asking OpenAI only where it is
+      # unsure (ADR 0012); without OPENAI_API_KEY the rules planner plans alone.
       - key: APP_MODE
         value: "live"
       - key: PUBLIC_DEMO

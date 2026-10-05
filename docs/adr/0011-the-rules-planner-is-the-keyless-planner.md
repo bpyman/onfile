@@ -1,6 +1,7 @@
 # The rules planner is the keyless and test planner; accuracy work goes to the shared layers
 
 > **Builds on [ADR 0010](0010-one-reading-of-names-and-windows.md).**
+> **Superseded in part by [ADR 0012](0012-the-live-planner-is-a-rules-first-cascade.md):** where a key is set, the live runtime plans with a rules-first cascade, not the LLM planner on every turn.
 
 Onfile has two planners that propose the same thing: a spec patch, an essay request, or a filing comparison. The LLM planner (`planner.py`) runs whenever an OpenAI key is set and allowed, which on the public demo means live turns. The rules planner (`rules_planner.py`, about a thousand lines of wording rules) runs everywhere else.
 

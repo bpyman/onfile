@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from financial_analyst_agent.config import Settings
 from financial_analyst_agent.contracts import Intent, WorkflowPlan
 from financial_analyst_agent.planner import OpenAIStructuredCompleter, Plan
+from financial_analyst_agent.planner_cascade import CascadeCompleter
 from financial_analyst_agent.runtime import DemoCompleter, live_runtime, recorded_runtime
 from financial_analyst_agent.turn import run_turn
 from test_run_turn_lookup import GOOGLE_LATEST_QUARTER_NET_INCOME_QUERY
@@ -120,15 +121,17 @@ def test_live_runtime_without_openai_key_plans_with_the_rules_planner(
     assert isinstance(runtime.completer, DemoCompleter)
 
 
-def test_live_runtime_uses_openai_completer_when_configured(
+def test_live_runtime_plans_with_the_cascade_when_openai_is_configured(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
     monkeypatch.setenv("OPENAI_MODEL", _MODEL)
     monkeypatch.setenv("SEC_USER_AGENT", "FinancialAnalystAgent (dev@example.com)")
     runtime = live_runtime(Settings())
-    assert isinstance(runtime.completer, OpenAIStructuredCompleter)
-    assert not isinstance(runtime.completer, DemoCompleter)
+    assert isinstance(runtime.completer, CascadeCompleter)
+    # The rules planner plans first; the LLM planner is asked only where it is unsure.
+    assert isinstance(runtime.completer._rules, DemoCompleter)
+    assert isinstance(runtime.completer._llm, OpenAIStructuredCompleter)
 
 
 def test_recorded_runtime_still_uses_injected_fake_completer() -> None:
