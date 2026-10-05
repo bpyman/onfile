@@ -10,4 +10,29 @@ Found by the 2026-10-04 simplify review of master (#67), which left it out as la
 
 **Blocked by:** 01
 
-**Status:** ready-for-human
+**Status:** resolved
+
+## Answer
+
+Shipped 2026-10-05. `run_filing_change` downloads and reads the older and newer
+documents through `fan_out.map_in_order` (ticket 01's helper), so both share
+the turn's SEC deadline and session budget and keep their places; an error is
+raised as before, the older filing's first.
+
+Measured live and cold (fresh SEC cache, 8 requests a second), two runs each:
+
+| Question | Before | After |
+| --- | --- | --- |
+| What changed in Microsoft's latest 10-Q? | 3.13 s, 2.45 s | 2.46 s, 2.19 s |
+| What changed in Apple's latest 10-Q? | 1.71 s, 1.63 s | 1.58 s, 1.62 s |
+| What changed in NVIDIA's latest 10-Q? | 1.90 s, 1.81 s | 1.90 s, 1.82 s |
+
+A profile shows the second download starting one request slot (0.13 s) after
+the first instead of after it finishes. The saving is the shorter download,
+about 0.2 to 0.4 s, visible on Microsoft's larger filings and within the noise
+for the smaller ones: a filing change makes four SEC requests, two of them the
+documents, and the rest of the turn is parsing and the diff.
+
+Checks: 1,781 tests pass, including one whose two downloads each wait for the
+other; ruff and mypy pass; `compare_answers.py` reports `0 of 244
+conversations differ`.
