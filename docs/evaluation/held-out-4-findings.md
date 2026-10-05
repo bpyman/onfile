@@ -56,6 +56,13 @@ overview. "remove JPMorgan" then had nothing to remove. Once "net interest incom
 was read as one metric, the removal kept the metric and window, as it already did
 for revenue.
 
+`h4_fu_amgn_gild_yoy` and `h4_fu_tmo_dhr_too_growth` widened the window because
+the defaults for a question that names none (8 quarters for year over year, 5 for
+growth) were also applied to a follow-up. Both defaults date from before each
+quarter's change read its own filing's comparative (ADR 0009), when the
+year-earlier quarters had to be rows. A year-over-year follow-up now keeps the
+window on screen.
+
 ## What follows
 
 - The difference between the planners is two cases on 66, both planning errors

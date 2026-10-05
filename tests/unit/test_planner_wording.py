@@ -252,3 +252,52 @@ def test_asking_the_scope_question_again_names_its_own_answers() -> None:
     assert asked.result.banners == [
         "There are 2 options: pick 1 to 2, or type “extend” or “replace”."
     ]
+
+
+def _window(count: int) -> PeriodSelection:
+    return PeriodSelection(kind="last_n_quarters", count=count)
+
+
+@pytest.mark.parametrize(
+    ("message", "shown"),
+    [("show that year over year", 6), ("as growth", 4), ("yoy please", 2)],
+)
+def test_a_year_over_year_follow_up_keeps_the_window_on_screen(message: str, shown: int) -> None:
+    spec, index = _spec("AMGN", "GILD", metrics=("revenue",))
+    spec = spec.model_copy(update={"periods": _window(shown)})
+
+    patch = refine_patch_from_message(SpecPatch(mode="extend"), message, spec, index=index)
+    draft = apply_patch(spec, patch)
+
+    assert draft.periods == _window(shown)
+    assert "year_over_year" in draft.operations
+
+
+@pytest.mark.parametrize(
+    ("message", "count"),
+    [
+        # A window the follow-up names is the window.
+        ("show that year over year for the last 3 quarters", 3),
+        # A sequential change needs the quarter before the oldest one shown.
+        ("show that quarter over quarter", 5),
+    ],
+)
+def test_a_change_follow_up_that_needs_or_names_quarters_sets_them(
+    message: str, count: int
+) -> None:
+    spec, index = _spec("AMGN", "GILD", metrics=("revenue",))
+    spec = spec.model_copy(update={"periods": _window(4)})
+
+    patch = refine_patch_from_message(SpecPatch(mode="extend"), message, spec, index=index)
+
+    assert apply_patch(spec, patch).periods == _window(count)
+
+
+def test_year_over_year_after_the_latest_quarter_shows_two_years() -> None:
+    spec, index = _spec("AMGN", metrics=("revenue",))
+
+    patch = refine_patch_from_message(
+        SpecPatch(mode="extend"), "show that year over year", spec, index=index
+    )
+
+    assert apply_patch(spec, patch).periods == _window(8)

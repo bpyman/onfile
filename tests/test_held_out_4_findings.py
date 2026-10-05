@@ -38,6 +38,10 @@ def _case(case_id: str) -> PlannerCase:
         # Removing a company keeps the metric and window. It reset only because the
         # first turn asked about "interest", so "and Wells Fargo" was a new question.
         "h4_fu_jpm_and_wfc_remove_jpm",
+        # Year over year keeps the window on screen; each quarter's base is the
+        # comparative its own filing reports (ADR 0009).
+        "h4_fu_amgn_gild_yoy",
+        "h4_fu_tmo_dhr_too_growth",
     ],
 )
 def test_a_fixed_held_out_case_passes_with_the_rules_planner(

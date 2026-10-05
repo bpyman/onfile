@@ -1098,3 +1098,37 @@ Blockers / next:
   reports `0 of 244 conversations differ from HEAD`. Removing down to one company
   keeps `across_companies` in operations, as `ho_follow_drop_company` already
   does. It is harmless and unlabelled. Ticket 05 is next.
+
+
+## 2026-10-05 — held-out-4-findings 05 Year over year keeps the window
+
+Task completed: `docs/process/tickets/held-out-4-findings/issues/05-year-over-year-keeps-the-window.md`
+
+Key decisions:
+- The 8 (year over year with no window) and the 5 (growth with no window, and the
+  floor for a change) date from before ADR 0009. Back then the year-earlier
+  quarters had to be rows. Both stay as defaults for a question that names no
+  window.
+- A follow-up asking for year over year or growth keeps the window on screen when
+  it names no window or period and the screen shows more than one quarter. It does
+  this in `_keep_window_for_change`, called from `refine_patch_from_message`. A
+  sequential change can still widen to 5. After the latest quarter alone, year over
+  year still shows 8.
+- ADR 0009 records the decision. The case file's `about` lists both cases as fixed.
+  No label changed.
+
+Files changed:
+- `src/financial_analyst_agent/request_wording.py`
+- `tests/test_held_out_4_findings.py`, `tests/unit/test_planner_wording.py`,
+  `tests/test_tester_conversations.py` (4 quarters, not 8, after "last 4 quarters")
+- `docs/adr/0009-year-over-year-reads-the-comparative.md`,
+  `docs/evaluation/{planner-cases-held-out-4.json (about only),held-out-4-findings.md}`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,780 Python tests pass; ruff and mypy pass. The answer comparison
+  reports `1 of 244 conversations differ from HEAD`. That conversation is
+  `ho_follow_yoy`, which now keeps its four quarters. All six shared defects from
+  the fourth held-out set are fixed. The next planner comparison needs a fifth
+  held-out set.
+

@@ -861,9 +861,49 @@ def refine_patch_from_message(
     and "same for" put them in place of the ones on screen. ``index`` reads
     which companies the words name.
     """
+    window = window or read_window(message)
     patch = bind_periods_from_message(patch, message, window=window)
     if current_spec is None:
         return patch
+    return _keep_window_for_change(
+        _refine_against(patch, message, current_spec, index), message, current_spec, window
+    )
+
+
+def _keep_window_for_change(
+    patch: SpecPatch, message: str, current_spec: AnalysisSpec, window: WindowReading
+) -> SpecPatch:
+    """ "Show that year over year" keeps the quarters on screen.
+
+    With no window named, year over year shows 8 quarters and growth 5: the 8
+    were four quarters with the year before each, the 5 four with the year-earlier
+    base of the newest. Each quarter's base is now the comparative its own filing
+    reports (ADR 0009), so a window the analyst already has needs no extra rows.
+    A sequential change still needs the quarter before the oldest one shown.
+    """
+    on_screen = current_spec.periods
+    if (
+        patch.mode != "extend"
+        or patch.set_periods is None
+        or on_screen.kind != "last_n_quarters"
+        or (on_screen.count or 1) <= 1
+        or comparison_asked(message) != "year_over_year"
+        or window.counted_window
+        or window.trailing_year
+        or _names_a_span(message)
+        or parse_named_periods(message)
+    ):
+        return patch
+    return patch.model_copy(update={"set_periods": None})
+
+
+def _refine_against(
+    patch: SpecPatch,
+    message: str,
+    current_spec: AnalysisSpec,
+    index: CompanyNames | None,
+) -> SpecPatch:
+    """The follow-up's edit of the analysis on screen."""
     if drops_comparison(message):
         # Nothing else on screen changes: not a company called "year over year".
         return _extend(
