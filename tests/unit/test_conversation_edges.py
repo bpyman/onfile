@@ -75,6 +75,17 @@ def test_why_did_revenue_drop_asks_what_to_compare_against() -> None:
     assert asked.clarify_kind == "ambiguous_comparison"
 
 
+@pytest.mark.parametrize("reply", ["year over year", "sequential"])
+def test_how_much_revenue_changed_asks_then_answers_as_how_it_changed_does(reply: str) -> None:
+    runtime = recorded_runtime()
+    asked, answer = _conversation(runtime, "How much did Intel's revenue change?", reply)
+    _, changed = _conversation(runtime, "How has Intel's revenue changed?", reply)
+
+    assert asked.clarify_kind == "ambiguous_comparison"
+    assert answer.renderer is RendererKind.TABLE
+    assert answer.table_rows == changed.table_rows
+
+
 @pytest.mark.parametrize(
     ("name", "first"),
     [("Charles", ("SCHW", "CRL")), ("Coca", ("KO", "CCEP")), ("Lincoln", ("LECO", "LNC"))],

@@ -1044,3 +1044,32 @@ Blockers / next:
   reports `0 of 244 conversations differ from HEAD`. Whether a yes/no question
   ("is X up year over year?") should show only the latest quarter is a design
   question for a person; ticket 05 also touches the year-over-year window.
+
+
+## 2026-10-05 — held-out-4-findings 03 A change with no base asks what to compare against
+
+Task completed: `docs/process/tickets/held-out-4-findings/issues/03-a-change-with-no-base-asks.md`
+
+Key decisions:
+- `_CHANGE` ("how much did/has … change", "did … change", "how did … move") is a
+  change. `comparison_asked` returns "unclear" for it when no base is named.
+  `YOY` is unchanged.
+- A named span of quarters (counted window, "since 2023", "over the last year",
+  two or more named periods) is its own base, so it answers. This keeps
+  `h3_tmo_rev_past_ten` ("how has … moved" over 10 quarters) as recorded.
+- After the clarify reply, the window matches "how has … changed?". The
+  base-less change counts as a change in `bind_periods_from_message`.
+
+Files changed:
+- `src/financial_analyst_agent/request_wording.py`
+- `tests/test_held_out_4_findings.py`, `tests/unit/test_planner_wording.py`,
+  `tests/unit/test_conversation_edges.py`
+- `docs/evaluation/planner-cases-held-out-4.json` (`about` only)
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,771 Python tests pass; ruff and mypy pass; the answer comparison
+  reports `0 of 244 conversations differ from HEAD`. "How has X changed over the
+  past 10 quarters?" still asks, because `YOY` reads it before the span rule.
+  The span rule covers only the new wording.
+

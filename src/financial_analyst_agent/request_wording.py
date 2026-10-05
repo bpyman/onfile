@@ -254,6 +254,13 @@ _SEQUENTIAL = re.compile(
 )
 
 
+# "How much did revenue change?", "did it move?": a change that may name no base.
+_CHANGE = re.compile(
+    r"\b(?:how (?:much )?)?(?:has|have|did) .+ (?:change|move)d?\b",
+    re.IGNORECASE,
+)
+
+
 # Growth is year over year by convention: analysts and 10-Q MD&A compare a quarter
 # with the same quarter a year before, which a season does not distort (ADR 0010).
 GROWTH = re.compile(r"\b(?:grow(?:th|n|ing|s)?|grew|trend(?:s|ing)?)\b", re.IGNORECASE)
@@ -635,7 +642,7 @@ def comparison_asked(message: str) -> ComparisonBase | Literal["unclear"] | None
     against what ("why did revenue drop?"), and None where it asks for no change.
     """
     if YOY.search(message) is None and _SEQUENTIAL.search(message) is None:
-        return None
+        return "unclear" if _asks_change_without_base(message) else None
     if _SEQUENTIAL.search(message) is not None:
         return "sequential"
     if (
@@ -645,6 +652,25 @@ def comparison_asked(message: str) -> ComparisonBase | Literal["unclear"] | None
     ):
         return "year_over_year"
     return "unclear"
+
+
+def _asks_change_without_base(message: str) -> bool:
+    """A change asked about ("how much did revenue change?") with no base named."""
+    return _CHANGE.search(message) is not None and not _names_a_span(message)
+
+
+def _names_a_span(message: str) -> bool:
+    """Whether the wording names quarters a change runs across ("over the past 10 quarters").
+
+    The span's first quarter is the change's base, so the span is the answer.
+    """
+    window = asked_window(message)
+    return (
+        (window is not None and window.quarters > 1)
+        or SINCE_YEAR.search(message) is not None
+        or _YEAR_BASE.search(message) is not None
+        or len(parse_named_periods(message)) > 1
+    )
 
 
 def since_quarters(since: re.Match[str]) -> int:
@@ -673,7 +699,8 @@ def bind_periods_from_message(
             }
         )
     asked = window.asked_quarters if window.counted_window else None
-    yoy = YOY.search(message) is not None
+    # "How much did revenue change?" shows the quarters "how has it changed?" does.
+    yoy = YOY.search(message) is not None or _asks_change_without_base(message)
     # "quarter over quarter" is a window of sequential changes.
     sequential = _SEQUENTIAL.search(message) is not None
     named = parse_named_periods(message)

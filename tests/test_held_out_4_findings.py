@@ -33,6 +33,8 @@ def _case(case_id: str) -> PlannerCase:
     [
         # "Net interest income" is one metric, not the ambiguous word "interest".
         "h4_bac_nii_couple_quarters",
+        # A change that names no base asks what to compare against.
+        "h4_clarify_intel_change_no_base",
     ],
 )
 def test_a_fixed_held_out_case_passes_with_the_rules_planner(
