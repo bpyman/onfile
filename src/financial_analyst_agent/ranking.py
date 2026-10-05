@@ -75,6 +75,15 @@ class SnapshotRanking:
             self._index = IssuerIndex.build(self._snapshot.companies)
         return self._index
 
+    def largest_ciks(self, count: int) -> tuple[str, ...]:
+        """The ``count`` largest members that file 10-Qs, by market value, one CIK each."""
+        ordered = sorted(
+            (company for company in self._operating if company.files_quarterly),
+            key=lambda company: company.market_cap,
+            reverse=True,
+        )
+        return tuple(dict.fromkeys(company.cik for company in ordered))[:count]
+
     def knows_industry(self, industry: str) -> bool:
         """Whether ``industry`` names a sector, an industry, or the whole snapshot."""
         return resolve_industry_group(industry, self._groups) is not None

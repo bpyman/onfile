@@ -3,6 +3,7 @@
 import contextlib
 import json
 import os
+import time
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
@@ -79,15 +80,15 @@ def test_a_second_turn_about_the_same_company_reuses_the_parse(tmp_path: Path) -
     assert source.decoded == [_cik("WMT")]
 
 
-def test_a_refreshed_file_is_parsed_again(tmp_path: Path) -> None:
+def test_an_expired_digest_is_fetched_and_parsed_again(tmp_path: Path) -> None:
     source = _source(tmp_path)
     cik = _cik("WMT")
     _turn(source).get_financials("WMT", "revenue")
 
-    stamp = source.company_facts_stamp(cik)
-    assert stamp is not None
-    path = tmp_path / f"facts-{cik}.json"
-    os.utime(path, ns=(stamp[1] + 1_000_000, stamp[1] + 1_000_000))
+    # Without a filing watch a digest lasts the hour, as its facts file did.
+    digest = tmp_path / f"digest-{cik}.json.gz"
+    then = time.time() - 2 * 3600
+    os.utime(digest, (then, then))
     _turn(source).get_financials("WMT", "revenue")
 
     assert source.decoded == [cik, cik]
@@ -120,12 +121,11 @@ def test_lookups_never_change_a_shared_parse(tmp_path: Path) -> None:
     stamps = {}
     before = {}
     for ticker in TICKERS:
-        source.prefetch_company_facts(_cik(ticker))
-        stamp = source.company_facts_stamp(_cik(ticker))
-        assert stamp is not None
-        stamps[ticker] = stamp
-    for ticker in TICKERS:
         _turn(source).get_financials(ticker, FIRST_METRIC[ticker])
+        digest = source.read_facts_digest(_cik(ticker))
+        assert digest is not None
+        stamps[ticker] = digest[0]
+    for ticker in TICKERS:
         parsed = sec_facts._PARSED_FACTS.get(stamps[ticker])
         assert parsed is not None
         before[ticker] = json.dumps(parsed.concepts, sort_keys=True, default=str)

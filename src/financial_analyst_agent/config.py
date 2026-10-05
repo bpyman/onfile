@@ -78,6 +78,11 @@ class Settings(BaseSettings):
     # How often the live runtime reads SEC's latest 10-Q and 10-K filings, so a
     # company's cached data lasts until it files again (ADR 0013); 0 turns it off.
     sec_filing_watch_seconds: float = 300.0
+    # With the filing watch on, the largest companies' SEC data is fetched in the
+    # background before anyone asks (ADR 0014), this many of them; 0 turns it off.
+    sec_warm_companies: int = 250
+    # The warm-up's share of SEC requests; it also waits while visitors' requests queue.
+    sec_warm_requests_per_second: float = 2.0
     # The SEC disk cache is trimmed, oldest files first, past this size.
     sec_cache_max_bytes: int = 1024 * 1024 * 1024
     fmp_api_key: str = ""
@@ -161,6 +166,24 @@ class Settings(BaseSettings):
         value = _reject_non_finite(value, "SEC_BLOCK_PAUSE_SECONDS")
         if value < 0:
             raise ValueError("SEC_BLOCK_PAUSE_SECONDS must not be negative")
+        return value
+
+    @field_validator("sec_warm_companies")
+    @classmethod
+    def validate_warm_companies(cls, value: int) -> int:
+        if value < 0:
+            raise ValueError("SEC_WARM_COMPANIES must not be negative (0 turns it off)")
+        return value
+
+    @field_validator("sec_warm_requests_per_second")
+    @classmethod
+    def validate_warm_rate(cls, value: float) -> float:
+        value = _reject_non_finite(value, "SEC_WARM_REQUESTS_PER_SECOND")
+        if value <= 0 or value > SEC_MAX_REQUESTS_PER_SECOND:
+            raise ValueError(
+                "SEC_WARM_REQUESTS_PER_SECOND must be greater than 0 and at most "
+                f"{SEC_MAX_REQUESTS_PER_SECOND:g}"
+            )
         return value
 
     @field_validator("sec_filing_watch_seconds")

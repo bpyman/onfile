@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gzip
 import json
 import os
 import re
@@ -27,8 +28,9 @@ from financial_analyst_agent.providers.sec.filing_watch import FilingWatch
 from financial_analyst_agent.session import SessionBudget
 
 _JSON_FRESH_SECONDS = 3600
-# A company's files: its facts, its no-facts marker, its submissions and their older pages.
-_COMPANY_FILE = re.compile(r"(?:facts|submissions)-(?:CIK)?(\d{10})")
+# A company's files: its facts and their digest, its no-facts marker, its submissions
+# and their older pages.
+_COMPANY_FILE = re.compile(r"(?:facts|submissions|digest)-(?:CIK)?(\d{10})")
 # A temp file this old belongs to no write in progress: its writer died.
 _STALE_TEMP_SECONDS = 3600
 _SWEEP_INTERVAL_SECONDS = 600
@@ -206,6 +208,51 @@ class CachingSECDataSource:
         return with_older_pages(
             payload, lambda name: self._json(f"submissions-{name}", lambda: page(name))
         )
+
+    def read_facts_digest(self, cik: str) -> tuple[tuple[str, int, int], bytes] | None:
+        """A company's facts digest and its stamp, when a fresh one is on disk.
+
+        A digest is what a lookup keeps of a company's facts (``sec_facts``): a
+        tenth of the facts file's size, and decoded in milliseconds. It is as
+        fresh as the facts file it was made from, by the same rule.
+        """
+        path = self._dir / f"digest-{cik}.json.gz"
+        if not self._json_is_fresh(path):
+            return None
+        try:
+            info = path.stat()
+            data = gzip.decompress(path.read_bytes())
+        except (OSError, EOFError, gzip.BadGzipFile):
+            return None
+        return (str(path.resolve()), info.st_mtime_ns, info.st_size), data
+
+    def write_facts_digest(
+        self, cik: str, data: bytes, *, fetched: float
+    ) -> tuple[str, int, int] | None:
+        """Keep a company's facts digest in place of its facts file; its stamp, if written.
+
+        ``fetched`` is when the facts file was fetched: the digest is dated then,
+        so a filing between the fetch and this write still makes it out of date.
+        """
+        path = self._dir / f"digest-{cik}.json.gz"
+        if not self._write(path, gzip.compress(data)):
+            return None
+        try:
+            os.utime(path, (fetched, fetched))
+            info = path.stat()
+        except OSError:
+            _unlink_quietly(path)
+            return None
+        # The digest is all a lookup reads of the facts file, at a tenth of its size.
+        _unlink_quietly(self._dir / f"facts-{cik}.json")
+        return (str(path.resolve()), info.st_mtime_ns, info.st_size)
+
+    def company_written(self, name: str) -> float | None:
+        """When a cached file was written (``digest-{cik}.json.gz``, ``submissions-{cik}.json``)."""
+        try:
+            return (self._dir / name).stat().st_mtime
+        except OSError:
+            return None
 
     def company_facts_stamp(self, cik: str) -> tuple[str, int, int] | None:
         """Which copy of a company's facts file is on disk: its path, modified time and size.

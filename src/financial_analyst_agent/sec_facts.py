@@ -1,5 +1,7 @@
 """SEC fact lookup over an injectable live or recorded data source."""
 
+import hashlib
+import json
 import threading
 from collections import Counter, OrderedDict
 from collections.abc import Callable, Mapping, Sequence
@@ -157,6 +159,46 @@ class _ParsedFactsCache:
 
 
 _PARSED_FACTS = _ParsedFactsCache(_PARSED_FACTS_LIMIT)
+
+# A digest made by other code, or for other concepts, is not read: the tag changes with
+# the digest's layout (the number) and with the concepts a lookup reads.
+_DIGEST_TAG = hashlib.sha256(
+    json.dumps([1, sorted(READ_CONCEPTS)]).encode("utf-8")
+).hexdigest()[:16]
+
+
+def _digest_of(parsed: _ParsedFacts) -> bytes:
+    """``parsed`` as the JSON a cache keeps on disk (``read_facts_digest``)."""
+    return json.dumps(
+        {
+            "tag": _DIGEST_TAG,
+            "concepts": parsed.concepts,
+            "labels": {
+                accession: [label.fiscal_year, label.fiscal_period]
+                for accession, label in parsed.labels.items()
+            },
+            "filings": [filing.model_dump(mode="json") for filing in parsed.filings],
+        },
+        separators=(",", ":"),
+    ).encode("utf-8")
+
+
+def _parsed_from_digest(data: bytes) -> _ParsedFacts | None:
+    """A digest read back, or None when it is unreadable or another version's."""
+    try:
+        raw = json.loads(data)
+        if not isinstance(raw, dict) or raw.get("tag") != _DIGEST_TAG:
+            return None
+        return _ParsedFacts(
+            concepts=raw["concepts"],
+            labels={
+                accession: FiscalLabel(fiscal_year=year, fiscal_period=period)
+                for accession, (year, period) in raw["labels"].items()
+            },
+            filings=tuple(Filing.model_validate(filing) for filing in raw["filings"]),
+        )
+    except (ValueError, KeyError, TypeError):
+        return None
 
 
 # A quarter whose filing SEC lists but whose facts its structured data lacks yet.
@@ -561,6 +603,25 @@ class SecFactLookup:
         return payload
 
     def _parsed_facts(self, cik: str) -> dict[str, Any]:
+        parsed = self._parsed_from_disk(cik) or self._parsed_from_facts(cik)
+        self._fiscal_labels_by_cik.setdefault(cik, parsed.labels)
+        self._facts_filings_by_cik[cik] = parsed.filings
+        return parsed.concepts
+
+    def _parsed_from_disk(self, cik: str) -> _ParsedFacts | None:
+        """The company's digest, from memory or from a fresh one the cache keeps on disk."""
+        read = getattr(self._client, "read_facts_digest", None)
+        digest = read(cik) if callable(read) else None
+        if digest is None:
+            return None
+        stamp, data = digest
+        parsed = _PARSED_FACTS.get(stamp) or _parsed_from_digest(data)
+        if parsed is not None:
+            _PARSED_FACTS.put(stamp, parsed)
+        return parsed
+
+    def _parsed_from_facts(self, cik: str) -> _ParsedFacts:
+        """The company's facts file parsed, and kept as a digest where the cache can keep one."""
         prefetch = getattr(self._client, "prefetch_company_facts", None)
         if callable(prefetch):
             prefetch(cik)
@@ -569,20 +630,29 @@ class SecFactLookup:
         stamp_of = getattr(self._client, "company_facts_stamp", None)
         stamp = stamp_of(cik) if callable(stamp_of) else None
         parsed = _PARSED_FACTS.get(stamp) if stamp is not None else None
-        if parsed is None:
-            with _FACTS_PARSE_SLOTS:
-                payload = self._client.get_company_facts(cik)
-                # The summaries read every concept; the rest of the turn reads only the catalog's.
-                parsed = _ParsedFacts(
-                    concepts=_read_concepts_only(payload),
-                    labels=fiscal_labels(payload),
-                    filings=tuple(filings_from_company_facts(payload)),
-                )
-            if stamp is not None:
-                _PARSED_FACTS.put(stamp, parsed)
-        self._fiscal_labels_by_cik.setdefault(cik, parsed.labels)
-        self._facts_filings_by_cik[cik] = parsed.filings
-        return parsed.concepts
+        if parsed is not None:
+            return parsed
+        with _FACTS_PARSE_SLOTS:
+            payload = self._client.get_company_facts(cik)
+            # The summaries read every concept; the rest of the turn reads only the catalog's.
+            parsed = _ParsedFacts(
+                concepts=_read_concepts_only(payload),
+                labels=fiscal_labels(payload),
+                filings=tuple(filings_from_company_facts(payload)),
+            )
+        write = getattr(self._client, "write_facts_digest", None)
+        if stamp is not None and callable(write):
+            # Dated when the facts file was fetched, so a filing since still dates it.
+            kept = write(cik, _digest_of(parsed), fetched=stamp[1] / 1e9)
+            stamp = kept or stamp
+        if stamp is not None:
+            _PARSED_FACTS.put(stamp, parsed)
+        return parsed
+
+    def warm(self, cik: str) -> None:
+        """Bring a company's first submissions page and facts digest onto disk, as a turn would."""
+        self._cached_submissions(cik)
+        self._cached_company_facts(cik)
 
     def get_financials(
         self,
