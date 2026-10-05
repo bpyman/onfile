@@ -23,6 +23,11 @@ from financial_analyst_agent.providers.sec.submissions import validate_submissio
 from financial_analyst_agent.providers.sec.tickers import require_usable_company_tickers
 
 _COMPANY_TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"
+# SEC's latest filings of one form (and its amendments), newest first, as Atom.
+_LATEST_FILINGS_URL = (
+    "https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type={form}"
+    "&company=&dateb=&owner=include&start={start}&count={count}&output=atom"
+)
 # SEC's "recent" filings hold the last year or 1,000 filings, whichever is more.
 # A bank filing thousands of prospectuses a year has only a year of 10-Qs there;
 # older ones sit in numbered pages. Read pages until this much history is in hand.
@@ -372,6 +377,22 @@ class SECClient:
             if not usable_filing_document(text):
                 raise ProviderError(
                     "SEC returned no usable filing document",
+                    details={"url": url, "retryable": True},
+                )
+            return text
+
+        return self._with_retries(url, once)
+
+    def get_latest_filings(self, form: str, start: int = 0, count: int = 100) -> str:
+        """One page of SEC's latest filings of ``form`` and its amendments, as Atom XML."""
+        url = _LATEST_FILINGS_URL.format(form=form, start=start, count=count)
+
+        def once() -> str:
+            body, content_type = self._get(url, "application/atom+xml")
+            text = body.decode(_charset(content_type), errors="replace")
+            if "<feed" not in text[:4096]:
+                raise ProviderError(
+                    "SEC returned no latest-filings feed",
                     details={"url": url, "retryable": True},
                 )
             return text

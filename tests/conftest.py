@@ -18,6 +18,8 @@ def _keep_non_network_tests_offline(
     monkeypatch.setenv("FMP_API_KEY", "")
     monkeypatch.setenv("TAVILY_API_KEY", "")
     monkeypatch.setenv("OPENAI_API_KEY", "")
+    # A live runtime built in a test must not start polling SEC.
+    monkeypatch.setenv("SEC_FILING_WATCH_SECONDS", "0")
 
 
 @pytest.fixture(autouse=True)
