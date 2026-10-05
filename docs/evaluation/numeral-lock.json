@@ -1,0 +1,117 @@
+{
+  "generated_at": "2026-10-05T12:34:44.466088+00:00",
+  "answers": 10,
+  "questions": [
+    "Compare Eli Lilly and Pfizer revenue and net margin",
+    "Microsoft revenue over the last four quarters",
+    "NVIDIA diluted EPS last 8 quarters",
+    "Top 5 semiconductor companies by revenue",
+    "Apple gross margin",
+    "Compare Merck, AbbVie and Amgen R&D",
+    "Oracle free cash flow over the last 4 quarters",
+    "Johnson & Johnson cash",
+    "Broadcom operating margin over the last six quarters",
+    "Compare JPMorgan and Wells Fargo net income"
+  ],
+  "kinds": [
+    {
+      "name": "exact_json",
+      "description": "the value exactly as the JSON holds it (22974000000, 0.3088273701)",
+      "should_withhold": false,
+      "sentences": 36,
+      "withheld": 0,
+      "example": {
+        "sentence": "Eli Lilly and Company reported revenue of 22974000000 for the quarter.",
+        "withheld": false
+      }
+    },
+    {
+      "name": "as_shown",
+      "description": "the value as the window shows it ($22.97 B, 30.9%)",
+      "should_withhold": false,
+      "sentences": 36,
+      "withheld": 36,
+      "example": {
+        "sentence": "Eli Lilly and Company reported revenue of $22.97 B for the quarter.",
+        "withheld": true
+      }
+    },
+    {
+      "name": "as_shown_in_words",
+      "description": "the shown value with its unit in words ($22.97 billion)",
+      "should_withhold": false,
+      "sentences": 36,
+      "withheld": 36,
+      "example": {
+        "sentence": "Eli Lilly and Company reported revenue of $22.97 billion for the quarter.",
+        "withheld": true
+      }
+    },
+    {
+      "name": "rounded",
+      "description": "the shown value rounded to a whole number (about $23 billion)",
+      "should_withhold": false,
+      "sentences": 36,
+      "withheld": 36,
+      "example": {
+        "sentence": "Eli Lilly and Company reported revenue of about $23 billion for the quarter.",
+        "withheld": true
+      }
+    },
+    {
+      "name": "json_digit_changed",
+      "description": "the JSON value with its last digit changed",
+      "should_withhold": true,
+      "sentences": 36,
+      "withheld": 36,
+      "example": {
+        "sentence": "Eli Lilly and Company reported revenue of 22974000001 for the quarter.",
+        "withheld": true
+      }
+    },
+    {
+      "name": "shown_digit_changed",
+      "description": "the shown value with its last digit changed ($22.98 B)",
+      "should_withhold": true,
+      "sentences": 36,
+      "withheld": 36,
+      "example": {
+        "sentence": "Eli Lilly and Company reported revenue of $22.98 B for the quarter.",
+        "withheld": true
+      }
+    },
+    {
+      "name": "invented",
+      "description": "a number the answer does not hold (a growth rate of 17.3%)",
+      "should_withhold": true,
+      "sentences": 36,
+      "withheld": 36,
+      "example": {
+        "sentence": "Eli Lilly and Company reported revenue of 22974000000 for the quarter. That is growth of 17.3% from a year earlier.",
+        "withheld": true
+      }
+    },
+    {
+      "name": "misattributed",
+      "description": "another company's value of the same metric, given as this company's",
+      "should_withhold": true,
+      "sentences": 14,
+      "withheld": 0,
+      "example": {
+        "sentence": "Eli Lilly and Company reported revenue of 15034000000 for the quarter.",
+        "withheld": false
+      }
+    },
+    {
+      "name": "in_words",
+      "description": "a figure written out in words (twenty-three billion dollars)",
+      "should_withhold": true,
+      "sentences": 36,
+      "withheld": 0,
+      "example": {
+        "sentence": "Eli Lilly and Company reported revenue of twenty-three billion dollars for the quarter.",
+        "withheld": false
+      }
+    }
+  ]
+}
