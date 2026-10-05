@@ -1,12 +1,12 @@
 {
-  "about": "Third held-out set for the planner comparison (financial_analyst_agent.planner_evaluation). Written and labelled blind: from the product rules (period windows, company name forms, follow-up add versus replace, ordinary-word company names, ADR 0004 ambiguous metrics, refusals) before any planner was run on these cases, without reading earlier held-out sets or planner code. Same format and label semantics as planner-cases.json: each case is a conversation, its expectations apply to the last turn, and fields a case leaves out are not scored. A window in years counts 4 quarters per year, 'past year' is 4, 'a few' and 'several' are 4, months are a third rounded up; 'add/include/also X' adds companies and 'what about/how about/same for X' replaces them, keeping metric and window. Alphabet is labelled GOOG, as in planner-cases.json.",
+  "about": "Third set for the planner comparison (financial_analyst_agent.planner_evaluation), held out for the run of 2026-10-03 and a development set since: that run's results were read, and one label (see label_changes) and the recorded SEC data changed after it. The fourth held-out set, planner-cases-held-out-4.json, replaced it. Written and labelled blind: from the product rules (period windows, company name forms, follow-up add versus replace, ordinary-word company names, ADR 0004 ambiguous metrics, refusals) before any planner was run on these cases, without reading earlier held-out sets or planner code. Same format and label semantics as planner-cases.json: each case is a conversation, its expectations apply to the last turn, and fields a case leaves out are not scored. A window in years counts 4 quarters per year, 'past year' is 4, 'a few' and 'several' are 4, months are a third rounded up; 'add/include/also X' adds companies and 'what about/how about/same for X' replaces them, keeping metric and window. Alphabet is labelled GOOG, as in planner-cases.json.",
   "label_changes": [
     {"id": "h3_amgn_two_metrics", "change": "outcome clarify -> answer with both metrics", "why": "Labelled from ADR 0004, which then said two catalog metrics in one question clarify. The product answers both, and the owner decided after the held-out run that answering both is right; ADR 0004 now says so."}
   ],
   "cases": [
     {
       "id": "h3_pfe_rev_last3",
-      "split": "held_out",
+      "split": "dev",
       "category": "periods",
       "turns": [
         "Pfizer revenue, last 3 quarters"
@@ -28,7 +28,7 @@
     },
     {
       "id": "h3_abbv_ni_ttm_months",
-      "split": "held_out",
+      "split": "dev",
       "category": "periods",
       "turns": [
         "What has AbbVie's net income been over the trailing twelve months, quarter by quarter?"
@@ -49,7 +49,7 @@
     },
     {
       "id": "h3_mu_gm_most_recent_five",
-      "split": "held_out",
+      "split": "dev",
       "category": "periods",
       "turns": [
         "show me micron's gross margin for the most recent five quarters"
@@ -71,7 +71,7 @@
     },
     {
       "id": "h3_avgo_rd_previous_two",
-      "split": "held_out",
+      "split": "dev",
       "category": "periods",
       "turns": [
         "Broadcom R&D over the previous two quarters?"
@@ -93,7 +93,7 @@
     },
     {
       "id": "h3_bac_ni_past_year",
-      "split": "held_out",
+      "split": "dev",
       "category": "periods",
       "turns": [
         "How has Bank of America's net income trended over the past year?"
@@ -114,7 +114,7 @@
     },
     {
       "id": "h3_jpm_wfc_rev_three_years",
-      "split": "held_out",
+      "split": "dev",
       "category": "periods",
       "turns": [
         "Compare JPMorgan and Wells Fargo revenue over the last 3 years"
@@ -137,7 +137,7 @@
     },
     {
       "id": "h3_gild_ocf_eighteen_months",
-      "split": "held_out",
+      "split": "dev",
       "category": "periods",
       "turns": [
         "Gilead operating cash flow for the prior 18 months"
@@ -158,7 +158,7 @@
     },
     {
       "id": "h3_amat_rev_couple",
-      "split": "held_out",
+      "split": "dev",
       "category": "periods",
       "turns": [
         "What did Applied Materials post in revenue over the last couple of quarters?"
@@ -179,7 +179,7 @@
     },
     {
       "id": "h3_mrk_lly_rd_several",
-      "split": "held_out",
+      "split": "dev",
       "category": "periods",
       "turns": [
         "Merck vs Eli Lilly R&D spending for the past several quarters"
@@ -202,7 +202,7 @@
     },
     {
       "id": "h3_dhr_opinc_few",
-      "split": "held_out",
+      "split": "dev",
       "category": "periods",
       "turns": [
         "Danaher's operating income in the last few quarters"
@@ -223,7 +223,7 @@
     },
     {
       "id": "h3_abt_gm_previous_seven",
-      "split": "held_out",
+      "split": "dev",
       "category": "periods",
       "turns": [
         "abbott gross margin, previous 7 quarters"
@@ -244,7 +244,7 @@
     },
     {
       "id": "h3_csco_orcl_opm_trailing_six",
-      "split": "held_out",
+      "split": "dev",
       "category": "periods",
       "turns": [
         "Cisco against Oracle on operating margin, trailing six quarters"
@@ -267,7 +267,7 @@
     },
     {
       "id": "h3_unh_rev_nine_months",
-      "split": "held_out",
+      "split": "dev",
       "category": "periods",
       "turns": [
         "UnitedHealth revenue over the last nine months"
@@ -288,7 +288,7 @@
     },
     {
       "id": "h3_tmo_rev_past_ten",
-      "split": "held_out",
+      "split": "dev",
       "category": "periods",
       "turns": [
         "Over the past 10 quarters, how has Thermo Fisher's revenue moved?"
@@ -309,7 +309,7 @@
     },
     {
       "id": "h3_intc_amd_eps_24_months",
-      "split": "held_out",
+      "split": "dev",
       "category": "periods",
       "turns": [
         "Intel and AMD diluted EPS across the last 24 months"
@@ -331,7 +331,7 @@
     },
     {
       "id": "h3_jnj_and_spelled",
-      "split": "held_out",
+      "split": "dev",
       "category": "company_names",
       "turns": [
         "What was Johnson and Johnson's revenue last quarter?"
@@ -349,7 +349,7 @@
     },
     {
       "id": "h3_gs_leading_the_lower",
-      "split": "held_out",
+      "split": "dev",
       "category": "company_names",
       "turns": [
         "the goldman sachs group - net income, latest quarter"
@@ -367,7 +367,7 @@
     },
     {
       "id": "h3_nvda_dollar_ticker",
-      "split": "held_out",
+      "split": "dev",
       "category": "company_names",
       "turns": [
         "$NVDA operating margin"
@@ -385,7 +385,7 @@
     },
     {
       "id": "h3_lly_full_legal_name",
-      "split": "held_out",
+      "split": "dev",
       "category": "company_names",
       "turns": [
         "Eli Lilly and Company: how much went to R&D last quarter?"
@@ -403,7 +403,7 @@
     },
     {
       "id": "h3_mrk_co_inc",
-      "split": "held_out",
+      "split": "dev",
       "category": "company_names",
       "turns": [
         "Merck & Co., Inc. gross margin"
@@ -421,7 +421,7 @@
     },
     {
       "id": "h3_msft_corp_abbrev",
-      "split": "held_out",
+      "split": "dev",
       "category": "company_names",
       "turns": [
         "How much revenue did Microsoft Corp. report in its latest quarter?"
@@ -439,7 +439,7 @@
     },
     {
       "id": "h3_amat_inc_suffix",
-      "split": "held_out",
+      "split": "dev",
       "category": "company_names",
       "turns": [
         "Net income at Applied Materials, Inc."
@@ -457,7 +457,7 @@
     },
     {
       "id": "h3_jpm_spaced_short",
-      "split": "held_out",
+      "split": "dev",
       "category": "company_names",
       "turns": [
         "JP Morgan's earnings last quarter"
@@ -475,7 +475,7 @@
     },
     {
       "id": "h3_wfc_ampersand_co",
-      "split": "held_out",
+      "split": "dev",
       "category": "company_names",
       "turns": [
         "wells fargo & co operating cash flow"
@@ -493,7 +493,7 @@
     },
     {
       "id": "h3_amd_lower_rd",
-      "split": "held_out",
+      "split": "dev",
       "category": "company_names",
       "turns": [
         "amd r&d spend"
@@ -511,7 +511,7 @@
     },
     {
       "id": "h3_pltr_possessive_plural",
-      "split": "held_out",
+      "split": "dev",
       "category": "company_names",
       "turns": [
         "Palantir Technologies' gross margin?"
@@ -529,7 +529,7 @@
     },
     {
       "id": "h3_amd_intc_legal_names",
-      "split": "held_out",
+      "split": "dev",
       "category": "company_names",
       "turns": [
         "Compare Advanced Micro Devices and Intel Corporation net income."
@@ -548,7 +548,7 @@
     },
     {
       "id": "h3_goog_brand_name",
-      "split": "held_out",
+      "split": "dev",
       "category": "company_names",
       "turns": [
         "What's Google's cash position?"
@@ -566,7 +566,7 @@
     },
     {
       "id": "h3_csco_systems_possessive",
-      "split": "held_out",
+      "split": "dev",
       "category": "company_names",
       "turns": [
         "Cisco Systems' operating margin"
@@ -584,7 +584,7 @@
     },
     {
       "id": "h3_avgo_mu_dollar_pair",
-      "split": "held_out",
+      "split": "dev",
       "category": "company_names",
       "turns": [
         "$AVGO, $MU: compare revenue"
@@ -603,7 +603,7 @@
     },
     {
       "id": "h3_abbv_inc_eps",
-      "split": "held_out",
+      "split": "dev",
       "category": "company_names",
       "turns": [
         "AbbVie Inc. diluted EPS"
@@ -621,7 +621,7 @@
     },
     {
       "id": "h3_add_tmo_as_well",
-      "split": "held_out",
+      "split": "dev",
       "category": "follow_up",
       "turns": [
         "Compare Abbott and Danaher revenue over the last 4 quarters",
@@ -645,7 +645,7 @@
     },
     {
       "id": "h3_how_about_amd",
-      "split": "held_out",
+      "split": "dev",
       "category": "follow_up",
       "turns": [
         "What's Intel's gross margin?",
@@ -663,7 +663,7 @@
     },
     {
       "id": "h3_same_for_wfc",
-      "split": "held_out",
+      "split": "dev",
       "category": "follow_up",
       "turns": [
         "Bank of America net income over the past six quarters",
@@ -685,7 +685,7 @@
     },
     {
       "id": "h3_also_then_include_too",
-      "split": "held_out",
+      "split": "dev",
       "category": "follow_up",
       "turns": [
         "Microsoft R&D last quarter",
@@ -706,7 +706,7 @@
     },
     {
       "id": "h3_extend_to_two_years",
-      "split": "held_out",
+      "split": "dev",
       "category": "follow_up",
       "turns": [
         "Nvidia revenue over the last 4 quarters",
@@ -728,7 +728,7 @@
     },
     {
       "id": "h3_switch_metric",
-      "split": "held_out",
+      "split": "dev",
       "category": "follow_up",
       "turns": [
         "Pfizer and Merck revenue",
@@ -747,7 +747,7 @@
     },
     {
       "id": "h3_what_about_keeps_window",
-      "split": "held_out",
+      "split": "dev",
       "category": "follow_up",
       "turns": [
         "Gilead R&D spending over the last three quarters",
@@ -769,7 +769,7 @@
     },
     {
       "id": "h3_add_mu_too",
-      "split": "held_out",
+      "split": "dev",
       "category": "follow_up",
       "turns": [
         "Broadcom revenue",
@@ -788,7 +788,7 @@
     },
     {
       "id": "h3_window_on_compare",
-      "split": "held_out",
+      "split": "dev",
       "category": "follow_up",
       "turns": [
         "Compare JPMorgan and Goldman net income",
@@ -811,7 +811,7 @@
     },
     {
       "id": "h3_include_metric_too",
-      "split": "held_out",
+      "split": "dev",
       "category": "follow_up",
       "turns": [
         "Apple operating income over the past four quarters",
@@ -834,7 +834,7 @@
     },
     {
       "id": "h3_add_then_metric_instead",
-      "split": "held_out",
+      "split": "dev",
       "category": "follow_up",
       "turns": [
         "Eli Lilly revenue over the last 2 years",
@@ -858,7 +858,7 @@
     },
     {
       "id": "h3_what_about_two",
-      "split": "held_out",
+      "split": "dev",
       "category": "follow_up",
       "turns": [
         "Compare Cisco and Intel revenue",
@@ -877,7 +877,7 @@
     },
     {
       "id": "h3_swap_then_add",
-      "split": "held_out",
+      "split": "dev",
       "category": "follow_up",
       "turns": [
         "Merck net income",
@@ -897,7 +897,7 @@
     },
     {
       "id": "h3_apples_to_apples",
-      "split": "held_out",
+      "split": "dev",
       "category": "ordinary_word_names",
       "turns": [
         "Compare Nvidia and AMD revenue apples to apples over the last four quarters"
@@ -920,7 +920,7 @@
     },
     {
       "id": "h3_intel_as_information",
-      "split": "held_out",
+      "split": "dev",
       "category": "ordinary_word_names",
       "turns": [
         "Any intel on Cisco's operating income last quarter?"
@@ -938,7 +938,7 @@
     },
     {
       "id": "h3_oracle_as_seer",
-      "split": "held_out",
+      "split": "dev",
       "category": "ordinary_word_names",
       "turns": [
         "I'm no oracle, so just show me Merck's net income for the past 4 quarters"
@@ -959,7 +959,7 @@
     },
     {
       "id": "h3_alphabetical_order",
-      "split": "held_out",
+      "split": "dev",
       "category": "ordinary_word_names",
       "turns": [
         "Put Amgen, Gilead and AbbVie R&D side by side, in alphabetical order"
@@ -979,7 +979,7 @@
     },
     {
       "id": "h3_apple_lower_company",
-      "split": "held_out",
+      "split": "dev",
       "category": "ordinary_word_names",
       "turns": [
         "apple vs microsoft gross margin"
@@ -998,7 +998,7 @@
     },
     {
       "id": "h3_oracle_micron_companies",
-      "split": "held_out",
+      "split": "dev",
       "category": "ordinary_word_names",
       "turns": [
         "How do Oracle and Micron compare on operating margin?"
@@ -1017,7 +1017,7 @@
     },
     {
       "id": "h3_drugmakers_rd",
-      "split": "held_out",
+      "split": "dev",
       "category": "ranking",
       "turns": [
         "Rank the five biggest drugmakers by R&D spending"
@@ -1035,7 +1035,7 @@
     },
     {
       "id": "h3_banks_net_income",
-      "split": "held_out",
+      "split": "dev",
       "category": "ranking",
       "turns": [
         "top 3 banks and what each earned last quarter"
@@ -1053,7 +1053,7 @@
     },
     {
       "id": "h3_healthcare_market_cap",
-      "split": "held_out",
+      "split": "dev",
       "category": "ranking",
       "turns": [
         "Which 5 healthcare companies have the largest market cap?"
@@ -1067,7 +1067,7 @@
     },
     {
       "id": "h3_tech_top_ten_revenue",
-      "split": "held_out",
+      "split": "dev",
       "category": "ranking",
       "turns": [
         "tech's top ten by revenue, please"
@@ -1086,7 +1086,7 @@
     },
     {
       "id": "h3_chips_window",
-      "split": "held_out",
+      "split": "dev",
       "category": "ranking",
       "turns": [
         "Largest 4 semiconductor companies and their operating income over the last 4 quarters"
@@ -1104,7 +1104,7 @@
     },
     {
       "id": "h3_mu_yoy",
-      "split": "held_out",
+      "split": "dev",
       "category": "growth",
       "turns": [
         "How has Micron's revenue grown year over year?"
@@ -1124,7 +1124,7 @@
     },
     {
       "id": "h3_bac_jpm_ni_growth",
-      "split": "held_out",
+      "split": "dev",
       "category": "growth",
       "turns": [
         "Bank of America versus JPMorgan: net income growth"
@@ -1145,7 +1145,7 @@
     },
     {
       "id": "h3_csco_headcount",
-      "split": "held_out",
+      "split": "dev",
       "category": "refusal",
       "turns": [
         "How many employees does Cisco have?"
@@ -1156,7 +1156,7 @@
     },
     {
       "id": "h3_aapl_buybacks",
-      "split": "held_out",
+      "split": "dev",
       "category": "refusal",
       "turns": [
         "What did Apple spend on share buybacks last quarter?"
@@ -1167,7 +1167,7 @@
     },
     {
       "id": "h3_orcl_rpo",
-      "split": "held_out",
+      "split": "dev",
       "category": "refusal",
       "turns": [
         "Oracle remaining performance obligations"
@@ -1178,7 +1178,7 @@
     },
     {
       "id": "h3_mu_buy_advice",
-      "split": "held_out",
+      "split": "dev",
       "category": "refusal",
       "turns": [
         "Is Micron a buy at these levels?"
@@ -1189,7 +1189,7 @@
     },
     {
       "id": "h3_rotate_advice",
-      "split": "held_out",
+      "split": "dev",
       "category": "refusal",
       "turns": [
         "Should I sell my Intel shares and buy Nvidia instead?"
@@ -1200,7 +1200,7 @@
     },
     {
       "id": "h3_pltr_customer_count",
-      "split": "held_out",
+      "split": "dev",
       "category": "refusal",
       "turns": [
         "How many customers does Palantir have?"
@@ -1211,7 +1211,7 @@
     },
     {
       "id": "h3_dhr_profit_margin",
-      "split": "held_out",
+      "split": "dev",
       "category": "clarify",
       "turns": [
         "What's Danaher's profit margin?"
@@ -1222,7 +1222,7 @@
     },
     {
       "id": "h3_avgo_money",
-      "split": "held_out",
+      "split": "dev",
       "category": "clarify",
       "turns": [
         "How much money did Broadcom make last quarter?"
@@ -1233,7 +1233,7 @@
     },
     {
       "id": "h3_tmo_expenses",
-      "split": "held_out",
+      "split": "dev",
       "category": "clarify",
       "turns": [
         "Thermo Fisher expenses over the last 4 quarters"
@@ -1244,7 +1244,7 @@
     },
     {
       "id": "h3_wfc_interest",
-      "split": "held_out",
+      "split": "dev",
       "category": "clarify",
       "turns": [
         "wells fargo interest, latest quarter"
@@ -1255,7 +1255,7 @@
     },
     {
       "id": "h3_gild_tax",
-      "split": "held_out",
+      "split": "dev",
       "category": "clarify",
       "turns": [
         "How much tax did Gilead pay?"
@@ -1266,7 +1266,7 @@
     },
     {
       "id": "h3_amgn_two_metrics",
-      "split": "held_out",
+      "split": "dev",
       "category": "clarify",
       "turns": [
         "Show me Amgen's revenue and net income"

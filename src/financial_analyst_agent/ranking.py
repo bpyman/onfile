@@ -75,6 +75,10 @@ class SnapshotRanking:
             self._index = IssuerIndex.build(self._snapshot.companies)
         return self._index
 
+    def knows_industry(self, industry: str) -> bool:
+        """Whether ``industry`` names a sector, an industry, or the whole snapshot."""
+        return resolve_industry_group(industry, self._groups) is not None
+
     def rank_companies(self, industry: str, limit: int) -> RankTable:
         group = resolve_industry_group(industry, self._groups)
         if group is None:

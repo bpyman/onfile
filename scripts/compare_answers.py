@@ -91,8 +91,11 @@ def dump(out: Path) -> None:
         }
 
     conversations: dict[str, Any] = {}
+    # Held-out cases stay unread by whoever changes a planner until the planner
+    # comparison runs them, and a diff would print them: they are left out.
     for case in load_cases():
-        conversations[f"case:{case.case_id}"] = replay(list(case.turns))
+        if case.split != "held_out":
+            conversations[f"case:{case.case_id}"] = replay(list(case.turns))
     for messages in EXTRA:
         conversations["extra:" + " | ".join(messages)] = replay(messages)
     out.write_text(json.dumps(conversations, sort_keys=True, default=str), encoding="utf-8")

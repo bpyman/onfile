@@ -5,20 +5,23 @@ rankings and news are replayed, and only the planner changes. So a score is
 what a visitor would get from that planner, after the shared guards, period
 reading and resolution, not the planner's raw output. Cases are labelled in
 ``docs/evaluation/``: the scorecard's questions and the development cases in
-``planner-cases.json`` and ``planner-cases-v2.json``, and the held-out cases in
-``planner-cases-held-out.json``. Held-out cases were written by a separate
-session after the planner changes they measure, and nobody changing a planner
-read them before they were run.
+``planner-cases.json``, ``planner-cases-v2.json`` and ``planner-cases-v3.json``,
+and the held-out cases in ``planner-cases-held-out-4.json``. Held-out cases are
+written from a brief frozen before them (``held-out-4-brief.md``) by a separate
+session, and nobody changing a planner reads them before they are run.
 
 The rules planner is free and deterministic. The LLM planner calls OpenAI on
-the configured key, so it runs only when asked, with prices and a budget given
-on the command line; ``--estimate`` prices a run without calling anything.
+the configured key, and so does the cascade (``planner_cascade``) on the turns
+the rules planner is unsure of; they run only when asked, with prices and one
+budget for both given on the command line. ``--estimate`` prices an LLM run
+without calling anything.
 
     uv run python -m financial_analyst_agent.planner_evaluation              # rules only
     uv run python -m financial_analyst_agent.planner_evaluation --estimate \\
         --runs 3 --input-price 1.25 --output-price 10
-    uv run python -m financial_analyst_agent.planner_evaluation --planners rules,llm \\
-        --runs 3 --input-price 1.25 --output-price 10 --budget-usd 5
+    uv run python -m financial_analyst_agent.planner_evaluation \\
+        --planners rules,llm,cascade --runs 3 --input-price 1.25 --output-price 10 \\
+        --budget-usd 5
 """
 
 from __future__ import annotations
@@ -38,6 +41,8 @@ from typing import Any
 from financial_analyst_agent.contracts import Completer, RendererKind, WorkflowPlan
 from financial_analyst_agent.conversation import ConversationTurn, run_conversation_turn
 from financial_analyst_agent.graph.analysis_spec import SpecPatch
+from financial_analyst_agent.planner_cascade import CascadeCompleter
+from financial_analyst_agent.ranking import SnapshotRanking
 from financial_analyst_agent.runtime import recorded_runtime
 from financial_analyst_agent.thread_store import EphemeralThreadStore
 
@@ -45,7 +50,8 @@ CASES_PATH = Path("docs/evaluation/planner-cases.json")
 CASE_PATHS = (
     CASES_PATH,
     Path("docs/evaluation/planner-cases-v2.json"),
-    Path("docs/evaluation/planner-cases-held-out.json"),
+    Path("docs/evaluation/planner-cases-v3.json"),
+    Path("docs/evaluation/planner-cases-held-out-4.json"),
 )
 SPLITS = (("scorecard", "Scorecard"), ("dev", "Development"), ("held_out", "Held out"))
 REPORT_PATH = Path("docs/evaluation/planner-comparison.md")
@@ -413,6 +419,68 @@ def summarize(
     }
 
 
+def case_passes(results: Sequence[CaseRun]) -> dict[str, bool]:
+    """Whether each case passed in at least half of its complete runs."""
+    by_case: dict[str, list[bool]] = {}
+    for result in results:
+        if result.error != "budget reached":
+            by_case.setdefault(result.case_id, []).append(result.passed)
+    return {case_id: 2 * sum(runs) >= len(runs) for case_id, runs in by_case.items()}
+
+
+def mcnemar_p(only_a: int, only_b: int) -> float:
+    """Two-sided exact McNemar p-value from the cases only one planner passed."""
+    discordant = only_a + only_b
+    if discordant == 0:
+        return 1.0
+    tail = sum(math.comb(discordant, k) for k in range(min(only_a, only_b) + 1))
+    return min(1.0, 2 * tail / (1 << discordant))
+
+
+def wilson_interval(passed: int, total: int, z: float = 1.96) -> tuple[float, float]:
+    """The 95% Wilson score interval for ``passed`` of ``total``."""
+    if total == 0:
+        return (0.0, 1.0)
+    share = passed / total
+    denominator = 1 + z * z / total
+    centre = (share + z * z / (2 * total)) / denominator
+    half = z * math.sqrt(share * (1 - share) / total + z * z / (4 * total * total)) / denominator
+    return (max(0.0, centre - half), min(1.0, centre + half))
+
+
+def paired(
+    cases: Sequence[PlannerCase],
+    first: Sequence[CaseRun],
+    second: Sequence[CaseRun],
+) -> dict[str, dict[str, Any]]:
+    """Per split, the cases each planner passed alone, and McNemar's p for the difference.
+
+    A planner that is deterministic run to run gives one result a case, so the
+    unit is the case (passed in at least half its runs), not the case run.
+    """
+    split_of = {case.case_id: case.split for case in cases}
+    a, b = case_passes(first), case_passes(second)
+    shared = sorted(set(a) & set(b))
+    out: dict[str, dict[str, Any]] = {}
+    for split in (*(name for name, _ in SPLITS), "all"):
+        ids = [i for i in shared if split == "all" or split_of[i] == split]
+        if not ids:
+            continue
+        only_a = sum(a[i] and not b[i] for i in ids)
+        only_b = sum(b[i] and not a[i] for i in ids)
+        out[split] = {
+            "cases": len(ids),
+            "both": sum(a[i] and b[i] for i in ids),
+            "only_first": only_a,
+            "only_second": only_b,
+            "neither": sum(not a[i] and not b[i] for i in ids),
+            "first_interval": wilson_interval(sum(a[i] for i in ids), len(ids)),
+            "second_interval": wilson_interval(sum(b[i] for i in ids), len(ids)),
+            "p_value": mcnemar_p(only_a, only_b),
+        }
+    return out
+
+
 def estimate(cases: Sequence[PlannerCase], runs: int, prices: Prices | None) -> dict[str, Any]:
     """Tokens and dollars for an LLM run, from prompt and schema sizes; nothing is called."""
     from financial_analyst_agent.planner import (
@@ -456,14 +524,16 @@ def render_markdown(report: dict[str, Any]) -> str:
         "# Rules planner vs LLM planner",
         "",
         f"Generated `{report['generated_at']}` on the recorded runtime, over "
-        f"{report['case_count']} cases: {report['scorecard_count']} scorecard questions and "
+        f"{report['case_count']} cases: {report['scorecard_count']} scorecard questions, "
         f"{report['dev_count']} development cases ([`planner-cases.json`](planner-cases.json), "
-        "[`planner-cases-v2.json`](planner-cases-v2.json)), and "
+        "[`planner-cases-v2.json`](planner-cases-v2.json), "
+        "[`planner-cases-v3.json`](planner-cases-v3.json)), and "
         f"{report['held_out_count']} held-out cases "
-        "([`planner-cases-held-out.json`](planner-cases-held-out.json)). Every case was "
-        "labelled before a planner ran on it. The held-out cases were written by a separate "
-        "session after the planner changes, and were not read by whoever changed a planner "
-        "until this run.",
+        "([`planner-cases-held-out-4.json`](planner-cases-held-out-4.json)). Every case was "
+        "labelled before a planner ran on it. The held-out cases were written from a brief "
+        "frozen first ([`held-out-4-brief.md`](held-out-4-brief.md)) by a separate session, "
+        "and were not read by whoever changed a planner until this run; see "
+        "[Protocol](#protocol).",
         "",
         "Each case is a conversation run end to end with only the planner swapped, and is "
         "scored on the last turn's outcome (answer, clarify or refuse), intent, companies, "
@@ -504,6 +574,12 @@ def render_markdown(report: dict[str, Any]) -> str:
                 f"The budget ran out during run {planner['stopped_in_run'] + 1}: that run is "
                 f"left out, and the figures count the {planner['runs']} complete runs only."
             )
+        if planner.get("llm_calls") is not None:
+            lines.append(
+                f"It sent {planner['llm_calls']} of {planner['planner_calls']} planner calls "
+                f"({planner['llm_calls'] / max(planner['planner_calls'], 1):.0%}) to the LLM "
+                "planner, where the rules planner was unsure."
+            )
         cost = planner["cost_usd"]
         lines.append(
             f"Planner time p50 / p95: {planner['planner_ms_p50']:.0f} ms / "
@@ -527,6 +603,36 @@ def render_markdown(report: dict[str, Any]) -> str:
                 lines.append(f"- `{failure['id']}` (run {failure['run'] + 1}): {why}")
             lines.append("")
             lines.append("</details>")
+        lines.append("")
+    if report.get("paired"):
+        lines.append("## Is the difference real?")
+        lines.append("")
+        lines.append(
+            "Each pair of planners on the same cases: how many cases each passed alone, and "
+            "the two-sided exact McNemar p-value for the difference. Both planners are "
+            "deterministic run to run, so a case counts once. Accuracies are given with "
+            "95% Wilson intervals."
+        )
+        lines.append("")
+        lines.append(
+            "| Planners | Split | Cases | Both pass | Only first | Only second | Neither | "
+            "First (95% CI) | Second (95% CI) | p |"
+        )
+        lines.append("| --- | --- | ---: | ---: | ---: | ---: | ---: | --- | --- | ---: |")
+        labels = dict((*SPLITS, ("all", "All")))
+        for pair in report["paired"]:
+            for split, row in pair["splits"].items():
+                first = row["first_interval"]
+                second = row["second_interval"]
+                a_share = (row["both"] + row["only_first"]) / row["cases"]
+                b_share = (row["both"] + row["only_second"]) / row["cases"]
+                lines.append(
+                    f"| {pair['first']} vs {pair['second']} | {labels[split]} | {row['cases']} "
+                    f"| {row['both']} | {row['only_first']} | {row['only_second']} | "
+                    f"{row['neither']} | {a_share:.0%} ({first[0]:.0%}–{first[1]:.0%}) | "
+                    f"{b_share:.0%} ({second[0]:.0%}–{second[1]:.0%}) | "
+                    f"{row['p_value']:.2f} |"
+                )
         lines.append("")
     if report.get("estimate"):
         est = report["estimate"]
@@ -582,7 +688,9 @@ def main(argv: Sequence[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    parser.add_argument("--planners", default="rules", help="rules, llm, or rules,llm")
+    parser.add_argument(
+        "--planners", default="rules", help="any of rules, llm and cascade, comma-separated"
+    )
     parser.add_argument("--runs", type=int, default=3)
     parser.add_argument(
         "--split", choices=("all", *(name for name, _ in SPLITS)), default="all"
@@ -606,9 +714,10 @@ def main(argv: Sequence[str] | None = None) -> None:
         if args.input_price is not None and args.output_price is not None
         else None
     )
-    if "llm" in planners and prices is None:
+    calls_openai = bool({"llm", "cascade"} & set(planners))
+    if calls_openai and prices is None:
         parser.error("--input-price and --output-price are required for the LLM planner")
-    if "llm" in planners and not args.budget_usd:
+    if calls_openai and not args.budget_usd:
         parser.error("--budget-usd is required to run the LLM planner")
 
     report: dict[str, Any] = {
@@ -622,11 +731,14 @@ def main(argv: Sequence[str] | None = None) -> None:
     if prices is not None:
         report["prices"] = {"input": prices.input, "output": prices.output}
     runtime = recorded_runtime()
+    results_by_planner: dict[str, list[CaseRun]] = {}
+    spent = 0.0
     if "rules" in planners:
         usage = Usage()
         results = run_planner(
             cases, MeteredCompleter(runtime.completer, usage), runs=args.runs, runtime=runtime
         )
+        results_by_planner["rules"] = results
         report["planners"]["rules"] = {
             "label": "Rules planner",
             **summarize(cases, results, usage, None),
@@ -636,6 +748,8 @@ def main(argv: Sequence[str] | None = None) -> None:
         usage = Usage()
         completer, model = _llm_completer(usage, prices, args.budget_usd)
         results = run_planner(cases, completer, runs=args.runs, runtime=runtime)
+        spent += prices.cost(usage.input_tokens, usage.output_tokens)
+        results_by_planner["llm"] = results
         report["planners"]["llm"] = {
             "label": f"LLM planner (`{model}`)",
             **summarize(cases, results, usage, prices),
@@ -645,6 +759,37 @@ def main(argv: Sequence[str] | None = None) -> None:
             "label": "LLM planner",
             "not_run": "Not run: it calls OpenAI on the configured key, and needs a budget.",
         }
+    if "cascade" in planners:
+        assert prices is not None and args.budget_usd
+        llm_usage = Usage()
+        llm, model = _llm_completer(llm_usage, prices, args.budget_usd - spent)
+        ranking = runtime.ranking
+        assert isinstance(ranking, SnapshotRanking)
+        usage = Usage()
+        cascade = CascadeCompleter(runtime.completer, llm, ranking.knows_industry)
+        results = run_planner(
+            cases, MeteredCompleter(cascade, usage), runs=args.runs, runtime=runtime
+        )
+        # Time is the whole cascade's; tokens and dollars are its LLM calls'.
+        usage.input_tokens = llm_usage.input_tokens
+        usage.output_tokens = llm_usage.output_tokens
+        usage.reasoning_tokens = llm_usage.reasoning_tokens
+        results_by_planner["cascade"] = results
+        report["planners"]["cascade"] = {
+            "label": f"Cascade (rules planner, then `{model}` where it is unsure)",
+            "llm_calls": llm_usage.calls,
+            **summarize(cases, results, usage, prices),
+        }
+    names = list(results_by_planner)
+    report["paired"] = [
+        {
+            "first": report["planners"][first]["label"].split(" (")[0],
+            "second": report["planners"][second]["label"].split(" (")[0],
+            "splits": paired(cases, results_by_planner[first], results_by_planner[second]),
+        }
+        for index, first in enumerate(names)
+        for second in names[index + 1 :]
+    ]
     if args.estimate:
         report["estimate"] = estimate(cases, args.runs, prices)
 
