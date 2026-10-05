@@ -44,6 +44,11 @@ A growth question that names no period shows recent quarters' growth by design
 question naming no period is the latest quarter, without that exception. Scored
 as labelled, both count as failures for every planner.
 
+`h4_growth_unh_ocf_year_on_year` is a shared defect and also has a period label
+that disagrees with the design. Once "year on year" is read, it answers as
+"year over year" does. A year-over-year question that names no period shows two
+years of quarters, but the label says the latest quarter.
+
 ## What follows
 
 - The difference between the planners is two cases on 66, both planning errors

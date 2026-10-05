@@ -142,7 +142,7 @@ def _read_metric(answer: _Answer) -> ClarifyReply | None:
     return None
 
 
-_YEAR_ANSWER = re.compile(r"\b(?:year|yoy|annual|annually|yearly)\b")
+_YEAR_ANSWER = re.compile(r"\b(?:year|yoy|y/y|annual|annually|yearly)\b")
 _QUARTER_ANSWER = re.compile(r"\b(?:quarter|qoq|sequential|sequentially|before|previous|prior)\b")
 
 

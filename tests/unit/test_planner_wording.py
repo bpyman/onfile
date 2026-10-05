@@ -136,6 +136,9 @@ def test_over_the_past_year_is_the_years_quarters_not_growth() -> None:
         ("Microsoft net income trend", "year_over_year"),
         ("How has Tesla's revenue changed over the last year?", "year_over_year"),
         ("Apple revenue year over year", "year_over_year"),
+        ("Is Apple's revenue up year on year?", "year_over_year"),
+        ("Apple revenue year-on-year", "year_over_year"),
+        ("Apple revenue y/y", "year_over_year"),
         ("Apple revenue sequential growth", "sequential"),
         ("Apple revenue vs last quarter", "sequential"),
         ("Apple revenue quarter-over-quarter", "sequential"),
@@ -159,6 +162,8 @@ def test_what_a_change_is_measured_against(message: str, base: str | None) -> No
         ("the quarter before", "sequential"),
         ("same quarter a year earlier", "year_over_year"),
         ("yoy", "year_over_year"),
+        ("y/y", "year_over_year"),
+        ("year on year", "year_over_year"),
         ("vs the previous quarter", "sequential"),
     ],
 )
@@ -183,6 +188,7 @@ def test_an_answer_names_the_base_of_a_change(answer: str, base: str) -> None:
         "remove year over year",
         "drop the year-over-year change",
         "no YoY",
+        "remove year on year",
         "without year over year growth",
     ],
 )
@@ -199,6 +205,18 @@ def test_year_over_year_on_its_own_still_asks_for_it() -> None:
 
     assert "year_over_year" in patch.add_operations
     assert not patch.remove_operations
+
+
+@pytest.mark.parametrize(
+    "spelling", ["year on year", "year-on-year", "YoY", "y/y", "Y/Y"]
+)
+def test_year_over_year_spelt_another_way_reads_the_same(spelling: str) -> None:
+    def bound(wording: str) -> SpecPatch:
+        message = f"is unitedhealth's operating cash flow up {wording}"
+        return bind_periods_from_message(SpecPatch(mode="replace"), message)
+
+    assert bound(spelling) == bound("year over year")
+    assert "year_over_year" in bound(spelling).add_operations
 
 
 def test_every_kind_of_clarification_is_one_entry_in_the_table() -> None:

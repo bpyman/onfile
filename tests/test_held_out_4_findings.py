@@ -6,6 +6,7 @@ must pass on every field it is labelled with (docs/evaluation/held-out-4-finding
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -41,3 +42,22 @@ def test_a_fixed_held_out_case_passes_with_the_rules_planner(
 
     assert not result.error
     assert result.checks == {name: True for name in result.checks}
+
+
+def test_year_on_year_answers_as_year_over_year_does(runtime: Runtime) -> None:
+    """The change is read; the window is year over year's two years of quarters.
+
+    The label's latest quarter disagrees with that design, as the two growth
+    questions that name no period do (held-out-4-findings.md), so it is not checked.
+    """
+    case = _case("h4_growth_unh_ocf_year_on_year")
+    over = replace(case, turns=("is unitedhealth's operating cash flow up year over year",))
+
+    (on_result,) = run_planner([case], runtime.completer, runs=1, runtime=runtime)
+    (over_result,) = run_planner([over], runtime.completer, runs=1, runtime=runtime)
+
+    assert not on_result.error
+    assert on_result.signature == over_result.signature
+    assert {name: ok for name, ok in on_result.checks.items() if name != "periods"} == {
+        name: True for name in on_result.checks if name != "periods"
+    }

@@ -78,11 +78,13 @@ _DROP_EDIT = re.compile(
     r"^\s*(?:drop|remove|without)\s+(.+?)\s*$",
     re.IGNORECASE,
 )
+# "year over year", "year-on-year", "YoY", "y/y": one comparison, however spelt.
+YEAR_OVER_YEAR = r"year[\s-]*o(?:ver|n)[\s-]*year|yoy|y/y"
 # "remove year over year": the change goes, the quarters on screen stay. Read
 # before the year-over-year wording, which would otherwise ask for it.
 _DROP_COMPARISON = re.compile(
     r"^\s*(?:drop|remove|without|no|hide)\s+(?:the\s+)?"
-    r"(?:year[\s-]*over[\s-]*year|yoy)(?:\s+(?:change|changes|growth|comparison|column))?"
+    rf"(?:{YEAR_OVER_YEAR})(?:\s+(?:change|changes|growth|comparison|column))?"
     r"\s*[.!]?\s*$",
     re.IGNORECASE,
 )
@@ -120,7 +122,7 @@ _DROP_AND_ADD_EDIT = re.compile(
 
 
 YOY = re.compile(
-    r"\b(?:year[\s-]*over[\s-]*year|yoy|show yoy|compare to last year|(?:a|one) year ago"
+    rf"\b(?:{YEAR_OVER_YEAR}|show yoy|compare to last year|(?:a|one) year ago"
     # "over the past year" alone is the year's quarters; "grew over the past year" is growth.
     r"|(?:from|since|vs\.?|versus) (?:a year ago|last year)"
     r"|grow(?:th|n|ing)?|grew|how (?:has|have|did) .+ change[d]?|trend(?:ing)?"
@@ -237,7 +239,7 @@ FORECAST = re.compile(
 
 # Wording that asks for year-over-year change only, not quarter-to-quarter too.
 EXPLICIT_YOY = re.compile(
-    r"\b(?:year[\s-]*over[\s-]*year|yoy|(?:a|one) year (?:ago|earlier|before)"
+    rf"\b(?:{YEAR_OVER_YEAR}|(?:a|one) year (?:ago|earlier|before)"
     r"|(?:from|since|vs\.?|versus|compared? (?:to|with)) "
     r"(?:a year ago|last year|the (?:prior|previous) year))\b",
     re.IGNORECASE,

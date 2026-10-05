@@ -1018,3 +1018,29 @@ Blockers / next:
   cases to `tests/test_held_out_4_findings.py`. Ticket 04 also uses net interest
   income.
 
+
+## 2026-10-05 — held-out-4-findings 02 "Year on year" means year over year
+
+Task completed: `docs/process/tickets/held-out-4-findings/issues/02-year-on-year-is-year-over-year.md`
+
+Key decisions:
+- One `YEAR_OVER_YEAR` pattern in `request_wording.py` covers "year over year",
+  "year on year", "year-on-year", "YoY" and "y/y". `YOY`, `EXPLICIT_YOY` and the
+  remove-the-change wording all use it. The clarify reply reader also takes "y/y".
+- "Year on year" answers as "year over year" does: 8 quarters when no window is
+  named. The case's label says the latest quarter, which disagrees with that
+  design in the same way as the two growth labels in held-out-4-findings.md. No
+  label changed. The test checks every field except periods, and checks that
+  the plan matches the "year over year" phrasing's.
+
+Files changed:
+- `src/financial_analyst_agent/{request_wording.py,graph/clarify.py}`
+- `tests/test_held_out_4_findings.py`, `tests/unit/test_planner_wording.py`
+- `docs/evaluation/{planner-cases-held-out-4.json (about only),held-out-4-findings.md}`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,759 Python tests pass; ruff and mypy pass; the answer comparison
+  reports `0 of 244 conversations differ from HEAD`. Whether a yes/no question
+  ("is X up year over year?") should show only the latest quarter is a design
+  question for a person; ticket 05 also touches the year-over-year window.
