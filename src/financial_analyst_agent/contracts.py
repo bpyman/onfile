@@ -184,6 +184,10 @@ SEARCH_NEWS_MAX_RESULTS = 5
 SEARCH_NEWS_TIME_RANGE = "week"
 
 
+# The kind of report a filing comparison compares.
+FilingForm = Literal["10-Q", "10-K"]
+
+
 class WorkflowPlan(BaseModel):
     """A planner's reading of a question: one closed workflow and what it takes.
 
@@ -214,6 +218,8 @@ class WorkflowPlan(BaseModel):
     older_accession: str = ""
     newer_accession: str = ""
     section: str = "both"
+    # The kind of report to compare; the question's own words come first (ADR 0010).
+    form: FilingForm | None = None
     summarize: bool = False
     # Further companies named where the workflow takes one.
     other_companies: tuple[str, ...] = ()

@@ -41,7 +41,8 @@ _SYSTEM_PROMPT = (
     "MD&A or its Risk Factors. Set company. Set older_accession and newer_accession only "
     "when the user names accession numbers; leave them empty for the latest filing, and "
     "code compares the latest with the one before. Set section to mda, risk_factors, or "
-    "both, as asked; both when the user names neither. Set summarize true only when they "
+    "both, as asked; both when the user names neither. Set form to 10-K when they ask "
+    "about the annual report or 10-K, otherwise 10-Q. Set summarize true only when they "
     "also ask for a summary. "
     'Name companies as the user wrote them ("Nvidia", "JPM"), never CIKs. '
     f"metric is one of: {', '.join(ALLOWED_METRICS)}. "
@@ -165,6 +166,8 @@ class _FilingChangePlan(BaseModel):
     older_accession: str = ""
     newer_accession: str = ""
     section: Literal["mda", "risk_factors", "both"] = "both"
+    # The kind of report; code reads the question's own words first.
+    form: Literal["10-Q", "10-K"] = "10-Q"
     summarize: bool = False
 
 

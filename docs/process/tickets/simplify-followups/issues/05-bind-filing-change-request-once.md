@@ -14,4 +14,37 @@ Spec: ADR 0010, ADR 0011.
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-human
+**Status:** resolved
+
+## Answer
+
+Shipped 2026-10-05. `filing_change.bind_filing_change` builds the
+`FilingChangeRequest` once, in `turn_graph.request_from_proposal`, from the
+planner's plan and the question's words, words first (ADR 0010):
+
+- `older_accession` / `newer_accession` and `named_accessions`: the accession
+  numbers the question gives (a plan's own are used only without a question,
+  as an MCP call has none);
+- `sections`: `requested_sections(question)`, else the plan's section text;
+- `form`: `form_named(question)` (10-K or annual report; 10-Q or quarterly
+  report), else the plan's `form`, else 10-Q.
+
+`run_filing_change(request, runtime)` reads only the request, and its refusals
+read `named_accessions`. `WorkflowPlan` and the LLM planner's filing-change
+action gain `form`, and the LLM prompt says to set it to 10-K for an annual
+report. The rules planner sets it with the same `form_named`.
+
+Paid check (about $0.07): eight filing-change questions on both planners, on
+master and on this change: latest 10-Q, latest 10-K, "differs from the one
+before", MD&A between two accessions, risk factors in a quarterly report, a
+summary, an annual report, and MD&A excluding risk factors. 15 of 16 answers
+were identical. The one difference was the LLM planner asking for a summary
+on master and not here, for "What changed in Pfizer's risk factors in its
+latest quarterly report?"; asked three times more, it set `summarize`
+inconsistently on master too (no, yes, yes; here yes, yes, yes). That is the
+model's own variance on a field this change does not touch; the live
+cascade plans this question with the rules planner, which asks for a summary
+only when the question says so.
+
+Checks: 1,821 tests pass; ruff and mypy pass; `compare_answers.py` reports
+`0 of 244 conversations differ`.

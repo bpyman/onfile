@@ -6,7 +6,13 @@ from typing import Any
 
 import pytest
 
-from financial_analyst_agent.contracts import MODEL_ANALYSIS_BANNER, Intent, RendererKind, Runtime
+from financial_analyst_agent.contracts import (
+    MODEL_ANALYSIS_BANNER,
+    Intent,
+    RendererKind,
+    Runtime,
+    WorkflowPlan,
+)
 from financial_analyst_agent.domain.errors import (
     AmbiguousCompanyError,
     CompanyNotFoundError,
@@ -17,6 +23,7 @@ from financial_analyst_agent.domain.errors import (
 from financial_analyst_agent.filing_change import (
     FILINGS_UNREADABLE_MESSAGE,
     SectionId,
+    bind_filing_change,
     diff_paragraphs,
     extract_section,
     filing_anchor_url,
@@ -70,6 +77,11 @@ CIK = "0000789019"
 )
 def test_parse_sections_accepts_canonical_ids(raw: str, expected: tuple[str, ...]) -> None:
     assert parse_sections(raw) == expected
+
+
+def _request(query: str = "", **plan: Any) -> FilingChangeRequest:
+    """The request a turn binds from a planner's plan and the question's words."""
+    return bind_filing_change(WorkflowPlan(intent=Intent.FILING_CHANGE, **plan), query)
 
 
 class _Client:
@@ -154,7 +166,7 @@ def test_company_resolution_applies_the_visitor_error_rule(
     monkeypatch.setattr(facts._client, "get_company_tickers", fail)
 
     result = run_filing_change(
-        FilingChangeRequest(company="Acme", section="mda"),
+        _request(company="Acme", section="mda"),
         _runtime(facts),
     )
 
@@ -382,7 +394,7 @@ def test_paragraph_diff_is_deterministic() -> None:
 
 def test_run_filing_change_maps_both_reviewed_sections() -> None:
     result = run_filing_change(
-        FilingChangeRequest(
+        _request(
             company="Microsoft",
             older_accession=OLDER,
             newer_accession=NEWER,
@@ -414,7 +426,7 @@ def test_both_filings_are_downloaded_at_once_and_keep_their_places() -> None:
     facts._client = _Meeting()
 
     result = run_filing_change(
-        FilingChangeRequest(
+        _request(
             company="Microsoft",
             older_accession=OLDER,
             newer_accession=NEWER,
@@ -425,7 +437,7 @@ def test_both_filings_are_downloaded_at_once_and_keep_their_places() -> None:
     )
 
     baseline = run_filing_change(
-        FilingChangeRequest(
+        _request(
             company="Microsoft",
             older_accession=OLDER,
             newer_accession=NEWER,
@@ -448,7 +460,7 @@ def test_run_filing_change_resolves_actual_primary_document(
     monkeypatch.setattr(facts._client, "get_submissions", lambda cik: payload)
 
     result = run_filing_change(
-        FilingChangeRequest(
+        _request(
             company="Microsoft",
             older_accession=OLDER,
             newer_accession=NEWER,
@@ -521,7 +533,7 @@ def test_run_filing_change_refuses_unresolved_document(
 
     monkeypatch.setattr(facts._client, "get_filing_document", unexpected_download)
     result = run_filing_change(
-        FilingChangeRequest(
+        _request(
             company="Microsoft",
             older_accession=OLDER,
             newer_accession=NEWER,
@@ -550,9 +562,7 @@ def test_a_malformed_submissions_table_is_refused_the_same_way_on_either_path(
     monkeypatch.setattr(facts._client, "get_filing_document", unexpected_download)
     older, newer = accessions
     result = run_filing_change(
-        FilingChangeRequest(
-            company="Microsoft", older_accession=older, newer_accession=newer, section="mda"
-        ),
+        _request(company="Microsoft", older_accession=older, newer_accession=newer, section="mda"),
         _runtime(facts),
     )
 
@@ -579,9 +589,7 @@ def test_a_filing_that_cannot_be_read_is_not_reported_as_missing_its_sections(
 
     monkeypatch.setattr(facts._client, "get_filing_document", unreadable)
     result = run_filing_change(
-        FilingChangeRequest(
-            company="Microsoft", older_accession=OLDER, newer_accession=NEWER, section="mda"
-        ),
+        _request(company="Microsoft", older_accession=OLDER, newer_accession=NEWER, section="mda"),
         _runtime(facts),
     )
 
@@ -597,7 +605,7 @@ def test_numeral_lock_drops_invented_summary_numbers() -> None:
             return "Revenue jumped to 999 billion based on the filings."
 
     result = run_filing_change(
-        FilingChangeRequest(
+        _request(
             company="Microsoft",
             older_accession=OLDER,
             newer_accession=NEWER,
@@ -618,7 +626,7 @@ def test_numeral_lock_drops_invented_summary_numbers() -> None:
 def test_run_filing_change_refuses_without_a_company_or_with_one_accession() -> None:
     for company, older in (("", ""), ("Microsoft", "0000950170-25-061046")):
         result = run_filing_change(
-            FilingChangeRequest(
+            _request(
                 company=company,
                 older_accession=older,
                 newer_accession="",
@@ -633,7 +641,7 @@ def test_run_filing_change_refuses_without_a_company_or_with_one_accession() -> 
 
 def test_run_filing_change_without_accessions_picks_a_year_apart() -> None:
     result = run_filing_change(
-        FilingChangeRequest(
+        _request(
             company="Microsoft",
             older_accession="",
             newer_accession="",
@@ -652,7 +660,7 @@ def test_filing_change_banner_uses_the_snapshot_name() -> None:
             return "The Microsoft Company, Inc." if cik == CIK else fallback
 
     result = run_filing_change(
-        FilingChangeRequest(
+        _request(
             company="Microsoft",
             older_accession="",
             newer_accession="",
@@ -666,7 +674,7 @@ def test_filing_change_banner_uses_the_snapshot_name() -> None:
 
 def test_run_filing_change_orders_accessions_by_report_date() -> None:
     result = run_filing_change(
-        FilingChangeRequest(
+        _request(
             company="Microsoft",
             older_accession=NEWER,
             newer_accession=OLDER,
@@ -681,14 +689,14 @@ def test_run_filing_change_orders_accessions_by_report_date() -> None:
 
 def test_run_filing_change_uses_query_accessions_not_plan() -> None:
     result = run_filing_change(
-        FilingChangeRequest(
+        _request(
+            f"What changed in Microsoft's MD&A between {OLDER} and {NEWER}?",
             company="Microsoft",
             older_accession="0000000000-00-000000",
             newer_accession="1111111111-11-111111",
             section="mda",
         ),
         _runtime(),
-        query=f"What changed in Microsoft's MD&A between {OLDER} and {NEWER}?",
     )
     assert result.renderer is RendererKind.TABLE
     assert {item.older_accession for item in result.disclosure_changes} == {OLDER}
@@ -698,14 +706,14 @@ def test_run_filing_change_ignores_planner_accessions_absent_from_query() -> Non
     # The model never picks filings: accessions only it proposed are dropped and
     # deterministic code picks a year-apart pair instead, saying so.
     result = run_filing_change(
-        FilingChangeRequest(
+        _request(
+            "What changed in Microsoft's MD&A",
             company="Microsoft",
             older_accession=OLDER,
             newer_accession=NEWER,
             section="mda",
         ),
         _runtime(),
-        query="What changed in Microsoft's MD&A",
     )
     assert any("latest 10-Q" in banner for banner in result.banners)
 
@@ -722,7 +730,7 @@ def test_partial_section_failure_is_preserved(monkeypatch: pytest.MonkeyPatch) -
 
     monkeypatch.setattr(filing_change, "_section_from_text", missing_risk)
     result = filing_change.run_filing_change(
-        FilingChangeRequest(
+        _request(
             company="Microsoft",
             older_accession=OLDER,
             newer_accession=NEWER,
@@ -761,7 +769,7 @@ def _without(monkeypatch: pytest.MonkeyPatch, *missing: str) -> None:
 
 def _both_sections(facts: _Facts) -> Any:
     return run_filing_change(
-        FilingChangeRequest(
+        _request(
             company="Microsoft",
             older_accession=OLDER,
             newer_accession=NEWER,
@@ -797,7 +805,7 @@ def test_unreadable_sections_are_not_reported_as_unchanged(
 def test_one_unreadable_section_is_named(monkeypatch: pytest.MonkeyPatch) -> None:
     _without(monkeypatch, "risk_factors")
     result = run_filing_change(
-        FilingChangeRequest(
+        _request(
             company="Microsoft",
             older_accession=OLDER,
             newer_accession=NEWER,
@@ -844,7 +852,7 @@ def test_a_summary_the_model_cannot_write_is_explained(raised: str, shown: str) 
             raise ProviderError("OpenAI 502 Bad Gateway")
 
     result = run_filing_change(
-        FilingChangeRequest(
+        _request(
             company="Microsoft",
             older_accession=OLDER,
             newer_accession=NEWER,
@@ -866,7 +874,7 @@ def test_run_filing_change_refuses_a_fund(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setattr(universe, "INELIGIBLE_ISSUER_CIKS", frozenset({"0000789019"}))
 
     result = run_filing_change(
-        FilingChangeRequest(
+        _request(
             company="MSFT",
             older_accession="",
             newer_accession="",
@@ -897,7 +905,7 @@ def _note_titled_runtime(members: frozenset[str]) -> Runtime:
 def test_a_snapshot_member_whose_sec_title_reads_like_a_note_is_compared() -> None:
     # ADR 0001, 0002: the snapshot already judged a member, as lookups take it.
     result = run_filing_change(
-        FilingChangeRequest(company="MSFT", section="mda"),
+        _request(company="MSFT", section="mda"),
         _note_titled_runtime(frozenset({CIK})),
     )
 
@@ -907,7 +915,7 @@ def test_a_snapshot_member_whose_sec_title_reads_like_a_note_is_compared() -> No
 
 def test_a_non_member_whose_sec_title_reads_like_a_note_is_refused() -> None:
     result = run_filing_change(
-        FilingChangeRequest(company="MSFT", section="mda"),
+        _request(company="MSFT", section="mda"),
         _note_titled_runtime(frozenset()),
     )
 
@@ -1058,20 +1066,16 @@ def test_filing_change_requests_it_cannot_compare_say_why(
 ) -> None:
     from financial_analyst_agent.filing_change import _request_refusal
 
-    plan = SimpleNamespace(other_companies=others)
+    request = _request(query, company=company, other_companies=others)
 
-    assert expected in _request_refusal(query, company, "", "", plan)
+    assert expected in _request_refusal(company, "", "", request)
 
 
 def test_a_10k_question_compares_10ks_and_20f_filers_are_named() -> None:
-    from financial_analyst_agent.filing_change import (
-        _form_asked,
-        _read_filings,
-        _too_few_message,
-    )
+    from financial_analyst_agent.filing_change import _read_filings, _too_few_message
 
-    assert _form_asked("What changed in Microsoft's latest 10-K?") == "10-K"
-    assert _form_asked("What changed in Microsoft's latest 10-Q?") == "10-Q"
+    assert _request("What changed in Microsoft's latest 10-K?", company="MSFT").form == "10-K"
+    assert _request("What changed in Microsoft's latest 10-Q?", company="MSFT").form == "10-Q"
     filings = _read_filings(
         {"accessionNumber": ["a", "b"], "form": ["20-F", "6-K"], "primaryDocument": ["a", "b"]}
     )
@@ -1251,3 +1255,41 @@ def test_the_paragraph_after_a_forward_looking_note_is_not_under_its_heading() -
     (change,) = _diff(older, newer)
 
     assert change.subsection == ""
+
+
+def test_a_turn_binds_the_questions_accessions_sections_and_form_once() -> None:
+    request = _request(
+        f"Risk factors only: what changed in Microsoft's 10-K between {OLDER} and {NEWER}?",
+        company="Microsoft",
+        older_accession="0000000000-00-000000",
+        section="both",
+        form="10-Q",
+    )
+
+    # The words come first, whichever planner planned (ADR 0010).
+    assert (request.older_accession, request.newer_accession) == (OLDER, NEWER)
+    assert request.named_accessions == (OLDER, NEWER)
+    assert request.sections == ("risk_factors",)
+    assert request.form == "10-K"
+
+
+def test_the_plan_decides_only_what_the_words_leave_open() -> None:
+    # "the yearly filing" names no form; the LLM planner read it as a 10-K.
+    request = _request(
+        "What changed in Microsoft's yearly filing?", company="Microsoft", form="10-K"
+    )
+
+    assert request.form == "10-K"
+    assert request.sections == ("mda", "risk_factors")
+    assert _request("What changed in Microsoft's filing?", company="Microsoft").form == "10-Q"
+
+
+def test_the_llm_planners_filing_change_carries_a_form() -> None:
+    from financial_analyst_agent.planner import Plan
+
+    plan = Plan.model_validate(
+        {"intent": "filing_change", "company": "Microsoft", "form": "10-K"}
+    ).workflow_plan()
+
+    assert plan.form == "10-K"
+    assert bind_filing_change(plan, "What changed in Microsoft's annual filing?").form == "10-K"

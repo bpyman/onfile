@@ -18,7 +18,11 @@ from financial_analyst_agent.contracts import (
     Intent,
     WorkflowPlan,
 )
-from financial_analyst_agent.filing_change import REVIEWED_SECTIONS, requested_sections
+from financial_analyst_agent.filing_change import (
+    REVIEWED_SECTIONS,
+    form_named,
+    requested_sections,
+)
 from financial_analyst_agent.graph.analysis_spec import AnalysisSpec, RankedRequest, SpecPatch
 from financial_analyst_agent.guide import short_name
 from financial_analyst_agent.issuer_index import (
@@ -270,6 +274,7 @@ def _filing_change_plan(query: str, normalized: str) -> WorkflowPlan:
         older_accession=older,
         newer_accession=newer,
         section=section,
+        form=form_named(normalized),
         summarize="summar" in normalized,
     )
 

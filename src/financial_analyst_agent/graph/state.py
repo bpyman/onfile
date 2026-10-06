@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field
 from financial_analyst_agent.contracts import (
     ClarifyKind,
     ComparisonBase,
+    FilingForm,
     Intent,
     Runtime,
     TurnResult,
@@ -96,13 +97,26 @@ class QualitativeRequest(BaseModel):
     topic: str
 
 
+# The filing sections a comparison reads.
+SectionId = Literal["mda", "risk_factors"]
+
+
 class FilingChangeRequest(BaseModel):
-    """Two filings of one company to compare, pinned by accession."""
+    """Two filings of one company to compare, read from the question once (ADR 0010).
+
+    ``filing_change.bind_filing_change`` fills it from the planner's plan and the
+    question's words; the comparison reads only this.
+    """
 
     company: str = ""
+    # Both empty: the latest filing against the one a year earlier.
     older_accession: str = ""
     newer_accession: str = ""
-    section: str = "mda"
+    # Every accession number the question gave, in order: more than two, or one
+    # given twice, is refused.
+    named_accessions: tuple[str, ...] = ()
+    sections: tuple[SectionId, ...] = ("mda",)
+    form: FilingForm = "10-Q"
     # Asked for the model's summary of the changes as well as the changes.
     summarize: bool = False
     # Further companies named: a comparison covers one company at a time.
