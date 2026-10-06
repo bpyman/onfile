@@ -548,12 +548,7 @@ def cases() -> list[PhraseCase]:
 
 # The cases that fail today, each a gap in the shared reading of words. Take a case
 # off when it is fixed; the test fails until the list matches.
-KNOWN_GAPS: frozenset[str] = frozenset(
-    {
-        # "Show that year over year" replaces a named period with 8 quarters.
-        "combined_follow_up:Apple revenue for fiscal 2025 | show that year over year",
-    }
-)
+KNOWN_GAPS: frozenset[str] = frozenset()
 
 
 # The phrasings the cascade sends to the LLM planner. The ambiguous words name no

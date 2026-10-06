@@ -915,15 +915,16 @@ def _keep_window_for_change(
     With no window named, year over year shows 8 quarters and growth 5: the 8
     were four quarters with the year before each, the 5 four with the year-earlier
     base of the newest. Each quarter's base is now the comparative its own filing
-    reports (ADR 0009), so a window the analyst already has needs no extra rows.
-    A sequential change still needs the quarter before the oldest one shown.
+    reports (ADR 0009), so a window the analyst already has needs no extra rows,
+    nor does a named period, read as on a window. A sequential change still needs
+    the quarter before the oldest one shown.
     """
     on_screen = current_spec.periods
     if (
         patch.mode != "extend"
         or patch.set_periods is None
-        or on_screen.kind != "last_n_quarters"
-        or (on_screen.count or 1) <= 1
+        or on_screen.kind == "latest_quarter"
+        or (on_screen.kind == "last_n_quarters" and (on_screen.count or 1) <= 1)
         or comparison_asked(message) != "year_over_year"
         or window.counted_window
         or window.trailing_year
@@ -931,6 +932,12 @@ def _keep_window_for_change(
         or parse_named_periods(message)
     ):
         return patch
+    if on_screen.company_base_dates is not None:
+        # The quarters before a quarter-over-quarter change's named ones are no
+        # longer a base.
+        return patch.model_copy(
+            update={"set_periods": on_screen.model_copy(update={"company_base_dates": None})}
+        )
     return patch.model_copy(update={"set_periods": None})
 
 

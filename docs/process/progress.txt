@@ -1364,3 +1364,23 @@ Blockers / next:
 - None. All 1,919 Python tests pass; ruff and mypy pass; compare_answers reports
   `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
   regenerated. Ticket 03 (show that year over year keeps a named period) is now unblocked.
+
+
+## 2026-10-06 — combination-gaps 03 Show that year over year keeps a named period
+
+Task completed: `docs/process/tickets/combination-gaps/issues/03-show-that-year-over-year-keeps-a-named-period.md`
+
+Key decisions:
+- `_keep_window_for_change` keeps any named period on screen (one quarter or several)
+  when the follow-up asks year over year and names no period of its own; a named period
+  with `company_base_dates` set (quarter over quarter) has them cleared.
+
+Files changed:
+- `src/financial_analyst_agent/{request_wording.py,phrase_coverage.py (KNOWN_GAPS now empty)}`
+- `tests/unit/test_planner_wording.py`
+- `README.md`, the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,929 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
+  regenerated. Ticket 04 is ready-for-human; no agent ticket remains in this feature.

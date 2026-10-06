@@ -6,6 +6,7 @@ import pytest
 
 from financial_analyst_agent.contracts import Intent
 from financial_analyst_agent.graph.analysis_spec import (
+    NamedPeriodSpec,
     PeriodSelection,
     SpecPatch,
     apply_patch,
@@ -316,6 +317,46 @@ def test_a_change_follow_up_that_needs_or_names_quarters_sets_them(
     patch = refine_patch_from_message(SpecPatch(mode="extend"), message, spec, index=index)
 
     assert apply_patch(spec, patch).periods == _window(count)
+
+
+@pytest.mark.parametrize("message", ["show that year over year", "as growth", "yoy please"])
+@pytest.mark.parametrize(
+    "named",
+    [
+        (NamedPeriodSpec(year=2025),),
+        (NamedPeriodSpec(year=2025, quarter=2),),
+        (NamedPeriodSpec(year=2025, quarter=1), NamedPeriodSpec(year=2025, quarter=2)),
+    ],
+)
+def test_a_year_over_year_follow_up_keeps_a_named_period(
+    message: str, named: tuple[NamedPeriodSpec, ...]
+) -> None:
+    spec, index = _spec("AAPL", metrics=("revenue",))
+    on_screen = PeriodSelection(kind="named", named=named)
+    spec = spec.model_copy(update={"periods": on_screen})
+
+    patch = refine_patch_from_message(SpecPatch(mode="extend"), message, spec, index=index)
+    draft = apply_patch(spec, patch)
+
+    assert draft.periods == on_screen
+    assert "year_over_year" in draft.operations
+
+
+def test_year_over_year_after_quarter_over_quarter_reads_no_base_quarter() -> None:
+    spec, index = _spec("AAPL", metrics=("revenue",))
+    named = (NamedPeriodSpec(year=2025),)
+    spec = spec.model_copy(
+        update={
+            "periods": PeriodSelection(kind="named", named=named, company_base_dates=()),
+            "operations": ("across_periods",),
+        }
+    )
+
+    patch = refine_patch_from_message(
+        SpecPatch(mode="extend"), "show that year over year", spec, index=index
+    )
+
+    assert apply_patch(spec, patch).periods == PeriodSelection(kind="named", named=named)
 
 
 def test_year_over_year_after_the_latest_quarter_shows_two_years() -> None:
