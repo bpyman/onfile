@@ -78,8 +78,11 @@ _CHARS_PER_TOKEN = 4
 # them, come on top and are the main uncertainty in an estimate.
 _ASSUMED_OUTPUT_TOKENS = 120
 # A refusal with these codes planned correctly and found no fact in the
-# recorded filings: a gap in the data, not in planning.
-_NO_DATA_CODES = frozenset({"unsupported_quarterly_fact", "missing_fact"})
+# recorded filings: a gap in the data, not in planning. A per-share figure a
+# fiscal fourth quarter reports only for the year is one (ADR 0007).
+_NO_DATA_CODES = frozenset(
+    {"unsupported_quarterly_fact", "missing_fact", "not_reported_for_quarter"}
+)
 
 
 @dataclass(frozen=True)
@@ -229,6 +232,8 @@ def observe(turn: ConversationTurn) -> Observation:
         for trace in result.tool_traces
         if isinstance(trace.provenance.get("error"), dict)
     }
+    if result.refusal is not None:
+        codes.add(result.refusal.code)
     if result.renderer is RendererKind.CLARIFY:
         outcome = "clarify"
     elif result.renderer is RendererKind.REFUSE:
@@ -247,9 +252,12 @@ def observe(turn: ConversationTurn) -> Observation:
         # company, and the answer says when it shows fewer than were asked for.
         periods = (spec.periods.kind, spec.periods.asked or spec.periods.count)
         operations = frozenset(spec.operations)
-    # A comparison shows growth as year-over-year rows rather than an operation.
+    # A comparison shows growth as year-over-year rows rather than an operation, and
+    # a quarter-over-quarter change only as sequential rows.
     if any(row.comparison == "year_over_year" for row in result.table_rows):
         operations |= {"year_over_year"}
+    if any(row.comparison == "sequential" for row in result.table_rows):
+        operations |= {"sequential"}
     return Observation(
         outcome=outcome,
         intent=result.intent.value,
