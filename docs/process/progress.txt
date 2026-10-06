@@ -1486,3 +1486,35 @@ Blockers / next:
   `1 of 244 conversations differ from HEAD`: `case:h3_apples_to_apples` now shows Nvidia and AMD
   only, as its label expects (intended). docs/evaluation/phrase-coverage.md not regenerated.
   Ticket 04 (EPS when the latest quarter is a fiscal fourth) is next.
+
+
+## 2026-10-06 — brief-5-probe-gaps 04 EPS when the latest quarter is a fiscal fourth quarter
+
+Task completed: `docs/process/tickets/brief-5-probe-gaps/issues/04-eps-when-the-latest-quarter-is-a-fiscal-fourth.md`
+
+Key decisions:
+- Option 1 (decided 2026-10-06): a per-share figure asked with no period is the latest quarter
+  with its own, with a note saying which quarter was stepped past. `SecFactLookup.get_financials`
+  (`sec_facts.py`) steps on from a `PerShareNotDerivableError` to the next of the four latest
+  report dates, as it already did for a filing SEC's companyfacts lacks; the fact carries the
+  stepped-past quarter's end as `year_only_quarter_end` (new on `FinancialFact` and `TableRow`),
+  beside `newer_filing_end`. `NoDividendThisQuarterError` does not step back.
+- A named fourth quarter (`Cisco EPS in Q4 FY2026`) still says it is reported only for the year;
+  a window still shows it as a blank row with that reason.
+- `year_only_quarter_banners` (`presentation.py`) writes the note once per company and metric;
+  the lookup and compare rows carry the field, so a compare or a ranking by EPS shows a 10-K
+  filer's latest quarter with its own and the note (Microsoft in `top 3 tech companies by EPS`).
+  Dividends per share and basic EPS step back the same way.
+
+Files changed:
+- `src/financial_analyst_agent/{sec_facts.py,presentation.py,turn.py,contracts.py,domain/models.py}`
+- `tests/unit/providers/test_per_share_latest_with_its_own.py` (new), `tests/test_run_turn_lookup.py`,
+  `tests/unit/test_planner_evaluation.py`
+- `README.md` (How a question is read), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,962 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 244 conversations differ from HEAD` (no recorded conversation asks a 10-K filer's EPS
+  with no period). The implementation was left uncommitted by the previous iteration and is
+  committed here after re-running every check. Ticket 05 ("what caused ... to fall" asks
+  against what) is next.

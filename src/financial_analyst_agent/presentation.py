@@ -435,6 +435,31 @@ def newer_filing_banner(rows: list[TableRow]) -> str:
     )
 
 
+def year_only_quarter_banners(rows: list[TableRow]) -> list[str]:
+    """Say which rows stepped past a quarter whose per-share figure is the year's only.
+
+    Per-share figures are never derived (ADR 0007), so a fiscal fourth quarter has
+    none of its own; asked with no period, a company is shown for the latest
+    quarter that reports one, and this says which quarter was stepped past.
+    """
+    notes: list[str] = []
+    seen: set[tuple[str, str]] = set()
+    for row in rows:
+        if row.value is None or row.year_only_quarter_end is None or row.end_date is None:
+            continue
+        key = (_owner(row), row.metric)
+        if key in seen:
+            continue
+        seen.add(key)
+        name = short_name(row.company_name) or row.ticker
+        notes.append(
+            f"{_owner(row)} quarter ended {format_date(row.year_only_quarter_end)} reports "
+            f"{in_sentence(format_field_name(row.metric))} only for the year, so {name} is "
+            f"shown for the quarter ended {format_date(row.end_date)}, the latest with its own."
+        )
+    return notes
+
+
 def is_derived(row: TableRow) -> bool:
     """A derived quarter, or a value computed from one (ADR 0007)."""
     return bool(row.derivation) or any(component.derivation for component in row.components)
@@ -1517,6 +1542,7 @@ def present_turn(result: TurnResult) -> Presentation:
     newer = newer_filing_banner(result.table_rows)
     if newer:
         banners.append(newer)
+    banners.extend(year_only_quarter_banners(result.table_rows))
     banners.extend(split_adjusted_banners(result.table_rows))
     banners.extend(restated_banners(result.table_rows))
     banners.extend(declared_for_year_banners(result.table_rows))

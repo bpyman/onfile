@@ -146,6 +146,9 @@ class FinancialFact(BaseModel):
     source: DataSourceKind = DataSourceKind.SEC_XBRL
     # "Latest" stepped back: the end of a newer filed quarter SEC's companyfacts lacks.
     newer_filing_end: date | None = None
+    # "Latest" stepped back: the end of a newer quarter whose per-share figure the
+    # filings report only for the year (ADR 0007); this is the latest with its own.
+    year_only_quarter_end: date | None = None
     # The same amount a year earlier as this fact's own filing reports it (its
     # comparative), on the same basis after a restatement or share split.
     year_earlier: DerivationPart | None = None

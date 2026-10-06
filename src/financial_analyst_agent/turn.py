@@ -532,6 +532,7 @@ def _table_row_from_fact(fact: FinancialFact) -> TableRow:
         concept=fact.concept,
         source_url=fact.source_url,
         newer_filing_end=fact.newer_filing_end,
+        year_only_quarter_end=fact.year_only_quarter_end,
         year_earlier=_year_earlier(fact),
         diluted_shares=fact.diluted_shares,
         split_adjustment=fact.split_adjustment,
@@ -888,6 +889,14 @@ def compare_metrics(
                         pending
                         for fact in fetched
                         if (pending := fact.newer_filing_end)
+                    ),
+                    default=None,
+                ),
+                year_only_quarter_end=max(
+                    (
+                        year_only
+                        for fact in fetched
+                        if (year_only := fact.year_only_quarter_end)
                     ),
                     default=None,
                 ),
