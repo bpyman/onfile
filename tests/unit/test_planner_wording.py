@@ -204,6 +204,7 @@ def test_an_answer_names_the_base_of_a_change(answer: str, base: str) -> None:
         "no YoY",
         "remove year on year",
         "without year over year growth",
+        "take out the year-over-year column",
     ],
 )
 def test_removing_year_over_year_takes_the_change_away_and_keeps_the_window(message: str) -> None:
@@ -325,3 +326,14 @@ def test_year_over_year_after_the_latest_quarter_shows_two_years() -> None:
     )
 
     assert apply_patch(spec, patch).periods == _window(8)
+
+
+@pytest.mark.parametrize(
+    "message", ["drop Microsoft", "remove Microsoft", "without Microsoft", "take out Microsoft"]
+)
+def test_taking_a_company_away_removes_it(message: str) -> None:
+    spec, index = _spec("AAPL", "MSFT", metrics=("revenue",))
+
+    patch = refine_patch_from_message(SpecPatch(mode="extend"), message, spec, index=index)
+
+    assert (patch.remove_companies, patch.add_companies, patch.add_metrics) == (("MSFT",), (), ())

@@ -8,4 +8,14 @@ Found by phrase coverage ([report](../../../../evaluation/phrase-coverage.md), `
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+"take out Microsoft" after Apple and Microsoft now leaves Apple alone. The words
+that take something off the screen are one list in `request_wording.py`, which both
+planners read through (ADR 0010, 0011): "drop", "remove" and "take out", with
+"without" for a removal. The same list serves "take out the year-over-year column"
+and "take out revenue and add net income". The case is off `KNOWN_GAPS`;
+compare_answers reports 0 of 244 conversations differ. README "How a question is
+read" names the wording in the follow-up row.

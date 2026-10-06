@@ -77,8 +77,10 @@ _INSTEAD_EDIT = re.compile(
 )
 
 
+# "drop", "remove", "take out": the words that take something off the screen.
+_TAKE_AWAY = r"drop|remove|take\s+out"
 _DROP_EDIT = re.compile(
-    r"^\s*(?:drop|remove|without)\s+(.+?)\s*$",
+    rf"^\s*(?:{_TAKE_AWAY}|without)\s+(.+?)\s*$",
     re.IGNORECASE,
 )
 # "year over year", "year-on-year", "YoY", "y/y": one comparison, however spelt.
@@ -94,7 +96,7 @@ YEAR_EARLIER = (
 # "remove year over year": the change goes, the quarters on screen stay. Read
 # before the year-over-year wording, which would otherwise ask for it.
 _DROP_COMPARISON = re.compile(
-    r"^\s*(?:drop|remove|without|no|hide)\s+(?:the\s+)?"
+    rf"^\s*(?:{_TAKE_AWAY}|without|no|hide)\s+(?:the\s+)?"
     rf"(?:{YEAR_OVER_YEAR})(?:\s+(?:change|changes|growth|comparison|column))?"
     r"\s*[.!]?\s*$",
     re.IGNORECASE,
@@ -127,7 +129,7 @@ _SWITCH_TO_EDIT = re.compile(
 
 
 _DROP_AND_ADD_EDIT = re.compile(
-    r"^\s*(?:drop|remove)\s+(.+?)\s*,?\s+(?:and\s+)?(?:add|include|show)\s+(.+?)\s*$",
+    rf"^\s*(?:{_TAKE_AWAY})\s+(.+?)\s*,?\s+(?:and\s+)?(?:add|include|show)\s+(.+?)\s*$",
     re.IGNORECASE,
 )
 
@@ -809,7 +811,7 @@ def asks_to_swap(message: str) -> bool:
 
 
 def is_removal(message: str) -> bool:
-    """ "drop revenue", "remove Apple", "without margins": an edit that takes away."""
+    """ "drop revenue", "take out Apple", "without margins": an edit that takes away."""
     return _DROP_EDIT.match(message.strip()) is not None
 
 

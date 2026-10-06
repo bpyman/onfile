@@ -1291,3 +1291,23 @@ Blockers / next:
 - None. All 1,895 Python tests pass; ruff and mypy pass; compare_answers reports
   `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
   regenerated. Ticket 08 is next.
+
+
+## 2026-10-06 — phrase-coverage-gaps 08 Take out removes a company
+
+Task completed: `docs/process/tickets/phrase-coverage-gaps/issues/08-take-out-removes-a-company.md`
+
+Key decisions:
+- `_TAKE_AWAY` in `request_wording.py` ("drop", "remove", "take out") is the one list
+  the removal, the year-over-year removal and the drop-and-add edits read; "without"
+  still reads as a removal.
+
+Files changed:
+- `src/financial_analyst_agent/{request_wording.py,phrase_coverage.py (1 case off KNOWN_GAPS)}`
+- `tests/unit/test_planner_wording.py`
+- `README.md`, the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,900 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
+  regenerated. Ticket 09 is ready-for-human; no agent ticket remains in this feature.

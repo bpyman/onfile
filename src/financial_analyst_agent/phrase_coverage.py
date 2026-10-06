@@ -332,7 +332,6 @@ def cases() -> list[PhraseCase]:
 # off when it is fixed; the test fails until the list matches.
 KNOWN_GAPS: frozenset[str] = frozenset(
     {
-        "follow_up:Apple and Microsoft | take out Microsoft",
         "metric:profit margin:question",
         "metric:profit margin:terse",
     }
