@@ -193,7 +193,15 @@ METRIC_PHRASES: tuple[tuple[str, tuple[str, ...]], ...] = (
         "shareholders_equity",
         ("shareholders' equity", "stockholders' equity", "book value"),
     ),
-    ("net_income_ttm", ("trailing twelve month net income", "TTM net income")),
+    (
+        "net_income_ttm",
+        (
+            "trailing twelve month net income",
+            "TTM net income",
+            "LTM net income",
+            "last twelve months net income",
+        ),
+    ),
     ("net_interest_income", ("net interest income", "NII")),
     ("total_equity", ("total equity", "equity including noncontrolling interests")),
     ("noninterest_income", ("noninterest income", "non-interest income")),
@@ -237,6 +245,7 @@ WINDOW_PHRASES: tuple[tuple[str, str, int | None], ...] = (
     ("for the trailing four quarters", "last_n_quarters", 4),
     ("over the past decade", "last_n_quarters", 40),
     ("since 2024", "last_n_quarters", None),
+    ("since the start of 2024", "last_n_quarters", None),
     ("for the most recent quarter", "latest_quarter", None),
     ("for the latest quarter", "latest_quarter", None),
     ("in Q2 2025", "named", None),
@@ -271,6 +280,7 @@ NO_BASE_QUESTIONS = (
     "How much did Apple's revenue change?",
     "What drove the change in Apple's revenue?",
     "Why did Apple's revenue go up?",
+    "What caused Apple's revenue to fall?",
 )
 
 _FIRST = "Apple revenue over the last 4 quarters"
@@ -548,7 +558,15 @@ def cases() -> list[PhraseCase]:
 
 # The cases that fail today, each a gap in the shared reading of words. Take a case
 # off when it is fixed; the test fails until the list matches.
-KNOWN_GAPS: frozenset[str] = frozenset()
+KNOWN_GAPS: frozenset[str] = frozenset(
+    {
+        # Found by the set-5 brief's probe dry-run; filed in brief-5-probe-gaps.
+        "window:since the start of 2024",
+        "metric:last twelve months net income:question",
+        "metric:last twelve months net income:terse",
+        "no_base:What caused Apple's revenue to fall?",
+    }
+)
 
 
 # The phrasings the cascade sends to the LLM planner. The ambiguous words name no

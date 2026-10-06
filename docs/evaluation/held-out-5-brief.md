@@ -5,6 +5,11 @@
 > label differs from the app is settled: the brief is made clearer, or the app
 > is fixed. Then this note is removed, and the commit that removes it is the
 > frozen prompt. No case is written from a draft.
+>
+> Two rounds of 30 probes ran on 6 October 2026: the brief and the README's
+> "How a question is read" were made clearer after each, and the app gaps they
+> found are tickets in `brief-5-probe-gaps`. Those are fixed before the freeze,
+> so the set measures wording nobody has seen rather than gaps already known.
 
 This brief was committed before any case was written, and is given unchanged to
 the session that writes the cases. Its commit is the frozen prompt; see the
@@ -59,9 +64,14 @@ what this set tests.
 - An answer is a table of figures: one company (a lookup), several companies (a
   comparison), or a ranking of an industry or sector.
 - It does not give investment advice, predict, or answer outside its scope.
-- Figures it does not have (a metric outside the catalog, a segment such as
-  iPhone or AWS, a period before the filings or in the future) are refused or
-  asked about, never guessed.
+- Figures it does not have (a metric outside the catalog, a period before
+  2015 or in the future) are refused or asked about, never guessed. A segment
+  (iPhone, AWS, Google Cloud) shows the company-wide figure with a note, as the
+  README says: label it as an answer with the company-wide metric.
+- The recording holds each company's 10-Qs and 10-Ks from about mid-2024 to
+  mid-2026; for the four banks, from the third quarter of 2025. Name quarters
+  and fiscal years inside that span. A named period between 2015 and the start
+  of the span may simply be missing from the recording, so do not ask one.
 
 ### Companies in the recording
 
@@ -84,7 +94,8 @@ By sector, largest market value first (rankings follow this order):
   Markets). In market-value order: JPM, BAC, GS, WFC.
 - Communication Services: Alphabet (label it GOOG; Google is the same company).
 
-No two of these companies share a name.
+No two of these companies share a name. Informal names analysts use (BofA,
+JPM, Lilly) are fair: label the company meant.
 
 ### Metrics
 
@@ -105,35 +116,49 @@ unknown metric.
 Net interest income and noninterest income are bank figures: ask them of the
 banks.
 
+### Conversations, as labels
+
+A conversation of two or three turns is scored on its last turn: label the
+analysis on screen after it. Its intent follows the companies then on screen:
+one company is `lookup` and several are `compare`, however many metrics are
+shown and whatever the first turn asked.
+
 ### Periods, as labels
 
+- Label the period of every answer, the latest quarter included; a ranking's
+  is the latest quarter.
 - The latest quarter: `{"kind": "latest_quarter"}`.
 - A window of recent quarters: `{"kind": "last_n_quarters", "count": N}`, with N
-  as the README's table counts it.
+  as the README's table counts it. For a window `since` a year, leave the count
+  out: it depends on the recording's latest quarter.
 - A named fiscal or calendar quarter or year: `{"kind": "named"}`; leave the
   count out.
-- A period in the future, or before the filings (say before 2015), is refused.
+- A trailing-year figure (`TTM net income`): label the metric `net_income_ttm`
+  and leave the period out. A figure with no trailing-year form (`TTM
+  revenue`) is its latest 4 quarters: `last_n_quarters`, count 4.
+- A period in the future, or before 2015, is refused.
 
 ### Changes, as labels
 
 A year-over-year change, growth included, is labelled
-`"operations_include": ["year_over_year"]`. Leave the operations out for a
-quarter-over-quarter change.
+`"operations_include": ["year_over_year"]`, and a quarter-over-quarter change
+`"operations_include": ["sequential"]`.
 
 ### Rankings, as labels
 
-A ranking by any metric other than market value has intent `rank_and_lookup`
-and that metric; for a ranking by market value (market cap, "largest", "worth
-the most") leave the intent and metric out. For a ranking, label
-`tickers_include` with the one or two companies that must be in the answer (the
-largest by market value in that group), never the full list.
+A ranking that shows a metric, whether ordered by it (`by`) or by market value
+(`and their`), has intent `rank_and_lookup` and that metric. For a ranking by
+market value alone (market cap, "largest", "worth the most") leave the intent
+and metric out. Label `tickers_include` with the one company that must be in
+the answer, the largest by market value in that group, never the full list.
 
 ### Other kinds of question
 
 - "What changed in X's latest 10-Q?" compares two filings: intent
   `filing_change`. Label the intent only: whether it answers depends on which
   filing documents the recording holds.
-- An overview ("How is X doing?"): label the ticker; leave the intent out.
+- An overview ("How is X doing?"): label `outcome` and the ticker; leave the
+  intent, metrics and period out.
 - News ("latest news about X") is intent `news_and_explain`; a general
   explanation ("how might AI change banking?") is intent `explain`. Label the
   intent only: the recording replays only the news it holds.
@@ -160,7 +185,7 @@ largest by market value in that group), never the full list.
         "tickers_include": ["<at least these companies>"],
         "metrics": ["<exactly these metrics>"],
         "periods": {"kind": "latest_quarter | last_n_quarters | named", "count": 4},
-        "operations_include": ["year_over_year"]
+        "operations_include": ["year_over_year | sequential"]
       }
     }
   ]

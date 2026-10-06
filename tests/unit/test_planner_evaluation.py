@@ -108,11 +108,19 @@ def test_observing_a_recorded_turn_reads_its_window_and_growth() -> None:
     growth = _ask("Compare Nvidia and AMD revenue growth")
     assert "year_over_year" in growth.operations
 
+    # A quarter-over-quarter change shows only as sequential rows.
+    sequential = _ask("Apple revenue quarter over quarter")
+    assert "sequential" in sequential.operations
+    assert "sequential" not in window.operations
+
 
 def test_a_fact_missing_from_the_recorded_filings_is_no_data() -> None:
     assert _ask("what did Goldman Sachs spend on R&D in its latest quarter").outcome == "no_data"
     # A window of quarters the filings lack says why too, not only a single quarter.
     assert _ask("Goldman Sachs R&D over the last three quarters").outcome == "no_data"
+    # Cisco's latest quarter is a fiscal fourth, whose EPS the 10-K reports only for
+    # the year: the plan was right and the filings hold no quarterly figure.
+    assert _ask("What are Cisco's earnings per share?").outcome == "no_data"
 
 
 class _FakeCompletions:
