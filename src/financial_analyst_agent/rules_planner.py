@@ -34,6 +34,7 @@ from financial_analyst_agent.issuer_index import (
 )
 from financial_analyst_agent.providers.sec.submissions import ACCESSION_PATTERN
 from financial_analyst_agent.request_wording import (
+    OVERVIEW_METRICS,
     OVERVIEW_PLAN,
     asks_for_explanation,
     asks_to_swap,
@@ -677,6 +678,10 @@ class DemoCompleter:
         if metric == "unknown" and companies and unknown_wording:
             # "Apple happiness index": name the word rather than show an overview.
             metric = segment or _unknown_term(query, mentions) or metric
+        if metric == "unknown" and companies and implied_metrics(query) == OVERVIEW_METRICS:
+            # "How is Apple doing?" asks for the overview: plan it, so the cascade keeps
+            # the plan rather than ask the LLM planner for the same (ADR 0012).
+            metric = OVERVIEW_PLAN
         # "Meta margin Q2 2026 vs Q2 2025" compares periods of one company.
         compare_words = re.search(r"\b(?:compare|vs|versus)\b", normalized) and not (
             len(companies) == 1 and len(parse_named_periods(normalized)) >= 2

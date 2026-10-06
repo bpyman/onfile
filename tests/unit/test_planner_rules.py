@@ -25,10 +25,12 @@ from financial_analyst_agent.graph.analysis_spec import (
 from financial_analyst_agent.graph.spec_turn import _order_by_metric, plan_to_spec_patch
 from financial_analyst_agent.guide import guide_reply, short_name, suggest_follow_ups
 from financial_analyst_agent.issuer_index import IssuerIndex
+from financial_analyst_agent.planner_cascade import unsure_reason
 from financial_analyst_agent.presentation import present_turn
 from financial_analyst_agent.ranking import SnapshotRanking
 from financial_analyst_agent.request_wording import (
     OVERVIEW_METRICS,
+    OVERVIEW_PLAN,
     bind_metrics_from_message,
     bind_periods_from_message,
     refine_patch_from_message,
@@ -143,9 +145,9 @@ def test_a_measure_the_catalog_lacks_is_not_an_overview(guessed: str) -> None:
     assert "'stock performance'" in (refusal.message or "")
 
 
-def test_the_rules_planner_reads_overview_words_as_no_metric() -> None:
-    # "rundown" and "performing" are not the word the catalog lacks: the plan
-    # names no metric, and the shared reading gives the overview.
+def test_the_rules_planner_plans_the_overview_for_overview_words() -> None:
+    # "rundown" and "performing" are not the word the catalog lacks: the plan is
+    # the overview, which the cascade keeps, and the shared reading gives its metrics.
     planner = _live()
 
     for question in (
@@ -155,7 +157,8 @@ def test_the_rules_planner_reads_overview_words_as_no_metric() -> None:
     ):
         plan = planner.complete(question)
         assert plan.intent is Intent.LOOKUP, question
-        assert plan.metric == "unknown", question
+        assert plan.metric == OVERVIEW_PLAN, question
+        assert unsure_reason(plan, lambda _industry: True) is None, question
         patch, refusal = bind_metrics_from_message(
             plan_to_spec_patch(plan), question, intent=plan.intent
         )

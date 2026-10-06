@@ -22,6 +22,7 @@ from financial_analyst_agent.contracts import (
     refuse_unknown_metric,
 )
 from financial_analyst_agent.graph.analysis_spec import (
+    MAX_QUARTERS_ASKED,
     AnalysisSpec,
     NamedPeriodSpec,
     PeriodSelection,
@@ -375,7 +376,8 @@ SINCE_YEAR = re.compile(
 )
 
 
-MAX_SINCE_QUARTERS = 20
+# A "since" window is a window: at most as many quarters as any other (README).
+MAX_SINCE_QUARTERS = MAX_QUARTERS_ASKED
 
 
 class WindowReading(BaseModel):

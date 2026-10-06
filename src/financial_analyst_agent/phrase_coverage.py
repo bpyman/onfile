@@ -721,11 +721,7 @@ KNOWN_GAPS: frozenset[str] = frozenset()
 # The phrasings the cascade sends to the LLM planner. The ambiguous words name no
 # catalog metric, so the rules planner is unsure; the shared guard asks which
 # metric was meant whatever the LLM planner proposes (ADR 0004), so the call
-# costs a second but cannot misread them. An overview of named companies ("How
-# is Apple doing?") names no catalog metric either, so the rules planner's
-# lookup plan is unsure of it; the shared reading of its words gives the
-# overview whichever planner proposed no metric, and the LLM planner is told to
-# propose none for it. A figure with no company ("What's the EPS?") leaves the
+# costs a second but cannot misread them. A figure with no company ("What's the EPS?") leaves the
 # rules planner unsure too; the LLM planner is told to name companies as the
 # user wrote them, and the user wrote none, so its proposal asks which company
 # the same way. Any other phrasing sent on is a rules-planner reading the live
@@ -733,7 +729,6 @@ KNOWN_GAPS: frozenset[str] = frozenset()
 # reason.
 SENT_TO_MODEL: frozenset[str] = (
     frozenset(f"ambiguous:{word}" for word in AMBIGUOUS_WORDS)
-    | frozenset(f"overview:{question}" for question, _tickers, _period in OVERVIEW_QUESTIONS)
     | frozenset(f"no_company:{question}" for question in NO_COMPANY_QUESTIONS)
 )
 
