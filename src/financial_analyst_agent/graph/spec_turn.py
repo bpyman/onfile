@@ -36,7 +36,7 @@ from financial_analyst_agent.contracts import (
     SNAPSHOT_METRICS,
     SOURCE_UNAVAILABLE,
     STRUCTURED_INTENTS,
-    TRAILING_YEAR_FORMULAS,
+    TRAILING_YEAR_FIGURES,
     ComparisonBase,
     ComponentProvenance,
     Intent,
@@ -1253,7 +1253,7 @@ def earlier_quarters(
         or spec.operations
         or spec.periods.kind != "latest_quarter"
         or len(spec.metrics) != 1
-        or spec.metrics[0] in (*SNAPSHOT_METRICS, *TRAILING_YEAR_FORMULAS)
+        or spec.metrics[0] in (*SNAPSHOT_METRICS, *TRAILING_YEAR_FIGURES)
         or len(rows) != 1
         or rows[0].value is None
         or rows[0].end_date is None

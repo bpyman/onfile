@@ -333,12 +333,8 @@ def cases() -> list[PhraseCase]:
 KNOWN_GAPS: frozenset[str] = frozenset(
     {
         "follow_up:Apple and Microsoft | take out Microsoft",
-        "metric:TTM net income:question",
-        "metric:TTM net income:terse",
         "metric:profit margin:question",
         "metric:profit margin:terse",
-        "metric:trailing twelve month net income:question",
-        "metric:trailing twelve month net income:terse",
         "no_base:What drove the change in Apple's revenue?",
         "window:over the past decade",
         "yoy:Apple revenue compared with the same quarter last year",

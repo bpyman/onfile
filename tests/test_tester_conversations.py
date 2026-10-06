@@ -34,6 +34,20 @@ def test_a_period_question_naming_another_company_answers_that_company(runtime) 
     assert set(tickers_of(answers[2])) == {"ORCL"}
 
 
+def test_ttm_net_income_is_one_trailing_year_figure(runtime) -> None:  # type: ignore[no-untyped-def]
+    # One amount, the four quarters to the latest report summed (ADR 0008).
+    result = last_result(runtime, "Microsoft TTM net income")
+    assert [row.metric for row in result.table_rows] == ["net_income_ttm"]
+    assert result.table_rows[0].value is not None
+    (answer,) = ask(runtime, "Microsoft TTM net income")
+    # A year, not a quarter: no window banner, no quarter-length note, no quarter's changes.
+    assert answer.banners == ()
+    assert answer.fact_card is not None
+    assert answer.fact_card.period_label.startswith("Reported · Trailing year · ")
+    assert answer.fact_card.kind_label == "Trailing year"
+    assert answer.fact_card.changes == ()
+
+
 def test_a_company_named_after_a_ranking_replaces_the_ranking(runtime) -> None:  # type: ignore[no-untyped-def]
     answers = ask(
         runtime,

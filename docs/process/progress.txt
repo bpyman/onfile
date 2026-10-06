@@ -1201,3 +1201,30 @@ Blockers / next:
 - None. All 1,866 Python tests pass; ruff and mypy pass; compare_answers reports
   `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
   regenerated. Ticket 04 is next.
+
+
+## 2026-10-06 — phrase-coverage-gaps 04 Trailing twelve months is one trailing-year figure
+
+Task completed: `docs/process/tickets/phrase-coverage-gaps/issues/04-trailing-twelve-months-is-one-figure.md`
+
+Key decisions:
+- One rule in the catalog's unique matches: "TTM", "LTM" or "trailing twelve/12
+  month(s)" just before a figure with a trailing-year form (net income) reads as
+  that form, net_income_ttm. Other figures keep the TTM window of 4 quarters.
+- The words a trailing-year figure takes are left out when a window is read
+  (`without_trailing_year_words`, `request_wording.window_words`): the answer is
+  the latest period, one amount.
+- net_income_ttm joins REPORTED_METRICS and presents as a trailing year
+  (`TRAILING_YEAR_FIGURES`): no change chips, no long-quarter note, "Trailing
+  year" on the card. Display name "Trailing-year net income".
+
+Files changed:
+- `src/financial_analyst_agent/{contracts.py,request_wording.py,presentation.py,graph/spec_turn.py,services/metric_catalog.py,phrase_coverage.py (4 cases off KNOWN_GAPS)}`
+- `tests/unit/services/test_metric_phrase.py`, `tests/unit/test_derived_and_named_periods.py`,
+  `tests/test_tester_conversations.py`, `tests/test_presentation.py` (36 names)
+- `README.md`, ADR 0008 (revised note), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,878 Python tests pass; ruff and mypy pass; compare_answers reports
+  1 of 244 conversations differ ("Apple and Tesla return on equity": the trailing-year
+  input's new label). docs/evaluation/phrase-coverage.md not regenerated. Ticket 05 is next.

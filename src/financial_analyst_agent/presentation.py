@@ -24,6 +24,7 @@ from financial_analyst_agent.contracts import (
     SNAPSHOT_METRICS,
     SPLIT_RATIO,
     SUM_FORMULAS,
+    TRAILING_YEAR_FIGURES,
     TRAILING_YEAR_FORMULAS,
     ComparisonBase,
     ComponentProvenance,
@@ -242,9 +243,9 @@ def long_quarter_banner(rows: list[TableRow]) -> str:
     for row in rows:
         if row.value is None or row.start_date is None or row.end_date is None:
             continue
-        if row.comparison is not None or row.metric in TRAILING_YEAR_FORMULAS:
+        if row.comparison is not None or row.metric in TRAILING_YEAR_FIGURES:
             # A change row spans both quarters it compares, not one long quarter;
-            # return on equity and P/E cover a trailing year by definition.
+            # a trailing year, and return on equity and P/E over one, cover a year.
             continue
         days = (row.end_date - row.start_date).days + 1
         if days > _LONG_QUARTER_DAYS:
@@ -1732,6 +1733,11 @@ def _fact_card(
         span = "Trailing year · " if row.metric in TRAILING_YEAR_FORMULAS else ""
         concept, form = _formula_inputs(row), ""
         kind = "Calculated"
+    elif row.metric in TRAILING_YEAR_FIGURES:
+        # The 10-K's year, or one derived from it and the year to date (ADR 0008).
+        lead = "Derived †" if is_derived(row) else "Reported"
+        span = "Trailing year · "
+        kind = "Trailing year"
     elif is_derived(row):
         lead = "Derived †"
         kind = "Derived quarter"
@@ -1784,7 +1790,7 @@ def _change_chips(
     chip's title says which (ADR 0009). A trailing-year or snapshot figure gets
     none, and neither does a base at or below zero.
     """
-    if row.value is None or row.metric in (*TRAILING_YEAR_FORMULAS, *SNAPSHOT_METRICS):
+    if row.value is None or row.metric in (*TRAILING_YEAR_FIGURES, *SNAPSHOT_METRICS):
         return ()
     now = Decimal(str(row.value))
     chips: list[ChangeChip | None] = []
@@ -1972,7 +1978,7 @@ def _wide_table(
         "end_date",
     ]
     # A trailing year or a snapshot price is not a quarter.
-    quarterly = not set(metrics) & {*TRAILING_YEAR_FORMULAS, *SNAPSHOT_METRICS}
+    quarterly = not set(metrics) & {*TRAILING_YEAR_FIGURES, *SNAPSHOT_METRICS}
     headers = tuple(
         change_headers[key]
         if key.startswith(WIDE_CHANGE_PREFIX)

@@ -31,7 +31,10 @@ from financial_analyst_agent.guide import short_name
 from financial_analyst_agent.issuer_index import CompanyNames
 from financial_analyst_agent.observability import log_event
 from financial_analyst_agent.period_window import asked_window
-from financial_analyst_agent.services.metric_catalog import resolve_metric_phrase
+from financial_analyst_agent.services.metric_catalog import (
+    resolve_metric_phrase,
+    without_trailing_year_words,
+)
 
 _ADD_EDIT = re.compile(
     r"^\s*(?:now\s+)?(?:also\s+)?(?:add|include)\s+(.+?)\s*$",
@@ -659,12 +662,17 @@ def _asks_change_without_base(message: str) -> bool:
     return _CHANGE.search(message) is not None and not _names_a_span(message)
 
 
+def window_words(message: str) -> str:
+    """The wording a window is read from: "TTM net income" names a figure, not quarters."""
+    return without_trailing_year_words(message)
+
+
 def _names_a_span(message: str) -> bool:
     """Whether the wording names quarters a change runs across ("over the past 10 quarters").
 
     The span's first quarter is the change's base, so the span is the answer.
     """
-    window = asked_window(message)
+    window = asked_window(window_words(message))
     return (
         (window is not None and window.quarters > 1)
         or SINCE_YEAR.search(message) is not None
@@ -840,7 +848,7 @@ def planner_window(
                 read=window.asked_quarters,
             )
         return patch
-    if _PERIOD_CUE.search(message):
+    if _PERIOD_CUE.search(window_words(message)):
         return patch
     log_event("planner_window_dropped", proposed=proposed.count)
     return patch.model_copy(update={"set_periods": None})
@@ -1119,6 +1127,7 @@ SPECIFIC_PERIOD = re.compile(
 
 def read_window(message: str) -> WindowReading:
     """Read once the window details that compilation and answer notes both need."""
+    message = window_words(message)
     window = asked_window(message)
     since = SINCE_YEAR.search(message) if window is None else None
     since_count = since_quarters(since) if since is not None else None

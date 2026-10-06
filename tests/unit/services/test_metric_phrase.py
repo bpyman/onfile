@@ -6,6 +6,7 @@ from financial_analyst_agent.services.metric_catalog import (
     parse_metric,
     resolve_metric_phrase,
     resolve_metric_phrases,
+    without_trailing_year_words,
 )
 
 
@@ -319,3 +320,31 @@ def test_a_figure_without_a_ratio_shows_both_figures() -> None:
     # The catalog has no capex-to-sales ratio: the two figures, side by side.
     resolved = resolve_metric_phrase("What was the company's capex as a percentage of revenue?")
     assert resolved.metrics == ("capital_expenditure", "revenue")
+
+
+@pytest.mark.parametrize(
+    "phrase",
+    [
+        "TTM net income",
+        "LTM net income",
+        "trailing twelve month net income",
+        "trailing twelve months net income",
+        "trailing 12-month net income",
+        "TTM earnings",
+        "ttm net profit",
+    ],
+)
+def test_trailing_twelve_months_before_net_income_is_its_trailing_year(phrase: str) -> None:
+    resolved = resolve_metric_phrase(f"What was Apple's {phrase}?")
+    assert resolved.kind == "unique"
+    assert resolved.metrics == ("net_income_ttm",)
+
+
+def test_trailing_twelve_months_before_a_figure_without_a_trailing_year_keeps_the_figure() -> None:
+    # Only net income has a trailing-year form; TTM revenue is a window of quarters.
+    assert resolve_metric_phrase("Apple TTM revenue").metrics == ("revenue",)
+
+
+def test_trailing_year_words_name_the_words_a_trailing_year_figure_takes() -> None:
+    assert without_trailing_year_words("Apple TTM net income") == "Apple net income"
+    assert without_trailing_year_words("Apple TTM revenue") == "Apple TTM revenue"

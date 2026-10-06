@@ -364,6 +364,18 @@ def test_trailing_twelve_months_shows_the_four_quarters_behind_it() -> None:
         assert patch.set_periods == PeriodSelection(kind="last_n_quarters", count=4)
 
 
+def test_trailing_twelve_months_before_net_income_is_one_figure_not_a_window() -> None:
+    from financial_analyst_agent.graph.analysis_spec import SpecPatch
+    from financial_analyst_agent.request_wording import read_window
+
+    for question in ("Apple TTM net income", "trailing twelve month net income for Apple"):
+        window = read_window(question)
+        assert not window.trailing_year
+        assert not window.counted_window
+        patch = bind_periods_from_message(SpecPatch(mode="replace"), question)
+        assert patch.set_periods is None
+
+
 def test_everyday_nicknames_name_the_company() -> None:
     from financial_analyst_agent.issuer_index import IssuerIndex
     from financial_analyst_agent.universe import UniverseCompany

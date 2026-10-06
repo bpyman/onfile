@@ -179,7 +179,7 @@ METRIC_DISPLAY: dict[str, MetricDisplay] = {
     "dividends_per_share": MetricDisplay("Dividends per share", "per_share"),
     "cash": MetricDisplay("Cash and equivalents"),
     "shareholders_equity": MetricDisplay("Shareholders' equity"),
-    "net_income_ttm": MetricDisplay("Net income (trailing year)"),
+    "net_income_ttm": MetricDisplay("Trailing-year net income"),
     "depreciation": MetricDisplay("Depreciation"),
     "amortization_of_intangibles": MetricDisplay("Amortization of intangibles"),
     "net_interest_income": MetricDisplay("Net interest income"),
@@ -374,6 +374,7 @@ _UNIQUE_PHRASES: tuple[tuple[str, str], ...] = (
     ("net profit margin", "net_margin"),
     ("net income", "net_income"),
     ("net_income", "net_income"),
+    ("net_income_ttm", "net_income_ttm"),
     ("net profit", "net_income"),
     ("net earnings", "net_income"),
     ("earnings", "net_income"),
@@ -531,6 +532,12 @@ def _phrase_spans(query: str, phrase: str) -> list[tuple[int, int]]:
 
 
 def _nonoverlapping_unique_matches(query: str) -> list[tuple[int, int, str]]:
+    longest = _longest_unique_phrases(query)
+    return _as_ratios_of_revenue(query, _as_trailing_years(query, longest))
+
+
+def _longest_unique_phrases(query: str) -> list[tuple[int, int, str]]:
+    """Each unique phrase in the question, the longest winning where two overlap (ADR 0004)."""
     found: list[tuple[int, int, str]] = []
     for phrase, metric in _UNIQUE_PHRASES:
         excluded = _NOT_FOLLOWED_BY.get(phrase)
@@ -547,7 +554,51 @@ def _nonoverlapping_unique_matches(query: str) -> list[tuple[int, int, str]]:
             continue
         accepted.append((start, end, metric))
     accepted.sort(key=lambda item: item[0])
-    return _as_ratios_of_revenue(query, accepted)
+    return accepted
+
+
+# A figure's trailing year, as the catalog names it: "TTM net income" is one
+# amount over the four quarters to the latest report (ADR 0008), not a window
+# of quarters. A figure with no trailing-year form ("TTM revenue") keeps the window.
+_TRAILING_YEAR_FORM: dict[str, str] = {"net_income": "net_income_ttm"}
+_TRAILING_YEAR_WORDS = re.compile(
+    r"\b(?:ttm|ltm|trailing[\s-]+(?:twelve|12)[\s-]+months?)\s+$"
+)
+
+
+def _trailing_year_words_before(query: str, start: int) -> int | None:
+    """Where "TTM" or "trailing twelve months" starts, when it comes just before ``start``."""
+    match = _TRAILING_YEAR_WORDS.search(query, 0, start)
+    return match.start() if match is not None else None
+
+
+def _as_trailing_years(
+    query: str, matches: list[tuple[int, int, str]]
+) -> list[tuple[int, int, str]]:
+    """Read "TTM net income" as net income's trailing year."""
+    read: list[tuple[int, int, str]] = []
+    for start, end, metric in matches:
+        trailing = _TRAILING_YEAR_FORM.get(metric)
+        words = _trailing_year_words_before(query, start) if trailing is not None else None
+        if trailing is not None and words is not None:
+            read.append((words, end, trailing))
+        else:
+            read.append((start, end, metric))
+    return read
+
+
+def without_trailing_year_words(query: str) -> str:
+    """The question without the "TTM" a trailing-year figure takes, for reading its window."""
+    folded = query.casefold()
+    spans = [
+        (words, start)
+        for start, _end, metric in _longest_unique_phrases(folded)
+        if metric in _TRAILING_YEAR_FORM
+        and (words := _trailing_year_words_before(folded, start)) is not None
+    ]
+    for words, start in reversed(spans):
+        query = query[:words] + query[start:]
+    return query
 
 
 # A figure over revenue, as the catalog names it: "R&D as a percentage of
