@@ -839,8 +839,8 @@ def test_metric_groups_list_the_closed_catalog() -> None:
     assert "Diluted EPS" in legend
     assert "Free cash flow" in legend
     assert "EBITDA" in legend and "P/E ratio" in legend and "Share price" in legend
-    assert "Net interest income" in legend
-    assert len(legend) == 34
+    assert "Net interest income" in legend and "Noninterest income" in legend
+    assert len(legend) == 35
 
 
 def test_metric_groups_split_reported_from_calculated() -> None:

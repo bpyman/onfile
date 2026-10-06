@@ -221,6 +221,45 @@ def test_net_interest_income_is_unique_not_ambiguous_interest() -> None:
     assert "net_interest_income" in ALLOWED_METRICS
 
 
+@pytest.mark.parametrize(
+    ("phrase", "metric"),
+    [
+        ("income from operations", "operating_income"),
+        ("income taxes", "income_tax_expense"),
+        ("income before taxes", "pretax_income"),
+        ("income before income taxes", "pretax_income"),
+        ("earnings before tax", "pretax_income"),
+        ("pretax earnings", "pretax_income"),
+        ("noninterest income", "noninterest_income"),
+        ("non-interest income", "noninterest_income"),
+        ("fee income", "noninterest_income"),
+        ("selling, general and administrative expenses", "selling_general_and_administrative"),
+        ("SG&A expenses", "selling_general_and_administrative"),
+        ("R&D expenses", "research_and_development"),
+        ("research and development expense", "research_and_development"),
+        ("interest expenses", "interest_expense"),
+        ("total equity", "shareholders_equity"),
+        ("times interest earned", "interest_coverage"),
+        ("earnings before interest and taxes", "operating_income"),
+        ("earnings before interest, taxes, depreciation and amortization", "ebitda"),
+    ],
+)
+def test_a_longer_phrase_names_its_metric_not_its_ambiguous_word(
+    phrase: str, metric: str
+) -> None:
+    # The longest span that names one metric wins over "income", "tax",
+    # "interest", "expenses", "equity" or "earned" inside it (ADR 0004).
+    resolved = resolve_metric_phrase(f"What was the company's {phrase}?")
+    assert resolved.kind == "unique"
+    assert resolved.metric == metric
+    assert metric in ALLOWED_METRICS
+
+
+@pytest.mark.parametrize("word", ["income", "interest", "expenses", "equity", "tax"])
+def test_the_ambiguous_word_alone_still_asks(word: str) -> None:
+    assert resolve_metric_phrase(f"What was the company's {word}?").kind == "ambiguous"
+
+
 def test_interest_coverage_is_unique() -> None:
     resolved = resolve_metric_phrase("What was Google's interest coverage?")
     assert resolved.kind == "unique"

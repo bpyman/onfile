@@ -1132,3 +1132,30 @@ Blockers / next:
   the fourth held-out set are fixed. The next planner comparison needs a fifth
   held-out set.
 
+
+
+## 2026-10-06 — phrase-coverage-gaps 01 A longer phrase names its metric, not its ambiguous word
+
+Task completed: `docs/process/tickets/phrase-coverage-gaps/issues/01-a-longer-phrase-is-not-its-ambiguous-word.md`
+
+Key decisions:
+- Unique phrases in the catalog, no new mechanism: the longest span already wins
+  (ADR 0004). "Income", "interest", "expenses", "equity" and "tax" alone still ask.
+- noninterest_income joins REPORTED_METRICS, as net_interest_income did.
+- The same pattern beyond the ticket's list: "income before income taxes",
+  "earnings before taxes", "pretax earnings" (read as net income before), "R&D
+  expenses", "SG&A expenses", "interest expenses", "earnings before interest and
+  taxes" and the EBITDA long form.
+- "fee income" and "total equity" followed as the ticket says, and recorded in
+  docs/process/rules-to-review.md.
+
+Files changed:
+- `src/financial_analyst_agent/{contracts.py,services/metric_catalog.py,phrase_coverage.py (KNOWN_GAPS)}`
+- `tests/unit/services/test_metric_phrase.py`, `tests/test_presentation.py` (35 names)
+- `docs/process/rules-to-review.md`, the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,856 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md was
+  not regenerated (the run rules keep evaluation reports out unless a ticket asks);
+  it still shows 236 of 273. Ticket 02 is next.
