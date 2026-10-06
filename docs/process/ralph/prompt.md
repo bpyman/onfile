@@ -54,6 +54,19 @@ All of these must pass. Tests stay offline: `pytest` already excludes `network`,
 - Do not push, open pull requests or merge. Commit on the current branch.
 - Do not commit regenerated evaluation reports under `docs/evaluation/` unless the ticket asks for them; the scorecard rewrites its timings on every run (`git checkout -- docs/evaluation/` restores them).
 
+# RULES THAT LOOK WRONG
+
+If a rule you meet looks incorrect or misleading, record it for review. A rule is anything that says what the product or the code should do: the README's "How a question is read", `CONTEXT.md`, an ADR, a ticket's What to build or Acceptance, a test's or an evaluation case's expectation, or a code comment. Do not quietly follow it into an answer you think is wrong, and do not change it on your own judgement.
+
+Append a dated entry to `docs/process/rules-to-review.md`:
+
+- **Where:** the file and the section or line.
+- **The rule:** what it says, quoted briefly.
+- **Why it looks wrong:** the case, the question or the evidence.
+- **What you did:** followed it, worked around it, or stopped.
+
+Commit the entry with the ticket's work. If the rule blocks the ticket, hand the ticket back as `needs-info` and name the entry (see CLOSE THE TICKET).
+
 # COMMIT
 
 Commit this ticket's work. The message says why, then:
