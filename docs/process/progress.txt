@@ -1518,3 +1518,28 @@ Blockers / next:
   with no period). The implementation was left uncommitted by the previous iteration and is
   committed here after re-running every check. Ticket 05 ("what caused ... to fall" asks
   against what) is next.
+
+
+## 2026-10-06 — brief-5-probe-gaps 05 "What caused revenue to fall?" asks against what
+
+Task completed: `docs/process/tickets/brief-5-probe-gaps/issues/05-what-caused-a-change-asks-against-what.md`
+
+Key decisions:
+- `_CHANGE` (`request_wording.py`), the shared reading of a change that may name no base, gains
+  `what (caused|made|led|drove|pushed) ... (to) (fall|rise|drop|decline|jump|...)` and `led to` /
+  `the reason for|behind` before `the (change|drop|decline|...) in`. `comparison_asked` then
+  returns "unclear" and the turn asks what to compare against, as for `Why did revenue drop?`.
+  A named base (`year over year`) or a span (`since 2023`) still answers. Rules planner unchanged.
+- Phrase coverage: the ticket's case is off `KNOWN_GAPS` (now empty); `NO_BASE_QUESTIONS` gains
+  three questions (Pfizer earnings, "what's behind the drop in", "what led to the decline in").
+
+Files changed:
+- `src/financial_analyst_agent/{request_wording.py,phrase_coverage.py}`
+- `tests/unit/test_planner_wording.py` (9 new cases)
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,971 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
+  regenerated. Ticket 06 (an unknown measure is not its ambiguous word) is next.
+

@@ -287,6 +287,9 @@ NO_BASE_QUESTIONS = (
     "What drove the change in Apple's revenue?",
     "Why did Apple's revenue go up?",
     "What caused Apple's revenue to fall?",
+    "What caused Pfizer's earnings to fall?",
+    "What's behind the drop in Apple's revenue?",
+    "What led to the decline in Apple's revenue?",
 )
 # An idiom that contains a company's everyday-word name ("apples to apples",
 # "building blocks") names no company: only the real companies are read.
@@ -594,12 +597,7 @@ def cases() -> list[PhraseCase]:
 
 # The cases that fail today, each a gap in the shared reading of words. Take a case
 # off when it is fixed; the test fails until the list matches.
-KNOWN_GAPS: frozenset[str] = frozenset(
-    {
-        # Found by the set-5 brief's probe dry-run; filed in brief-5-probe-gaps.
-        "no_base:What caused Apple's revenue to fall?",
-    }
-)
+KNOWN_GAPS: frozenset[str] = frozenset()
 
 
 # The phrasings the cascade sends to the LLM planner. The ambiguous words name no

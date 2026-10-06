@@ -267,13 +267,19 @@ _SEQUENTIAL = re.compile(
 )
 
 
-# "How much did revenue change?", "did it move?", "what drove the change in revenue?":
-# a change that may name no base.
+# "How much did revenue change?", "did it move?", "what drove the change in revenue?",
+# "what caused revenue to fall?", "what led to the decline in revenue?": a change
+# that may name no base.
 _CHANGE = re.compile(
     r"\b(?:how (?:much )?)?(?:has|have|did) .+ (?:change|move)d?\b"
     r"|\bwhat(?:'s| is| was)? (?:drove|drives|driving|caused|causes|causing|explains"
-    r"|explained|behind) the (?:change|move|movement|shift|swing|increase|decrease"
-    r"|rise|fall|drop|decline|jump)s? in\b",
+    r"|explained|behind|led to|leads to|leading to|(?:the )?reasons? (?:for|behind))"
+    r" the (?:change|move|movement|shift|swing|increase|decrease"
+    r"|rise|fall|drop|decline|jump)s? in\b"
+    r"|\bwhat(?:'s| is| was| has| had)? (?:caused|causes|causing|made|makes|making|led"
+    r"|leads|leading|drove|drives|driving|pushed|pushes|pushing) .+? (?:to )?(?:change|move"
+    r"|shift|swing|increase|decrease|rise|fall|drop|decline|jump|climb|slip|dip|shrink"
+    r"|go (?:up|down))\b",
     re.IGNORECASE,
 )
 

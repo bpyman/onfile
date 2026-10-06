@@ -180,6 +180,17 @@ def test_over_the_past_year_is_the_years_quarters_not_growth() -> None:
         ("What drove the change in Apple's revenue?", "unclear"),
         ("What caused the drop in Intel's net income?", "unclear"),
         ("What is behind the increase in Nvidia's revenue?", "unclear"),
+        # "what caused ... to fall", "what's behind the drop in ...", "what led to the
+        # decline in ...": a change named with no base, like "why did ... drop".
+        ("What caused Pfizer's earnings to fall?", "unclear"),
+        ("What caused Apple's revenue to fall?", "unclear"),
+        ("what has caused apple's revenue to rise", "unclear"),
+        ("What made Nvidia's revenue jump?", "unclear"),
+        ("What's behind the drop in Apple's revenue?", "unclear"),
+        ("What led to the decline in Pfizer's revenue?", "unclear"),
+        ("What's the reason for the drop in Intel's revenue?", "unclear"),
+        ("What caused Apple's revenue to fall year over year?", "year_over_year"),
+        ("What caused Apple's revenue to fall since 2023?", None),
         ("What drove the change in Apple's revenue year over year?", "year_over_year"),
         ("What drove the change in Apple's revenue since 2023?", None),
         ("How much did Intel's revenue change year over year?", "year_over_year"),
