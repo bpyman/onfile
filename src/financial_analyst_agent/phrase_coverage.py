@@ -246,6 +246,7 @@ WINDOW_PHRASES: tuple[tuple[str, str, int | None], ...] = (
     ("over the past decade", "last_n_quarters", 40),
     ("since 2024", "last_n_quarters", None),
     ("since the start of 2024", "last_n_quarters", None),
+    ("since the beginning of 2024", "last_n_quarters", None),
     ("for the most recent quarter", "latest_quarter", None),
     ("for the latest quarter", "latest_quarter", None),
     ("in Q2 2025", "named", None),
@@ -561,7 +562,6 @@ def cases() -> list[PhraseCase]:
 KNOWN_GAPS: frozenset[str] = frozenset(
     {
         # Found by the set-5 brief's probe dry-run; filed in brief-5-probe-gaps.
-        "window:since the start of 2024",
         "metric:last twelve months net income:question",
         "metric:last twelve months net income:terse",
         "no_base:What caused Apple's revenue to fall?",

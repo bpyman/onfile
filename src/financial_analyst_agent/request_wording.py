@@ -333,8 +333,13 @@ WHY_CHANGE = re.compile(r"^\s*why\b", re.I)
 YEAR_TO_DATE = re.compile(r"\b(?:ytd|year[\s-]+to[\s-]+date)\b", re.I)
 
 
-# "since 2023": every quarter from the start of that year.
-SINCE_YEAR = re.compile(r"\bsince\s+(?:fy\s*|fiscal\s+(?:year\s+)?)?(?P<y>(?:19|20)\d{2})\b", re.I)
+# "since 2023", "since the start of 2023", "since early 2023": every quarter from
+# the start of that year.
+SINCE_YEAR = re.compile(
+    r"\bsince\s+(?:the\s+(?:start|beginning)\s+of\s+|early\s+(?:in\s+)?)?"
+    r"(?:fy\s*|fiscal\s+(?:year\s+)?)?(?P<y>(?:19|20)\d{2})\b",
+    re.I,
+)
 
 
 MAX_SINCE_QUARTERS = 20
@@ -596,6 +601,8 @@ def parse_named_periods(message: str) -> tuple[NamedPeriodSpec, ...]:
     def free(start: int, end: int) -> bool:
         return not any(start < other_end and end > other_start for other_start, other_end in taken)
 
+    # "since the start of 2023" is a window; its year names no period.
+    taken.extend(match.span() for match in SINCE_YEAR.finditer(message))
     for match in _YEAR_RANGE.finditer(message):
         first, last = sorted((int(match.group("a")), int(match.group("b"))))
         if free(*match.span()) and last - first < _MAX_RANGE_YEARS:

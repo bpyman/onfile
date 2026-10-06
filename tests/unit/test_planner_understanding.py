@@ -335,9 +335,23 @@ def test_last_n_quarters_year_over_year_shows_the_n_quarters_asked() -> None:
     assert "year_over_year" in patch.add_operations
 
 
-def test_since_a_year_is_not_a_named_year() -> None:
-    patch = bind_periods_from_message(SpecPatch(mode="replace"), "Apple revenue since 2024")
+@pytest.mark.parametrize(
+    "wording",
+    [
+        "since 2024",
+        "since the start of 2024",
+        "since the beginning of 2024",
+        "since early 2024",
+    ],
+)
+def test_since_a_year_is_not_a_named_year(wording: str) -> None:
+    from financial_analyst_agent.request_wording import parse_named_periods
 
+    message = f"Apple revenue {wording}"
+    patch = bind_periods_from_message(SpecPatch(mode="replace"), message)
+
+    # Every quarter since that calendar year began, not the fiscal year it names.
+    assert parse_named_periods(message) == ()
     assert patch.set_periods is not None and patch.set_periods.kind == "last_n_quarters"
 
 

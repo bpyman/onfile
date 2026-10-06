@@ -27,3 +27,10 @@ Each entry: date, ticket, where, the rule, why it looks wrong, what the agent di
 - **Why it looks wrong:** the README's "How a question is read" now says a window with quarter over quarter shows that many quarters (combination-gaps 01), and a named period with a change shows those quarters, each with its change (this ticket). Neither widens what is shown: the quarter before is read as the base and not shown, and a named period's year-over-year change reads its own comparative, with no year-earlier quarter added. The ADR still describes the widening.
 - **What you did:** followed the README and the ticket; left the ADR as it is for a person to amend.
 - **Decided (2026-10-06):** the README is right. ADR 0009 has a revision note saying a change no longer widens what is shown.
+
+## 2026-10-06 — brief-5-probe-gaps 01: the README's window cap and the "since" cap disagree
+
+- **Where:** `README.md`, "How a question is read", the window row; `MAX_SINCE_QUARTERS` in `src/financial_analyst_agent/request_wording.py` and the note in `_window_notes` in `answer_notes.py`.
+- **The rule:** the window row says a window is "at most 40" quarters, and names `since 2024` and `since the start of 2024` in that row. The code caps a `since` window at 20 quarters, and its note says "a window shows at most 20, so this asks for the latest 20".
+- **Why it looks wrong:** `the past decade` shows 40 quarters (a phrase-coverage case), so a plain window does go to 40, but `revenue since 2000` shows 20 and tells the analyst a window shows at most 20. One of the two numbers is wrong, and the README and the answer's note say different things to the same analyst.
+- **What you did:** left both as they are. This ticket only widens which "since" wordings are read as a window; the cap is untouched and `test_window_copy.py` still expects 20.

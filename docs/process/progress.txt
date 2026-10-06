@@ -1414,3 +1414,26 @@ Blockers / next:
 - None. All 1,942 Python tests pass; ruff and mypy pass; compare_answers reports
   `0 of 244 conversations differ from HEAD` (the recording holds no pre-split per-share quarter).
   No agent ticket remains in combination-gaps.
+
+
+## 2026-10-06 — brief-5-probe-gaps 01 "Since the start of 2023" is a window, not fiscal 2023
+
+Task completed: `docs/process/tickets/brief-5-probe-gaps/issues/01-since-the-start-of-a-year.md`
+
+Key decisions:
+- `SINCE_YEAR` accepts `the start of`, `the beginning of` and `early` (`early in`) between
+  `since` and the year. `parse_named_periods` marks every `SINCE_YEAR` span as taken first,
+  so the year inside a "since" phrase never reads as a fiscal year; the bare-year pattern's
+  `(?<!since )` lookbehind stays as a second guard.
+- The 20-quarter cap on a "since" window is untouched; the README says windows are at most
+  40, which is recorded in `docs/process/rules-to-review.md` for a person to settle.
+
+Files changed:
+- `src/financial_analyst_agent/{request_wording.py,phrase_coverage.py (1 case off KNOWN_GAPS, 1 new)}`
+- `tests/unit/test_planner_understanding.py`
+- `docs/process/rules-to-review.md`, the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,945 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
+  regenerated. Ticket 02 (last twelve months before a metric is LTM) is next.
