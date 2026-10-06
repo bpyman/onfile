@@ -1384,3 +1384,33 @@ Blockers / next:
 - None. All 1,929 Python tests pass; ruff and mypy pass; compare_answers reports
   `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
   regenerated. Ticket 04 is ready-for-human; no agent ticket remains in this feature.
+
+
+## 2026-10-06 — combination-gaps 04 Per-share figures across a split on the latest basis
+
+Task completed: `docs/process/tickets/combination-gaps/issues/04-per-share-figures-across-a-split-on-the-latest-basis.md`
+
+Key decisions:
+- New pure module `services/stock_splits.py`: `reported_splits` (one ratio's reports within
+  90 days are one split, effective at the earliest end, named by the latest's month),
+  `on_latest_basis` (divide by the splits after the filing date, compounded; comparative
+  same divisor; diluted shares × divisor), `series_agrees` (half-cent cross-check against
+  every filing on another basis; a disagreement leaves the series as first filed).
+- Adjusted values are rounded to the places first filed ($0.60, not $0.598), adding places
+  only where they would read zero ($0.004 dividend).
+- `SplitAdjustment` on FinancialFact, DerivationPart, TableRow, ComponentProvenance; applied in
+  `SecFactLookup._select_with_fallbacks` for PER_SHARE_METRICS. Selection rule and a banner
+  (`split_adjusted_banners`) say "$5.98 as first filed, ÷ 10 for the ten-for-one split of June 2024".
+- `restated_banners` skips an adjusted level that agrees with the comparative within half a cent.
+
+Files changed:
+- `src/financial_analyst_agent/{services/stock_splits.py (new),domain/models.py,contracts.py,
+  sec_facts.py,turn.py,graph/spec_turn.py,presentation.py}`
+- `tests/unit/test_split_adjusted_per_share.py` (new), `tests/unit/test_year_over_year_comparatives.py`
+  (the split-note test now uses Chipotle, whose fixture reports no ratio)
+- `README.md`, `CONTEXT.md` (Split-adjusted level), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,942 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 244 conversations differ from HEAD` (the recording holds no pre-split per-share quarter).
+  No agent ticket remains in combination-gaps.

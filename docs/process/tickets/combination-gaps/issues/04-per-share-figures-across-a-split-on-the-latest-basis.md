@@ -21,4 +21,16 @@
 
 **Blocked by:** None — can start immediately (after the prep commit)
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped 6 October 2026.
+
+- `services/stock_splits.py` reads the splits from the ratio the company reports (`reported_splits`): reports of one ratio within 90 days are one split, effective at the earliest end date reported. The split is named by the month of the latest one ("June 2024" for NVIDIA, whose reports end 31 May and 30 June).
+- `on_latest_basis` divides a per-share fact filed before one or more splits by their product (÷ 40 across NVIDIA's two; a ratio below 1 multiplies). The same filing's comparative takes the same divisor, and weighted diluted shares take the inverse, so `split_between` no longer sees a split and the quarter-over-quarter change crosses it.
+- The adjusted value is rounded to the places it was first filed at, as a company restates it: $5.98 over 10 is $0.60, NVIDIA's own restated figure. A place is added only where those places would read zero ($0.04 over 10 is $0.004). CSV, chart, sort and changes all read that value.
+- Cross-check (`series_agrees`): each quarter's figure from every filing, put on the latest basis by the splits after its own filing date, must agree to within half a cent with the same quarter from a filing on another basis. One disagreement leaves the whole series (company and concept) as first filed, with today's note.
+- `SplitAdjustment` (first filed, divisor, splits) rides on `FinancialFact`, its comparative (`DerivationPart`), `TableRow` and `ComponentProvenance`. The row keeps the filing that first reported the figure. The inspector's selection rule says "shown on the basis after the split: $5.98 as first filed, ÷ 10 for the ten-for-one split of June 2024". A banner (`split_adjusted_banners`) names the quarters and the split, so the Markdown copy carries it too.
+- `restated_banners` no longer reads an adjusted level that agrees with the restated comparative within half a cent as a restatement. A company that reports no ratio, or whose series disagrees, keeps the split note.
+- compare_answers: 0 of 244 conversations differ. The recording holds no per-share quarter filed before NVIDIA's or Broadcom's split (its filings start with the quarter after), so no recorded answer changes. The acceptance runs on `tests/fixtures/sec/nvda.json` and fake facts (`tests/unit/test_split_adjusted_per_share.py`).

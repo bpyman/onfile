@@ -530,6 +530,7 @@ def _subtracted_level_provenance(row: TableRow) -> ComponentProvenance:
         source="sec_xbrl",
         derivation=row.derivation,
         derived_from=list(row.components) or list(row.derived_from),
+        split_adjustment=row.split_adjustment,
     )
 
 

@@ -1,6 +1,7 @@
 """Domain models."""
 
 from datetime import date
+from decimal import Decimal
 
 from pydantic import BaseModel, Field
 
@@ -42,6 +43,50 @@ class FactRecord(BaseModel):
     filed_date: date
 
 
+class SplitAdjustment(BaseModel):
+    """A per-share figure filed before a stock split, put on the basis after it (ADR 0009).
+
+    The shown value is ``first_filed / divisor``; ``splits`` names the splits
+    the divisor compounds ("the ten-for-one split of June 2024").
+    """
+
+    first_filed: DecimalStr
+    divisor: DecimalStr
+    splits: str
+
+    @property
+    def operation(self) -> str:
+        """ "÷ 10"; a reverse split multiplies ("× 10")."""
+        divisor = Decimal(str(self.divisor))
+        if divisor >= 1:
+            return f"÷ {_plain(divisor)}"
+        return f"× {_plain(1 / divisor)}"
+
+    @property
+    def how(self) -> str:
+        """ "÷ 10 for the ten-for-one split of June 2024"."""
+        return f"{self.operation} for {self.splits}"
+
+    @property
+    def label(self) -> str:
+        """The figure as first filed and how it was adjusted, for the evidence.
+
+        "$5.98 as first filed, ÷ 10 for the ten-for-one split of June 2024".
+        """
+        value = Decimal(str(self.first_filed))
+        sign = "-" if value < 0 else ""
+        amount = abs(value)
+        if amount.as_tuple().exponent > -2:  # type: ignore[operator]
+            amount = amount.quantize(Decimal("0.01"))
+        return f"{sign}${amount:f} as first filed, {self.how}"
+
+
+def _plain(number: Decimal) -> str:
+    """40, or 1.5: a ratio without trailing zeros or an exponent."""
+    rounded = number.quantize(Decimal("0.0001")).normalize()
+    return f"{rounded:f}"
+
+
 class DerivationPart(BaseModel):
     """One directly reported fact a derived quarter was computed from."""
 
@@ -60,6 +105,8 @@ class DerivationPart(BaseModel):
     # The part's own metric when it differs from the derived one: a gross
     # profit's parts are revenue and cost of revenue. None: the same metric.
     metric: str | None = None
+    # A per-share comparative filed before a split, on the basis after it.
+    split_adjustment: SplitAdjustment | None = None
 
 
 class Derivation(BaseModel):
@@ -104,3 +151,5 @@ class FinancialFact(BaseModel):
     year_earlier: DerivationPart | None = None
     # Weighted diluted shares the filing reports beside a per-share figure.
     diluted_shares: DecimalStr | None = None
+    # A per-share figure filed before a stock split, shown on the basis after it.
+    split_adjustment: SplitAdjustment | None = None

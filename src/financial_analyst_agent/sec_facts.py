@@ -70,10 +70,12 @@ from financial_analyst_agent.services.metric_catalog import (
     READ_CONCEPTS,
     REVENUE_CHECK_CONCEPTS,
     SHARE_COUNT_CONCEPT,
+    SPLIT_RATIO_CONCEPT,
     TRAILING_YEAR_METRICS,
     metric_unit,
     parse_metric,
 )
+from financial_analyst_agent.services.stock_splits import on_latest_basis, reported_splits
 from financial_analyst_agent.universe import require_operating
 
 # How many periods back "latest" may step when SEC has not yet added the
@@ -806,7 +808,9 @@ class SecFactLookup:
             fact = select(records, metric)
             if metric is Metric.DIVIDENDS_PER_SHARE:
                 _refuse_dividend_declared_earlier(fact, records)
-            return _with_diluted_shares(fact, payload) if metric in PER_SHARE_METRICS else fact
+            if metric not in PER_SHARE_METRICS:
+                return fact
+            return _on_latest_basis(_with_diluted_shares(fact, payload), payload, records)
         except UnsupportedQuarterlyFactError:
             if metric is Metric.DEPRECIATION_AMORTIZATION:
                 return self._depreciation_plus_amortization(
@@ -1208,6 +1212,14 @@ def _with_diluted_shares(fact: FinancialFact, payload: dict[str, Any]) -> Financ
     shares = _reported(records, (fact.accession_number, fact.start_date, fact.end_date))
     count = shares.get(SHARE_COUNT_CONCEPT[1])
     return fact if count is None else fact.model_copy(update={"diluted_shares": count})
+
+
+def _on_latest_basis(
+    fact: FinancialFact, payload: dict[str, Any], records: list[FactRecord]
+) -> FinancialFact:
+    """A per-share figure filed before a split, on the basis after it (ADR 0009)."""
+    ratios, _ = parse_company_facts_for_concepts(payload, [SPLIT_RATIO_CONCEPT], "pure")
+    return on_latest_basis(fact, reported_splits(ratios), records)
 
 
 def _periodic_history_days(filings: list[Filing]) -> int:

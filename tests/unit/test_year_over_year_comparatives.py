@@ -52,14 +52,16 @@ def test_eps_across_nvidia_s_split_compares_with_the_restated_comparative() -> N
 
 
 def test_a_split_inside_the_window_is_said_and_drops_the_quarter_over_quarter_change() -> None:
-    ends = (date(2024, 7, 28), date(2024, 4, 28))
-    rows = _rows("NVDA", "eps_diluted", *ends)
+    # Chipotle's fixture reports no split ratio, so its levels stay as first filed
+    # (NVIDIA's are put on the later basis: test_split_adjusted_per_share).
+    ends = (date(2024, 6, 30), date(2024, 3, 31))
+    rows = _rows("CMG", "eps_diluted", *ends)
 
     changes = across_period_change_rows(rows)
     banners = _present(rows)
 
     assert not [row for row in changes if row.comparison == "sequential"]
-    assert any("share split" in banner and "Apr 28, 2024" in banner for banner in banners)
+    assert any("share split" in banner and "Mar 31, 2024" in banner for banner in banners)
 
 
 def test_chipotle_s_eps_grows_on_the_restated_year_earlier_figure() -> None:

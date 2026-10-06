@@ -491,6 +491,7 @@ def _part_provenance(part: DerivationPart, parent: str, source: str) -> Componen
         derived_from=(
             [_part_provenance(inner, own, source) for inner in nested.parts] if nested else []
         ),
+        split_adjustment=part.split_adjustment,
     )
 
 
@@ -533,6 +534,7 @@ def _table_row_from_fact(fact: FinancialFact) -> TableRow:
         newer_filing_end=fact.newer_filing_end,
         year_earlier=_year_earlier(fact),
         diluted_shares=fact.diluted_shares,
+        split_adjustment=fact.split_adjustment,
         **_derivation_fields(fact),
     )
 
@@ -630,6 +632,7 @@ def _provenance_from_fact(fact: FinancialFact, metric: str) -> ComponentProvenan
         concept=fact.concept,
         source_url=fact.source_url,
         source=_fact_source_kind(fact),
+        split_adjustment=fact.split_adjustment,
         **_derivation_fields(fact),
     )
 
@@ -878,6 +881,8 @@ def compare_metrics(
                 components=components,
                 year_earlier=_formula_year_earlier(metric, fetched, component_names),
                 diluted_shares=identity.diluted_shares,
+                # A one-fact row is that fact: a split-adjusted level says so.
+                split_adjustment=identity.split_adjustment if len(fetched) == 1 else None,
                 newer_filing_end=max(
                     (
                         pending

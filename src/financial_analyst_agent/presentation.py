@@ -65,6 +65,8 @@ _BILLION = Decimal("1000000000")
 _MILLION = Decimal("1000000")
 _THOUSAND = Decimal("1000")
 _CENTS = Decimal("0.01")
+# A split-adjusted level and the figure a later filing restates agree within rounding.
+_HALF_CENT = Decimal("0.005")
 _FOUR_PLACES = Decimal("0.0001")
 # Per-share figures below this keep their fractions of a cent; a share price does not.
 _FINE_PER_SHARE_BELOW = Decimal("10")
@@ -264,6 +266,34 @@ def long_quarter_banner(rows: list[TableRow]) -> str:
     return "; ".join(notes) + ", longer than the usual 13 weeks, which lifts those amounts."
 
 
+def split_adjusted_banners(rows: list[TableRow]) -> list[str]:
+    """Say which per-share levels are shown on the basis after a stock split (ADR 0009).
+
+    Each is the figure as first filed over the split ratio the company reports;
+    its evidence keeps the filing that first reported it.
+    """
+    adjusted: dict[tuple[str, str, str, str], list[str]] = {}
+    for row in rows:
+        adjustment = row.split_adjustment
+        if adjustment is None or row.comparison is not None or row.value is None:
+            continue
+        if row.end_date is None:
+            continue
+        key = (_owner(row), row.metric, adjustment.splits, adjustment.operation)
+        adjusted.setdefault(key, []).append(format_date(row.end_date))
+    notes = []
+    for (owner, metric, splits, operation), ends in adjusted.items():
+        one = len(set(ends)) == 1
+        notes.append(
+            f"{owner} {in_sentence(format_field_name(metric))} for the "
+            f"{_plural('quarter', ends)} ended {joined(list(dict.fromkeys(ends)))} "
+            f"{'is' if one else 'are'} shown after {splits}, as the later filings "
+            f"restate {'it' if one else 'them'}: the figure as first filed {operation}, "
+            "by the ratio the company reports. The evidence gives the figure as first filed."
+        )
+    return notes
+
+
 def restated_banners(rows: list[TableRow]) -> list[str]:
     """Say where the table's year-earlier levels differ from the base a change used.
 
@@ -293,6 +323,9 @@ def restated_banners(rows: list[TableRow]) -> list[str]:
             None,
         )
         if first is None or first.value is None or first.value == before.value:
+            continue
+        if first.split_adjustment is not None and abs(first.value - before.value) <= _HALF_CENT:
+            # Put on the later basis, the level agrees with the restated figure.
             continue
         key = (_owner(row), row.metric)
         ratio = abs(first.value / before.value) if before.value else Decimal(0)
@@ -1211,6 +1244,12 @@ def _selection_rule(row: TableRow) -> str:
     if row.components and (single is None or single.metric != row.metric):
         return _FORMULA_RULE
     form = row.form or (single.form if single else None)
+    adjustment = row.split_adjustment or (single.split_adjustment if single else None)
+    if form and adjustment is not None:
+        return (
+            f"Standalone {form} fact for the stated period, shown on the basis after the "
+            f"split: {adjustment.label}."
+        )
     if form and row.start_date is not None and row.start_date == row.end_date:
         return f"Balance-sheet amount the {form} reports at the stated date."
     if form:
@@ -1304,6 +1343,11 @@ def _component_rule(component: ComponentProvenance) -> str:
         return _SNAPSHOT_RULE
     if component.derivation:
         return f"Derived: {component.derivation}. The reported facts are listed."
+    if component.split_adjustment is not None:
+        return (
+            f"{component.form} fact for the stated period, shown on the basis after the "
+            f"split: {component.split_adjustment.label}."
+        )
     if component.start_date == component.end_date:
         return f"Balance-sheet amount the {component.form} reports at the stated date."
     if (component.end_date - component.start_date).days > MAX_QUARTER_DAYS:
@@ -1473,6 +1517,7 @@ def present_turn(result: TurnResult) -> Presentation:
     newer = newer_filing_banner(result.table_rows)
     if newer:
         banners.append(newer)
+    banners.extend(split_adjusted_banners(result.table_rows))
     banners.extend(restated_banners(result.table_rows))
     banners.extend(declared_for_year_banners(result.table_rows))
     if result.ordered_by:
