@@ -714,6 +714,8 @@ class SecFactLookup:
             targets: list[date | None] = [target]
             if report_date is None:
                 targets = list(list_quarterly_report_dates(filings, limit=_LATEST_FALLBACK))
+            pending_end: date | None = None
+            year_only_end: date | None = None
             for period in targets:
                 try:
                     fact = self._select_with_fallbacks(
@@ -726,6 +728,18 @@ class SecFactLookup:
                         sources=sources,
                     )
                 except (UnsupportedQuarterlyFactError, FilingNotFoundError) as exc:
+                    if (
+                        report_date is None
+                        and period is not None
+                        and isinstance(exc, PerShareNotDerivableError)
+                        and not isinstance(exc, NoDividendThisQuarterError)
+                    ):
+                        # A fiscal fourth quarter reports its per-share figure only
+                        # for the year, and per-share figures are never derived
+                        # (ADR 0007); "latest" is then the latest quarter with its own.
+                        year_only_end = year_only_end or period
+                        last_unsupported = last_unsupported or exc
+                        continue
                     last_unsupported = exc
                     if (
                         report_date is not None
@@ -750,9 +764,12 @@ class SecFactLookup:
                         break
                     # SEC has not yet added the newest filing to companyfacts;
                     # "latest" is then the newest quarter it has.
+                    pending_end = pending_end or period
                     continue
-                if period is not None and period != targets[0]:
-                    fact = fact.model_copy(update={"newer_filing_end": targets[0]})
+                if pending_end is not None:
+                    fact = fact.model_copy(update={"newer_filing_end": pending_end})
+                if year_only_end is not None:
+                    fact = fact.model_copy(update={"year_only_quarter_end": year_only_end})
                 return fact
         if unreadable:
             raise DataIntegrityError(

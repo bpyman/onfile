@@ -384,6 +384,9 @@ class TableRow(BaseModel):
     derived_from: list[ComponentProvenance] = Field(default_factory=list)
     # A newer quarter is filed but not yet in SEC's structured data (see FinancialFact).
     newer_filing_end: date | None = None
+    # A newer quarter reports its per-share figure only for the year, so this row is
+    # the latest quarter with its own (see FinancialFact).
+    year_only_quarter_end: date | None = None
     # A ranked company's snapshot market cap: the order a ranking is drawn in.
     market_cap: DecimalStr | None = None
     # The same figure a year earlier as this row's own filing reports it; a

@@ -131,3 +131,47 @@ def test_recorded_runtime_refuses_explain_without_matching_recording() -> None:
     assert result.essay is None
     assert result.message is not None
     assert "recorded" in result.message.casefold()
+
+
+BUYBACK_QUERY = "Explain how a share buyback affects EPS"
+
+
+class _FigureProposer:
+    """A planner that reads a general question as a figure with no company."""
+
+    def complete(self, query: str, current_spec: object = None) -> WorkflowPlan:
+        return WorkflowPlan(intent=Intent.LOOKUP, metric="eps_diluted")
+
+
+class _BuybackEssay:
+    def complete_essay(self, query: str, tool_json: str = "") -> str:
+        if query != BUYBACK_QUERY:
+            raise AssertionError(f"unexpected essay query: {query!r}")
+        return "A buyback retires shares, so the same net income is spread over fewer of them."
+
+
+def _proposed_figure_runtime() -> Runtime:
+    return Runtime(
+        completer=_FigureProposer(),
+        facts=_ExplodingFacts(),
+        ranking=_ExplodingRanking(),
+        essay=_BuybackEssay(),
+    )
+
+
+def test_a_general_question_naming_a_metric_explains_whatever_the_planner_proposed() -> None:
+    result = run_turn(BUYBACK_QUERY, _proposed_figure_runtime())
+
+    assert result.intent is Intent.EXPLAIN
+    assert result.renderer is RendererKind.ESSAY
+    assert MODEL_ANALYSIS_BANNER in result.banners
+    assert result.table_rows == []
+
+
+def test_a_figure_with_no_company_asks_which_company_not_an_explanation() -> None:
+    result = run_turn("What's the EPS?", _proposed_figure_runtime())
+
+    assert result.intent is Intent.LOOKUP
+    assert result.renderer is RendererKind.REFUSE
+    assert result.message is not None
+    assert result.message.startswith("I couldn't tell which company you mean.")

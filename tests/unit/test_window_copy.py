@@ -168,7 +168,8 @@ def test_request_wording_records_every_window_reading_used_by_notes() -> None:
     assert approximate.interpretation_notes
     assert read_window("Apple TTM revenue").trailing_year
     since = read_window("Apple revenue since 2000")
-    assert (since.since_year, since.asked_quarters) == (2000, 20)
+    # A "since" window is capped as any window is, at 40 quarters.
+    assert (since.since_year, since.asked_quarters) == (2000, 40)
     assert since.since_capped_from is not None
     assert (
         read_window("Apple revenue for the quarter ended April 2026").unread_named_period

@@ -25,10 +25,12 @@ from financial_analyst_agent.graph.analysis_spec import (
 from financial_analyst_agent.graph.spec_turn import _order_by_metric, plan_to_spec_patch
 from financial_analyst_agent.guide import guide_reply, short_name, suggest_follow_ups
 from financial_analyst_agent.issuer_index import IssuerIndex
+from financial_analyst_agent.planner_cascade import unsure_reason
 from financial_analyst_agent.presentation import present_turn
 from financial_analyst_agent.ranking import SnapshotRanking
 from financial_analyst_agent.request_wording import (
     OVERVIEW_METRICS,
+    OVERVIEW_PLAN,
     bind_metrics_from_message,
     bind_periods_from_message,
     refine_patch_from_message,
@@ -106,13 +108,62 @@ def test_which_is_bigger_compares_market_cap_and_revenue() -> None:
     assert bound.add_metrics == ("market_cap", "revenue")
 
 
-def test_a_company_on_its_own_gets_an_overview() -> None:
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Nvidia",
+        "How is Nvidia doing?",
+        "Tell me about Nvidia",
+        "Give me the rundown on how Nvidia is performing",
+        "How is Nvidia performing?",
+        "How has Nvidia been performing?",
+        "the rundown on Nvidia",
+        "a quick read on Nvidia",
+        "a quick look at Nvidia",
+        "Nvidia's performance",
+        "Nvidia's performance over the last 4 quarters",
+    ],
+)
+def test_a_company_on_its_own_gets_an_overview(question: str) -> None:
     patch = SpecPatch(mode="replace", add_companies=("NVDA",), add_metrics=("unknown",))
 
-    for question in ("Nvidia", "How is Nvidia doing?", "Tell me about Nvidia"):
-        bound, refusal = bind_metrics_from_message(patch, question)
-        assert refusal is None
-        assert bound.add_metrics == OVERVIEW_METRICS
+    bound, refusal = bind_metrics_from_message(patch, question)
+
+    assert refusal is None
+    assert bound.add_metrics == OVERVIEW_METRICS
+
+
+@pytest.mark.parametrize("guessed", ["unknown", "stock performance"])
+def test_a_measure_the_catalog_lacks_is_not_an_overview(guessed: str) -> None:
+    # "Performance" is an overview word, but "stock performance" is a measure the
+    # catalog lacks by name: refused, whichever planner proposed the metric.
+    patch = SpecPatch(mode="replace", add_companies=("AAPL",), add_metrics=(guessed,))
+
+    _bound, refusal = bind_metrics_from_message(patch, "Apple's stock performance")
+
+    assert refusal is not None and refusal.renderer is RendererKind.REFUSE
+    assert "'stock performance'" in (refusal.message or "")
+
+
+def test_the_rules_planner_plans_the_overview_for_overview_words() -> None:
+    # "rundown" and "performing" are not the word the catalog lacks: the plan is
+    # the overview, which the cascade keeps, and the shared reading gives its metrics.
+    planner = _live()
+
+    for question in (
+        "Give me the rundown on how Wells Fargo is performing",
+        "How has Wells Fargo been performing?",
+        "a quick read on Wells Fargo",
+    ):
+        plan = planner.complete(question)
+        assert plan.intent is Intent.LOOKUP, question
+        assert plan.metric == OVERVIEW_PLAN, question
+        assert unsure_reason(plan, lambda _industry: True) is None, question
+        patch, refusal = bind_metrics_from_message(
+            plan_to_spec_patch(plan), question, intent=plan.intent
+        )
+        assert refusal is None, question
+        assert patch.add_metrics == OVERVIEW_METRICS, question
 
 
 def test_growth_wording_asks_for_year_over_year() -> None:
@@ -699,3 +750,24 @@ def test_the_rules_planner_returns_a_frozen_workflow_plan() -> None:
     )
     with pytest.raises(ValidationError):
         plan.metric = "net_income"  # type: ignore[misc]
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Explain how a share buyback affects EPS",
+        "How does a buyback affect EPS?",
+        "What is free cash flow and why does it matter?",
+        "How might AI change banking?",
+    ],
+)
+def test_a_general_question_naming_a_metric_is_an_explanation(question: str) -> None:
+    plan = _live().complete(question)
+
+    assert (plan.intent, plan.topic) == (Intent.EXPLAIN, question)
+
+
+def test_a_figure_with_no_company_still_asks_which_company() -> None:
+    plan = _live().complete("What's the EPS?")
+
+    assert (plan.intent, plan.company, plan.metric) == (Intent.LOOKUP, None, "eps_diluted")

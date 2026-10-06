@@ -119,8 +119,10 @@ def test_a_fact_missing_from_the_recorded_filings_is_no_data() -> None:
     # A window of quarters the filings lack says why too, not only a single quarter.
     assert _ask("Goldman Sachs R&D over the last three quarters").outcome == "no_data"
     # Cisco's latest quarter is a fiscal fourth, whose EPS the 10-K reports only for
-    # the year: the plan was right and the filings hold no quarterly figure.
-    assert _ask("What are Cisco's earnings per share?").outcome == "no_data"
+    # the year: named, the filings hold no quarterly figure. Asked with no period,
+    # the answer is the latest quarter with its own EPS (ADR 0007).
+    assert _ask("Cisco EPS in Q4 FY2026").outcome == "no_data"
+    assert _ask("What are Cisco's earnings per share?").outcome == "answer"
 
 
 class _FakeCompletions:

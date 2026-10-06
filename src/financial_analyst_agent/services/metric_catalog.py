@@ -235,6 +235,9 @@ class MetricPhraseResolution:
     metric: str | None = None
     metrics: tuple[str, ...] = ()
     candidates: tuple[str, ...] = ()
+    # An unknown measure the catalog lists by name ("debt-to-equity"): the name
+    # the refusal uses. None for a question naming no measure at all.
+    term: str | None = None
 
     @property
     def unique_metrics(self) -> tuple[str, ...]:
@@ -502,6 +505,69 @@ _AMBIGUOUS_PHRASES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("expenses", ("cost_of_revenue", "operating_expenses")),
     ("expense", ("cost_of_revenue", "operating_expenses")),
 )
+# Measures analysts ask for that the catalog lacks, in the words the reply names
+# them by. They are read in the same longest-span pass as the catalog's own
+# phrases, so a word inside one that would be ambiguous alone ("equity" in
+# "debt-to-equity") or would name a metric ("turnover" in "asset turnover") does
+# not make it the question: the measure is unknown and refused by name (ADR
+# 0004). Beside a catalog metric the metric is answered: "Apple revenue and
+# dividend yield" is revenue.
+_UNKNOWN_MEASURES: tuple[tuple[str, str], ...] = (
+    ("debt-to-equity", "debt-to-equity"),
+    ("debt to equity", "debt-to-equity"),
+    ("debt/equity", "debt-to-equity"),
+    ("d/e", "debt-to-equity"),
+    ("equity multiplier", "equity multiplier"),
+    ("return on assets", "return on assets"),
+    ("roa", "return on assets"),
+    ("return on invested capital", "return on invested capital"),
+    ("roic", "return on invested capital"),
+    ("net interest margin", "net interest margin"),
+    ("nim", "net interest margin"),
+    ("dividend yield", "dividend yield"),
+    ("dividend payout ratio", "payout ratio"),
+    ("payout ratio", "payout ratio"),
+    ("price to book", "price to book"),
+    ("price-to-book", "price to book"),
+    ("price/book", "price to book"),
+    ("p/b", "price to book"),
+    ("price to sales", "price to sales"),
+    ("price-to-sales", "price to sales"),
+    ("price/sales", "price to sales"),
+    ("p/s", "price to sales"),
+    ("ev/ebitda", "EV/EBITDA"),
+    ("enterprise value", "enterprise value"),
+    ("asset turnover", "asset turnover"),
+    ("inventory turnover", "inventory turnover"),
+    ("current ratio", "current ratio"),
+    ("quick ratio", "quick ratio"),
+    ("working capital", "working capital"),
+    ("tangible book value", "tangible book value"),
+    ("total assets", "total assets"),
+    ("total liabilities", "liabilities"),
+    ("liabilities", "liabilities"),
+    ("interest-bearing debt", "debt"),
+    ("interest bearing debt", "debt"),
+    ("net debt", "net debt"),
+    ("total debt", "debt"),
+    ("debt", "debt"),
+    ("leverage", "debt"),
+    ("customer acquisition cost", "customer acquisition cost"),
+    ("stock performance", "stock performance"),
+    ("remaining performance obligations", "remaining performance obligations"),
+    ("remaining performance obligation", "remaining performance obligations"),
+    ("rpo", "remaining performance obligations"),
+    ("share price history", "stock performance"),
+    ("stock price history", "stock performance"),
+    ("share price chart", "stock performance"),
+    ("stock price chart", "stock performance"),
+    ("buybacks", "share buybacks"),
+    ("buyback", "share buybacks"),
+    ("repurchases", "share buybacks"),
+    ("repurchase", "share buybacks"),
+    ("headcount", "headcount"),
+    ("employees", "headcount"),
+)
 # Parts of a company and operating figures the filings' structured data does
 # not break out: "AWS revenue" is Amazon's total, "deliveries" is not a figure.
 _SEGMENT_WORDS = re.compile(
@@ -547,43 +613,66 @@ def _phrase_spans(query: str, phrase: str) -> list[tuple[int, int]]:
     ]
 
 
-def _nonoverlapping_unique_matches(query: str) -> list[tuple[int, int, str]]:
-    longest = _longest_unique_phrases(query)
-    return _as_ratios_of_revenue(query, _as_trailing_years(query, longest))
+Span = tuple[int, int, str]
+AmbiguousSpan = tuple[int, int, tuple[str, ...]]
 
 
-def _longest_unique_phrases(query: str) -> list[tuple[int, int, str]]:
-    """Each unique phrase in the question, the longest winning where two overlap (ADR 0004)."""
-    found: list[tuple[int, int, str]] = []
+def _phrase_matches(query: str) -> tuple[list[Span], list[Span], list[AmbiguousSpan]]:
+    """The unique phrases, unknown measures and ambiguous words in the question.
+
+    Unique phrases and unknown measures compete by length first; an ambiguous
+    word counts only where neither took its span.
+    """
+    unique, unknown = _longest_phrases(query)
+    unique = _as_ratios_of_revenue(query, _as_trailing_years(query, unique))
+    occupied = [(start, end) for start, end, _label in (*unique, *unknown)]
+    return unique, unknown, _nonoverlapping_ambiguous_matches(query, occupied)
+
+
+def _longest_phrases(query: str) -> tuple[list[Span], list[Span]]:
+    """Each unique phrase and unknown measure in the question, the longest winning
+    where two overlap (ADR 0004): (start, end, metric) and (start, end, name)."""
+    found: list[tuple[int, int, str, bool]] = []
     for phrase, metric in _UNIQUE_PHRASES:
         excluded = _NOT_FOLLOWED_BY.get(phrase)
         for start, end in _phrase_spans(query, phrase):
             if excluded is not None and excluded.match(query, end):
                 continue
-            found.append((start, end, metric))
+            found.append((start, end, metric, True))
+    for phrase, name in _UNKNOWN_MEASURES:
+        for start, end in _phrase_spans(query, phrase):
+            found.append((start, end, name, False))
     found.sort(key=lambda item: (item[0] - item[1], item[0]))
-    accepted: list[tuple[int, int, str]] = []
-    for start, end, metric in found:
-        if any(
-            not (end <= other_start or start >= other_end) for other_start, other_end, _ in accepted
-        ):
+    accepted: list[tuple[int, int, str, bool]] = []
+    for start, end, label, known in found:
+        if _spans_overlap(start, end, [(other[0], other[1]) for other in accepted]):
             continue
-        accepted.append((start, end, metric))
+        accepted.append((start, end, label, known))
     accepted.sort(key=lambda item: item[0])
-    return accepted
+    unique = [(start, end, label) for start, end, label, known in accepted if known]
+    unknown = [(start, end, label) for start, end, label, known in accepted if not known]
+    return unique, unknown
+
+
+def _longest_unique_phrases(query: str) -> list[Span]:
+    return _longest_phrases(query)[0]
 
 
 # A figure's trailing year, as the catalog names it: "TTM net income" is one
 # amount over the four quarters to the latest report (ADR 0008), not a window
 # of quarters. A figure with no trailing-year form ("TTM revenue") keeps the window.
+# LTM is "last twelve months": spelled out before the metric ("last twelve months
+# net income") it is the same figure; after the metric ("net income over the
+# last twelve months") it is a span of quarters, which these words do not reach.
 _TRAILING_YEAR_FORM: dict[str, str] = {"net_income": "net_income_ttm"}
 _TRAILING_YEAR_WORDS = re.compile(
-    r"\b(?:ttm|ltm|trailing[\s-]+(?:twelve|12)[\s-]+months?)\s+$"
+    r"\b(?:ttm|ltm|trailing[\s-]+(?:twelve|12)[\s-]+months?"
+    r"|(?:last|past)\s+(?:twelve|12)\s+months)\s+$"
 )
 
 
 def _trailing_year_words_before(query: str, start: int) -> int | None:
-    """Where "TTM" or "trailing twelve months" starts, when it comes just before ``start``."""
+    """Where "TTM" or "last twelve months" starts, when it comes just before ``start``."""
     match = _TRAILING_YEAR_WORDS.search(query, 0, start)
     return match.start() if match is not None else None
 
@@ -681,11 +770,13 @@ def _nonoverlapping_ambiguous_matches(
 
 
 def resolve_metric_phrases(query: str) -> tuple[MetricPhraseResolution, ...]:
-    """Classify each metric phrase in the user question, left to right."""
+    """Classify each metric phrase in the user question, left to right.
+
+    An unknown measure the catalog lists by name is an "unknown" entry with its
+    ``term``; a question naming no measure at all gives an empty tuple.
+    """
     normalized = query.casefold()
-    unique_matches = _nonoverlapping_unique_matches(normalized)
-    occupied = [(start, end) for start, end, _metric in unique_matches]
-    ambiguous_matches = _nonoverlapping_ambiguous_matches(normalized, occupied)
+    unique_matches, unknown_matches, ambiguous_matches = _phrase_matches(normalized)
 
     ordered: list[tuple[int, MetricPhraseResolution]] = [
         (
@@ -701,6 +792,10 @@ def resolve_metric_phrases(query: str) -> tuple[MetricPhraseResolution, ...]:
     ordered.extend(
         (start, MetricPhraseResolution(kind="ambiguous", candidates=candidates))
         for start, _end, candidates in ambiguous_matches
+    )
+    ordered.extend(
+        (start, MetricPhraseResolution(kind="unknown", term=name))
+        for start, _end, name in unknown_matches
     )
     ordered.sort(key=lambda item: item[0])
     return tuple(resolution for _start, resolution in ordered)
@@ -723,7 +818,8 @@ def resolve_metric_phrase(query: str) -> MetricPhraseResolution:
         if len(metrics) == 1:
             return MetricPhraseResolution(kind="unique", metric=metrics[0], metrics=metrics)
         return MetricPhraseResolution(kind="unique", metrics=metrics)
-    return MetricPhraseResolution(kind="unknown")
+    # Only unknown measures named in so many words ("debt-to-equity"): the first is named.
+    return phrases[0]
 
 
 def _with_prefixed_metric(
@@ -735,9 +831,7 @@ def _with_prefixed_metric(
     the margins alone would not include it.
     """
     normalized = query.casefold()
-    unique = _nonoverlapping_unique_matches(normalized)
-    occupied = [(start, end) for start, end, _metric in unique]
-    ambiguous = _nonoverlapping_ambiguous_matches(normalized, occupied)
+    unique, _unknown, ambiguous = _phrase_matches(normalized)
     prefixed = [
         named
         for _start, end, metric in unique

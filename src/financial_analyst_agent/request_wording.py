@@ -22,6 +22,7 @@ from financial_analyst_agent.contracts import (
     refuse_unknown_metric,
 )
 from financial_analyst_agent.graph.analysis_spec import (
+    MAX_QUARTERS_ASKED,
     AnalysisSpec,
     NamedPeriodSpec,
     PeriodSelection,
@@ -267,13 +268,19 @@ _SEQUENTIAL = re.compile(
 )
 
 
-# "How much did revenue change?", "did it move?", "what drove the change in revenue?":
-# a change that may name no base.
+# "How much did revenue change?", "did it move?", "what drove the change in revenue?",
+# "what caused revenue to fall?", "what led to the decline in revenue?": a change
+# that may name no base.
 _CHANGE = re.compile(
     r"\b(?:how (?:much )?)?(?:has|have|did) .+ (?:change|move)d?\b"
     r"|\bwhat(?:'s| is| was)? (?:drove|drives|driving|caused|causes|causing|explains"
-    r"|explained|behind) the (?:change|move|movement|shift|swing|increase|decrease"
-    r"|rise|fall|drop|decline|jump)s? in\b",
+    r"|explained|behind|led to|leads to|leading to|(?:the )?reasons? (?:for|behind))"
+    r" the (?:change|move|movement|shift|swing|increase|decrease"
+    r"|rise|fall|drop|decline|jump)s? in\b"
+    r"|\bwhat(?:'s| is| was| has| had)? (?:caused|causes|causing|made|makes|making|led"
+    r"|leads|leading|drove|drives|driving|pushed|pushes|pushing) .+? (?:to )?(?:change|move"
+    r"|shift|swing|increase|decrease|rise|fall|drop|decline|jump|climb|slip|dip|shrink"
+    r"|go (?:up|down))\b",
     re.IGNORECASE,
 )
 
@@ -330,14 +337,47 @@ YEAR_OF_QUARTERS = re.compile(
 WHY_CHANGE = re.compile(r"^\s*why\b", re.I)
 
 
+# "Explain how a share buyback affects EPS", "how does a buyback affect EPS?",
+# "what is free cash flow and why does it matter?": a general question about how
+# something works, which no company's figure answers (README, general question).
+_EXPLANATION = re.compile(
+    r"^\W*(?:(?:please|can you|could you|would you)\s+)?explain\b"
+    r"|\bhow (?:does|do|did|would|could|can|might|will|should) (?:a |an |the )?[\w'/&-]+"
+    r"(?: [\w'/&-]+){0,3}? (?:affects?|impacts?|influences?|works?|matters?)\b"
+    r"|\bhow (?:is|are|was|were) (?:a |an |the )?[\w'/&-]+(?: [\w'/&-]+){0,3}?"
+    r" (?:calculated|computed|measured|defined|derived|determined|recogni[sz]ed|accounted"
+    r"|reported)\b"
+    r"|\bwhy (?:does|do|is|are|would|should|might|can) .+?\b(?:matters?|important)\b"
+    r"|\bwhat (?:does|do) .+? mean\b",
+    re.IGNORECASE,
+)
+
+
+def asks_for_explanation(message: str) -> bool:
+    """Whether the words ask how something works rather than for a figure.
+
+    "Explain how a share buyback affects EPS" names a metric and no company, but
+    it is a general question (intent explain), as "How might AI change banking?"
+    is. "What's the EPS?" asks for a figure and names no company: it asks which
+    company. The wording tells them apart, not the absence of a company alone.
+    """
+    return _EXPLANATION.search(message) is not None
+
+
 YEAR_TO_DATE = re.compile(r"\b(?:ytd|year[\s-]+to[\s-]+date)\b", re.I)
 
 
-# "since 2023": every quarter from the start of that year.
-SINCE_YEAR = re.compile(r"\bsince\s+(?:fy\s*|fiscal\s+(?:year\s+)?)?(?P<y>(?:19|20)\d{2})\b", re.I)
+# "since 2023", "since the start of 2023", "since early 2023": every quarter from
+# the start of that year.
+SINCE_YEAR = re.compile(
+    r"\bsince\s+(?:the\s+(?:start|beginning)\s+of\s+|early\s+(?:in\s+)?)?"
+    r"(?:fy\s*|fiscal\s+(?:year\s+)?)?(?P<y>(?:19|20)\d{2})\b",
+    re.I,
+)
 
 
-MAX_SINCE_QUARTERS = 20
+# A "since" window is a window: at most as many quarters as any other (README).
+MAX_SINCE_QUARTERS = MAX_QUARTERS_ASKED
 
 
 class WindowReading(BaseModel):
@@ -383,9 +423,12 @@ _GROWING = re.compile(
 )
 
 
+# "How is Apple doing?", "the rundown on Apple", "how has Apple been performing":
+# asking how a company is doing, in any of its words (README, overview row).
 _OVERVIEW = re.compile(
     r"\b(?:overview|snapshot|summary|profile|financials|fundamentals|numbers|"
-    r"key metrics|at a glance|tell me about|how (?:is|are|was)|how's|doing|results)\b",
+    r"key metrics|at a glance|tell me about|how (?:is|are|was|were|has|have)|how's|doing|"
+    r"results|run-?down|quick (?:read|look|take)|perform(?:s|ed|ing|ance)?)\b",
     re.IGNORECASE,
 )
 
@@ -510,9 +553,11 @@ def bind_metrics_from_message(
         metric not in ALLOWED_METRICS and metric not in ("unknown", OVERVIEW_PLAN)
         for metric in patch.add_metrics
     )
+    # A measure the catalog lacks by name ("stock performance") is refused, not
+    # read as the overview its words ("performance") or its length would imply.
     implied = (
         implied_metrics(message, short=not unknown_word)
-        if _names_companies(patch) and not guessed
+        if _names_companies(patch) and not guessed and resolved.term is None
         else ()
     )
     if not implied and _names_companies(patch) and OVERVIEW_PLAN in patch.add_metrics:
@@ -524,7 +569,10 @@ def bind_metrics_from_message(
     # Replace-mode metric question with an unknown phrase: refuse with the full catalog
     # even when the planner guessed a catalog slug.
     term = "unknown"
-    if patch.add_metrics:
+    if resolved.term is not None:
+        # The analyst's own measure, as the catalog lists it ("debt-to-equity").
+        term = resolved.term
+    elif patch.add_metrics:
         candidate = patch.add_metrics[0]
         if candidate not in ALLOWED_METRICS:
             term = candidate
@@ -596,6 +644,8 @@ def parse_named_periods(message: str) -> tuple[NamedPeriodSpec, ...]:
     def free(start: int, end: int) -> bool:
         return not any(start < other_end and end > other_start for other_start, other_end in taken)
 
+    # "since the start of 2023" is a window; its year names no period.
+    taken.extend(match.span() for match in SINCE_YEAR.finditer(message))
     for match in _YEAR_RANGE.finditer(message):
         first, last = sorted((int(match.group("a")), int(match.group("b"))))
         if free(*match.span()) and last - first < _MAX_RANGE_YEARS:

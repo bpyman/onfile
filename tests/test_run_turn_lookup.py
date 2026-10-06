@@ -496,3 +496,36 @@ def test_run_turn_lookup_market_cap_refuses_when_not_in_snapshot() -> None:
     assert result.tool_traces == []
     assert result.message is not None
     assert "shopify" in result.message.casefold()
+
+
+CISCO_EPS_QUERY = "What are Cisco's earnings per share?"
+
+
+def test_recorded_runtime_shows_the_latest_quarter_with_its_own_eps() -> None:
+    # Cisco's latest report is its 10-K, whose fourth quarter reports EPS only for
+    # the year, and per-share figures are never derived (ADR 0007). With no period
+    # named, the answer is the latest quarter with its own, and a note says so.
+    result = run_turn(CISCO_EPS_QUERY, recorded_runtime())
+
+    assert result.renderer is RendererKind.TABLE
+    (row,) = result.table_rows
+    assert row.ticker == "CSCO"
+    assert row.value == Decimal("0.85")
+    assert row.end_date == date(2026, 4, 25)
+    assert row.year_only_quarter_end == date(2026, 7, 25)
+    presented = present_turn(result)
+    assert presented.fact_card is not None
+    assert presented.fact_card.amount == "$0.85"
+    assert (
+        "Cisco Systems' quarter ended Jul 25, 2026 reports diluted EPS only for the year, "
+        "so Cisco Systems is shown for the quarter ended Apr 25, 2026, the latest with "
+        "its own."
+    ) in presented.banners
+
+
+def test_recorded_runtime_eps_for_a_latest_quarter_with_its_own_has_no_note() -> None:
+    result = run_turn("Apple EPS", recorded_runtime())
+
+    (row,) = result.table_rows
+    assert row.year_only_quarter_end is None
+    assert not any("the latest with its own" in banner for banner in present_turn(result).banners)

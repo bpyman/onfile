@@ -341,6 +341,9 @@ def test_a_figure_without_a_ratio_shows_both_figures() -> None:
         "trailing 12-month net income",
         "TTM earnings",
         "ttm net profit",
+        "last twelve months net income",
+        "last 12 months net income",
+        "past twelve months net income",
     ],
 )
 def test_trailing_twelve_months_before_net_income_is_its_trailing_year(phrase: str) -> None:
@@ -357,3 +360,52 @@ def test_trailing_twelve_months_before_a_figure_without_a_trailing_year_keeps_th
 def test_trailing_year_words_name_the_words_a_trailing_year_figure_takes() -> None:
     assert without_trailing_year_words("Apple TTM net income") == "Apple net income"
     assert without_trailing_year_words("Apple TTM revenue") == "Apple TTM revenue"
+    assert (
+        without_trailing_year_words("pfizer's last twelve months net income")
+        == "pfizer's net income"
+    )
+
+
+def test_last_twelve_months_after_the_metric_is_a_window_not_the_trailing_year() -> None:
+    # Spelled out before the metric, "last twelve months" is LTM; after it, a span.
+    question = "pfizer net income over the last twelve months"
+    assert resolve_metric_phrase(question).metrics == ("net_income",)
+    assert without_trailing_year_words(question) == question
+
+
+@pytest.mark.parametrize(
+    ("phrase", "named"),
+    [
+        ("debt-to-equity ratio", "debt-to-equity"),
+        ("debt to equity", "debt-to-equity"),
+        ("D/E", "debt-to-equity"),
+        ("return on assets", "return on assets"),
+        ("ROA", "return on assets"),
+        ("equity multiplier", "equity multiplier"),
+        ("dividend yield", "dividend yield"),
+        ("net debt", "net debt"),
+        ("interest-bearing debt", "debt"),
+        ("net interest margin", "net interest margin"),
+        ("asset turnover", "asset turnover"),
+        ("price to book", "price to book"),
+        ("price to sales", "price to sales"),
+        ("EV/EBITDA", "EV/EBITDA"),
+        ("share price history", "stock performance"),
+        ("remaining performance obligations", "remaining performance obligations"),
+        ("RPO", "remaining performance obligations"),
+    ],
+)
+def test_an_unknown_measure_is_unknown_not_the_word_inside_it(phrase: str, named: str) -> None:
+    # "equity" alone asks which; inside "debt-to-equity" it is part of a measure
+    # the catalog lacks, which is refused by name (ADR 0004). The same longest-span
+    # rule keeps "turnover" and "price" from answering for "asset turnover" and
+    # "price to book".
+    resolved = resolve_metric_phrase(f"What was the company's {phrase}?")
+    assert resolved.kind == "unknown"
+    assert resolved.term == named
+
+
+def test_a_catalog_metric_beside_an_unknown_measure_still_answers() -> None:
+    resolved = resolve_metric_phrase("Apple revenue and debt-to-equity")
+    assert resolved.kind == "unique"
+    assert resolved.metric == "revenue"

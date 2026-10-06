@@ -56,10 +56,38 @@ def test_a_filing_comparison_in_other_words(question: str) -> None:
     assert DemoCompleter(issuer_index()).complete(question).intent is Intent.FILING_CHANGE
 
 
-def test_a_hyphened_phrase_is_not_a_misspelt_name() -> None:
-    found = issuer_index().correct("an apples-to-apples comparison of Microsoft and Nvidia")
+@pytest.mark.parametrize(
+    "question",
+    [
+        "an apples-to-apples comparison of Microsoft and Nvidia",
+        "Apples to apples: Merck vs Pfizer net margin",
+        "comparing apples to apples, how do Merck and Pfizer stack up on net income?",
+        "Merck and Pfizer net margin, apples with apples",
+        "Merck vs Pfizer net margin, apples for apples",
+        "Merck vs Pfizer revenue is apples and oranges",
+        "the building blocks of Microsoft and Oracle revenue",
+    ],
+)
+def test_a_word_inside_an_idiom_is_not_a_misspelt_name(question: str) -> None:
+    """A hyphened phrase or an idiom owns its words: "apples" is not Apple."""
+    found = issuer_index().correct(question)
 
     assert found == []
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Apples to apples: Merck vs Pfizer net margin",
+        "Merck vs Pfizer net margin, apples and oranges",
+    ],
+)
+def test_an_idiom_beside_real_companies_names_only_them(question: str) -> None:
+    plan = DemoCompleter(issuer_index()).complete(question)
+
+    assert plan.intent is Intent.COMPARE
+    assert plan.companies == ("MRK", "PFE")
+    assert plan.notes == ()
 
 
 def _spec(*companies: str, metrics: tuple[str, ...] = ("net_income",)):
@@ -152,6 +180,17 @@ def test_over_the_past_year_is_the_years_quarters_not_growth() -> None:
         ("What drove the change in Apple's revenue?", "unclear"),
         ("What caused the drop in Intel's net income?", "unclear"),
         ("What is behind the increase in Nvidia's revenue?", "unclear"),
+        # "what caused ... to fall", "what's behind the drop in ...", "what led to the
+        # decline in ...": a change named with no base, like "why did ... drop".
+        ("What caused Pfizer's earnings to fall?", "unclear"),
+        ("What caused Apple's revenue to fall?", "unclear"),
+        ("what has caused apple's revenue to rise", "unclear"),
+        ("What made Nvidia's revenue jump?", "unclear"),
+        ("What's behind the drop in Apple's revenue?", "unclear"),
+        ("What led to the decline in Pfizer's revenue?", "unclear"),
+        ("What's the reason for the drop in Intel's revenue?", "unclear"),
+        ("What caused Apple's revenue to fall year over year?", "year_over_year"),
+        ("What caused Apple's revenue to fall since 2023?", None),
         ("What drove the change in Apple's revenue year over year?", "year_over_year"),
         ("What drove the change in Apple's revenue since 2023?", None),
         ("How much did Intel's revenue change year over year?", "year_over_year"),
@@ -378,3 +417,35 @@ def test_taking_a_company_away_removes_it(message: str) -> None:
     patch = refine_patch_from_message(SpecPatch(mode="extend"), message, spec, index=index)
 
     assert (patch.remove_companies, patch.add_companies, patch.add_metrics) == (("MSFT",), (), ())
+
+
+@pytest.mark.parametrize(
+    ("message", "explanation"),
+    [
+        # A general question: how something works, not a figure (README, general question).
+        ("Explain how a share buyback affects EPS", True),
+        ("explain EPS", True),
+        ("Can you explain how revenue is recognized?", True),
+        ("How does a buyback affect EPS?", True),
+        ("How do buybacks impact diluted EPS?", True),
+        ("How is EPS calculated?", True),
+        ("How does depreciation work?", True),
+        ("What is free cash flow and why does it matter?", True),
+        ("Why does EPS matter?", True),
+        ("Why is operating margin important?", True),
+        ("What does diluted EPS mean?", True),
+        # A figure with no company asks which company; a change with no base asks its base.
+        ("What's the EPS?", False),
+        ("What is EPS?", False),
+        ("revenue", False),
+        ("Why did revenue drop?", False),
+        ("How much did revenue change?", False),
+        ("How is Apple doing?", False),
+        ("How does Oracle's net income compare with Cisco's?", False),
+        ("What changed in the latest 10-Q?", False),
+    ],
+)
+def test_explanation_wording_is_told_from_a_figure(message: str, explanation: bool) -> None:
+    from financial_analyst_agent.request_wording import asks_for_explanation
+
+    assert asks_for_explanation(message) is explanation

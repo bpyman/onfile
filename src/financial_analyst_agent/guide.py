@@ -147,19 +147,6 @@ UNSUPPORTED_MESSAGE = (
     "I can't look up {names} yet. I answer from reported 10-Q figures such as "
     "revenue, net income, margins, EPS, cash flow, cash, dividends and P/E."
 )
-# Figures people ask for that the metric catalog does not hold, in the words the
-# reply uses. Checked only when the question names no metric the catalog knows,
-# so "Apple revenue and dividends" still answers revenue.
-_UNSUPPORTED_METRICS: tuple[tuple[re.Pattern[str], str], ...] = (
-    (re.compile(r"\broa\b|\breturn on assets\b"), "return on assets"),
-    (re.compile(r"\bstock performance\b|\bshare price (?:history|chart)\b"), "stock performance"),
-    (re.compile(r"\bdividend yield\b"), "dividend yield"),
-    (re.compile(r"\btotal assets\b"), "total assets"),
-    (re.compile(r"\b(?:total )?liabilities\b"), "liabilities"),
-    (re.compile(r"\b(?:total )?debt\b|\bleverage\b"), "debt"),
-    (re.compile(r"\bbuybacks?\b|\b(?:share |stock )?repurchases?\b"), "share buybacks"),
-    (re.compile(r"\bheadcount\b|\bemployees\b"), "headcount"),
-)
 _WHY_MAX_WORDS = 6
 _THANKS_MAX_WORDS = 4
 
@@ -294,13 +281,21 @@ def resets_analysis(message: str) -> bool:
 
 
 def _unsupported_metrics(text: str) -> list[str]:
-    """Names of the uncatalogued figures a question asks for, when it asks for no other."""
-    from financial_analyst_agent.services.metric_catalog import resolve_metric_phrase
+    """Names of the uncatalogued measures a question asks for, when it asks for no other.
 
-    found = [name for pattern, name in _UNSUPPORTED_METRICS if pattern.search(text)]
-    if not found or resolve_metric_phrase(text).kind != "unknown":
+    The catalog lists the measures it lacks by name ("debt-to-equity", "return on
+    assets"). A catalog metric beside one is answered instead, so "Apple revenue
+    and dividend yield" still answers revenue.
+    """
+    from financial_analyst_agent.services.metric_catalog import (
+        resolve_metric_phrase,
+        resolve_metric_phrases,
+    )
+
+    if resolve_metric_phrase(text).kind != "unknown":
         return []
-    return found
+    named = [phrase.term for phrase in resolve_metric_phrases(text) if phrase.term is not None]
+    return list(dict.fromkeys(named))
 
 
 def not_recorded_reply(

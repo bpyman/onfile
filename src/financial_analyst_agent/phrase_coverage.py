@@ -43,6 +43,7 @@ from financial_analyst_agent.domain.errors import PlannerError
 from financial_analyst_agent.planner_cascade import CascadeCompleter
 from financial_analyst_agent.planner_evaluation import Observation, observe
 from financial_analyst_agent.ranking import SnapshotRanking
+from financial_analyst_agent.request_wording import OVERVIEW_METRICS
 from financial_analyst_agent.runtime import recorded_runtime
 from financial_analyst_agent.thread_store import EphemeralThreadStore
 
@@ -70,6 +71,25 @@ def _answers_metric(slug: str) -> Check:
 
 def _asks(seen: Observation, _turn: ConversationTurn) -> bool:
     return seen.outcome == "clarify"
+
+
+def _explains(seen: Observation, _turn: ConversationTurn) -> bool:
+    # The recorded demo replays one written answer; any other explanation is
+    # refused by the essay completer after it was read right, so the intent decides.
+    return seen.intent == "explain"
+
+
+def _asks_which_company(seen: Observation, turn: ConversationTurn) -> bool:
+    return seen.outcome == "refuse" and (turn.result.message or "").startswith(
+        "I couldn't tell which company you mean"
+    )
+
+
+def _refuses_naming(measure: str) -> Check:
+    def check(seen: Observation, turn: ConversationTurn) -> bool:
+        return seen.outcome == "refuse" and f"look up {measure}" in (turn.result.message or "")
+
+    return check
 
 
 def _window(kind: str, count: int | None = None) -> Check:
@@ -246,12 +266,18 @@ WINDOW_PHRASES: tuple[tuple[str, str, int | None], ...] = (
     ("over the past decade", "last_n_quarters", 40),
     ("since 2024", "last_n_quarters", None),
     ("since the start of 2024", "last_n_quarters", None),
+    ("since the beginning of 2024", "last_n_quarters", None),
     ("for the most recent quarter", "latest_quarter", None),
     ("for the latest quarter", "latest_quarter", None),
     ("in Q2 2025", "named", None),
     ("in fiscal 2025", "named", None),
     ("for FY2024", "named", None),
     ("in calendar Q1 2026", "named", None),
+)
+# Whole questions whose window words only read right beside their metric: after
+# net income, "last twelve months" is a span of quarters; before it, LTM.
+WINDOW_QUESTIONS: tuple[tuple[str, str, int | None], ...] = (
+    ("pfizer net income over the last twelve months", "last_n_quarters", 4),
 )
 
 YEAR_OVER_YEAR_QUESTIONS = (
@@ -281,6 +307,81 @@ NO_BASE_QUESTIONS = (
     "What drove the change in Apple's revenue?",
     "Why did Apple's revenue go up?",
     "What caused Apple's revenue to fall?",
+    "What caused Pfizer's earnings to fall?",
+    "What's behind the drop in Apple's revenue?",
+    "What led to the decline in Apple's revenue?",
+)
+# An idiom that contains a company's everyday-word name ("apples to apples",
+# "building blocks") names no company: only the real companies are read.
+IDIOM_QUESTIONS: tuple[tuple[str, tuple[str, ...], str], ...] = (
+    ("Apples to apples: Merck vs Pfizer net margin", ("MRK", "PFE"), "net_margin"),
+    (
+        "comparing apples to apples, how do Merck and Pfizer stack up on net income?",
+        ("MRK", "PFE"),
+        "net_income",
+    ),
+    ("an apples-to-apples comparison of Merck and Pfizer net margin", ("MRK", "PFE"), "net_margin"),
+    ("Merck and Pfizer net margin, apples with apples", ("MRK", "PFE"), "net_margin"),
+    ("Merck vs Pfizer net margin, apples and oranges", ("MRK", "PFE"), "net_margin"),
+    ("the building blocks of Microsoft and Oracle revenue", ("MSFT", "ORCL"), "revenue"),
+)
+# Asking how a company is doing, in any of its words, is the overview: revenue,
+# net income and three margins. "Performance" and "rundown" name no metric.
+OVERVIEW_QUESTIONS: tuple[tuple[str, tuple[str, ...], tuple[str, int | None]], ...] = (
+    ("How is Apple doing?", ("AAPL",), ("latest_quarter", None)),
+    ("Give me the rundown on how Wells Fargo is performing", ("WFC",), ("latest_quarter", None)),
+    ("How is Wells Fargo performing?", ("WFC",), ("latest_quarter", None)),
+    ("How has Wells Fargo been performing?", ("WFC",), ("latest_quarter", None)),
+    ("the rundown on Apple", ("AAPL",), ("latest_quarter", None)),
+    ("Give me the rundown on Apple and Microsoft", ("AAPL", "MSFT"), ("latest_quarter", None)),
+    ("a quick read on Apple", ("AAPL",), ("latest_quarter", None)),
+    ("a quick look at Apple", ("AAPL",), ("latest_quarter", None)),
+    ("Wells Fargo's performance", ("WFC",), ("latest_quarter", None)),
+    ("Apple's performance over the last 4 quarters", ("AAPL",), ("last_n_quarters", 4)),
+)
+# A measure the catalog lacks is refused by name, even when a word inside it
+# would be ambiguous alone ("equity") or would name a metric ("turnover").
+UNKNOWN_MEASURE_QUESTIONS: tuple[tuple[str, str], ...] = (
+    ("What's Apple's debt-to-equity ratio?", "debt-to-equity"),
+    ("Apple debt to equity", "debt-to-equity"),
+    ("Apple D/E", "debt-to-equity"),
+    ("What is Apple's return on assets?", "return on assets"),
+    ("Apple ROA", "return on assets"),
+    ("Apple's equity multiplier", "equity multiplier"),
+    ("Apple dividend yield", "dividend yield"),
+    ("Apple's net debt", "net debt"),
+    ("Apple interest-bearing debt", "debt"),
+    ("Apple total debt", "debt"),
+    ("JPMorgan net interest margin", "net interest margin"),
+    ("Apple asset turnover", "asset turnover"),
+    ("Apple price to book", "price to book"),
+    ("Apple's stock performance", "stock performance"),
+    ("Oracle remaining performance obligations", "remaining performance obligations"),
+    ("Oracle RPO", "remaining performance obligations"),
+    ("Apple's price-to-sales ratio", "price to sales"),
+    ("Apple EV/EBITDA", "EV/EBITDA"),
+    ("Apple's customer acquisition cost", "customer acquisition cost"),
+)
+
+# A general question that names a metric asks how something works, not for a
+# figure: an explanation (intent explain), as "How might AI change banking?" is.
+EXPLANATION_QUESTIONS = (
+    "Explain how a share buyback affects EPS",
+    "How does a buyback affect EPS?",
+    "How do buybacks impact diluted EPS?",
+    "What is free cash flow and why does it matter?",
+    "How is EPS calculated?",
+    "Why does operating margin matter?",
+    "What does diluted EPS mean?",
+    "How might AI change banking?",
+)
+# A figure with no company asks which company: the absence of a company alone
+# does not make a question general.
+NO_COMPANY_QUESTIONS = (
+    "What's the EPS?",
+    "What is EPS?",
+    "What's the revenue?",
+    "What was the revenue last quarter?",
 )
 
 _FIRST = "Apple revenue over the last 4 quarters"
@@ -508,6 +609,11 @@ def cases() -> list[PhraseCase]:
                 _window(kind, count),
             )
         )
+    for question, kind, count in WINDOW_QUESTIONS:
+        expected = kind if count is None else f"{kind} {count}"
+        found.append(
+            PhraseCase(f"window:{question}", "Windows", (question,), expected, _window(kind, count))
+        )
     for question in YEAR_OVER_YEAR_QUESTIONS:
         found.append(
             PhraseCase(
@@ -543,6 +649,57 @@ def cases() -> list[PhraseCase]:
         found.append(
             PhraseCase(f"no_base:{question}", "Changes with no base", (question,), "asks", _asks)
         )
+    for question, tickers, metric in IDIOM_QUESTIONS:
+        period = ("latest_quarter", None)
+        found.append(
+            PhraseCase(
+                f"idiom:{question}",
+                "Idioms beside a company",
+                (question,),
+                _expected(tickers, (metric,), period, None),
+                _reads(frozenset(tickers), frozenset({metric}), period, None),
+            )
+        )
+    for question, tickers, window in OVERVIEW_QUESTIONS:
+        found.append(
+            PhraseCase(
+                f"overview:{question}",
+                "Overviews",
+                (question,),
+                _expected(tickers, OVERVIEW_METRICS, window, None),
+                _reads(frozenset(tickers), frozenset(OVERVIEW_METRICS), window, None),
+            )
+        )
+    for question, measure in UNKNOWN_MEASURE_QUESTIONS:
+        found.append(
+            PhraseCase(
+                f"unknown:{question}",
+                "Unknown measures",
+                (question,),
+                f"refuses, naming {measure}",
+                _refuses_naming(measure),
+            )
+        )
+    for question in EXPLANATION_QUESTIONS:
+        found.append(
+            PhraseCase(
+                f"general:{question}",
+                "General questions",
+                (question,),
+                "an explanation (intent explain)",
+                _explains,
+            )
+        )
+    for question in NO_COMPANY_QUESTIONS:
+        found.append(
+            PhraseCase(
+                f"no_company:{question}",
+                "General questions",
+                (question,),
+                "asks which company",
+                _asks_which_company,
+            )
+        )
     for first, follow, check, expected in FOLLOW_UPS:
         found.append(
             PhraseCase(
@@ -558,24 +715,22 @@ def cases() -> list[PhraseCase]:
 
 # The cases that fail today, each a gap in the shared reading of words. Take a case
 # off when it is fixed; the test fails until the list matches.
-KNOWN_GAPS: frozenset[str] = frozenset(
-    {
-        # Found by the set-5 brief's probe dry-run; filed in brief-5-probe-gaps.
-        "window:since the start of 2024",
-        "metric:last twelve months net income:question",
-        "metric:last twelve months net income:terse",
-        "no_base:What caused Apple's revenue to fall?",
-    }
-)
+KNOWN_GAPS: frozenset[str] = frozenset()
 
 
 # The phrasings the cascade sends to the LLM planner. The ambiguous words name no
 # catalog metric, so the rules planner is unsure; the shared guard asks which
 # metric was meant whatever the LLM planner proposes (ADR 0004), so the call
-# costs a second but cannot misread them. Any other phrasing sent on is a
-# rules-planner reading the live app would not use: make the rules planner sure
-# of it, or add it here with the reason.
-SENT_TO_MODEL: frozenset[str] = frozenset(f"ambiguous:{word}" for word in AMBIGUOUS_WORDS)
+# costs a second but cannot misread them. A figure with no company ("What's the EPS?") leaves the
+# rules planner unsure too; the LLM planner is told to name companies as the
+# user wrote them, and the user wrote none, so its proposal asks which company
+# the same way. Any other phrasing sent on is a rules-planner reading the live
+# app would not use: make the rules planner sure of it, or add it here with the
+# reason.
+SENT_TO_MODEL: frozenset[str] = (
+    frozenset(f"ambiguous:{word}" for word in AMBIGUOUS_WORDS)
+    | frozenset(f"no_company:{question}" for question in NO_COMPANY_QUESTIONS)
+)
 
 
 # ``unsure_reason``'s codes, in words.
@@ -615,6 +770,8 @@ def _describe(seen: Observation, turn: ConversationTurn) -> str:
     parts.append(kind if count is None else f"{kind} {count}")
     if comparisons:
         parts.append("changes " + ", ".join(comparisons))
+    if seen.intent in ("explain", "news_and_explain", "exploratory_research"):
+        parts.append(f"intent {seen.intent}")
     if turn.result.renderer is RendererKind.REFUSE and turn.result.message:
         parts.append(f"“{turn.result.message[:80]}”")
     return "; ".join(parts)

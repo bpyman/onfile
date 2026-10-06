@@ -1414,3 +1414,229 @@ Blockers / next:
 - None. All 1,942 Python tests pass; ruff and mypy pass; compare_answers reports
   `0 of 244 conversations differ from HEAD` (the recording holds no pre-split per-share quarter).
   No agent ticket remains in combination-gaps.
+
+
+## 2026-10-06 — brief-5-probe-gaps 01 "Since the start of 2023" is a window, not fiscal 2023
+
+Task completed: `docs/process/tickets/brief-5-probe-gaps/issues/01-since-the-start-of-a-year.md`
+
+Key decisions:
+- `SINCE_YEAR` accepts `the start of`, `the beginning of` and `early` (`early in`) between
+  `since` and the year. `parse_named_periods` marks every `SINCE_YEAR` span as taken first,
+  so the year inside a "since" phrase never reads as a fiscal year; the bare-year pattern's
+  `(?<!since )` lookbehind stays as a second guard.
+- The 20-quarter cap on a "since" window is untouched; the README says windows are at most
+  40, which is recorded in `docs/process/rules-to-review.md` for a person to settle.
+
+Files changed:
+- `src/financial_analyst_agent/{request_wording.py,phrase_coverage.py (1 case off KNOWN_GAPS, 1 new)}`
+- `tests/unit/test_planner_understanding.py`
+- `docs/process/rules-to-review.md`, the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,945 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
+  regenerated. Ticket 02 (last twelve months before a metric is LTM) is next.
+
+
+## 2026-10-06 — brief-5-probe-gaps 02 "Last twelve months" before a metric is the trailing-year figure
+
+Task completed: `docs/process/tickets/brief-5-probe-gaps/issues/02-last-twelve-months-before-a-metric-is-ltm.md`
+
+Key decisions:
+- The catalog's trailing-year words (`_TRAILING_YEAR_WORDS`, `services/metric_catalog.py`) accept
+  `last`/`past` + `twelve`/`12 months` directly before a metric with a trailing-year form, so
+  `last twelve months net income` resolves to `net_income_ttm` and the words are stripped before
+  the window is read, as for `LTM`. The words count only just before the metric, so
+  `net income over the last twelve months` stays a 4-quarter window. `request_wording` unchanged.
+- Phrase coverage gains `WINDOW_QUESTIONS`: whole questions whose window words only read right
+  beside their metric; first entry `pfizer net income over the last twelve months` (4 quarters).
+
+Files changed:
+- `src/financial_analyst_agent/{services/metric_catalog.py,phrase_coverage.py (2 cases off KNOWN_GAPS, 1 new)}`
+- `tests/unit/services/test_metric_phrase.py`, `tests/unit/test_derived_and_named_periods.py`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,949 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
+  regenerated. Ticket 03 ("apples to apples" is not Apple) is next.
+
+
+## 2026-10-06 — brief-5-probe-gaps 03 "Apples to apples" does not name Apple
+
+Task completed: `docs/process/tickets/brief-5-probe-gaps/issues/03-apples-to-apples-is-not-apple.md`
+
+Key decisions:
+- The misreading was the index's typo corrector: "apples" is one letter from "apple" and not on the
+  common-words list, so `IssuerIndex.correct` read it as Apple. `_IDIOMS` (`issuer_index.py`) lists
+  idioms whose words are the idiom's ("apples to/with/for/and apples|oranges", "building|stumbling|road
+  blocks"); `correct` ignores their words as it already ignores a hyphened phrase's parts. `find` is
+  unchanged, so "apple to apple" still names Apple.
+- Phrase coverage gains the group "Idioms beside a company" (`IDIOM_QUESTIONS`, 6 cases), each
+  expecting only the real companies for the latest quarter.
+
+Files changed:
+- `src/financial_analyst_agent/{issuer_index.py,phrase_coverage.py}`
+- `tests/unit/test_planner_wording.py`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,957 Python tests pass; ruff and mypy pass; compare_answers reports
+  `1 of 244 conversations differ from HEAD`: `case:h3_apples_to_apples` now shows Nvidia and AMD
+  only, as its label expects (intended). docs/evaluation/phrase-coverage.md not regenerated.
+  Ticket 04 (EPS when the latest quarter is a fiscal fourth) is next.
+
+
+## 2026-10-06 — brief-5-probe-gaps 04 EPS when the latest quarter is a fiscal fourth quarter
+
+Task completed: `docs/process/tickets/brief-5-probe-gaps/issues/04-eps-when-the-latest-quarter-is-a-fiscal-fourth.md`
+
+Key decisions:
+- Option 1 (decided 2026-10-06): a per-share figure asked with no period is the latest quarter
+  with its own, with a note saying which quarter was stepped past. `SecFactLookup.get_financials`
+  (`sec_facts.py`) steps on from a `PerShareNotDerivableError` to the next of the four latest
+  report dates, as it already did for a filing SEC's companyfacts lacks; the fact carries the
+  stepped-past quarter's end as `year_only_quarter_end` (new on `FinancialFact` and `TableRow`),
+  beside `newer_filing_end`. `NoDividendThisQuarterError` does not step back.
+- A named fourth quarter (`Cisco EPS in Q4 FY2026`) still says it is reported only for the year;
+  a window still shows it as a blank row with that reason.
+- `year_only_quarter_banners` (`presentation.py`) writes the note once per company and metric;
+  the lookup and compare rows carry the field, so a compare or a ranking by EPS shows a 10-K
+  filer's latest quarter with its own and the note (Microsoft in `top 3 tech companies by EPS`).
+  Dividends per share and basic EPS step back the same way.
+
+Files changed:
+- `src/financial_analyst_agent/{sec_facts.py,presentation.py,turn.py,contracts.py,domain/models.py}`
+- `tests/unit/providers/test_per_share_latest_with_its_own.py` (new), `tests/test_run_turn_lookup.py`,
+  `tests/unit/test_planner_evaluation.py`
+- `README.md` (How a question is read), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,962 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 244 conversations differ from HEAD` (no recorded conversation asks a 10-K filer's EPS
+  with no period). The implementation was left uncommitted by the previous iteration and is
+  committed here after re-running every check. Ticket 05 ("what caused ... to fall" asks
+  against what) is next.
+
+
+## 2026-10-06 — brief-5-probe-gaps 05 "What caused revenue to fall?" asks against what
+
+Task completed: `docs/process/tickets/brief-5-probe-gaps/issues/05-what-caused-a-change-asks-against-what.md`
+
+Key decisions:
+- `_CHANGE` (`request_wording.py`), the shared reading of a change that may name no base, gains
+  `what (caused|made|led|drove|pushed) ... (to) (fall|rise|drop|decline|jump|...)` and `led to` /
+  `the reason for|behind` before `the (change|drop|decline|...) in`. `comparison_asked` then
+  returns "unclear" and the turn asks what to compare against, as for `Why did revenue drop?`.
+  A named base (`year over year`) or a span (`since 2023`) still answers. Rules planner unchanged.
+- Phrase coverage: the ticket's case is off `KNOWN_GAPS` (now empty); `NO_BASE_QUESTIONS` gains
+  three questions (Pfizer earnings, "what's behind the drop in", "what led to the decline in").
+
+Files changed:
+- `src/financial_analyst_agent/{request_wording.py,phrase_coverage.py}`
+- `tests/unit/test_planner_wording.py` (9 new cases)
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,971 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
+  regenerated. Ticket 06 (an unknown measure is not its ambiguous word) is next.
+
+
+## 2026-10-06 — brief-5-probe-gaps 06 An unknown measure is not the ambiguous word inside it
+
+Task completed: `docs/process/tickets/brief-5-probe-gaps/issues/06-an-unknown-measure-is-not-its-ambiguous-word.md`
+
+Key decisions:
+- `_UNKNOWN_MEASURES` (`services/metric_catalog.py`) lists the measures analysts ask for that the
+  catalog lacks, each with the name the refusal uses. They compete by length with the unique
+  phrases in one longest-span pass (ADR 0004), so "equity" in "debt-to-equity", "turnover" in
+  "asset turnover" and "price" in "price to book" do not make the question; the resolution is
+  unknown with `term` set, and a catalog metric beside one is still answered.
+- The guide's regex list of unsupported figures is replaced by the catalog's names, so one list
+  owns what the app cannot look up. The reply wording is unchanged.
+- `_metric_from_query` (rules planner) and the shared metric guard (`bind_metrics_from_message`)
+  take the measure's name from the catalog's reading instead of "costs", "ratio" or a model slug.
+- Phrase coverage gains "Unknown measures" (`UNKNOWN_MEASURE_QUESTIONS`, 16 cases), each expecting
+  the refusal that names the measure. `KNOWN_GAPS` stays empty.
+
+Files changed:
+- `src/financial_analyst_agent/{services/metric_catalog.py,guide.py,rules_planner.py,request_wording.py,phrase_coverage.py}`
+- `tests/unit/services/test_metric_phrase.py`, `tests/test_says_what_it_cannot_do.py`
+- `docs/adr/0004-ambiguous-metric-clarify.md`, the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,991 Python tests pass; ruff and mypy pass; compare_answers reports
+  `2 of 244 conversations differ from HEAD`, both intended: `case:h2_cac_unknown` names
+  customer acquisition cost (was "costs") and `case:h2_current_ratio_unknown` names current
+  ratio (was "ratio"). docs/evaluation/phrase-coverage.md not regenerated. Ticket 07
+  (overview words) is next.
+
+
+## 2026-10-06 — brief-5-probe-gaps 07 "The rundown" and "how is X performing" ask for the overview
+
+Task completed: `docs/process/tickets/brief-5-probe-gaps/issues/07-overview-words.md`
+
+Key decisions:
+- `_OVERVIEW` (`request_wording.py`), the shared reading of words that ask how a company is
+  doing, gains `rundown`, `quick read/look/take`, `perform(s|ed|ing|ance)` and `how has/have/were`.
+  `Give me the rundown on how Wells Fargo is performing`, `How has Wells Fargo been performing?`,
+  `the rundown on Apple`, `a quick read on Apple` and `Wells Fargo's performance` give the overview;
+  with a window, those quarters. The rules planner is unchanged: its leftover-word reading already
+  defers to the shared words.
+- `bind_metrics_from_message` implies no metrics when the catalog names a measure it lacks, so
+  `Apple's stock performance` stays refused by name whatever the planner proposed (before, a
+  three-word question with an unknown measure and no proposed metric got the overview).
+- `_UNKNOWN_MEASURES` gains `remaining performance obligations` / `RPO`, so Oracle's RPO is
+  refused by name rather than read as an overview through "performance".
+- Phrase coverage gains "Overviews" (`OVERVIEW_QUESTIONS`, 10 cases), listed in `SENT_TO_MODEL`:
+  an overview lookup names no catalog metric, so the live cascade sends it to the LLM planner as
+  it already did for `How is Apple doing?`. `UNKNOWN_MEASURE_QUESTIONS` gains 3 cases.
+- README's overview row names the new phrasings and the window and stock-performance edges.
+
+Files changed:
+- `src/financial_analyst_agent/{request_wording.py,services/metric_catalog.py,phrase_coverage.py}`
+- `tests/unit/test_planner_rules.py` (overview parametrize, unknown-measure guard, rules-planner
+  reading), `tests/unit/services/test_metric_phrase.py` (RPO)
+- `README.md`, the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,006 Python tests pass; ruff and mypy pass; compare_answers reports
+  `1 of 244 conversations differ from HEAD`, intended: `case:h3_orcl_rpo` still refuses, now
+  naming "remaining performance obligations" through the guide (was "remaining obligations").
+  docs/evaluation/phrase-coverage.md not regenerated. Making the rules planner sure of an overview
+  lookup (metric `overview`, which the cascade already keeps) would take these turns off the LLM
+  planner live; not done here, since no ticket asks for it. Ticket 08 (a general question naming
+  a metric explains) is next.
+
+
+## 2026-10-06 — brief-5-probe-gaps 08 A general question that names a metric is an explanation
+
+Task completed: `docs/process/tickets/brief-5-probe-gaps/issues/08-a-general-question-naming-a-metric-explains.md`
+
+Key decisions:
+- `asks_for_explanation` (`request_wording.py`) is the shared reading of explanation wording:
+  `explain …`, `how does … affect/impact/work`, `how is … calculated`, `why does … matter`,
+  `what does … mean`. The rules planner proposes `explain` for such a question that names no
+  company (its AI rule is unchanged); `request_from_proposal` (`turn_graph.py`) turns either
+  planner's figures proposal naming no company into an explain request when the words ask for
+  one. The LLM planner's prompt names the case too.
+- `Explain how a share buyback affects EPS`, `How does a buyback affect EPS?`, `What is free cash
+  flow and why does it matter?` explain; `What's the EPS?` still asks which company; with a
+  company named, the figure is shown as before.
+- Phrase coverage gains "General questions": `EXPLANATION_QUESTIONS` (8, intent explain) and
+  `NO_COMPANY_QUESTIONS` (4, asks which company; listed in `SENT_TO_MODEL`, since a lookup with
+  no company leaves the rules planner unsure). `KNOWN_GAPS` stays empty.
+
+Files changed:
+- `src/financial_analyst_agent/{request_wording.py,rules_planner.py,planner.py,phrase_coverage.py,graph/turn_graph.py}`
+- `tests/unit/test_planner_wording.py` (19 wording cases), `tests/unit/test_planner_rules.py`
+  (rules planner: 4 explanations, 1 figure with no company), `tests/test_run_turn_explain.py`
+  (an LLM-style figures proposal still explains; a figure with no company still asks)
+- `README.md`, the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,032 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not regenerated.
+  Ticket 08 was the last open ticket in brief-5-probe-gaps.
