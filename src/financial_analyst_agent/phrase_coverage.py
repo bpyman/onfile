@@ -335,7 +335,6 @@ KNOWN_GAPS: frozenset[str] = frozenset(
         "follow_up:Apple and Microsoft | take out Microsoft",
         "metric:profit margin:question",
         "metric:profit margin:terse",
-        "no_base:What drove the change in Apple's revenue?",
     }
 )
 

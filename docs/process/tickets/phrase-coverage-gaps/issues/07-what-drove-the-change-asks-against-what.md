@@ -8,4 +8,8 @@ Found by phrase coverage ([report](../../../../evaluation/phrase-coverage.md), `
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+`What drove the change in Apple's revenue?` now asks what to compare against, as "why did revenue drop?" does. `_CHANGE` in `request_wording.py`, which both planners read through (ADR 0010, 0011), also reads "what drove / caused / explains / is behind the change (move, shift, increase, decrease, rise, fall, drop, decline, jump) in …" as a change with no base. A base or span named with it still wins: "… year over year" is year over year, "… since 2023" is the span. The case is off `KNOWN_GAPS`; README "How a question is read" names the wording in the no-base row. compare_answers: 0 of 244 conversations differ.

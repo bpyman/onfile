@@ -1271,3 +1271,23 @@ Blockers / next:
 - None. All 1,890 Python tests pass; ruff and mypy pass; compare_answers reports
   `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
   regenerated. Ticket 07 is next.
+
+
+## 2026-10-06 — phrase-coverage-gaps 07 What drove the change asks against what
+
+Task completed: `docs/process/tickets/phrase-coverage-gaps/issues/07-what-drove-the-change-asks-against-what.md`
+
+Key decisions:
+- `_CHANGE` in `request_wording.py` also reads "what drove/caused/explains/is behind the
+  change (increase, drop, decline, ...) in ..." as a change that may name no base. A named
+  base or span still decides, as for "how much did revenue change?".
+
+Files changed:
+- `src/financial_analyst_agent/{request_wording.py,phrase_coverage.py (1 case off KNOWN_GAPS)}`
+- `tests/unit/test_planner_wording.py`
+- `README.md`, the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,895 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
+  regenerated. Ticket 08 is next.
