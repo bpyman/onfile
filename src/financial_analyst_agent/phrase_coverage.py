@@ -522,12 +522,6 @@ def cases() -> list[PhraseCase]:
 # off when it is fixed; the test fails until the list matches.
 KNOWN_GAPS: frozenset[str] = frozenset(
     {
-        # Quarter over quarter replaces a window shorter than 5 quarters with 5.
-        "combined:$AAPL earnings over the last 4 quarters quarter over quarter",
-        "combined:AAPL vs MSFT gross margin for the last couple of quarters quarter over quarter",
-        "combined:AAPL vs MSFT operating profit margin over the last 4 quarters quarter over "
-        "quarter",
-        "combined:apple D&A over the last 4 quarters quarter over quarter",
         # A named period drops its change, or reads year over year as two named periods.
         "combined:Apple and Microsoft gross margin growth in Q2 2025",
         "combined:AAPL vs MSFT EPS in Q2 2025 year over year",

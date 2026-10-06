@@ -747,7 +747,7 @@ def _period_chip(spec: AnalysisSpec) -> tuple[str, bool]:
         return "Latest quarter", False
     periods = spec.periods
     if periods.kind == "last_n_quarters":
-        return ("Last quarter" if periods.count == 1 else f"Last {periods.count} quarters"), True
+        return ("Last quarter" if periods.shown == 1 else f"Last {periods.shown} quarters"), True
     if periods.kind == "named":
         return periods.label or "Named period", True
     return "Latest quarter", False
@@ -845,7 +845,7 @@ def chip_quick_actions(spec: AnalysisSpec) -> dict[str, tuple[QuickAction, ...]]
                 ),
                 (
                     QuickAction("Last four quarters", "make that the last four quarters"),
-                    kind != "last_n_quarters" or spec.periods.count != 4,
+                    kind != "last_n_quarters" or spec.periods.shown != 4,
                 ),
                 (
                     QuickAction("Year over year", "show year-over-year"),

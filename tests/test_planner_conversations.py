@@ -286,6 +286,18 @@ def test_quarter_over_quarter_shows_sequential_change(runtime) -> None:  # type:
     assert "QoQ change" in answer.table.headers
 
 
+@pytest.mark.parametrize("count", [2, 4, 6])
+def test_quarter_over_quarter_keeps_the_window_asked_for(runtime, count: int) -> None:  # type: ignore[no-untyped-def]
+    # Each quarter shown has its change on the quarter before, the oldest's too.
+    result = replay(runtime, f"Apple revenue over the last {count} quarters quarter over quarter")
+    (answer,) = result.answers
+    assert answer.table is not None, answer.message
+    changes = column_of(answer, "QoQ change")
+    assert len(changes) == count
+    assert all(change not in ("", "—") for change in changes), changes
+    assert f"Last {count} quarters" in result.chips
+
+
 def test_next_quarter_is_not_forecast(runtime) -> None:  # type: ignore[no-untyped-def]
     (answer,) = ask(runtime, "Apple revenue next quarter")
     assert answer.table is None and answer.fact_card is None

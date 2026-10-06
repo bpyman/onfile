@@ -776,6 +776,17 @@ def bind_periods_from_message(
     if asked is None and patch.set_periods is not None:
         return patch.model_copy(update={"add_operations": operations})
     count = asked if asked is not None else 5
+    if sequential and asked is not None:
+        # Each quarter asked for is shown with its change on the quarter before,
+        # so the window reads one quarter more than it shows.
+        return patch.model_copy(
+            update={
+                "set_periods": PeriodSelection(
+                    kind="last_n_quarters", count=asked + 1, asked=asked
+                ),
+                "add_operations": operations,
+            }
+        )
     if (yoy or sequential) and count < 5 and not (explicit_yoy and asked is not None):
         # A sequential change needs the quarter before the oldest one shown.
         count = 5

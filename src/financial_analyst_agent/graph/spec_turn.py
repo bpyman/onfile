@@ -75,6 +75,7 @@ from financial_analyst_agent.graph.analysis_spec import (
     SpecPatch,
     SpecRejection,
     apply_patch,
+    calendar_groups,
     compile_tasks,
     emptied_by,
     resolve_spec,
@@ -182,7 +183,9 @@ def materialize_period_dates(spec: AnalysisSpec, runtime: Runtime) -> AnalysisSp
         dates = listing(first.handle, limit=periods.count or 1)
         if not dates:
             return spec
-        asked = periods.count if periods.count and len(dates) < periods.count else None
+        asked = periods.asked or (
+            periods.count if periods.count and len(dates) < periods.count else None
+        )
         periods = periods.model_copy(
             update={"count": len(dates), "report_dates": dates, "asked": asked}
         )
@@ -1005,6 +1008,7 @@ def merge_analysis(compiled: CompiledAnalysis, results: list[TurnResult]) -> Tur
         across_periods="across_periods" in spec.operations,
         sequential="year_over_year" not in spec.operations,
     )
+    merged = _without_base_quarters(merged, spec)
     if len(spec.companies) == 1 and spec.constituents is None:
         merged = _one_company_failure(merged, results)
     merged = _fill_identity(merged, spec)
@@ -1013,6 +1017,31 @@ def merge_analysis(compiled: CompiledAnalysis, results: list[TurnResult]) -> Tur
     elif "order_by_metric" in spec.operations and spec.companies and spec.metrics:
         merged = _order_companies_by_metric(merged, _ordering_metric(spec))
     return merged
+
+
+def _without_base_quarters(result: TurnResult, spec: AnalysisSpec) -> TurnResult:
+    """Leave out the quarter read only as the oldest shown quarter's sequential base."""
+    shown = spec.periods.shown
+    if spec.periods.kind != "last_n_quarters" or shown is None:
+        return result
+    handles = {company.handle: company for company in spec.companies}
+    oldest: dict[str, date] = {}
+    for issuers, dates in calendar_groups(spec):
+        if len(dates) <= shown:
+            continue
+        for handle in issuers:
+            company = handles[handle]
+            oldest[company.cik or company.name] = dates[shown - 1]
+    if not oldest:
+        return result
+    rows = [
+        row
+        for row in result.table_rows
+        if row.end_date is None
+        or (row.cik or row.company_name) not in oldest
+        or row.end_date >= oldest[row.cik or row.company_name]
+    ]
+    return result.model_copy(update={"table_rows": rows})
 
 
 def add_history(

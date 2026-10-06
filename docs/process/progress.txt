@@ -1311,3 +1311,29 @@ Blockers / next:
 - None. All 1,900 Python tests pass; ruff and mypy pass; compare_answers reports
   `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
   regenerated. Ticket 09 is ready-for-human; no agent ticket remains in this feature.
+
+
+## 2026-10-06 — combination-gaps 01 Quarter over quarter keeps the window
+
+Task completed: `docs/process/tickets/combination-gaps/issues/01-quarter-over-quarter-keeps-the-window.md`
+
+Key decisions:
+- A named window with a sequential change reads `asked + 1` quarters and records
+  `PeriodSelection.asked`; `PeriodSelection.shown` (min of asked and count) is what the
+  chip, quick action, period notes and the planner's spec text say.
+- `merge_analysis` drops the base quarter's rows after the changes are computed, per
+  calendar group. Applies to every named window, so "last 6 quarters qoq" shows 6 with changes.
+- No window named still shows 5 quarters.
+
+Files changed:
+- `src/financial_analyst_agent/{request_wording.py,graph/analysis_spec.py,graph/spec_turn.py,
+  presentation.py,answer_notes.py,planner.py,phrase_coverage.py (4 cases off KNOWN_GAPS)}`
+- `tests/test_planner_conversations.py`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,914 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
+  regenerated. The follow-up "show that quarter over quarter" on a 4-quarter window still
+  sets 5 quarters (test_planner_wording expects it); it could keep 4 the same way.
+  Ticket 02 is next.

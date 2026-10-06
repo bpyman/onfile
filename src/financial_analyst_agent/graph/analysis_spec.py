@@ -51,12 +51,20 @@ class PeriodSelection(BaseModel):
     report_dates: tuple[date, ...] = ()
     company_report_dates: tuple[tuple[str, tuple[date, ...]], ...] = ()
     named: tuple[NamedPeriodSpec, ...] = ()
-    # The quarters the analyst asked for, when the filings hold fewer than that.
+    # The quarters the analyst asked for, when the window read differs: the filings
+    # hold fewer, or a sequential change reads the quarter before the oldest one.
     asked: int | None = None
 
     @property
     def label(self) -> str:
         return ", ".join(period.label() for period in self.named)
+
+    @property
+    def shown(self) -> int | None:
+        """The quarters shown: those asked for, less any the filings lack."""
+        if self.asked is None or self.count is None:
+            return self.count
+        return min(self.asked, self.count)
 
     @model_validator(mode="after")
     def _check_window(self) -> PeriodSelection:
