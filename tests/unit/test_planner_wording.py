@@ -148,6 +148,11 @@ def test_over_the_past_year_is_the_years_quarters_not_growth() -> None:
         ("How much has Intel's revenue changed?", "unclear"),
         ("Did Intel's revenue change?", "unclear"),
         ("How did Intel's net income move?", "unclear"),
+        ("What drove the change in Apple's revenue?", "unclear"),
+        ("What caused the drop in Intel's net income?", "unclear"),
+        ("What is behind the increase in Nvidia's revenue?", "unclear"),
+        ("What drove the change in Apple's revenue year over year?", "year_over_year"),
+        ("What drove the change in Apple's revenue since 2023?", None),
         ("How much did Intel's revenue change year over year?", "year_over_year"),
         ("How much did Intel's revenue change since last quarter?", "sequential"),
         ("How much did Intel's revenue change over the last year?", None),
@@ -199,6 +204,7 @@ def test_an_answer_names_the_base_of_a_change(answer: str, base: str) -> None:
         "no YoY",
         "remove year on year",
         "without year over year growth",
+        "take out the year-over-year column",
     ],
 )
 def test_removing_year_over_year_takes_the_change_away_and_keeps_the_window(message: str) -> None:
@@ -226,6 +232,25 @@ def test_year_over_year_spelt_another_way_reads_the_same(spelling: str) -> None:
 
     assert bound(spelling) == bound("year over year")
     assert "year_over_year" in bound(spelling).add_operations
+
+
+@pytest.mark.parametrize(
+    "wording",
+    [
+        "from a year earlier",
+        "from a year ago",
+        "from last year",
+        "compared with the same quarter last year",
+        "versus the same quarter a year earlier",
+        "against the year-earlier quarter",
+    ],
+)
+def test_a_year_earlier_reads_as_year_over_year(wording: str) -> None:
+    def bound(base: str) -> SpecPatch:
+        message = f"is unitedhealth's operating cash flow up {base}"
+        return bind_periods_from_message(SpecPatch(mode="replace"), message)
+
+    assert bound(wording) == bound("year over year")
 
 
 def test_every_kind_of_clarification_is_one_entry_in_the_table() -> None:
@@ -301,3 +326,14 @@ def test_year_over_year_after_the_latest_quarter_shows_two_years() -> None:
     )
 
     assert apply_patch(spec, patch).periods == _window(8)
+
+
+@pytest.mark.parametrize(
+    "message", ["drop Microsoft", "remove Microsoft", "without Microsoft", "take out Microsoft"]
+)
+def test_taking_a_company_away_removes_it(message: str) -> None:
+    spec, index = _spec("AAPL", "MSFT", metrics=("revenue",))
+
+    patch = refine_patch_from_message(SpecPatch(mode="extend"), message, spec, index=index)
+
+    assert (patch.remove_companies, patch.add_companies, patch.add_metrics) == (("MSFT",), (), ())

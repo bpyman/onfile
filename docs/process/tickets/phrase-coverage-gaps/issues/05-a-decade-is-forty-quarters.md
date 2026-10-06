@@ -8,4 +8,14 @@ Found by phrase coverage ([report](../../../../evaluation/phrase-coverage.md), `
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+2026-10-06. "Apple revenue over the past decade" shows the latest 40 quarters. The phrase-coverage case is off `KNOWN_GAPS`.
+
+- The window grammar (`period_window.py`), which both planners read through (ADR 0010, 0011), reads "decade" as a unit of 40 quarters, as it reads "years" as 4: "past two decades" asks for 80 and is capped at 40, and says so.
+- A recency word before "decade" needs no count: "the past decade", "the last decade", "the previous decade" are one. "A decade ago" is not a window.
+- README "How a question is read" names `the past decade` in the window row.
+
+compare_answers: 0 of 244 conversations differ. No recorded conversation says "decade".

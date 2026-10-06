@@ -5,9 +5,10 @@ recent twelve quarters", "trailing seven quarters", "the 6 latest quarters",
 "over 8 quarters", "the last couple of quarters", "past three years", "the
 last 18 months": each is a recency word (or a preposition), a count and a
 unit. Counts are digits or words up to ninety-nine, "a couple" (2) or "a
-dozen" (12); "a few" and "several" are read as 4 and said so. Years are four
-quarters each, months a third of one (rounded up, and said so). A window is
-capped at ``MAX_QUARTERS_ASKED`` quarters, and that is said too.
+dozen" (12); "a few" and "several" are read as 4 and said so. "The past
+decade" needs no count: it is one. Years are four quarters each, decades
+forty, months a third of one (rounded up, and said so). A window is capped
+at ``MAX_QUARTERS_ASKED`` quarters, and that is said too.
 """
 
 from __future__ import annotations
@@ -52,7 +53,7 @@ _COUNT = (
     r"|(?:a\s+)?few|several)"
 )
 _UNIT = (
-    r"(?P<unit>(?:fiscal\s+|calendar\s+)?(?:quarters?|qtrs?|qs|years?|yrs?)|months?)"
+    r"(?P<unit>(?:fiscal\s+|calendar\s+)?(?:quarters?|qtrs?|qs|years?|yrs?)|months?|decades?)"
     # "3 months ended June" names a quarter; "2 quarters ago" names one quarter.
     r"(?![\w-])(?!\s+(?:ended|ending|ago|from now|later)\b)"
 )
@@ -64,8 +65,10 @@ _WINDOW_PATTERNS = (
     re.compile(rf"\b{_COUNT}\s+{_RECENT}\s+{_UNIT}", re.I),
     # "over 8 quarters", "across the two years", "for a couple of quarters"
     re.compile(rf"\b(?:over|across|for|during|spanning)\s+(?:the\s+)?{_COUNT}\s+{_UNIT}", re.I),
+    # "the past decade": one decade, though no count is said.
+    re.compile(rf"\b{_RECENT}\s+(?P<unit>decade)(?![\w-])(?!\s+ago\b)", re.I),
 )
-_QUARTERS_PER = {"quarter": 1, "qtr": 1, "q": 1, "year": 4, "yr": 4}
+_QUARTERS_PER = {"quarter": 1, "qtr": 1, "q": 1, "year": 4, "yr": 4, "decade": 40}
 
 
 @dataclass(frozen=True)
@@ -117,7 +120,8 @@ def asked_window(message: str) -> AskedWindow | None:
     if not found:
         return None
     match = min(found, key=lambda candidate: candidate.start())
-    count, approximate = _count(match.group("count"))
+    said_count = match.groupdict().get("count")
+    count, approximate = _count(said_count) if said_count is not None else (1, False)
     unit = match.group("unit").casefold().split()[-1].rstrip("s")
     if unit == "month":
         quarters = math.ceil(count / 3)

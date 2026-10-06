@@ -18,4 +18,12 @@ Found by phrase coverage ([report](../../../../evaluation/phrase-coverage.md), `
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Each phrase is a unique phrase in the catalog (`services/metric_catalog.py`), which both planners read through, so the longest span wins over "income", "tax", "interest", "expenses", "equity" or "earned" inside it (ADR 0004). The word alone still asks. `noninterest_income` joins `REPORTED_METRICS`, as `net_interest_income` did; a company that reports none is refused as missing it.
+
+Added beyond the listed cases, the same pattern: "income before income taxes", "earnings before taxes", "pretax earnings" (it read as net income), "R&D expenses", "SG&A expenses", "research and development expense", "interest expenses", "earnings before interest and taxes" (operating income, as EBIT is) and its EBITDA long form.
+
+The 20 cases are off `KNOWN_GAPS`. `compare_answers`: 0 of 244 conversations differ; no recorded conversation uses these phrasings. "fee income" and "total equity" are recorded in `docs/process/rules-to-review.md`: both map to a figure that is not quite the one named.

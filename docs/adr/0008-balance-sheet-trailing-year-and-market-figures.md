@@ -8,7 +8,7 @@ Analysts ask for P/E, return on equity, EBITDA, share price, cash and dividends 
 
 **Balance-sheet amounts** (`cash`, `shareholders_equity`) are the instant a 10-Q or 10-K reports at its own report date, from that filing. They have no start date. The row's period starts and ends on that date, and the window shows it as "At Jun 27, 2026".
 
-**Trailing year** (`net_income_ttm`, used only as a formula component) is the four quarters ending on a report date:
+**Trailing year** (`net_income_ttm`, used only as a formula component; *revised:* also asked for itself, as "TTM net income", "LTM net income" or "trailing twelve month net income", and shown as one amount, not a quarter) is the four quarters ending on a report date:
 
 - After a 10-K, it is the fiscal-year amount the 10-K reports.
 - After a 10-Q, it is last fiscal year (10-K) plus this year to date (10-Q) minus the same months a year earlier (the comparative in that 10-Q). The fiscal year must end the day before the year to date starts, within a week. The earlier amount must end a year before, within a week, and cover the same length, within a week. Only a 10-K's year counts, because proxy statements tag net income too.

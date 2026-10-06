@@ -76,8 +76,12 @@ REPORTED_METRICS: tuple[str, ...] = (
     "dividends_per_share",
     "cash",
     "shareholders_equity",
+    "total_equity",
     # A bank's; other companies report none (missing_fact).
     "net_interest_income",
+    "noninterest_income",
+    # One amount over the four quarters to a report date (ADR 0008).
+    "net_income_ttm",
 )
 FORMULA_METRICS: tuple[str, ...] = (
     "gross_margin",
@@ -129,11 +133,13 @@ MULTIPLE_FORMULAS: tuple[str, ...] = tuple(
 )
 # Formulas over the trailing year rather than one quarter (ADR 0008).
 TRAILING_YEAR_FORMULAS: tuple[str, ...] = ("return_on_equity", "pe_ratio")
+# Every figure over a trailing year, the amount itself and the formulas over it.
+TRAILING_YEAR_FIGURES: tuple[str, ...] = ("net_income_ttm", *TRAILING_YEAR_FORMULAS)
 # Formulas with a snapshot component: computed for the latest period only,
 # since the snapshot holds today's market cap, not a past one (ADR 0008).
 MARKET_FORMULAS: tuple[str, ...] = ("pe_ratio",)
 # Balance-sheet amounts: one value at the quarter's end date (ADR 0008).
-INSTANT_METRICS: tuple[str, ...] = ("cash", "shareholders_equity")
+INSTANT_METRICS: tuple[str, ...] = ("cash", "shareholders_equity", "total_equity")
 PER_SHARE_METRICS: tuple[str, ...] = tuple(
     metric for metric in ALLOWED_METRICS if METRIC_DISPLAY[metric].value_kind == "per_share"
 )

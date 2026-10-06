@@ -1132,3 +1132,182 @@ Blockers / next:
   the fourth held-out set are fixed. The next planner comparison needs a fifth
   held-out set.
 
+
+
+## 2026-10-06 — phrase-coverage-gaps 01 A longer phrase names its metric, not its ambiguous word
+
+Task completed: `docs/process/tickets/phrase-coverage-gaps/issues/01-a-longer-phrase-is-not-its-ambiguous-word.md`
+
+Key decisions:
+- Unique phrases in the catalog, no new mechanism: the longest span already wins
+  (ADR 0004). "Income", "interest", "expenses", "equity" and "tax" alone still ask.
+- noninterest_income joins REPORTED_METRICS, as net_interest_income did.
+- The same pattern beyond the ticket's list: "income before income taxes",
+  "earnings before taxes", "pretax earnings" (read as net income before), "R&D
+  expenses", "SG&A expenses", "interest expenses", "earnings before interest and
+  taxes" and the EBITDA long form.
+- "fee income" and "total equity" followed as the ticket says, and recorded in
+  docs/process/rules-to-review.md.
+
+Files changed:
+- `src/financial_analyst_agent/{contracts.py,services/metric_catalog.py,phrase_coverage.py (KNOWN_GAPS)}`
+- `tests/unit/services/test_metric_phrase.py`, `tests/test_presentation.py` (35 names)
+- `docs/process/rules-to-review.md`, the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,856 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md was
+  not regenerated (the run rules keep evaluation reports out unless a ticket asks);
+  it still shows 236 of 273. Ticket 02 is next.
+
+
+## 2026-10-06 — phrase-coverage-gaps 02 NII is net interest income
+
+Task completed: `docs/process/tickets/phrase-coverage-gaps/issues/02-nii-is-net-interest-income.md`
+
+Key decisions:
+- "nii" is one more unique phrase in the catalog, beside "eps", "fcf" and "roe".
+  No new mechanism.
+
+Files changed:
+- `src/financial_analyst_agent/{services/metric_catalog.py,phrase_coverage.py (KNOWN_GAPS)}`
+- `tests/unit/services/test_metric_phrase.py`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,857 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
+  regenerated. Ticket 03 is next.
+
+
+## 2026-10-06 — phrase-coverage-gaps 03 "As a percentage of revenue" asks for the ratio
+
+Task completed: `docs/process/tickets/phrase-coverage-gaps/issues/03-a-percentage-of-revenue-is-the-ratio.md`
+
+Key decisions:
+- One rule in the catalog's unique matches, after the longest spans are taken: a
+  figure, then "as a percentage/percent/%/share/proportion/fraction of
+  [the/its/their/total] revenue|sales", becomes the figure's ratio over revenue.
+- The ratios: R&D → rd_to_sales, SG&A → sga_ratio, gross profit → gross_margin,
+  operating income → operating_margin, net income → net_margin. Any other figure
+  keeps the figure and revenue side by side.
+
+Files changed:
+- `src/financial_analyst_agent/{services/metric_catalog.py,phrase_coverage.py (4 cases off KNOWN_GAPS)}`
+- `tests/unit/services/test_metric_phrase.py`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,866 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
+  regenerated. Ticket 04 is next.
+
+
+## 2026-10-06 — phrase-coverage-gaps 04 Trailing twelve months is one trailing-year figure
+
+Task completed: `docs/process/tickets/phrase-coverage-gaps/issues/04-trailing-twelve-months-is-one-figure.md`
+
+Key decisions:
+- One rule in the catalog's unique matches: "TTM", "LTM" or "trailing twelve/12
+  month(s)" just before a figure with a trailing-year form (net income) reads as
+  that form, net_income_ttm. Other figures keep the TTM window of 4 quarters.
+- The words a trailing-year figure takes are left out when a window is read
+  (`without_trailing_year_words`, `request_wording.window_words`): the answer is
+  the latest period, one amount.
+- net_income_ttm joins REPORTED_METRICS and presents as a trailing year
+  (`TRAILING_YEAR_FIGURES`): no change chips, no long-quarter note, "Trailing
+  year" on the card. Display name "Trailing-year net income".
+
+Files changed:
+- `src/financial_analyst_agent/{contracts.py,request_wording.py,presentation.py,graph/spec_turn.py,services/metric_catalog.py,phrase_coverage.py (4 cases off KNOWN_GAPS)}`
+- `tests/unit/services/test_metric_phrase.py`, `tests/unit/test_derived_and_named_periods.py`,
+  `tests/test_tester_conversations.py`, `tests/test_presentation.py` (36 names)
+- `README.md`, ADR 0008 (revised note), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,878 Python tests pass; ruff and mypy pass; compare_answers reports
+  1 of 244 conversations differ ("Apple and Tesla return on equity": the trailing-year
+  input's new label). docs/evaluation/phrase-coverage.md not regenerated. Ticket 05 is next.
+
+
+## 2026-10-06 — phrase-coverage-gaps 05 A decade is 40 quarters
+
+Task completed: `docs/process/tickets/phrase-coverage-gaps/issues/05-a-decade-is-forty-quarters.md`
+
+Key decisions:
+- "decade(s)" is a window unit of 40 quarters in `period_window.py`, beside years (4).
+  Counted decades past one hit the 40-quarter cap and say so.
+- A recency word straight before "decade" ("the past decade") counts as one; "a decade
+  ago" is not a window. No other unit takes a missing count ("last quarter" stays the
+  latest quarter).
+
+Files changed:
+- `src/financial_analyst_agent/{period_window.py,phrase_coverage.py (1 case off KNOWN_GAPS)}`
+- `tests/unit/test_period_window.py`
+- `README.md`, the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,884 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
+  regenerated. Ticket 06 is next.
+
+
+## 2026-10-06 — phrase-coverage-gaps 06 A year earlier is year over year
+
+Task completed: `docs/process/tickets/phrase-coverage-gaps/issues/06-a-year-earlier-is-year-over-year.md`
+
+Key decisions:
+- `YEAR_EARLIER` in `request_wording.py`: "a year ago/earlier/before", "the same quarter
+  (period) last year / a year earlier / of the prior year", "the year-earlier quarter".
+  `YOY` and `EXPLICIT_YOY` both read it, so it asks for year over year alone, 8 quarters
+  with no window, as "year over year" does.
+
+Files changed:
+- `src/financial_analyst_agent/{request_wording.py,phrase_coverage.py (2 cases off KNOWN_GAPS)}`
+- `tests/unit/test_planner_wording.py`
+- `README.md`, the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,890 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
+  regenerated. Ticket 07 is next.
+
+
+## 2026-10-06 — phrase-coverage-gaps 07 What drove the change asks against what
+
+Task completed: `docs/process/tickets/phrase-coverage-gaps/issues/07-what-drove-the-change-asks-against-what.md`
+
+Key decisions:
+- `_CHANGE` in `request_wording.py` also reads "what drove/caused/explains/is behind the
+  change (increase, drop, decline, ...) in ..." as a change that may name no base. A named
+  base or span still decides, as for "how much did revenue change?".
+
+Files changed:
+- `src/financial_analyst_agent/{request_wording.py,phrase_coverage.py (1 case off KNOWN_GAPS)}`
+- `tests/unit/test_planner_wording.py`
+- `README.md`, the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,895 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
+  regenerated. Ticket 08 is next.
+
+
+## 2026-10-06 — phrase-coverage-gaps 08 Take out removes a company
+
+Task completed: `docs/process/tickets/phrase-coverage-gaps/issues/08-take-out-removes-a-company.md`
+
+Key decisions:
+- `_TAKE_AWAY` in `request_wording.py` ("drop", "remove", "take out") is the one list
+  the removal, the year-over-year removal and the drop-and-add edits read; "without"
+  still reads as a removal.
+
+Files changed:
+- `src/financial_analyst_agent/{request_wording.py,phrase_coverage.py (1 case off KNOWN_GAPS)}`
+- `tests/unit/test_planner_wording.py`
+- `README.md`, the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,900 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
+  regenerated. Ticket 09 is ready-for-human; no agent ticket remains in this feature.

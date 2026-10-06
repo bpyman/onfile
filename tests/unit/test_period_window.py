@@ -33,6 +33,10 @@ from financial_analyst_agent.rules_planner import issuer_index
         ("past 2 fiscal years", 8),
         ("the last 18 months", 6),
         ("last 0 quarters", 1),
+        ("over the past decade", 40),
+        ("the last decade", 40),
+        ("for the previous decade", 40),
+        ("over the past one decade", 40),
     ],
 )
 def test_a_window_reads_as_quarters(wording: str, quarters: int) -> None:
@@ -88,9 +92,20 @@ def test_a_window_past_the_cap_says_so() -> None:
     ]
 
 
+def test_decades_past_the_cap_say_so() -> None:
+    window = asked_window("Apple revenue over the past two decades")
+
+    assert window is not None
+    assert window.quarters == 40
+    assert window.notes() == [
+        "A window shows at most 40 quarters, so this asks for 40 rather than 80."
+    ]
+
+
 @pytest.mark.parametrize(
     ("message", "count"),
     [
+        ("Apple revenue over the past decade", 40),
         ("show me Nvidia net income over the past 4 quarters", 4),
         ("Compare Pfizer and Merck revenue over the past six quarters", 6),
         ("what about over the past two years?", 8),

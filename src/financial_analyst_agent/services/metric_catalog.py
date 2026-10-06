@@ -109,6 +109,12 @@ METRIC_CONCEPTS: dict[Metric, list[tuple[str, str]]] = {
         ("us-gaap", "StockholdersEquity"),
         ("us-gaap", "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"),
     ],
+    # The balance sheet's total, noncontrolling interests included. A company with
+    # none tags only StockholdersEquity, which is then the same total.
+    Metric.TOTAL_EQUITY: [
+        ("us-gaap", "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"),
+        ("us-gaap", "StockholdersEquity"),
+    ],
 }
 METRIC_CONCEPTS[Metric.DEPRECIATION] = [("us-gaap", "Depreciation")]
 METRIC_CONCEPTS[Metric.AMORTIZATION_OF_INTANGIBLES] = [
@@ -179,7 +185,8 @@ METRIC_DISPLAY: dict[str, MetricDisplay] = {
     "dividends_per_share": MetricDisplay("Dividends per share", "per_share"),
     "cash": MetricDisplay("Cash and equivalents"),
     "shareholders_equity": MetricDisplay("Shareholders' equity"),
-    "net_income_ttm": MetricDisplay("Net income (trailing year)"),
+    "total_equity": MetricDisplay("Total equity"),
+    "net_income_ttm": MetricDisplay("Trailing-year net income"),
     "depreciation": MetricDisplay("Depreciation"),
     "amortization_of_intangibles": MetricDisplay("Amortization of intangibles"),
     "net_interest_income": MetricDisplay("Net interest income"),
@@ -205,7 +212,9 @@ PER_SHARE_METRICS: frozenset[Metric] = frozenset(
     metric for metric in Metric if METRIC_DISPLAY[metric].value_kind == "per_share"
 )
 # Balance-sheet amounts: one value at the report date, never a duration (ADR 0008).
-INSTANT_METRICS: frozenset[Metric] = frozenset({Metric.CASH, Metric.SHAREHOLDERS_EQUITY})
+INSTANT_METRICS: frozenset[Metric] = frozenset(
+    {Metric.CASH, Metric.SHAREHOLDERS_EQUITY, Metric.TOTAL_EQUITY}
+)
 # Sums over the four quarters ending on the report date (ADR 0008).
 TRAILING_YEAR_METRICS: frozenset[Metric] = frozenset({Metric.NET_INCOME_TTM})
 
@@ -262,15 +271,24 @@ _UNIQUE_PHRASES: tuple[tuple[str, str], ...] = (
     ("cost of revenue", "cost_of_revenue"),
     ("cost_of_revenue", "cost_of_revenue"),
     ("cogs", "cost_of_revenue"),
+    # The longer name wins over "expenses" inside it (ADR 0004).
+    ("selling general and administrative expenses", "selling_general_and_administrative"),
+    ("selling, general and administrative expenses", "selling_general_and_administrative"),
+    ("selling general and administrative expense", "selling_general_and_administrative"),
+    ("selling, general and administrative expense", "selling_general_and_administrative"),
     ("selling general and administrative", "selling_general_and_administrative"),
     ("selling, general and administrative", "selling_general_and_administrative"),
     ("selling_general_and_administrative", "selling_general_and_administrative"),
     ("sg&a ratio", "sga_ratio"),
     ("sga ratio", "sga_ratio"),
     ("sga_ratio", "sga_ratio"),
+    ("sg&a expenses", "selling_general_and_administrative"),
+    ("sg&a expense", "selling_general_and_administrative"),
     ("sg&a", "selling_general_and_administrative"),
     ("sga", "selling_general_and_administrative"),
     ("research and development to sales", "rd_to_sales"),
+    ("research and development expenses", "research_and_development"),
+    ("research and development expense", "research_and_development"),
     ("research and development", "research_and_development"),
     ("research_and_development", "research_and_development"),
     ("r&d to sales", "rd_to_sales"),
@@ -278,6 +296,8 @@ _UNIQUE_PHRASES: tuple[tuple[str, str], ...] = (
     ("r&d spend", "research_and_development"),
     ("r&d intensity", "rd_to_sales"),
     ("rd_to_sales", "rd_to_sales"),
+    ("r&d expenses", "research_and_development"),
+    ("r&d expense", "research_and_development"),
     ("r&d", "research_and_development"),
     ("operating expenses", "operating_expenses"),
     ("operating_expenses", "operating_expenses"),
@@ -288,7 +308,10 @@ _UNIQUE_PHRASES: tuple[tuple[str, str], ...] = (
     ("operating_income", "operating_income"),
     ("operating profit", "operating_income"),
     ("operating earnings", "operating_income"),
+    ("income from operations", "operating_income"),
     ("ebit", "operating_income"),
+    ("earnings before interest and taxes", "operating_income"),
+    ("earnings before interest and tax", "operating_income"),
     ("operating margin", "operating_margin"),
     ("operating_margin", "operating_margin"),
     ("operating margins", "operating_margin"),
@@ -306,19 +329,34 @@ _UNIQUE_PHRASES: tuple[tuple[str, str], ...] = (
     ("income_tax_expense", "income_tax_expense"),
     ("tax expense", "income_tax_expense"),
     ("income tax", "income_tax_expense"),
+    ("income taxes", "income_tax_expense"),
     # A bank's interest earned less interest paid; not "interest" alone.
     ("net interest income", "net_interest_income"),
     ("net_interest_income", "net_interest_income"),
+    ("nii", "net_interest_income"),
+    # A bank's fees, trading and other income besides interest.
+    ("noninterest income", "noninterest_income"),
+    ("non-interest income", "noninterest_income"),
+    ("noninterest_income", "noninterest_income"),
     ("interest coverage ratio", "interest_coverage"),
     ("interest coverage", "interest_coverage"),
     ("interest_coverage", "interest_coverage"),
+    ("times interest earned", "interest_coverage"),
     ("interest expense", "interest_expense"),
     ("interest_expense", "interest_expense"),
     ("interest costs", "interest_expense"),
+    ("interest expenses", "interest_expense"),
     ("income before tax", "pretax_income"),
     ("pre-tax income", "pretax_income"),
     ("pretax income", "pretax_income"),
     ("pretax_income", "pretax_income"),
+    ("income before income taxes", "pretax_income"),
+    ("income before taxes", "pretax_income"),
+    ("earnings before income taxes", "pretax_income"),
+    ("earnings before taxes", "pretax_income"),
+    ("earnings before tax", "pretax_income"),
+    ("pre-tax earnings", "pretax_income"),
+    ("pretax earnings", "pretax_income"),
     ("diluted earnings per share", "eps_diluted"),
     ("basic earnings per share", "eps_basic"),
     ("earnings per share", "eps_diluted"),
@@ -344,6 +382,7 @@ _UNIQUE_PHRASES: tuple[tuple[str, str], ...] = (
     ("net profit margin", "net_margin"),
     ("net income", "net_income"),
     ("net_income", "net_income"),
+    ("net_income_ttm", "net_income_ttm"),
     ("net profit", "net_income"),
     ("net earnings", "net_income"),
     ("earnings", "net_income"),
@@ -374,6 +413,8 @@ _UNIQUE_PHRASES: tuple[tuple[str, str], ...] = (
     ("research costs", "research_and_development"),
     ("research expenses", "research_and_development"),
     ("ebitda", "ebitda"),
+    ("earnings before interest, taxes, depreciation and amortization", "ebitda"),
+    ("earnings before interest taxes depreciation and amortization", "ebitda"),
     ("return on equity", "return_on_equity"),
     ("return on shareholders equity", "return_on_equity"),
     ("return_on_equity", "return_on_equity"),
@@ -409,6 +450,10 @@ _UNIQUE_PHRASES: tuple[tuple[str, str], ...] = (
     ("stockholders' equity", "shareholders_equity"),
     ("shareholder equity", "shareholders_equity"),
     ("shareholders_equity", "shareholders_equity"),
+    ("total equity", "total_equity"),
+    ("equity including noncontrolling interests", "total_equity"),
+    ("equity including minority interests", "total_equity"),
+    ("total_equity", "total_equity"),
     ("book value", "shareholders_equity"),
     ("dividends per share", "dividends_per_share"),
     ("dividend per share", "dividends_per_share"),
@@ -498,6 +543,12 @@ def _phrase_spans(query: str, phrase: str) -> list[tuple[int, int]]:
 
 
 def _nonoverlapping_unique_matches(query: str) -> list[tuple[int, int, str]]:
+    longest = _longest_unique_phrases(query)
+    return _as_ratios_of_revenue(query, _as_trailing_years(query, longest))
+
+
+def _longest_unique_phrases(query: str) -> list[tuple[int, int, str]]:
+    """Each unique phrase in the question, the longest winning where two overlap (ADR 0004)."""
     found: list[tuple[int, int, str]] = []
     for phrase, metric in _UNIQUE_PHRASES:
         excluded = _NOT_FOLLOWED_BY.get(phrase)
@@ -515,6 +566,86 @@ def _nonoverlapping_unique_matches(query: str) -> list[tuple[int, int, str]]:
         accepted.append((start, end, metric))
     accepted.sort(key=lambda item: item[0])
     return accepted
+
+
+# A figure's trailing year, as the catalog names it: "TTM net income" is one
+# amount over the four quarters to the latest report (ADR 0008), not a window
+# of quarters. A figure with no trailing-year form ("TTM revenue") keeps the window.
+_TRAILING_YEAR_FORM: dict[str, str] = {"net_income": "net_income_ttm"}
+_TRAILING_YEAR_WORDS = re.compile(
+    r"\b(?:ttm|ltm|trailing[\s-]+(?:twelve|12)[\s-]+months?)\s+$"
+)
+
+
+def _trailing_year_words_before(query: str, start: int) -> int | None:
+    """Where "TTM" or "trailing twelve months" starts, when it comes just before ``start``."""
+    match = _TRAILING_YEAR_WORDS.search(query, 0, start)
+    return match.start() if match is not None else None
+
+
+def _as_trailing_years(
+    query: str, matches: list[tuple[int, int, str]]
+) -> list[tuple[int, int, str]]:
+    """Read "TTM net income" as net income's trailing year."""
+    read: list[tuple[int, int, str]] = []
+    for start, end, metric in matches:
+        trailing = _TRAILING_YEAR_FORM.get(metric)
+        words = _trailing_year_words_before(query, start) if trailing is not None else None
+        if trailing is not None and words is not None:
+            read.append((words, end, trailing))
+        else:
+            read.append((start, end, metric))
+    return read
+
+
+def without_trailing_year_words(query: str) -> str:
+    """The question without the "TTM" a trailing-year figure takes, for reading its window."""
+    folded = query.casefold()
+    spans = [
+        (words, start)
+        for start, _end, metric in _longest_unique_phrases(folded)
+        if metric in _TRAILING_YEAR_FORM
+        and (words := _trailing_year_words_before(folded, start)) is not None
+    ]
+    for words, start in reversed(spans):
+        query = query[:words] + query[start:]
+    return query
+
+
+# A figure over revenue, as the catalog names it: "R&D as a percentage of
+# revenue" is R&D to sales, not R&D and revenue side by side.
+_RATIO_OF_REVENUE: dict[str, str] = {
+    "gross_profit": "gross_margin",
+    "operating_income": "operating_margin",
+    "net_income": "net_margin",
+    "research_and_development": "rd_to_sales",
+    "selling_general_and_administrative": "sga_ratio",
+}
+_AS_A_SHARE_OF = re.compile(
+    r"\s*as\s+(?:an?\s+)?(?:percentage|percent|share|proportion|fraction|%)\s+of\s+"
+    r"(?:(?:the|its|their|total)\s+)*"
+)
+
+
+def _as_ratios_of_revenue(
+    query: str, matches: list[tuple[int, int, str]]
+) -> list[tuple[int, int, str]]:
+    """Read "X as a percentage (or share) of revenue" as X's ratio, where the catalog has one."""
+    merged: list[tuple[int, int, str]] = []
+    for start, end, metric in matches:
+        if merged:
+            prior_start, prior_end, prior = merged[-1]
+            ratio = _RATIO_OF_REVENUE.get(prior)
+            between = query[prior_end:start]
+            if (
+                ratio is not None
+                and metric == "revenue"
+                and _AS_A_SHARE_OF.fullmatch(between) is not None
+            ):
+                merged[-1] = (prior_start, end, ratio)
+                continue
+        merged.append((start, end, metric))
+    return merged
 
 
 def _spans_overlap(start: int, end: int, occupied: list[tuple[int, int]]) -> bool:

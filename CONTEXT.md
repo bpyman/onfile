@@ -41,7 +41,7 @@ The same line a year earlier as a filing reports it beside the current period, o
 _Avoid_: prior-year value, restated row
 
 **Balance-sheet amount**:
-An amount a filing reports at its report date rather than over the quarter (cash, shareholders' equity), shown "At" that date.
+An amount a filing reports at its report date rather than over the quarter (cash, shareholders' equity, total equity), shown "At" that date.
 _Avoid_: quarterly cash, period balance
 
 **Named period**:

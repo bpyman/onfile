@@ -31,7 +31,10 @@ from financial_analyst_agent.guide import short_name
 from financial_analyst_agent.issuer_index import CompanyNames
 from financial_analyst_agent.observability import log_event
 from financial_analyst_agent.period_window import asked_window
-from financial_analyst_agent.services.metric_catalog import resolve_metric_phrase
+from financial_analyst_agent.services.metric_catalog import (
+    resolve_metric_phrase,
+    without_trailing_year_words,
+)
 
 _ADD_EDIT = re.compile(
     r"^\s*(?:now\s+)?(?:also\s+)?(?:add|include)\s+(.+?)\s*$",
@@ -74,16 +77,26 @@ _INSTEAD_EDIT = re.compile(
 )
 
 
+# "drop", "remove", "take out": the words that take something off the screen.
+_TAKE_AWAY = r"drop|remove|take\s+out"
 _DROP_EDIT = re.compile(
-    r"^\s*(?:drop|remove|without)\s+(.+?)\s*$",
+    rf"^\s*(?:{_TAKE_AWAY}|without)\s+(.+?)\s*$",
     re.IGNORECASE,
 )
 # "year over year", "year-on-year", "YoY", "y/y": one comparison, however spelt.
 YEAR_OVER_YEAR = r"year[\s-]*o(?:ver|n)[\s-]*year|yoy|y/y"
+# "a year earlier", "the same quarter last year", "the year-earlier quarter": the
+# base of a year-over-year change, named without the words.
+YEAR_EARLIER = (
+    r"(?:a|one) year (?:ago|earlier|before)"
+    r"|the same (?:quarter|period) (?:last year|a year (?:ago|earlier|before)"
+    r"|(?:of )?the (?:prior|previous) year)"
+    r"|the year[\s-]+(?:earlier|ago) (?:quarter|period)"
+)
 # "remove year over year": the change goes, the quarters on screen stay. Read
 # before the year-over-year wording, which would otherwise ask for it.
 _DROP_COMPARISON = re.compile(
-    r"^\s*(?:drop|remove|without|no|hide)\s+(?:the\s+)?"
+    rf"^\s*(?:{_TAKE_AWAY}|without|no|hide)\s+(?:the\s+)?"
     rf"(?:{YEAR_OVER_YEAR})(?:\s+(?:change|changes|growth|comparison|column))?"
     r"\s*[.!]?\s*$",
     re.IGNORECASE,
@@ -116,13 +129,13 @@ _SWITCH_TO_EDIT = re.compile(
 
 
 _DROP_AND_ADD_EDIT = re.compile(
-    r"^\s*(?:drop|remove)\s+(.+?)\s*,?\s+(?:and\s+)?(?:add|include|show)\s+(.+?)\s*$",
+    rf"^\s*(?:{_TAKE_AWAY})\s+(.+?)\s*,?\s+(?:and\s+)?(?:add|include|show)\s+(.+?)\s*$",
     re.IGNORECASE,
 )
 
 
 YOY = re.compile(
-    rf"\b(?:{YEAR_OVER_YEAR}|show yoy|compare to last year|(?:a|one) year ago"
+    rf"\b(?:{YEAR_OVER_YEAR}|{YEAR_EARLIER}|show yoy|compare to last year"
     # "over the past year" alone is the year's quarters; "grew over the past year" is growth.
     r"|(?:from|since|vs\.?|versus) (?:a year ago|last year)"
     r"|grow(?:th|n|ing)?|grew|how (?:has|have|did) .+ change[d]?|trend(?:ing)?"
@@ -239,7 +252,7 @@ FORECAST = re.compile(
 
 # Wording that asks for year-over-year change only, not quarter-to-quarter too.
 EXPLICIT_YOY = re.compile(
-    rf"\b(?:{YEAR_OVER_YEAR}|(?:a|one) year (?:ago|earlier|before)"
+    rf"\b(?:{YEAR_OVER_YEAR}|{YEAR_EARLIER}"
     r"|(?:from|since|vs\.?|versus|compared? (?:to|with)) "
     r"(?:a year ago|last year|the (?:prior|previous) year))\b",
     re.IGNORECASE,
@@ -254,9 +267,13 @@ _SEQUENTIAL = re.compile(
 )
 
 
-# "How much did revenue change?", "did it move?": a change that may name no base.
+# "How much did revenue change?", "did it move?", "what drove the change in revenue?":
+# a change that may name no base.
 _CHANGE = re.compile(
-    r"\b(?:how (?:much )?)?(?:has|have|did) .+ (?:change|move)d?\b",
+    r"\b(?:how (?:much )?)?(?:has|have|did) .+ (?:change|move)d?\b"
+    r"|\bwhat(?:'s| is| was)? (?:drove|drives|driving|caused|causes|causing|explains"
+    r"|explained|behind) the (?:change|move|movement|shift|swing|increase|decrease"
+    r"|rise|fall|drop|decline|jump)s? in\b",
     re.IGNORECASE,
 )
 
@@ -659,12 +676,17 @@ def _asks_change_without_base(message: str) -> bool:
     return _CHANGE.search(message) is not None and not _names_a_span(message)
 
 
+def window_words(message: str) -> str:
+    """The wording a window is read from: "TTM net income" names a figure, not quarters."""
+    return without_trailing_year_words(message)
+
+
 def _names_a_span(message: str) -> bool:
     """Whether the wording names quarters a change runs across ("over the past 10 quarters").
 
     The span's first quarter is the change's base, so the span is the answer.
     """
-    window = asked_window(message)
+    window = asked_window(window_words(message))
     return (
         (window is not None and window.quarters > 1)
         or SINCE_YEAR.search(message) is not None
@@ -789,7 +811,7 @@ def asks_to_swap(message: str) -> bool:
 
 
 def is_removal(message: str) -> bool:
-    """ "drop revenue", "remove Apple", "without margins": an edit that takes away."""
+    """ "drop revenue", "take out Apple", "without margins": an edit that takes away."""
     return _DROP_EDIT.match(message.strip()) is not None
 
 
@@ -840,7 +862,7 @@ def planner_window(
                 read=window.asked_quarters,
             )
         return patch
-    if _PERIOD_CUE.search(message):
+    if _PERIOD_CUE.search(window_words(message)):
         return patch
     log_event("planner_window_dropped", proposed=proposed.count)
     return patch.model_copy(update={"set_periods": None})
@@ -1119,6 +1141,7 @@ SPECIFIC_PERIOD = re.compile(
 
 def read_window(message: str) -> WindowReading:
     """Read once the window details that compilation and answer notes both need."""
+    message = window_words(message)
     window = asked_window(message)
     since = SINCE_YEAR.search(message) if window is None else None
     since_count = since_quarters(since) if since is not None else None
