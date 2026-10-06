@@ -1,6 +1,6 @@
 # Phrase coverage
 
-Generated `2026-10-06T21:21:16.977370+00:00` on the recorded runtime with the rules planner. 465 everyday phrasings of a metric, a window, a change or a follow-up, each asked as a whole question and judged by the README's [How a question is read](../../README.md#how-a-question-is-read). No network and no model. **465 of 465 (100%) are read right**; the live app's cascade would send 11 to the LLM planner.
+Generated `2026-10-06T23:14:56.976316+00:00` on the recorded runtime with the rules planner. 466 everyday phrasings of a metric, a window, a change or a follow-up, each asked as a whole question and judged by the README's [How a question is read](../../README.md#how-a-question-is-read). No network and no model. **466 of 466 (100%) are read right**; the live app's cascade would send 11 to the LLM planner.
 
 | Group | Phrasings | Read right |
 | --- | ---: | ---: |
@@ -14,7 +14,7 @@ Generated `2026-10-06T21:21:16.977370+00:00` on the recorded runtime with the ru
 | Idioms beside a company | 6 | 6 (100%) |
 | Overviews | 10 | 10 (100%) |
 | Unknown measures | 19 | 19 (100%) |
-| General questions | 12 | 12 (100%) |
+| General questions | 13 | 13 (100%) |
 | Follow-ups | 19 | 19 (100%) |
 | Combinations | 98 | 98 (100%) |
 | Follow-up combinations | 35 | 35 (100%) |
@@ -39,7 +39,7 @@ The live app plans with the cascade (ADR 0012): the rules planner, and the LLM p
 | `What was Apple's expenses?` | no catalog metric | yes |
 | `What was Apple's dividends?` | no catalog metric | yes |
 | `What's the EPS?` | no company | yes |
-| `What is EPS?` | no company | yes |
+| `What is the EPS?` | no company | yes |
 | `What's the revenue?` | no company | yes |
 | `What was the revenue last quarter?` | no company | yes |
 
