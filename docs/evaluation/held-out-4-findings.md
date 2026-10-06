@@ -70,3 +70,12 @@ window on screen.
 - The six shared defects are worth fixing whichever planner runs. Fixing them
   turns this set into development data, so the next comparison needs a fifth
   held-out set, written the same way.
+
+## Adjudicated afterwards
+
+The two growth cases are adjudicated (6 October 2026) in the case file's
+`adjudications`: their period label becomes several quarters, with no count,
+under the README's "charts the growth rates" as committed when the brief froze.
+Their labels stand, and the score as labelled is unchanged. The run of 5 October
+saved no per-case observations, so its report has no adjudicated score; runs
+since save them.

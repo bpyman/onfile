@@ -1,6 +1,28 @@
 {
   "about": "Fourth held-out set, written and labelled by a separate Claude Code session from the frozen brief docs/evaluation/held-out-4-brief.md, having read only that brief, README.md, CONTEXT.md and ADRs 0004, 0007 and 0008; no source code, tests, other case files, planner comparisons or git history were read, and nothing was run. Every question asks about the 27 companies in the recorded runtime, except refusal cases. Labels follow the brief's product rules: a conversation is scored on its last turn; one company is intent lookup and several named companies are compare; no period named is the latest quarter, a recent window is last_n_quarters (a year is 4 quarters, 'past year' and 'several' are 4, 'a couple of' is 2, months are a third rounded up), and a named fiscal quarter or year is named with no count; growth or year-over-year change adds the year_over_year operation; a ranking by a catalog metric is rank_and_lookup with that metric and tickers_include holding only the largest member(s) by market value, while a ranking by market value leaves intent and metric out; ambiguous metric words (ADR 0004) and a change with no base are clarify; unknown metrics, segments, advice, funds, future periods and off-topic questions are refuse; filing-change, news and explanation cases label the intent only, and overviews label the ticker and outcome without an intent. Alphabet is labelled GOOG. Fields the rules leave open are omitted. Held out until the planner comparison of 5 October 2026; since then it is development data: code has been changed to pass its cases (held-out-4-findings tickets: h4_bac_nii_couple_quarters, h4_growth_unh_ocf_year_on_year, h4_clarify_intel_change_no_base, h4_fu_jpm_and_wfc_remove_jpm, h4_fu_amgn_gild_yoy, h4_fu_tmo_dhr_too_growth), so a later comparison needs a fresh held-out set. No label has been changed.",
   "label_changes": [],
+  "adjudications": [
+    {
+      "id": "h4_growth_nvda_how_fast",
+      "expect": {
+        "periods": {
+          "kind": "last_n_quarters"
+        }
+      },
+      "rule": "README.md at the brief's commit 54a0e22, What it can answer: “Compare Microsoft and Apple revenue growth” charts the growth rates",
+      "why": "A chart of growth rates spans several quarters, not the latest one; the brief said a question naming no period is the latest quarter without this exception. No count is adjudicated: none was written down."
+    },
+    {
+      "id": "h4_growth_three_tickers_operating_income",
+      "expect": {
+        "periods": {
+          "kind": "last_n_quarters"
+        }
+      },
+      "rule": "README.md at the brief's commit 54a0e22, What it can answer: “Compare Microsoft and Apple revenue growth” charts the growth rates",
+      "why": "A chart of growth rates spans several quarters, not the latest one; the brief said a question naming no period is the latest quarter without this exception. No count is adjudicated: none was written down."
+    }
+  ],
   "cases": [
     {
       "id": "h4_msft_net_income_six_quarters",

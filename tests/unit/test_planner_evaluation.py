@@ -11,6 +11,7 @@ import pytest
 from financial_analyst_agent.conversation import run_conversation_turn
 from financial_analyst_agent.planner import OpenAIStructuredCompleter, Plan
 from financial_analyst_agent.planner_evaluation import (
+    Adjudication,
     BudgetExceeded,
     CaseRun,
     MeteredCompleter,
@@ -20,10 +21,15 @@ from financial_analyst_agent.planner_evaluation import (
     Prices,
     Usage,
     estimate,
+    load_adjudications,
     load_cases,
     observe,
+    paired,
+    render_markdown,
+    rescore,
     run_planner,
     score,
+    scored_run,
     summarize,
 )
 from financial_analyst_agent.runtime import recorded_runtime
@@ -234,3 +240,109 @@ def test_an_estimate_counts_every_turn_and_prices_only_when_asked() -> None:
     assert priced["cost_usd"] == pytest.approx(
         (priced["input_tokens"] + priced["output_tokens"]) / 1_000_000
     )
+
+
+_GROWTH = PlannerCase(
+    "growth",
+    "held_out",
+    "growth",
+    ("How fast is Nvidia's revenue growing?",),
+    {"tickers": ["NVDA"], "periods": {"kind": "latest_quarter"}},
+)
+_GROWTH_ADJUDICATED = PlannerCase(
+    *(_GROWTH.case_id, _GROWTH.split, _GROWTH.category, _GROWTH.turns, _GROWTH.expect),
+    adjudication=Adjudication(
+        "growth", {"periods": {"kind": "last_n_quarters"}}, "README: charts growth", "a chart"
+    ),
+)
+_FIVE_QUARTERS = _seen(tickers=frozenset({"NVDA"}), periods=("last_n_quarters", 5))
+
+
+def test_the_committed_adjudications_replace_a_field_and_keep_the_label() -> None:
+    cases = {case.case_id: case for case in load_cases()}
+
+    growth = cases["h4_growth_nvda_how_fast"]
+    assert growth.expect["periods"] == {"kind": "latest_quarter"}
+    assert growth.adjudicated is not None
+    assert growth.adjudicated["periods"] == {"kind": "last_n_quarters"}
+    assert growth.adjudicated["tickers"] == growth.expect["tickers"]
+    assert cases["h4_bac_nii_couple_quarters"].adjudicated is None
+
+
+def test_an_adjudication_needs_its_rule_and_reason_and_a_case_once() -> None:
+    entry = {"id": "x", "expect": {"outcome": "answer"}, "rule": "README", "why": "because"}
+
+    assert load_adjudications([{"adjudications": [entry]}])[0].rule == "README"
+    with pytest.raises(ValueError):
+        load_adjudications([{"adjudications": [{**entry, "rule": " "}]}])
+    with pytest.raises(ValueError):
+        load_adjudications([{"adjudications": [entry, entry]}])
+
+
+def test_a_case_is_scored_as_labelled_and_after_adjudication() -> None:
+    results = [scored_run(_GROWTH_ADJUDICATED, 0, _FIVE_QUARTERS)]
+
+    summary = summarize([_GROWTH_ADJUDICATED], results, Usage(), None)
+
+    held_out = summary["splits"]["held_out"]
+    assert held_out["accuracy"] == 0.0
+    assert held_out["adjudicated_accuracy"] == 1.0
+    assert held_out["adjudicated_cases"] == 1
+    assert summary["failures"][0]["passes_adjudicated"] is True
+
+
+def test_a_saved_run_is_scored_again_with_an_adjudication_made_after_it() -> None:
+    # The run was scored before the adjudication existed.
+    results = [scored_run(_GROWTH, run, _FIVE_QUARTERS) for run in range(2)]
+    saved = {
+        "planners": {
+            "rules": {"label": "Rules planner", **summarize([_GROWTH], results, Usage(), None)}
+        }
+    }
+    assert saved["planners"]["rules"]["splits"]["held_out"]["adjudicated_accuracy"] == 0.0
+
+    report = rescore(saved, [_GROWTH_ADJUDICATED])
+
+    rules = report["planners"]["rules"]
+    assert rules["splits"]["held_out"]["accuracy"] == 0.0
+    assert rules["splits"]["held_out"]["adjudicated_accuracy"] == 1.0
+    assert report["adjudications"][0]["was"] == {"periods": {"kind": "latest_quarter"}}
+    assert report["adjudications"][0]["now"] == {"periods": {"kind": "last_n_quarters"}}
+
+
+def test_the_paired_test_adds_adjudicated_rows_only_where_a_case_was_adjudicated() -> None:
+    passes = [scored_run(_GROWTH_ADJUDICATED, 0, _FIVE_QUARTERS)]
+    fails = [scored_run(_GROWTH_ADJUDICATED, 0, _seen(outcome="refuse"))]
+
+    rows = paired([_GROWTH_ADJUDICATED], passes, fails)
+
+    assert rows["held_out"]["only_first"] == 0
+    assert rows["held_out:adjudicated"]["only_first"] == 1
+    assert "held_out:adjudicated" not in paired([_GROWTH], passes, fails)
+
+
+def test_the_report_shows_both_scores_and_lists_the_adjudications() -> None:
+    results = [scored_run(_GROWTH_ADJUDICATED, 0, _FIVE_QUARTERS)]
+    report = rescore(
+        {
+            "generated_at": "now",
+            "case_count": 1,
+            "scorecard_count": 0,
+            "dev_count": 0,
+            "held_out_count": 1,
+            "planners": {
+                "rules": {
+                    "label": "Rules planner",
+                    **summarize([_GROWTH_ADJUDICATED], results, Usage(), None),
+                }
+            },
+        },
+        [_GROWTH_ADJUDICATED],
+    )
+
+    markdown = render_markdown(report)
+
+    assert "After adjudication" in markdown
+    assert "| Held out | 1 | 0% | 0.0% | — | 100% (1 adjudicated) |" in markdown
+    assert "## Adjudicated labels" in markdown
+    assert "passes after adjudication" in markdown
