@@ -16,8 +16,19 @@ def test_profit_is_ambiguous_among_profit_concepts() -> None:
     assert resolved.candidates == ("gross_profit", "operating_income", "net_income")
 
 
-def test_profit_margin_is_ambiguous_among_margins() -> None:
+def test_profit_margin_is_net_margin() -> None:
     resolved = resolve_metric_phrase("What was Google's profit margin?")
+    assert resolved.kind == "unique"
+    assert resolved.metric == "net_margin"
+
+
+def test_gross_and_operating_profit_margin_name_their_margins() -> None:
+    assert resolve_metric_phrase("Google gross profit margin").metric == "gross_margin"
+    assert resolve_metric_phrase("Google operating profit margin").metric == "operating_margin"
+
+
+def test_margin_alone_is_ambiguous_among_margins() -> None:
+    resolved = resolve_metric_phrase("What was Google's margin?")
     assert resolved.kind == "ambiguous"
     assert resolved.candidates == ("gross_margin", "operating_margin", "net_margin")
 

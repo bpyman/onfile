@@ -380,6 +380,9 @@ _UNIQUE_PHRASES: tuple[tuple[str, str], ...] = (
     ("capital spending", "capital_expenditure"),
     ("capex", "capital_expenditure"),
     ("net profit margin", "net_margin"),
+    # Alone, "profit margin" is net margin, as most references use it; the
+    # answer says so (ADR 0004).
+    ("profit margin", "net_margin"),
     ("net income", "net_income"),
     ("net_income", "net_income"),
     ("net_income_ttm", "net_income_ttm"),
@@ -479,7 +482,6 @@ _UNIQUE_PHRASES: tuple[tuple[str, str], ...] = (
 )
 
 _AMBIGUOUS_PHRASES: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("profit margin", ("gross_margin", "operating_margin", "net_margin")),
     ("cash flow", ("operating_cash_flow", "free_cash_flow")),
     ("profit", ("gross_profit", "operating_income", "net_income")),
     ("income", ("net_income", "operating_income")),

@@ -8,4 +8,8 @@ Found by phrase coverage ([report](../../../../evaluation/phrase-coverage.md), `
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-human
+**Status:** resolved
+
+## Answer
+
+Net margin, with a note (decided 2026-10-06). Corporate Finance Institute gives net profit margin as "also known as 'Profit Margin'", and Yahoo Finance's "Profit Margin" is net income ÷ revenue; asking which margin was meant made the analyst answer a question with a settled everyday reading. The answer says "Profit margin here is net margin: net income as a share of revenue. Ask for gross or operating margin to see one of those." `margin` alone still asks. ADR 0004 records it.

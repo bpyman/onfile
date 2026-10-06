@@ -6,13 +6,15 @@
 >
 > **Revised again (chips accepted):** the audience window shows each candidate as a button. A button sends its catalog slug as the next analyst message ([ADR 0006](0006-react-audience-window.md)), so it is the same answer the analyst could type, matched against the same closed candidate set; only the latest clarification's candidates are live, and only while the thread holds a pending clarification. Typing the metric still works.
 
+> **Revised (profit margin is net margin):** `profit margin` alone is a unique phrase for net margin, not ambiguous. Reference sources (Corporate Finance Institute: net profit margin is "also known as 'Profit Margin'") and the screens an analyst checks (Yahoo Finance's "Profit Margin" is net income ÷ revenue) use it so; asking which margin was meant made the analyst answer a question with a settled everyday reading. The answer says so in a note, with how to ask for gross or operating margin. `margin` alone still asks, and `gross profit margin` and `operating profit margin` still name their margins.
+
 A metric phrase is taken from the **user question**, not from `plan.metric`. Longest closed-table span wins (word boundaries). An exact catalog name or unique alias may run tools. An **ambiguous metric** returns `RendererKind.CLARIFY` with only those humanized names, no tools, same planned intent; the analyst answers by typing or clicking one of those names. An **unknown metric** still refuses with the full catalog. `parse_metric` unknown strings become `UnknownMetricError` — that error is not the clarify path. “Reported income” is left ambiguous on purpose: operating income is reported too. The phrase table grows when the catalog grows; it is not inferred from stems (`operating` is not a metric). Trusting the planner’s slug was rejected: the model will guess `net_income` for “income” and skip the pane.
 
 ## Phrase table
 
 The catalog owns the phrases: `services/metric_catalog.py` holds them, and `resolve_metric_phrase` reads them. It also holds each metric's label and kind of value (`METRIC_DISPLAY`), which the window reads. This ADR records the rules and the ambiguous set, not every alias.
 
-**Unique** phrases name one metric, longest span first: catalog names and slugs, abbreviations (`cogs`, `sg&a`, `r&d`, `opex`, `ebit`, `ebitda`, `roe`, `p/e`, `fcf`), and everyday wording (`top line` and `sales` → revenue, `bottom line` and `earnings` → net income, `market value` and `worth` → market cap, `net worth` → shareholders' equity, `share price` → price). A unique phrase that names a group names every member: `margins` is gross, operating and net margin.
+**Unique** phrases name one metric, longest span first: catalog names and slugs, abbreviations (`cogs`, `sg&a`, `r&d`, `opex`, `ebit`, `ebitda`, `roe`, `p/e`, `fcf`), and everyday wording (`top line` and `sales` → revenue, `bottom line` and `earnings` → net income, `market value` and `worth` → market cap, `net worth` → shareholders' equity, `share price` → price, `profit margin` → net margin, with a note). A unique phrase that names a group names every member: `margins` is gross, operating and net margin.
 
 **Several metrics** named in one question are each answered: "revenue and net income", "Apple revenue and net margin", "revenue, net income and free cash flow".
 
@@ -20,7 +22,7 @@ The catalog owns the phrases: `services/metric_catalog.py` holds them, and `reso
 
 | Phrase | Candidates |
 | --- | --- |
-| `profit margin`, `margin` | Gross margin, Operating margin, Net margin |
+| `margin` | Gross margin, Operating margin, Net margin |
 | `profit` | Gross profit, Operating income, Net income |
 | `income` | Net income, Operating income |
 | `gross` | Gross profit, Gross margin |

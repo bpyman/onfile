@@ -2,6 +2,7 @@ from datetime import date
 from decimal import Decimal
 from types import SimpleNamespace
 
+from financial_analyst_agent.answer_notes import PROFIT_MARGIN_IS_NET_BANNER
 from financial_analyst_agent.contracts import Intent, RendererKind, Runtime, WorkflowPlan
 from financial_analyst_agent.runtime import recorded_runtime
 from financial_analyst_agent.turn import run_turn
@@ -14,7 +15,7 @@ from test_run_turn_lookup import (
 
 PROFIT_QUERY = "What was Google's profit?"
 INCOME_QUERY = "What was Google's income?"
-PROFIT_MARGIN_QUERY = "What was Google's profit margin?"
+MARGIN_QUERY = "What was Google's margin?"
 
 
 class _GuessNetIncomeCompleter:
@@ -46,14 +47,29 @@ def test_run_turn_clarifies_income_even_when_planner_guesses_net_income() -> Non
     assert result.tool_traces == []
 
 
-def test_run_turn_clarifies_profit_margin() -> None:
+def test_run_turn_clarifies_margin() -> None:
     result = run_turn(
-        PROFIT_MARGIN_QUERY,
+        MARGIN_QUERY,
         Runtime(completer=_GuessNetIncomeCompleter(), facts=_ExplodingFacts()),
     )
 
     assert result.renderer is RendererKind.CLARIFY
     assert result.candidates == ("gross_margin", "operating_margin", "net_margin")
+
+
+def test_recorded_runtime_reads_profit_margin_as_net_margin_and_says_so() -> None:
+    result = run_turn("What was Apple's profit margin?", recorded_runtime())
+
+    assert result.renderer is RendererKind.TABLE
+    assert {row.metric for row in result.table_rows} == {"net_margin"}
+    assert PROFIT_MARGIN_IS_NET_BANNER in result.banners
+
+
+def test_recorded_runtime_gross_profit_margin_has_no_net_margin_note() -> None:
+    result = run_turn("What was Apple's gross profit margin?", recorded_runtime())
+
+    assert {row.metric for row in result.table_rows} == {"gross_margin"}
+    assert PROFIT_MARGIN_IS_NET_BANNER not in result.banners
 
 
 def test_recorded_runtime_clarifies_profit() -> None:
