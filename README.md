@@ -56,7 +56,7 @@ What a question leaves out has a default, so the same words always get the same 
 | You ask | You get |
 |---|---|
 | No period: `Apple revenue` | The latest quarter. |
-| A window: `last 3 quarters`, `past two years`, `18 months`, `since 2024` | That many recent quarters (`since 2024`: every quarter since), at most 40. A year is 4 quarters and months are a third, rounded up; `the past year`, `a few` and `several` are 4, and `a couple of` is 2. |
+| A window: `last 3 quarters`, `past two years`, `18 months`, `the past decade`, `since 2024` | That many recent quarters (`since 2024`: every quarter since), at most 40. A year is 4 quarters, a decade 40, and months are a third, rounded up; `the past year`, `a few` and `several` are 4, and `a couple of` is 2. |
 | Trailing twelve months: `TTM net income`, `LTM net income`, `trailing twelve month net income` | One amount: net income over the four quarters to the latest report, the 10-K's year or derived from it and the year to date (ADR 0008). A figure with no trailing-year form (`TTM revenue`) shows its latest 4 quarters. |
 | A named period: `Q2 2025`, `fiscal 2025` | That quarter or year on each company's own fiscal calendar; `calendar Q2 2025` for the calendar quarter. |
 | Growth with no period: `How fast is Apple's revenue growing?` | The latest 5 quarters, each with its year-over-year change. |

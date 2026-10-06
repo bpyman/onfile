@@ -336,7 +336,6 @@ KNOWN_GAPS: frozenset[str] = frozenset(
         "metric:profit margin:question",
         "metric:profit margin:terse",
         "no_base:What drove the change in Apple's revenue?",
-        "window:over the past decade",
         "yoy:Apple revenue compared with the same quarter last year",
         "yoy:Is Apple's revenue up from a year earlier?",
     }

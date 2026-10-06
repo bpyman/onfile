@@ -1228,3 +1228,25 @@ Blockers / next:
 - None. All 1,878 Python tests pass; ruff and mypy pass; compare_answers reports
   1 of 244 conversations differ ("Apple and Tesla return on equity": the trailing-year
   input's new label). docs/evaluation/phrase-coverage.md not regenerated. Ticket 05 is next.
+
+
+## 2026-10-06 — phrase-coverage-gaps 05 A decade is 40 quarters
+
+Task completed: `docs/process/tickets/phrase-coverage-gaps/issues/05-a-decade-is-forty-quarters.md`
+
+Key decisions:
+- "decade(s)" is a window unit of 40 quarters in `period_window.py`, beside years (4).
+  Counted decades past one hit the 40-quarter cap and say so.
+- A recency word straight before "decade" ("the past decade") counts as one; "a decade
+  ago" is not a window. No other unit takes a missing count ("last quarter" stays the
+  latest quarter).
+
+Files changed:
+- `src/financial_analyst_agent/{period_window.py,phrase_coverage.py (1 case off KNOWN_GAPS)}`
+- `tests/unit/test_period_window.py`
+- `README.md`, the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,884 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
+  regenerated. Ticket 06 is next.
