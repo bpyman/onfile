@@ -10,17 +10,19 @@ from dataclasses import dataclass
 from datetime import date
 from difflib import SequenceMatcher
 from html.parser import HTMLParser
-from typing import Any, Literal
+from typing import Any
 from urllib.parse import quote
 
 from financial_analyst_agent.contracts import (
     MODEL_ANALYSIS_BANNER,
     DisclosureChange,
+    FilingForm,
     Intent,
     RendererKind,
     Runtime,
     ToolTrace,
     TurnResult,
+    WorkflowPlan,
     refusal_from_error,
 )
 from financial_analyst_agent.domain.enums import PERIODIC_FORMS
@@ -34,7 +36,7 @@ from financial_analyst_agent.domain.errors import (
     visitor_message,
 )
 from financial_analyst_agent.fan_out import map_in_order
-from financial_analyst_agent.graph.state import FilingChangeRequest
+from financial_analyst_agent.graph.state import FilingChangeRequest, SectionId
 from financial_analyst_agent.guide import format_date, joined, short_name
 from financial_analyst_agent.observability import call_provider
 from financial_analyst_agent.providers.sec.company_resolver import resolve_company
@@ -44,8 +46,6 @@ from financial_analyst_agent.providers.sec.submissions import (
 )
 from financial_analyst_agent.providers.sec.urls import build_filing_document_url
 from financial_analyst_agent.universe import require_operating
-
-SectionId = Literal["mda", "risk_factors"]
 
 REVIEWED_SECTIONS: tuple[SectionId, ...] = ("mda", "risk_factors")
 SECTION_LABELS: dict[SectionId, str] = {
@@ -818,18 +818,46 @@ def _order_accessions(filings: dict[str, _Filing], first: str, second: str) -> t
 
 
 _ANNUAL_WORDING = re.compile(r"\b10-?k\b|\bannual report\b", re.IGNORECASE)
+_QUARTERLY_WORDING = re.compile(r"\b10-?q\b|\bquarterly report\b", re.IGNORECASE)
 
 
-def _form_asked(query: str) -> str:
-    """ "What changed in Microsoft's latest 10-K?" compares 10-Ks; otherwise 10-Qs."""
-    return "10-K" if _ANNUAL_WORDING.search(query) else "10-Q"
+def form_named(text: str) -> FilingForm | None:
+    """The kind of report the words ask about ("latest 10-K", "quarterly report"), if any."""
+    if _ANNUAL_WORDING.search(text):
+        return "10-K"
+    if _QUARTERLY_WORDING.search(text):
+        return "10-Q"
+    return None
 
 
-def _request_refusal(
-    query: str, company: str, older: str, newer: str, plan: FilingChangeRequest
-) -> str:
+def bind_filing_change(plan: WorkflowPlan, message: str) -> FilingChangeRequest:
+    """The planner's filing comparison, with what the question says read once (ADR 0010).
+
+    Accession numbers, sections and the kind of report are read from the words
+    first, whichever planner planned; the plan's own stand only where the words
+    say nothing. A comparison without a message (an MCP call) keeps the plan's.
+    """
+    found = tuple(ACCESSION_PATTERN.findall(message))
+    older, newer = (
+        (found + ("", ""))[:2]
+        if message.strip()
+        else (plan.older_accession, plan.newer_accession)
+    )
+    return FilingChangeRequest(
+        company=plan.company or "",
+        older_accession=older,
+        newer_accession=newer,
+        named_accessions=found,
+        sections=requested_sections(message) or parse_sections(plan.section),
+        form=form_named(message) or plan.form or "10-Q",
+        summarize=plan.summarize,
+        other_companies=plan.other_companies,
+    )
+
+
+def _request_refusal(company: str, older: str, newer: str, plan: FilingChangeRequest) -> str:
     """Why this request cannot be compared as asked, or ""."""
-    found = ACCESSION_PATTERN.findall(query)
+    found = plan.named_accessions
     if len(set(found)) > 2:
         return "Give exactly two accession numbers: the older filing and the newer one."
     if found and len(set(found)) == 1 and len(found) > 1:
@@ -885,17 +913,6 @@ def _too_few_message(filings: dict[str, _Filing], name: str, form: str) -> str:
             "than 10-Qs, so there are no quarterly reports to compare."
         )
     return f"Fewer than two {form} filings are available for this company."
-
-
-def _accessions_from_query(query: str, plan_older: str, plan_newer: str) -> tuple[str, str]:
-    found = ACCESSION_PATTERN.findall(query)
-    if query.strip():
-        if len(found) >= 2:
-            return found[0], found[1]
-        if found:
-            return found[0], ""
-        return "", ""
-    return plan_older, plan_newer
 
 
 # Whole words only: "Verisk", "Riskified" and "Waste Management" name companies,
@@ -967,12 +984,10 @@ def _unchanged_message(compared: list[SectionId], unreadable: list[SectionId]) -
     )
 
 
-def run_filing_change(
-    plan: FilingChangeRequest, runtime: Runtime, *, query: str = ""
-) -> TurnResult:
+def run_filing_change(plan: FilingChangeRequest, runtime: Runtime) -> TurnResult:
     company = plan.company
-    older, newer = _accessions_from_query(query, plan.older_accession, plan.newer_accession)
-    sections = requested_sections(query) or parse_sections(plan.section)
+    older, newer = plan.older_accession, plan.newer_accession
+    sections = plan.sections
     traces = [
         ToolTrace(
             tool="filing_change",
@@ -984,7 +999,7 @@ def run_filing_change(
             },
         )
     ]
-    refused = _request_refusal(query, company, older, newer, plan)
+    refused = _request_refusal(company, older, newer, plan)
     if refused:
         return TurnResult(
             intent=Intent.FILING_CHANGE,
@@ -992,7 +1007,7 @@ def run_filing_change(
             renderer=RendererKind.REFUSE,
             message=refused,
         )
-    form = _form_asked(query)
+    form = plan.form
     filings = runtime.filings
     if filings is None:
         return TurnResult(

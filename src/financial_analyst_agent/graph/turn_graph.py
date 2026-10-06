@@ -38,7 +38,7 @@ from langgraph.types import Command, interrupt
 
 from financial_analyst_agent.contracts import Intent, RendererKind, TurnResult, WorkflowPlan
 from financial_analyst_agent.evidence_store import with_banner
-from financial_analyst_agent.filing_change import run_filing_change
+from financial_analyst_agent.filing_change import bind_filing_change, run_filing_change
 from financial_analyst_agent.graph.analysis_spec import AnalysisSpec, SpecPatch
 from financial_analyst_agent.graph.checkpointer import GraphCheckpoint, ThreadCheckpointer
 from financial_analyst_agent.graph.clarify import (
@@ -127,14 +127,7 @@ def request_from_proposal(
 ) -> AnalystRequest:
     """Type the planner's proposal: one of the closed request kinds, or an error."""
     if isinstance(proposal, WorkflowPlan) and is_filing_change_proposal(proposal):
-        return FilingChangeRequest(
-            company=proposal.company or "",
-            older_accession=proposal.older_accession,
-            newer_accession=proposal.newer_accession,
-            section=proposal.section,
-            summarize=proposal.summarize,
-            other_companies=proposal.other_companies,
-        )
+        return bind_filing_change(proposal, message)
     if isinstance(proposal, WorkflowPlan) and is_qualitative_proposal(proposal):
         topic = proposal.topic
         # Validated: the intent is one of the qualitative three.
@@ -335,7 +328,7 @@ def _filing_change(state: AnalysisRun, runtime: GraphRuntime[TurnDeps]) -> dict[
     request = state["request"]
     if not isinstance(request, FilingChangeRequest):
         raise ValueError(f"filing comparison runs on a filing request, not {request!r}")
-    result = run_filing_change(request, deps.runtime, query=state["message"])
+    result = run_filing_change(request, deps.runtime)
     return _answered(result, deps.active_spec)
 
 
