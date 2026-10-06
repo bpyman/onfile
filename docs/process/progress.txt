@@ -1337,3 +1337,30 @@ Blockers / next:
   regenerated. The follow-up "show that quarter over quarter" on a 4-quarter window still
   sets 5 quarters (test_planner_wording expects it); it could keep 4 the same way.
   Ticket 02 is next.
+
+
+## 2026-10-06 — combination-gaps 02 A named period keeps its change
+
+Task completed: `docs/process/tickets/combination-gaps/issues/02-a-named-period-keeps-its-change.md`
+
+Key decisions:
+- A named period with year over year (or growth) keeps only the named periods and adds
+  `year_over_year`, so each quarter's change reads its own comparative; `_with_year_earlier` removed.
+- Quarter over quarter on a named period sets `PeriodSelection.company_base_dates = ()`;
+  materialization fills, per company, the quarter before each named quarter whose own
+  quarter before is not named. They are fetched (calendar_groups) and dropped from the rows in
+  `merge_analysis`. `None` default keeps every stored spec and the comparison unchanged.
+  `_with_comparison` sets it for a sequential base chosen after "Compared with what?".
+- Phrase coverage: `_reads` checks every shown quarter of a named period has the change;
+  new `named_change:` case.
+
+Files changed:
+- `src/financial_analyst_agent/{request_wording.py,graph/analysis_spec.py,graph/spec_turn.py,
+  phrase_coverage.py (5 cases off KNOWN_GAPS, 1 new)}`
+- `tests/test_planner_conversations.py`, `tests/unit/test_derived_and_named_periods.py`
+- `docs/process/rules-to-review.md` (ADR 0009's widening), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,919 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
+  regenerated. Ticket 03 (show that year over year keeps a named period) is now unblocked.

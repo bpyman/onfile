@@ -645,12 +645,6 @@ def parse_named_periods(message: str) -> tuple[NamedPeriodSpec, ...]:
     return tuple(dict.fromkeys(ordered))
 
 
-def _with_year_earlier(named: tuple[NamedPeriodSpec, ...]) -> tuple[NamedPeriodSpec, ...]:
-    """Add the same period a year earlier, so a year-over-year change has a base."""
-    earlier = [period.model_copy(update={"year": period.year - 1}) for period in named]
-    return tuple(dict.fromkeys([*named, *earlier]))
-
-
 def comparison_asked(message: str) -> ComparisonBase | Literal["unclear"] | None:
     """What a change the message asks about is measured against.
 
@@ -739,15 +733,20 @@ def bind_periods_from_message(
             update={"set_periods": PeriodSelection(kind="last_n_quarters", count=4)}
         )
     if named:
+        # A change on a named period is read as on a window: the named quarters,
+        # each with its year-over-year change from its own filing's comparative
+        # (ADR 0009), or with its change on the quarter before, read but not shown.
         operations = patch.add_operations
         quarters = [period for period in named if period.quarter is not None]
-        if yoy:
-            named = _with_year_earlier(named)
-        if (yoy or len(quarters) >= 2) and "across_periods" not in operations:
+        if (yoy or sequential or len(quarters) >= 2) and "across_periods" not in operations:
             operations = (*operations, "across_periods")
+        if comparison_asked(message) == "year_over_year" and "year_over_year" not in operations:
+            operations = (*operations, "year_over_year")
         return patch.model_copy(
             update={
-                "set_periods": PeriodSelection(kind="named", named=named),
+                "set_periods": PeriodSelection(
+                    kind="named", named=named, company_base_dates=() if sequential else None
+                ),
                 "add_operations": operations,
             }
         )

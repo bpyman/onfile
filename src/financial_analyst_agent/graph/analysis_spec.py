@@ -54,6 +54,11 @@ class PeriodSelection(BaseModel):
     # The quarters the analyst asked for, when the window read differs: the filings
     # hold fewer, or a sequential change reads the quarter before the oldest one.
     asked: int | None = None
+    # Named periods with a sequential change also read the quarter before each
+    # named quarter whose own quarter before is not named, keyed as
+    # ``company_report_dates``: the base of that quarter's change, read but not
+    # shown. None when the change is not sequential; empty until dates are listed.
+    company_base_dates: tuple[tuple[str, tuple[date, ...]], ...] | None = None
 
     @property
     def label(self) -> str:
@@ -575,6 +580,7 @@ def calendar_groups(spec: AnalysisSpec) -> list[tuple[tuple[str, ...], tuple[dat
     """
     reference = spec.periods.report_dates
     own = dict(spec.periods.company_report_dates)
+    bases = dict(spec.periods.company_base_dates or ())
     named = spec.periods.kind == "named"
     groups: dict[tuple[date, ...], list[str]] = {}
     for company in spec.companies:
@@ -583,6 +589,8 @@ def calendar_groups(spec: AnalysisSpec) -> list[tuple[tuple[str, ...], tuple[dat
             # "Q3 FY2024" is each company's own third quarter, wherever it ends.
             if not dates:
                 continue
+            if company.key in bases:
+                dates = tuple(sorted({*dates, *bases[company.key]}, reverse=True))
         elif not dates or not reference or _same_grid(dates, reference):
             dates = reference
         groups.setdefault(dates, []).append(company.handle)
