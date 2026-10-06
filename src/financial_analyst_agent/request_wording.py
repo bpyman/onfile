@@ -815,6 +815,11 @@ def is_removal(message: str) -> bool:
     return _DROP_EDIT.match(message.strip()) is not None
 
 
+def takes_out_or_swaps(message: str) -> bool:
+    """ "take out Apple", "swap Merck for AbbVie": an edit whose words say what goes."""
+    return is_removal(message) or _swap_pair(message.strip()) is not None
+
+
 def _swap_pair(message: str) -> tuple[str, str] | None:
     """(incoming, outgoing) of "use X instead of Y" or "remove Y add X"."""
     swapped = _SWAP_EDIT.match(message)
