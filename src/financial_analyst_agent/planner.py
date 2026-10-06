@@ -277,8 +277,8 @@ def format_spec_for_planner(spec: AnalysisSpec) -> str:
         constituents = f"{spec.constituents.industry} top {spec.constituents.limit}"
     metrics = ", ".join(spec.metrics) or "(none)"
     period_label: str = spec.periods.kind
-    if spec.periods.count is not None:
-        period_label = f"{spec.periods.kind} n={spec.periods.count}"
+    if spec.periods.shown is not None:
+        period_label = f"{spec.periods.kind} n={spec.periods.shown}"
     operations = ", ".join(spec.operations) or "(none)"
     return (
         f"Companies: {companies}\n"

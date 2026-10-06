@@ -40,6 +40,10 @@ _Avoid_: annualised quarter, TTM sum of four rows
 The same line a year earlier as a filing reports it beside the current period, on that filing's basis after a restatement or share split. A year-over-year change starts from it, not from the year-earlier quarter as first filed (ADR 0009).
 _Avoid_: prior-year value, restated row
 
+**Split-adjusted level**:
+A per-share figure filed before a stock split, shown divided by the split ratio the company reports (compounded over several splits), as the company's later filings restate it. Its evidence keeps the filing that first reported it and says how it was adjusted (ADR 0009).
+_Avoid_: restated EPS, adjusted EPS
+
 **Balance-sheet amount**:
 An amount a filing reports at its report date rather than over the quarter (cash, shareholders' equity, total equity), shown "At" that date.
 _Avoid_: quarterly cash, period balance

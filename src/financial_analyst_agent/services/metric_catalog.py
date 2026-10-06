@@ -131,6 +131,9 @@ METRIC_CONCEPTS[Metric.NONINTEREST_INCOME] = [("us-gaap", "NoninterestIncome")]
 REVENUE_CHECK_CONCEPTS: tuple[tuple[str, str], ...] = (("us-gaap", "CostsAndExpenses"),)
 # Weighted diluted shares beside a per-share figure: a split shows as a jump.
 SHARE_COUNT_CONCEPT = ("us-gaap", "WeightedAverageNumberOfDilutedSharesOutstanding")
+# A stock split's ratio as the company reports it (10 for ten-for-one, below 1 for
+# a reverse split): per-share levels filed before it are put on the later basis.
+SPLIT_RATIO_CONCEPT = ("us-gaap", "StockholdersEquityNoteStockSplitConversionRatio1")
 
 # Costs that show "cost of revenue" is not all of a company's cost of revenue: an
 # insurer's benefits and claims (UnitedHealth's medical costs) sit beside the cost
@@ -146,7 +149,7 @@ READ_CONCEPTS: frozenset[tuple[str, str]] = (
     frozenset(concept for candidates in METRIC_CONCEPTS.values() for concept in candidates)
     | frozenset(GROSS_PROFIT_EXCLUDING_CONCEPTS)
     | frozenset(REVENUE_CHECK_CONCEPTS)
-    | {SHARE_COUNT_CONCEPT}
+    | {SHARE_COUNT_CONCEPT, SPLIT_RATIO_CONCEPT}
 )
 
 ValueKind = Literal["usd", "percent", "multiple", "per_share"]

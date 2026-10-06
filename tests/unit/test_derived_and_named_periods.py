@@ -268,17 +268,32 @@ def test_named_periods_are_read_from_the_question(
     assert list(parse_named_periods(question)) == expected
 
 
-def test_a_named_quarter_with_growth_wording_adds_the_year_earlier() -> None:
+def test_a_named_quarter_year_over_year_reads_its_own_comparative() -> None:
     from financial_analyst_agent.graph.analysis_spec import SpecPatch
 
     patch = bind_periods_from_message(SpecPatch(mode="replace"), "Apple revenue Q4 2025 yoy")
 
+    # Q4 2025 alone, its change from the comparative its own filing reports (ADR 0009):
+    # the year-earlier quarter is not a second named period.
     assert patch.set_periods is not None
-    assert patch.set_periods.named == (
-        NamedPeriodSpec(year=2025, quarter=4),
-        NamedPeriodSpec(year=2024, quarter=4),
+    assert patch.set_periods.named == (NamedPeriodSpec(year=2025, quarter=4),)
+    assert patch.set_periods.company_base_dates is None
+    assert {"across_periods", "year_over_year"} <= set(patch.add_operations)
+
+
+def test_a_named_quarter_quarter_over_quarter_reads_the_quarter_before() -> None:
+    from financial_analyst_agent.graph.analysis_spec import SpecPatch
+
+    patch = bind_periods_from_message(
+        SpecPatch(mode="replace"), "Apple revenue Q4 2025 quarter over quarter"
     )
+
+    assert patch.set_periods is not None
+    assert patch.set_periods.named == (NamedPeriodSpec(year=2025, quarter=4),)
+    # The quarter before is read as the change's base once each company's dates are listed.
+    assert patch.set_periods.company_base_dates == ()
     assert "across_periods" in patch.add_operations
+    assert "year_over_year" not in patch.add_operations
 
 
 def test_fiscal_and_calendar_quarters_come_from_each_filing() -> None:

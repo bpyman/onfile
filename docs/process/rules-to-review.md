@@ -19,3 +19,11 @@ Each entry: date, ticket, where, the rule, why it looks wrong, what the agent di
 - **Why it looks wrong:** on a balance sheet "total equity" includes noncontrolling interests. `shareholders_equity` reads `StockholdersEquity` first, the parent's share, and only falls back to the figure including noncontrolling interests. For a company with large minority interests the two differ.
 - **What you did:** followed it. The window labels the figure "Shareholders' equity".
 - **Decided (2026-10-06):** the rule was wrong. `StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest` is its own field (Wells Fargo, Citigroup, PNC, Truist, US Bancorp report it). "Total equity" now names a new metric, `total_equity`, which reads that field and falls back to `StockholdersEquity` for a company with no noncontrolling interests (Apple).
+
+## 2026-10-06 — combination-gaps 02: ADR 0009 on the quarters a change adds
+
+- **Where:** `docs/adr/0009-year-over-year-reads-the-comparative.md`, Decision, third and second paragraphs.
+- **The rule:** "A sequential change still needs the quarter before the oldest one shown, so it can widen a window to 5", and "Otherwise a change is shown only where the year-earlier quarter is in the window, as before."
+- **Why it looks wrong:** the README's "How a question is read" now says a window with quarter over quarter shows that many quarters (combination-gaps 01), and a named period with a change shows those quarters, each with its change (this ticket). Neither widens what is shown: the quarter before is read as the base and not shown, and a named period's year-over-year change reads its own comparative, with no year-earlier quarter added. The ADR still describes the widening.
+- **What you did:** followed the README and the ticket; left the ADR as it is for a person to amend.
+- **Decided (2026-10-06):** the README is right. ADR 0009 has a revision note saying a change no longer widens what is shown.

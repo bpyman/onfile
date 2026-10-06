@@ -1311,3 +1311,106 @@ Blockers / next:
 - None. All 1,900 Python tests pass; ruff and mypy pass; compare_answers reports
   `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
   regenerated. Ticket 09 is ready-for-human; no agent ticket remains in this feature.
+
+
+## 2026-10-06 — combination-gaps 01 Quarter over quarter keeps the window
+
+Task completed: `docs/process/tickets/combination-gaps/issues/01-quarter-over-quarter-keeps-the-window.md`
+
+Key decisions:
+- A named window with a sequential change reads `asked + 1` quarters and records
+  `PeriodSelection.asked`; `PeriodSelection.shown` (min of asked and count) is what the
+  chip, quick action, period notes and the planner's spec text say.
+- `merge_analysis` drops the base quarter's rows after the changes are computed, per
+  calendar group. Applies to every named window, so "last 6 quarters qoq" shows 6 with changes.
+- No window named still shows 5 quarters.
+
+Files changed:
+- `src/financial_analyst_agent/{request_wording.py,graph/analysis_spec.py,graph/spec_turn.py,
+  presentation.py,answer_notes.py,planner.py,phrase_coverage.py (4 cases off KNOWN_GAPS)}`
+- `tests/test_planner_conversations.py`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,914 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
+  regenerated. The follow-up "show that quarter over quarter" on a 4-quarter window still
+  sets 5 quarters (test_planner_wording expects it); it could keep 4 the same way.
+  Ticket 02 is next.
+
+
+## 2026-10-06 — combination-gaps 02 A named period keeps its change
+
+Task completed: `docs/process/tickets/combination-gaps/issues/02-a-named-period-keeps-its-change.md`
+
+Key decisions:
+- A named period with year over year (or growth) keeps only the named periods and adds
+  `year_over_year`, so each quarter's change reads its own comparative; `_with_year_earlier` removed.
+- Quarter over quarter on a named period sets `PeriodSelection.company_base_dates = ()`;
+  materialization fills, per company, the quarter before each named quarter whose own
+  quarter before is not named. They are fetched (calendar_groups) and dropped from the rows in
+  `merge_analysis`. `None` default keeps every stored spec and the comparison unchanged.
+  `_with_comparison` sets it for a sequential base chosen after "Compared with what?".
+- Phrase coverage: `_reads` checks every shown quarter of a named period has the change;
+  new `named_change:` case.
+
+Files changed:
+- `src/financial_analyst_agent/{request_wording.py,graph/analysis_spec.py,graph/spec_turn.py,
+  phrase_coverage.py (5 cases off KNOWN_GAPS, 1 new)}`
+- `tests/test_planner_conversations.py`, `tests/unit/test_derived_and_named_periods.py`
+- `docs/process/rules-to-review.md` (ADR 0009's widening), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,919 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
+  regenerated. Ticket 03 (show that year over year keeps a named period) is now unblocked.
+
+
+## 2026-10-06 — combination-gaps 03 Show that year over year keeps a named period
+
+Task completed: `docs/process/tickets/combination-gaps/issues/03-show-that-year-over-year-keeps-a-named-period.md`
+
+Key decisions:
+- `_keep_window_for_change` keeps any named period on screen (one quarter or several)
+  when the follow-up asks year over year and names no period of its own; a named period
+  with `company_base_dates` set (quarter over quarter) has them cleared.
+
+Files changed:
+- `src/financial_analyst_agent/{request_wording.py,phrase_coverage.py (KNOWN_GAPS now empty)}`
+- `tests/unit/test_planner_wording.py`
+- `README.md`, the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,929 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
+  regenerated. Ticket 04 is ready-for-human; no agent ticket remains in this feature.
+
+
+## 2026-10-06 — combination-gaps 04 Per-share figures across a split on the latest basis
+
+Task completed: `docs/process/tickets/combination-gaps/issues/04-per-share-figures-across-a-split-on-the-latest-basis.md`
+
+Key decisions:
+- New pure module `services/stock_splits.py`: `reported_splits` (one ratio's reports within
+  90 days are one split, effective at the earliest end, named by the latest's month),
+  `on_latest_basis` (divide by the splits after the filing date, compounded; comparative
+  same divisor; diluted shares × divisor), `series_agrees` (half-cent cross-check against
+  every filing on another basis; a disagreement leaves the series as first filed).
+- Adjusted values are rounded to the places first filed ($0.60, not $0.598), adding places
+  only where they would read zero ($0.004 dividend).
+- `SplitAdjustment` on FinancialFact, DerivationPart, TableRow, ComponentProvenance; applied in
+  `SecFactLookup._select_with_fallbacks` for PER_SHARE_METRICS. Selection rule and a banner
+  (`split_adjusted_banners`) say "$5.98 as first filed, ÷ 10 for the ten-for-one split of June 2024".
+- `restated_banners` skips an adjusted level that agrees with the comparative within half a cent.
+
+Files changed:
+- `src/financial_analyst_agent/{services/stock_splits.py (new),domain/models.py,contracts.py,
+  sec_facts.py,turn.py,graph/spec_turn.py,presentation.py}`
+- `tests/unit/test_split_adjusted_per_share.py` (new), `tests/unit/test_year_over_year_comparatives.py`
+  (the split-note test now uses Chipotle, whose fixture reports no ratio)
+- `README.md`, `CONTEXT.md` (Split-adjusted level), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,942 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 244 conversations differ from HEAD` (the recording holds no pre-split per-share quarter).
+  No agent ticket remains in combination-gaps.

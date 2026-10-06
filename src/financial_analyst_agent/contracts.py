@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any, Literal, Protocol, Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from financial_analyst_agent.domain.models import FinancialFact
+from financial_analyst_agent.domain.models import FinancialFact, SplitAdjustment
 from financial_analyst_agent.domain.serialization import DecimalStr
 from financial_analyst_agent.services.metric_catalog import METRIC_DISPLAY
 
@@ -351,6 +351,8 @@ class ComponentProvenance(BaseModel):
     # Set when the value is a derived quarter (ADR 0007), e.g. "Fiscal year minus nine months".
     derivation: str | None = None
     derived_from: list["ComponentProvenance"] = Field(default_factory=list)
+    # A per-share figure filed before a stock split, on the basis after it (ADR 0009).
+    split_adjustment: SplitAdjustment | None = None
 
 
 # What a change is measured against (CONTEXT.md, Comparison base): the same
@@ -390,6 +392,9 @@ class TableRow(BaseModel):
     # Weighted diluted shares behind a per-share figure, so a split between two
     # quarters shows.
     diluted_shares: DecimalStr | None = None
+    # A per-share figure filed before a stock split, shown on the basis after it:
+    # the evidence keeps the filing that first reported it (ADR 0009).
+    split_adjustment: SplitAdjustment | None = None
 
     @field_validator("comparison", mode="before")
     @classmethod

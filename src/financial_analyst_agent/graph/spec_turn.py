@@ -75,6 +75,7 @@ from financial_analyst_agent.graph.analysis_spec import (
     SpecPatch,
     SpecRejection,
     apply_patch,
+    calendar_groups,
     compile_tasks,
     emptied_by,
     resolve_spec,
@@ -182,7 +183,9 @@ def materialize_period_dates(spec: AnalysisSpec, runtime: Runtime) -> AnalysisSp
         dates = listing(first.handle, limit=periods.count or 1)
         if not dates:
             return spec
-        asked = periods.count if periods.count and len(dates) < periods.count else None
+        asked = periods.asked or (
+            periods.count if periods.count and len(dates) < periods.count else None
+        )
         periods = periods.model_copy(
             update={"count": len(dates), "report_dates": dates, "asked": asked}
         )
@@ -240,6 +243,20 @@ def _named_dates(periods: Any, named: tuple[NamedPeriodSpec, ...]) -> tuple[date
     return tuple(sorted(matched, reverse=True))
 
 
+def _quarters_before(listed: Any, shown: tuple[date, ...]) -> tuple[date, ...]:
+    """Each quarter end just before one of ``shown`` and not itself shown, newest first.
+
+    A quarter the filings do not hold is left out: that quarter has no change.
+    """
+    ends = sorted({period.end for period in listed}, reverse=True)
+    before = {
+        older
+        for newer, older in zip(ends, ends[1:], strict=False)
+        if newer in shown and older not in shown and adjacent_quarters(newer, older)
+    }
+    return tuple(sorted(before, reverse=True))
+
+
 def _materialize_named_periods(spec: AnalysisSpec, runtime: Runtime) -> AnalysisSpec:
     """Each company's own quarter ends for the named periods (ADR 0007).
 
@@ -250,6 +267,7 @@ def _materialize_named_periods(spec: AnalysisSpec, runtime: Runtime) -> Analysis
     lister = runtime.facts.fiscal_periods
     periods = spec.periods
     known = dict(periods.company_report_dates)
+    bases = dict(periods.company_base_dates or ())
     pending = _not_yet_listed(spec.companies, known)
     listings = map_in_order(
         lambda company: _or_none(partial(lister, company.handle)), pending
@@ -257,6 +275,8 @@ def _materialize_named_periods(spec: AnalysisSpec, runtime: Runtime) -> Analysis
     for company, listed in zip(pending, listings, strict=True):
         if listed is not None:
             known[company.key] = _named_dates(listed, periods.named)
+            if periods.company_base_dates is not None:
+                bases[company.key] = _quarters_before(listed, known[company.key])
     first = next(
         (known[company.key] for company in spec.companies if known.get(company.key)),
         (),
@@ -267,6 +287,9 @@ def _materialize_named_periods(spec: AnalysisSpec, runtime: Runtime) -> Analysis
             "report_dates": first,
             "count": longest or None,
             "company_report_dates": tuple(known.items()),
+            "company_base_dates": (
+                None if periods.company_base_dates is None else tuple(bases.items())
+            ),
         }
     )
     if updated == periods:
@@ -507,6 +530,7 @@ def _subtracted_level_provenance(row: TableRow) -> ComponentProvenance:
         source="sec_xbrl",
         derivation=row.derivation,
         derived_from=list(row.components) or list(row.derived_from),
+        split_adjustment=row.split_adjustment,
     )
 
 
@@ -774,7 +798,12 @@ def _with_comparison(spec: AnalysisSpec, comparison: ComparisonBase) -> Analysis
         operations.append("across_periods")
     if comparison == "year_over_year":
         operations.append("year_over_year")
-    return spec.model_copy(update={"operations": tuple(operations)})
+    periods = spec.periods
+    if periods.kind == "named":
+        # A named quarter's change on the quarter before reads that quarter too.
+        bases = (periods.company_base_dates or ()) if comparison == "sequential" else None
+        periods = periods.model_copy(update={"company_base_dates": bases})
+    return spec.model_copy(update={"operations": tuple(operations), "periods": periods})
 
 
 def company_clarification(intent: Intent, exc: AmbiguousCompanyError) -> TurnResult:
@@ -1005,6 +1034,7 @@ def merge_analysis(compiled: CompiledAnalysis, results: list[TurnResult]) -> Tur
         across_periods="across_periods" in spec.operations,
         sequential="year_over_year" not in spec.operations,
     )
+    merged = _without_base_quarters(merged, spec)
     if len(spec.companies) == 1 and spec.constituents is None:
         merged = _one_company_failure(merged, results)
     merged = _fill_identity(merged, spec)
@@ -1013,6 +1043,52 @@ def merge_analysis(compiled: CompiledAnalysis, results: list[TurnResult]) -> Tur
     elif "order_by_metric" in spec.operations and spec.companies and spec.metrics:
         merged = _order_companies_by_metric(merged, _ordering_metric(spec))
     return merged
+
+
+def _without_base_quarters(result: TurnResult, spec: AnalysisSpec) -> TurnResult:
+    """Leave out the quarter read only as the oldest shown quarter's sequential base."""
+    if spec.periods.kind == "named":
+        return _without_named_bases(result, spec)
+    shown = spec.periods.shown
+    if spec.periods.kind != "last_n_quarters" or shown is None:
+        return result
+    handles = {company.handle: company for company in spec.companies}
+    oldest: dict[str, date] = {}
+    for issuers, dates in calendar_groups(spec):
+        if len(dates) <= shown:
+            continue
+        for handle in issuers:
+            company = handles[handle]
+            oldest[company.cik or company.name] = dates[shown - 1]
+    if not oldest:
+        return result
+    rows = [
+        row
+        for row in result.table_rows
+        if row.end_date is None
+        or (row.cik or row.company_name) not in oldest
+        or row.end_date >= oldest[row.cik or row.company_name]
+    ]
+    return result.model_copy(update={"table_rows": rows})
+
+
+def _without_named_bases(result: TurnResult, spec: AnalysisSpec) -> TurnResult:
+    """Leave out the quarters read only as a named quarter's sequential base."""
+    bases = dict(spec.periods.company_base_dates or ())
+    hidden = {
+        company.cik or company.name: set(bases[company.key])
+        for company in spec.companies
+        if bases.get(company.key)
+    }
+    if not hidden:
+        return result
+    rows = [
+        row
+        for row in result.table_rows
+        if row.end_date is None
+        or row.end_date not in hidden.get(row.cik or row.company_name, set())
+    ]
+    return result.model_copy(update={"table_rows": rows})
 
 
 def add_history(

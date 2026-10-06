@@ -12,4 +12,12 @@ Found by the combinations in phrase coverage ([report](../../../../evaluation/ph
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+A window named with quarter over quarter shows that many quarters, each with its change on the quarter before. `bind_periods_from_message` reads one quarter more than asked (`count = asked + 1`) and records `PeriodSelection.asked`; the new `PeriodSelection.shown` (the asked window, less any quarters the filings lack) is what the period chip, the "Last four quarters" quick action, the period notes and the LLM planner's view of the spec say. `merge_analysis` leaves out the base quarter's rows once the changes are computed, on each company's own calendar. `materialize_period_dates` keeps an `asked` already set. With no window named, quarter over quarter still shows 5 quarters.
+
+This applies to every named window, not only those under 5: "last 6 quarters quarter over quarter" now shows 6 quarters, all with a change, where the oldest had none before (the README's "that many quarters").
+
+The four cases are off `KNOWN_GAPS`; `tests/test_planner_conversations.py::test_quarter_over_quarter_keeps_the_window_asked_for` checks 2, 4 and 6 quarters on the recorded runtime. `compare_answers` reports 0 of 244 conversations differ: no recorded demo asks for a window with quarter over quarter.

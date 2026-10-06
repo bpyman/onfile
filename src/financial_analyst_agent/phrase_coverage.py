@@ -96,6 +96,14 @@ def _sequential(seen: Observation, turn: ConversationTurn) -> bool:
     )
 
 
+def _each_quarter_changed(turn: ConversationTurn, comparison: str) -> bool:
+    """Every quarter shown has its change: no row stands only as another's base."""
+    rows = turn.result.table_rows
+    levels = {row.end_date for row in rows if row.comparison is None and row.value is not None}
+    changed = {row.end_date for row in rows if row.comparison == comparison}
+    return bool(levels) and levels <= changed
+
+
 def _reads(
     tickers: frozenset[str],
     metrics: frozenset[str],
@@ -119,6 +127,13 @@ def _reads(
             and (
                 comparison is None
                 or any(row.comparison == comparison for row in turn.result.table_rows)
+            )
+            # A named period with a change shows its own quarters, each with the change.
+            and (
+                comparison is None
+                or period is None
+                or period[0] != "named"
+                or _each_quarter_changed(turn, comparison)
             )
         )
 
@@ -243,6 +258,8 @@ YEAR_OVER_YEAR_QUESTIONS = (
     "How fast is Apple's revenue growing?",
     "Is Apple's revenue up from a year earlier?",
 )
+# A named fiscal year is four quarters, each with its change from its own comparative.
+NAMED_CHANGE_QUESTIONS = ("Apple R&D for fiscal 2025 year over year",)
 SEQUENTIAL_QUESTIONS = (
     "Apple revenue quarter over quarter",
     "Apple revenue QoQ",
@@ -501,6 +518,17 @@ def cases() -> list[PhraseCase]:
                 _sequential,
             )
         )
+    for question in NAMED_CHANGE_QUESTIONS:
+        found.append(
+            PhraseCase(
+                f"named_change:{question}",
+                "A named period with a change",
+                (question,),
+                "each quarter shown with its year-over-year change",
+                lambda seen, turn: seen.outcome in ("answer", "no_data")
+                and _each_quarter_changed(turn, "year_over_year"),
+            )
+        )
     for question in NO_BASE_QUESTIONS:
         found.append(
             PhraseCase(f"no_base:{question}", "Changes with no base", (question,), "asks", _asks)
@@ -520,24 +548,7 @@ def cases() -> list[PhraseCase]:
 
 # The cases that fail today, each a gap in the shared reading of words. Take a case
 # off when it is fixed; the test fails until the list matches.
-KNOWN_GAPS: frozenset[str] = frozenset(
-    {
-        # Quarter over quarter replaces a window shorter than 5 quarters with 5.
-        "combined:$AAPL earnings over the last 4 quarters quarter over quarter",
-        "combined:AAPL vs MSFT gross margin for the last couple of quarters quarter over quarter",
-        "combined:AAPL vs MSFT operating profit margin over the last 4 quarters quarter over "
-        "quarter",
-        "combined:apple D&A over the last 4 quarters quarter over quarter",
-        # A named period drops its change, or reads year over year as two named periods.
-        "combined:Apple and Microsoft gross margin growth in Q2 2025",
-        "combined:AAPL vs MSFT EPS in Q2 2025 year over year",
-        "combined:AAPL R&D in Q2 2025 year over year",
-        "combined:Apple profit margin in Q2 2025 quarter over quarter",
-        "combined:Apple R&D for fiscal 2025 quarter over quarter",
-        # "Show that year over year" replaces a named period with 8 quarters.
-        "combined_follow_up:Apple revenue for fiscal 2025 | show that year over year",
-    }
-)
+KNOWN_GAPS: frozenset[str] = frozenset()
 
 
 # The phrasings the cascade sends to the LLM planner. The ambiguous words name no

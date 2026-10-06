@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conversation_replay import ask, column_of, replay, tickers_of
+from conversation_replay import ask, column_of, last_result, replay, tickers_of
 
 if TYPE_CHECKING:
     from financial_analyst_agent.presentation import Presentation
@@ -284,6 +284,56 @@ def test_quarter_over_quarter_shows_sequential_change(runtime) -> None:  # type:
     (answer,) = ask(runtime, "Apple revenue quarter over quarter")
     assert answer.table is not None, answer.message
     assert "QoQ change" in answer.table.headers
+
+
+@pytest.mark.parametrize("count", [2, 4, 6])
+def test_quarter_over_quarter_keeps_the_window_asked_for(runtime, count: int) -> None:  # type: ignore[no-untyped-def]
+    # Each quarter shown has its change on the quarter before, the oldest's too.
+    result = replay(runtime, f"Apple revenue over the last {count} quarters quarter over quarter")
+    (answer,) = result.answers
+    assert answer.table is not None, answer.message
+    changes = column_of(answer, "QoQ change")
+    assert len(changes) == count
+    assert all(change not in ("", "—") for change in changes), changes
+    assert f"Last {count} quarters" in result.chips
+
+
+_FISCAL_2025 = ["2025-09-27", "2025-06-28", "2025-03-29", "2024-12-28"]
+
+
+def _levels_and_changes(result, comparison: str) -> tuple[list[str], list[str]]:  # type: ignore[no-untyped-def]
+    levels = [str(row.end_date) for row in result.table_rows if row.comparison is None]
+    changes = [str(row.end_date) for row in result.table_rows if row.comparison == comparison]
+    return levels, changes
+
+
+@pytest.mark.parametrize(
+    ("question", "comparison"),
+    [
+        ("Apple R&D for fiscal 2025 year over year", "year_over_year"),
+        ("Apple R&D for fiscal 2025 quarter over quarter", "sequential"),
+    ],
+)
+def test_a_named_year_shows_its_quarters_each_with_its_change(  # type: ignore[no-untyped-def]
+    runtime, question: str, comparison: str
+) -> None:
+    # Fiscal 2025's four quarters, each with its change; no fiscal 2024 quarter as a
+    # row, though it is the base of a change.
+    levels, changes = _levels_and_changes(last_result(runtime, question), comparison)
+    assert levels == _FISCAL_2025
+    assert sorted(changes, reverse=True) == _FISCAL_2025
+
+
+@pytest.mark.parametrize(
+    ("answer", "comparison"),
+    [("the quarter before", "sequential"), ("year over year", "year_over_year")],
+)
+def test_a_named_quarter_keeps_the_change_chosen_for_it(  # type: ignore[no-untyped-def]
+    runtime, answer: str, comparison: str
+) -> None:
+    # "Compared with what?" answered: Q2 FY2025 alone, with that change.
+    result = last_result(runtime, "How much did Apple's revenue change in Q2 2025?", answer)
+    assert _levels_and_changes(result, comparison) == (["2025-03-29"], ["2025-03-29"])
 
 
 def test_next_quarter_is_not_forecast(runtime) -> None:  # type: ignore[no-untyped-def]

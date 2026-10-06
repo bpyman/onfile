@@ -200,7 +200,7 @@ def period_notes(
     """Say plainly when the window shown is not the one the analyst asked for."""
     notes: list[str] = []
     shown_window = (
-        f"the last {spec.periods.count} quarters"
+        f"the last {spec.periods.shown} quarters"
         if spec.periods.kind == "last_n_quarters"
         else "the latest quarter"
     )

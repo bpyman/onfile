@@ -10,4 +10,10 @@ Found by the combinations in phrase coverage ([report](../../../../evaluation/ph
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+`_keep_window_for_change` (`request_wording.py`) keeps a named period on screen as it keeps a window: after `Apple revenue for fiscal 2025`, `show that year over year` (or `as growth`, `yoy please`) keeps fiscal 2025 and adds `year_over_year`, so each quarter shows its change from its own filing's comparative (ADR 0009, as ticket 02 reads a named period). A single named quarter is kept too, as `Q2 2025 year over year` shows Q2 2025 with its change. After quarter over quarter on a named period, year over year clears `company_base_dates`, so no quarter before is read as a base.
+
+The case is off `KNOWN_GAPS`, which is now empty. The README's year-over-year row says the follow-up keeps a named period. `compare_answers` reports 0 of 244 conversations differ: no recorded demo follows a named period with year over year.

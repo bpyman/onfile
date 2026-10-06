@@ -645,12 +645,6 @@ def parse_named_periods(message: str) -> tuple[NamedPeriodSpec, ...]:
     return tuple(dict.fromkeys(ordered))
 
 
-def _with_year_earlier(named: tuple[NamedPeriodSpec, ...]) -> tuple[NamedPeriodSpec, ...]:
-    """Add the same period a year earlier, so a year-over-year change has a base."""
-    earlier = [period.model_copy(update={"year": period.year - 1}) for period in named]
-    return tuple(dict.fromkeys([*named, *earlier]))
-
-
 def comparison_asked(message: str) -> ComparisonBase | Literal["unclear"] | None:
     """What a change the message asks about is measured against.
 
@@ -739,15 +733,20 @@ def bind_periods_from_message(
             update={"set_periods": PeriodSelection(kind="last_n_quarters", count=4)}
         )
     if named:
+        # A change on a named period is read as on a window: the named quarters,
+        # each with its year-over-year change from its own filing's comparative
+        # (ADR 0009), or with its change on the quarter before, read but not shown.
         operations = patch.add_operations
         quarters = [period for period in named if period.quarter is not None]
-        if yoy:
-            named = _with_year_earlier(named)
-        if (yoy or len(quarters) >= 2) and "across_periods" not in operations:
+        if (yoy or sequential or len(quarters) >= 2) and "across_periods" not in operations:
             operations = (*operations, "across_periods")
+        if comparison_asked(message) == "year_over_year" and "year_over_year" not in operations:
+            operations = (*operations, "year_over_year")
         return patch.model_copy(
             update={
-                "set_periods": PeriodSelection(kind="named", named=named),
+                "set_periods": PeriodSelection(
+                    kind="named", named=named, company_base_dates=() if sequential else None
+                ),
                 "add_operations": operations,
             }
         )
@@ -776,6 +775,17 @@ def bind_periods_from_message(
     if asked is None and patch.set_periods is not None:
         return patch.model_copy(update={"add_operations": operations})
     count = asked if asked is not None else 5
+    if sequential and asked is not None:
+        # Each quarter asked for is shown with its change on the quarter before,
+        # so the window reads one quarter more than it shows.
+        return patch.model_copy(
+            update={
+                "set_periods": PeriodSelection(
+                    kind="last_n_quarters", count=asked + 1, asked=asked
+                ),
+                "add_operations": operations,
+            }
+        )
     if (yoy or sequential) and count < 5 and not (explicit_yoy and asked is not None):
         # A sequential change needs the quarter before the oldest one shown.
         count = 5
@@ -905,15 +915,16 @@ def _keep_window_for_change(
     With no window named, year over year shows 8 quarters and growth 5: the 8
     were four quarters with the year before each, the 5 four with the year-earlier
     base of the newest. Each quarter's base is now the comparative its own filing
-    reports (ADR 0009), so a window the analyst already has needs no extra rows.
-    A sequential change still needs the quarter before the oldest one shown.
+    reports (ADR 0009), so a window the analyst already has needs no extra rows,
+    nor does a named period, read as on a window. A sequential change still needs
+    the quarter before the oldest one shown.
     """
     on_screen = current_spec.periods
     if (
         patch.mode != "extend"
         or patch.set_periods is None
-        or on_screen.kind != "last_n_quarters"
-        or (on_screen.count or 1) <= 1
+        or on_screen.kind == "latest_quarter"
+        or (on_screen.kind == "last_n_quarters" and (on_screen.count or 1) <= 1)
         or comparison_asked(message) != "year_over_year"
         or window.counted_window
         or window.trailing_year
@@ -921,6 +932,12 @@ def _keep_window_for_change(
         or parse_named_periods(message)
     ):
         return patch
+    if on_screen.company_base_dates is not None:
+        # The quarters before a quarter-over-quarter change's named ones are no
+        # longer a base.
+        return patch.model_copy(
+            update={"set_periods": on_screen.model_copy(update={"company_base_dates": None})}
+        )
     return patch.model_copy(update={"set_periods": None})
 
 
