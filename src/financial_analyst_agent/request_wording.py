@@ -535,7 +535,10 @@ def bind_metrics_from_message(
     # Replace-mode metric question with an unknown phrase: refuse with the full catalog
     # even when the planner guessed a catalog slug.
     term = "unknown"
-    if patch.add_metrics:
+    if resolved.term is not None:
+        # The analyst's own measure, as the catalog lists it ("debt-to-equity").
+        term = resolved.term
+    elif patch.add_metrics:
         candidate = patch.add_metrics[0]
         if candidate not in ALLOWED_METRICS:
             term = candidate

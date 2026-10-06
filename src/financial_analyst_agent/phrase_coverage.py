@@ -72,6 +72,13 @@ def _asks(seen: Observation, _turn: ConversationTurn) -> bool:
     return seen.outcome == "clarify"
 
 
+def _refuses_naming(measure: str) -> Check:
+    def check(seen: Observation, turn: ConversationTurn) -> bool:
+        return seen.outcome == "refuse" and f"look up {measure}" in (turn.result.message or "")
+
+    return check
+
+
 def _window(kind: str, count: int | None = None) -> Check:
     def check(seen: Observation, _turn: ConversationTurn) -> bool:
         seen_kind, seen_count = seen.periods
@@ -304,6 +311,26 @@ IDIOM_QUESTIONS: tuple[tuple[str, tuple[str, ...], str], ...] = (
     ("Merck and Pfizer net margin, apples with apples", ("MRK", "PFE"), "net_margin"),
     ("Merck vs Pfizer net margin, apples and oranges", ("MRK", "PFE"), "net_margin"),
     ("the building blocks of Microsoft and Oracle revenue", ("MSFT", "ORCL"), "revenue"),
+)
+# A measure the catalog lacks is refused by name, even when a word inside it
+# would be ambiguous alone ("equity") or would name a metric ("turnover").
+UNKNOWN_MEASURE_QUESTIONS: tuple[tuple[str, str], ...] = (
+    ("What's Apple's debt-to-equity ratio?", "debt-to-equity"),
+    ("Apple debt to equity", "debt-to-equity"),
+    ("Apple D/E", "debt-to-equity"),
+    ("What is Apple's return on assets?", "return on assets"),
+    ("Apple ROA", "return on assets"),
+    ("Apple's equity multiplier", "equity multiplier"),
+    ("Apple dividend yield", "dividend yield"),
+    ("Apple's net debt", "net debt"),
+    ("Apple interest-bearing debt", "debt"),
+    ("Apple total debt", "debt"),
+    ("JPMorgan net interest margin", "net interest margin"),
+    ("Apple asset turnover", "asset turnover"),
+    ("Apple price to book", "price to book"),
+    ("Apple's price-to-sales ratio", "price to sales"),
+    ("Apple EV/EBITDA", "EV/EBITDA"),
+    ("Apple's customer acquisition cost", "customer acquisition cost"),
 )
 
 _FIRST = "Apple revenue over the last 4 quarters"
@@ -580,6 +607,16 @@ def cases() -> list[PhraseCase]:
                 (question,),
                 _expected(tickers, (metric,), period, None),
                 _reads(frozenset(tickers), frozenset({metric}), period, None),
+            )
+        )
+    for question, measure in UNKNOWN_MEASURE_QUESTIONS:
+        found.append(
+            PhraseCase(
+                f"unknown:{question}",
+                "Unknown measures",
+                (question,),
+                f"refuses, naming {measure}",
+                _refuses_naming(measure),
             )
         )
     for first, follow, check, expected in FOLLOW_UPS:

@@ -1543,3 +1543,32 @@ Blockers / next:
   `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
   regenerated. Ticket 06 (an unknown measure is not its ambiguous word) is next.
 
+
+## 2026-10-06 — brief-5-probe-gaps 06 An unknown measure is not the ambiguous word inside it
+
+Task completed: `docs/process/tickets/brief-5-probe-gaps/issues/06-an-unknown-measure-is-not-its-ambiguous-word.md`
+
+Key decisions:
+- `_UNKNOWN_MEASURES` (`services/metric_catalog.py`) lists the measures analysts ask for that the
+  catalog lacks, each with the name the refusal uses. They compete by length with the unique
+  phrases in one longest-span pass (ADR 0004), so "equity" in "debt-to-equity", "turnover" in
+  "asset turnover" and "price" in "price to book" do not make the question; the resolution is
+  unknown with `term` set, and a catalog metric beside one is still answered.
+- The guide's regex list of unsupported figures is replaced by the catalog's names, so one list
+  owns what the app cannot look up. The reply wording is unchanged.
+- `_metric_from_query` (rules planner) and the shared metric guard (`bind_metrics_from_message`)
+  take the measure's name from the catalog's reading instead of "costs", "ratio" or a model slug.
+- Phrase coverage gains "Unknown measures" (`UNKNOWN_MEASURE_QUESTIONS`, 16 cases), each expecting
+  the refusal that names the measure. `KNOWN_GAPS` stays empty.
+
+Files changed:
+- `src/financial_analyst_agent/{services/metric_catalog.py,guide.py,rules_planner.py,request_wording.py,phrase_coverage.py}`
+- `tests/unit/services/test_metric_phrase.py`, `tests/test_says_what_it_cannot_do.py`
+- `docs/adr/0004-ambiguous-metric-clarify.md`, the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,991 Python tests pass; ruff and mypy pass; compare_answers reports
+  `2 of 244 conversations differ from HEAD`, both intended: `case:h2_cac_unknown` names
+  customer acquisition cost (was "costs") and `case:h2_current_ratio_unknown` names current
+  ratio (was "ratio"). docs/evaluation/phrase-coverage.md not regenerated. Ticket 07
+  (overview words) is next.

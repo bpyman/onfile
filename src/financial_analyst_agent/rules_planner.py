@@ -208,6 +208,9 @@ def _metric_from_query(normalized: str) -> str:
     resolved = resolve_metric_phrase(normalized)
     if resolved.unique_metrics:
         return resolved.unique_metrics[0]
+    if resolved.term is not None:
+        # A measure the catalog lacks, named as it lists it ("debt-to-equity").
+        return resolved.term
     if re.search(r"\brevs?\b", normalized):
         return "revenue"
     if "cost of revenue" not in normalized and re.search(r"\bcosts?\b", normalized):

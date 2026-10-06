@@ -82,6 +82,12 @@ def test_the_order_chip_reads_as_words(runtime) -> None:  # type: ignore[no-unty
         ("Apple total assets", "total assets"),
         ("Apple total debt", "debt"),
         ("Apple headcount", "headcount"),
+        # A word inside an unknown measure that would be ambiguous alone ("equity")
+        # does not make it a question: the measure is named (ADR 0004).
+        ("What's Apple's debt-to-equity ratio?", "debt-to-equity"),
+        ("Apple D/E", "debt-to-equity"),
+        ("Apple equity multiplier", "equity multiplier"),
+        ("Apple dividend yield", "dividend yield"),
     ],
 )
 def test_an_unsupported_metric_is_named_not_swapped(runtime, question: str, named: str) -> None:  # type: ignore[no-untyped-def]

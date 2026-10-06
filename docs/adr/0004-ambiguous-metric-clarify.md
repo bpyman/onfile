@@ -35,7 +35,7 @@ The catalog owns the phrases: `services/metric_catalog.py` holds them, and `reso
 | `money` | Revenue, Net income |
 | `expense`, `expenses` | Cost of revenue, Operating expenses |
 
-**Unknown:** a measure the catalog lacks (`costs`, `debt`, `customer acquisition cost`) refuses and names it, with the catalog. `costs` stays unknown rather than ambiguous because it could mean any expense line.
+**Unknown:** a measure the catalog lacks (`costs`, `debt`, `customer acquisition cost`) refuses and names it, with the catalog. `costs` stays unknown rather than ambiguous because it could mean any expense line. The catalog lists the measures analysts ask for that it lacks (`debt-to-equity`, `return on assets`, `dividend yield`, `asset turnover`), read in the same longest-span pass as its own phrases, so a word inside one that would be ambiguous alone (`equity`) or would name a metric (`turnover`) does not make it the question: the measure is refused by name.
 
 A clarification answer may name several candidates ("gross and net"), all of them ("all", "both"), or another catalog metric outright. A period on its own ("last 4 quarters") is held for the open question rather than read as a new one.
 
