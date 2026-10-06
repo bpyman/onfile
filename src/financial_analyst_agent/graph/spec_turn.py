@@ -24,6 +24,7 @@ from financial_analyst_agent.answer_notes import (
     already_present_notes,
     annual_filer_note,
     capped_ranking_notes,
+    metric_reading_notes,
     period_notes,
     short_ranking_notes,
 )
@@ -1053,6 +1054,7 @@ def annotate_analysis(
     notes = [
         *([annual_filer_note(list(compiled.annual_filers))] if compiled.annual_filers else []),
         *already_present_notes(patch, compiled.prior_spec, spec),
+        *metric_reading_notes(compiled.wording, spec),
         *period_notes(compiled.wording, spec, window=compiled.window),
         *short_ranking_notes(spec),
         *capped_ranking_notes(patch),

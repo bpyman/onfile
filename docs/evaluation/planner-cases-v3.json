@@ -1212,12 +1212,22 @@
     {
       "id": "h3_dhr_profit_margin",
       "split": "dev",
-      "category": "clarify",
+      "category": "lookup",
       "turns": [
         "What's Danaher's profit margin?"
       ],
       "expect": {
-        "outcome": "clarify"
+        "outcome": "answer",
+        "intent": "lookup",
+        "tickers": [
+          "DHR"
+        ],
+        "metrics": [
+          "net_margin"
+        ],
+        "periods": {
+          "kind": "latest_quarter"
+        }
       }
     },
     {

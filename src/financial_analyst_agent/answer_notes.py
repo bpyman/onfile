@@ -7,6 +7,7 @@ so in a line above the table.
 
 from __future__ import annotations
 
+import re
 from datetime import date
 
 from financial_analyst_agent.graph.analysis_spec import (
@@ -67,6 +68,18 @@ FISCAL_Q4_GAP_BANNER = (
 )
 
 
+PROFIT_MARGIN_IS_NET_BANNER = (
+    "Profit margin here is net margin: net income as a share of revenue. "
+    "Ask for gross or operating margin to see one of those."
+)
+
+
+# "Profit margin" with no gross, operating or net before it (ADR 0004).
+_BARE_PROFIT_MARGIN = re.compile(
+    r"(?<!gross )(?<!operating )(?<!net )\bprofit margin\b", re.IGNORECASE
+)
+
+
 CALENDARS_DIFFER_BANNER = (
     "These companies' fiscal quarters end on different dates, "
     "so each row shows the company's own quarter."
@@ -80,6 +93,13 @@ def annual_filer_note(names: list[str]) -> str:
         f"{listed} {verb} annual reports with the SEC (Form 20-F or 40-F) rather than "
         "quarterly 10-Qs, so there are no quarterly figures to show."
     )
+
+
+def metric_reading_notes(message: str, spec: AnalysisSpec) -> list[str]:
+    """Say which metric a loose phrase was read as: "profit margin" is net margin."""
+    if "net_margin" in spec.metrics and _BARE_PROFIT_MARGIN.search(message):
+        return [PROFIT_MARGIN_IS_NET_BANNER]
+    return []
 
 
 def short_ranking_notes(spec: AnalysisSpec) -> list[str]:
