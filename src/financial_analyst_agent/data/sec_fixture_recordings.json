@@ -50,6 +50,7 @@
     "us-gaap:SellingGeneralAndAdministrativeExpense",
     "us-gaap:StockholdersEquity",
     "us-gaap:StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest",
+    "us-gaap:StockholdersEquityNoteStockSplitConversionRatio1",
     "us-gaap:WeightedAverageNumberOfDilutedSharesOutstanding"
   ],
   "company_tickers": {
@@ -105312,6 +105313,43 @@
               ]
             }
           },
+          "StockholdersEquityNoteStockSplitConversionRatio1": {
+            "units": {
+              "pure": [
+                {
+                  "start": "2024-05-01",
+                  "end": "2024-05-31",
+                  "val": 10,
+                  "accn": "0001045810-24-000264",
+                  "fy": 2025,
+                  "fp": "Q2",
+                  "form": "10-Q",
+                  "filed": "2024-08-28"
+                },
+                {
+                  "start": "2024-05-01",
+                  "end": "2024-05-31",
+                  "val": 10,
+                  "accn": "0001045810-24-000316",
+                  "fy": 2025,
+                  "fp": "Q3",
+                  "form": "10-Q",
+                  "filed": "2024-11-20"
+                },
+                {
+                  "start": "2024-06-01",
+                  "end": "2024-06-30",
+                  "val": 10,
+                  "accn": "0001045810-25-000116",
+                  "fy": 2026,
+                  "fp": "Q1",
+                  "form": "10-Q",
+                  "filed": "2025-05-28",
+                  "frame": "CY2024Q2I"
+                }
+              ]
+            }
+          },
           "WeightedAverageNumberOfDilutedSharesOutstanding": {
             "units": {
               "shares": [
@@ -112617,6 +112655,49 @@
                   "form": "10-Q",
                   "filed": "2026-09-10",
                   "frame": "CY2026Q2I"
+                }
+              ]
+            }
+          },
+          "StockholdersEquityNoteStockSplitConversionRatio1": {
+            "units": {
+              "pure": [
+                {
+                  "end": "2024-07-12",
+                  "val": 10,
+                  "accn": "0001730168-24-000099",
+                  "fy": 2024,
+                  "fp": "Q3",
+                  "form": "10-Q",
+                  "filed": "2024-09-11"
+                },
+                {
+                  "end": "2024-07-12",
+                  "val": 10,
+                  "accn": "0001730168-24-000139",
+                  "fy": 2024,
+                  "fp": "FY",
+                  "form": "10-K",
+                  "filed": "2024-12-20"
+                },
+                {
+                  "end": "2024-07-12",
+                  "val": 10,
+                  "accn": "0001730168-25-000021",
+                  "fy": 2025,
+                  "fp": "Q1",
+                  "form": "10-Q",
+                  "filed": "2025-03-12"
+                },
+                {
+                  "end": "2024-07-12",
+                  "val": 10,
+                  "accn": "0001730168-25-000064",
+                  "fy": 2025,
+                  "fp": "Q2",
+                  "form": "10-Q",
+                  "filed": "2025-06-11",
+                  "frame": "CY2024Q2I"
                 }
               ]
             }
