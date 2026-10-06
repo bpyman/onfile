@@ -111,7 +111,7 @@ The images are captured from the window by a Playwright script against the recor
 | [Planner comparison](docs/evaluation/planner-comparison.md) | Held out: rules planner 85%, LLM planner 88%, cascade 88% (p = 0.50) | 66 conversations written from a brief frozen first, run end to end on the recorded runtime with only the planner swapped |
 | [Filing check](docs/evaluation/filing-check.md) | 25 of 25 figures found in the filing's own text | Figures the live window shows, across sectors and metrics, looked up in the 10-Q each cites |
 | [Numeral lock](docs/evaluation/numeral-lock.md) | Withholds every changed or invented number, passes every true figure as shown or rounded | Known sentences over ten recorded answers' grounding; no model |
-| [Phrase coverage](docs/evaluation/phrase-coverage.md) | 236 of 273 everyday phrasings of metrics, windows, changes and follow-ups read as [the defaults](#how-a-question-is-read) say | Each asked as a whole question on the recorded runtime; a test fails on any new misreading |
+| [Phrase coverage](docs/evaluation/phrase-coverage.md) | 271 of 273 everyday phrasings of metrics, windows, changes and follow-ups read as [the defaults](#how-a-question-is-read) say | Each asked as a whole question on the recorded runtime; a test fails on any new misreading |
 | [Company name coverage](docs/evaluation/company-coverage.md) | 98.7–98.8% of 5,161 companies found for each name form, 100% as `$TICKER` | Every snapshot company asked about in six forms of its name |
 | [Scorecard](docs/evaluation/scorecard.md) | 30 recorded-runtime cases, with p50/p95 latency | Lookups, calendars and derived quarters, growth, rankings, refusals, clarification, follow-ups, filing changes, the numeral lock |
 
