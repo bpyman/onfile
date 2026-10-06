@@ -104,6 +104,9 @@ _READ_CONCEPTS = READ_CONCEPTS
 # otherwise hold dozens of whole files in memory together. Only the parse holds
 # a slot; the download happens before it, so a slow SEC holds none.
 _FACTS_PARSE_SLOTS = threading.BoundedSemaphore(2)
+# Background work (the warm-up) parses in a slot of its own, so a visitor's parse
+# never waits behind it.
+_BACKGROUND_PARSE_SLOT = threading.BoundedSemaphore(1)
 # Fewer periodic reports than this marks a new registrant worth a predecessor check.
 _THIN_HISTORY = 4
 
@@ -367,7 +370,12 @@ class SecFactLookup:
         display_names: Mapping[str, str] | None = None,
         listed_tickers: Mapping[str, str] | None = None,
         member_ticker: Callable[[str], str] | None = None,
+        *,
+        background: bool = False,
     ) -> None:
+        # Background work parses in its own slot and keeps nothing in the shared
+        # memory of parses, which is for visitors' companies.
+        self._background = background
         # The snapshot's reading of a company name ("Goldman Sachs" is GS), so a
         # fact is fetched for the company the analysis resolved, not re-guessed
         # from SEC titles ("Coca-Cola" is KO, not one of three bottlers).
@@ -616,7 +624,7 @@ class SecFactLookup:
             return None
         stamp, data = digest
         parsed = _PARSED_FACTS.get(stamp) or _parsed_from_digest(data)
-        if parsed is not None:
+        if parsed is not None and not self._background:
             _PARSED_FACTS.put(stamp, parsed)
         return parsed
 
@@ -632,7 +640,7 @@ class SecFactLookup:
         parsed = _PARSED_FACTS.get(stamp) if stamp is not None else None
         if parsed is not None:
             return parsed
-        with _FACTS_PARSE_SLOTS:
+        with _BACKGROUND_PARSE_SLOT if self._background else _FACTS_PARSE_SLOTS:
             payload = self._client.get_company_facts(cik)
             # The summaries read every concept; the rest of the turn reads only the catalog's.
             parsed = _ParsedFacts(
@@ -645,7 +653,7 @@ class SecFactLookup:
             # Dated when the facts file was fetched, so a filing since still dates it.
             kept = write(cik, _digest_of(parsed), fetched=stamp[1] / 1e9)
             stamp = kept or stamp
-        if stamp is not None:
+        if stamp is not None and not self._background:
             _PARSED_FACTS.put(stamp, parsed)
         return parsed
 

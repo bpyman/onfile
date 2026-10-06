@@ -177,3 +177,83 @@ def test_the_warm_up_waits_for_the_filing_watch_before_its_first_walk(
     warmer.run(stop, interval=0.001, ready=ready)
 
     assert warmed == ["A"]
+
+
+def test_a_company_whose_warming_keeps_nothing_is_skipped_for_hours() -> None:
+    warmed: list[str] = []
+    now = [0.0]
+    warmer = FactsWarmer(
+        ("A",),
+        warm=warmed.append,
+        # A cache that cannot keep its files: the company still needs warming.
+        needs_warming=lambda cik: True,
+        idle=lambda: True,
+        rate=1000.0,
+        clock=lambda: now[0],
+    )
+
+    warmer.sweep(threading.Event())
+    now[0] += 3600
+    warmer.sweep(threading.Event())
+    now[0] += 6 * 3600
+    warmer.sweep(threading.Event())
+
+    assert warmed == ["A", "A"]
+
+
+class _Written:
+    def __init__(self, written: dict[str, float | None]) -> None:
+        self.written = written
+
+    def company_written(self, name: str) -> float | None:
+        return self.written.get(name)
+
+
+class _Needs:
+    """A watch that needs warming for every file not written."""
+
+    def needs_warming(self, cik: str, written: float | None) -> bool:
+        return written is None
+
+
+def test_a_company_needs_warming_for_its_digest_or_its_submissions() -> None:
+    from financial_analyst_agent.runtime import company_needs_warming
+
+    def needs(**written: float | None) -> bool:
+        files = {
+            "digest-0000000001.json.gz": written.get("digest"),
+            "facts-0000000001.missing": written.get("missing"),
+            "submissions-0000000001.json": written.get("submissions"),
+        }
+        return company_needs_warming(_Needs(), _Written(files), "0000000001")  # type: ignore[arg-type]
+
+    assert needs(digest=1.0, submissions=1.0) is False
+    # SEC keeps no facts for it, and that is known: warm.
+    assert needs(missing=1.0, submissions=1.0) is False
+    assert needs(submissions=1.0) is True
+    assert needs(digest=1.0) is True
+
+
+def test_a_live_runtime_starts_no_background_work(monkeypatch: pytest.MonkeyPatch) -> None:
+    from financial_analyst_agent.providers.sec import filing_watch
+    from financial_analyst_agent.runtime import live_runtime
+
+    monkeypatch.setenv("SEC_USER_AGENT", "OnfileTests (tests@example.com)")
+    monkeypatch.setenv("SEC_FILING_WATCH_SECONDS", "300")
+
+    live_runtime(Settings())
+
+    # A script or an MCP call keeps the hour; only the API starts the watch.
+    assert filing_watch.current_filing_watch() is None
+    assert facts_warmer._WARMER is None
+
+
+def test_the_warm_up_rate_is_a_share_of_the_configured_rate() -> None:
+    with pytest.raises(ValueError, match="at most"):
+        Settings(  # type: ignore[call-arg]
+            _env_file=None, sec_max_requests_per_second=2, sec_warm_requests_per_second=3
+        )
+    settings = Settings(  # type: ignore[call-arg]
+        _env_file=None, sec_max_requests_per_second=2, sec_warm_requests_per_second=2
+    )
+    assert settings.sec_warm_requests_per_second == 2

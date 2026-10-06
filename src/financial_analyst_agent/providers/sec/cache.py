@@ -235,7 +235,8 @@ class CachingSECDataSource:
         so a filing between the fetch and this write still makes it out of date.
         """
         path = self._dir / f"digest-{cik}.json.gz"
-        if not self._write(path, gzip.compress(data)):
+        # Level 6 compresses a digest nearly as well as 9, at a fraction of the CPU.
+        if not self._write(path, gzip.compress(data, compresslevel=6)):
             return None
         try:
             os.utime(path, (fetched, fetched))
@@ -289,7 +290,8 @@ class CachingSECDataSource:
             except ProviderError as exc:
                 if exc.details.get("status_code") == 404:
                     # Many filers (funds, trusts, predecessor CIKs) have no
-                    # companyfacts at all; remember that for the hour too.
+                    # companyfacts at all; remember that as long as the company's
+                    # other files last (the hour, or ADR 0013's rule).
                     self._write(self._dir / f"facts-{cik}.missing", b"")
                 raise
             if not self._write(path, document):

@@ -29,8 +29,8 @@ lookup reads, with their summaries, take 2.5 to 3.8 MB.
 facts-derived filings in one process-wide store (`_ParsedFactsCache`), keyed
 by the cached file's stamp (path, modified time, size) from
 `CachingSECDataSource.company_facts_stamp`. A refreshed file has a new stamp
-and is parsed again, so freshness is unchanged: the one-hour expiry decides
-it, as before. It holds 32 companies at most (about 130 MB), least recently
+and is parsed again, so freshness is unchanged: the cache's expiry decides
+it, as before (then the hour; since ADR 0013, the filing-driven rule). It holds 32 companies at most (about 130 MB), least recently
 used first out. Sources without a stamp (the recording, test fakes) parse
 each turn as before. The filings summary is stored as a tuple, and a test
 checks that nine metrics, report dates and fiscal periods on three companies

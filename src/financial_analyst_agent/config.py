@@ -177,12 +177,14 @@ class Settings(BaseSettings):
 
     @field_validator("sec_warm_requests_per_second")
     @classmethod
-    def validate_warm_rate(cls, value: float) -> float:
+    def validate_warm_rate(cls, value: float, info: ValidationInfo) -> float:
         value = _reject_non_finite(value, "SEC_WARM_REQUESTS_PER_SECOND")
-        if value <= 0 or value > SEC_MAX_REQUESTS_PER_SECOND:
+        # A share of the rate this server allows itself, not of the most it may allow.
+        limit = info.data.get("sec_max_requests_per_second", SEC_MAX_REQUESTS_PER_SECOND)
+        if value <= 0 or value > limit:
             raise ValueError(
                 "SEC_WARM_REQUESTS_PER_SECOND must be greater than 0 and at most "
-                f"{SEC_MAX_REQUESTS_PER_SECOND:g}"
+                f"SEC_MAX_REQUESTS_PER_SECOND ({limit:g})"
             )
         return value
 

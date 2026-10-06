@@ -168,3 +168,13 @@ def test_a_newer_copy_of_a_file_replaces_the_older_one() -> None:
 
     assert cache.get(("a", 1, 1)) is None
     assert cache.get(("a", 2, 1)) is not None
+
+
+def test_background_work_keeps_nothing_in_the_visitors_memory(tmp_path: Path) -> None:
+    source = _source(tmp_path)
+
+    SecFactLookup(client=source, background=True).warm(_cik("WMT"))
+
+    digest = source.read_facts_digest(_cik("WMT"))
+    assert digest is not None
+    assert sec_facts._PARSED_FACTS.get(digest[0]) is None

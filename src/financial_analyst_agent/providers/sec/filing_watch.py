@@ -122,8 +122,11 @@ class FilingWatch:
             batch = parse_feed(self._fetch_page(form, page * PAGE_SIZE))
             filings.extend(batch)
             if len(batch) < PAGE_SIZE:
-                # The feed has nothing older: it reaches back as far as SEC keeps it.
-                return filings, True
+                # The feed has nothing older. On the first poll that is as far back as
+                # SEC keeps it; later, the page must still reach the last poll, or an
+                # outage or a degraded, empty feed would be vouched across.
+                reached = bool(batch) and min(f.accepted for f in batch) <= (previous or 0)
+                return filings, previous is None or reached
             if previous is not None and min(f.accepted for f in batch) <= previous:
                 return filings, True
         return filings, False
@@ -139,7 +142,6 @@ class FilingWatch:
 
     def lifetime(self, cik: str, written: float) -> float:
         """How long a company file written at ``written`` stays fresh, in seconds from then."""
-        now = self._clock()
         healthy = self.healthy()
         with self._lock:
             covered_from = max(self._covered_from.values(), default=None)
@@ -149,7 +151,8 @@ class FilingWatch:
         if filed is not None and filed > written:
             # Filed after the file was written: it is out of date.
             return 0.0
-        if filed is not None and now - filed < AFTER_FILING_WINDOW_SECONDS:
+        if filed is not None and written - filed < AFTER_FILING_WINDOW_SECONDS:
+            # Fetched within a day of a filing: SEC's structured data may still lack it.
             return AFTER_FILING_SECONDS
         return VOUCHED_SECONDS
 
@@ -164,10 +167,16 @@ class FilingWatch:
             return False
         if written is None:
             return True
+        now = self._clock()
         lifetime = self.lifetime(cik, written)
-        if self._clock() - written < lifetime:
+        if now - written < lifetime:
             return False
-        return lifetime != AFTER_FILING_SECONDS
+        if lifetime == AFTER_FILING_SECONDS:
+            # Fetched within a day of its filing: warm it once more when the day is over.
+            with self._lock:
+                filed = self._last_filed.get(cik)
+            return filed is None or now - filed >= AFTER_FILING_WINDOW_SECONDS
+        return True
 
     def run(self, stop: threading.Event) -> None:
         """Poll every interval until ``stop`` is set; a failed poll is logged and retried."""
@@ -183,10 +192,20 @@ _WATCH: FilingWatch | None = None
 _WATCH_LOCK = threading.Lock()
 
 
-def ensure_filing_watch(
+def current_filing_watch() -> FilingWatch | None:
+    """The filing watch this process started, if it started one (``start_filing_watch``)."""
+    with _WATCH_LOCK:
+        return _WATCH
+
+
+def start_filing_watch(
     fetch_page: Callable[[str, int], str], interval: float
 ) -> FilingWatch | None:
-    """The process's filing watch, started on first use; None when ``interval`` is 0."""
+    """Start the process's filing watch once; None when ``interval`` is 0.
+
+    Only a long-running server starts it (``runtime.start_background_sec_work``):
+    a script that builds a live runtime keeps the hour rule and starts nothing.
+    """
     global _WATCH
     if interval <= 0:
         return None

@@ -14,6 +14,7 @@ from typing import Any
 from financial_analyst_agent.contracts import Completer, Intent, WorkflowPlan
 from financial_analyst_agent.domain.errors import PlannerError
 from financial_analyst_agent.graph.analysis_spec import SpecPatch
+from financial_analyst_agent.observability import log_event
 from financial_analyst_agent.services.metric_catalog import METRIC_DISPLAY
 
 # Questions about figures: a plan for one needs a catalog metric.
@@ -81,6 +82,8 @@ class CascadeCompleter:
         )
         if self.last_reason is None:
             return plan
+        # Counted in production, for ADR 0012's "revisit when the LLM share rises".
+        log_event("planner_cascade", reason=self.last_reason)
         try:
             return self._llm.complete(query, current_spec=current_spec)
         except PlannerError:
