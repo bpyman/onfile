@@ -1640,3 +1640,38 @@ Blockers / next:
 - None. All 2,032 Python tests pass; ruff and mypy pass; compare_answers reports
   `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not regenerated.
   Ticket 08 was the last open ticket in brief-5-probe-gaps.
+
+
+## 2026-10-06 — brief-5-probe-gaps 09 A figure with no company is not an explanation, whichever planner reads it
+
+Task completed: `docs/process/tickets/brief-5-probe-gaps/issues/09-a-figure-with-no-company-is-not-an-explanation.md`
+
+Key decisions:
+- `request_from_proposal` (`turn_graph.py`) re-types an `explain` proposal as a lookup with no
+  company when the question names a catalog metric, names no company the index knows and has
+  none of the explanation wording (`_figure_with_no_company`), so `What's the EPS?` asks which
+  company even when the LLM planner read it as an explanation. `How might AI change banking?`
+  (no catalog metric) and any question with explanation wording stay explanations.
+- `asks_for_explanation` gains "what is X" for a catalog phrase alone (no article or
+  possessive): `What is EPS?`, `What are earnings per share?`, `What is EBITDA?` explain;
+  `What is the EPS?`, `What is Apple's EPS?` do not. The rules planner is sure of these, so
+  `What is EPS?` leaves the LLM planner live.
+- Phrase coverage: `What is EPS?` moves to `EXPLANATION_QUESTIONS`; `What is the EPS?` joins
+  `NO_COMPANY_QUESTIONS`. The LLM planner's prompt and README's general-question row name both cases.
+- Two older tests expecting `What is EBITDA?` / `What is P/E?` to ask which company now ask with
+  the article, since the ticket's rule reads the bare form as asking what the measure is.
+
+Files changed:
+- `src/financial_analyst_agent/{request_wording.py,planner.py,phrase_coverage.py,graph/turn_graph.py}`
+- `tests/test_run_turn_explain.py` (fake explain-proposing planner: 2 figures ask, 3 general
+  questions explain), `tests/unit/test_planner_wording.py` (+10 what-is cases),
+  `tests/unit/test_planner_rules.py` (+`What is EPS?`), `tests/test_planner_conversations.py`,
+  `tests/unit/test_planner_understanding.py`
+- `README.md`, the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,048 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not regenerated.
+  An `explain` proposal for a question that names a company and a metric (`Apple EPS`) keeps the
+  planner's reading, as the ticket scopes the rule to questions naming no company. Ticket 09 was
+  the last open ticket in brief-5-probe-gaps.

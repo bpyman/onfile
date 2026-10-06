@@ -758,6 +758,7 @@ def test_the_rules_planner_returns_a_frozen_workflow_plan() -> None:
         "Explain how a share buyback affects EPS",
         "How does a buyback affect EPS?",
         "What is free cash flow and why does it matter?",
+        "What is EPS?",
         "How might AI change banking?",
     ],
 )
