@@ -1,6 +1,6 @@
 # 04 — EPS when the latest quarter is a fiscal fourth quarter
 
-**Decide:** `What are Cisco's earnings per share?` is refused: "Per-share figures for this quarter are reported only for a longer period". Cisco's latest report is its 10-K, whose fourth quarter has no standalone per-share figure, and ADR 0007 does not derive one (annual EPS less nine months' is not the quarter's EPS when the share count moves). The plan was right, and the evaluation now scores this as no data, not a planning failure. But a refusal answers the most ordinary question an analyst asks about a company with nothing, for about a quarter of each year for every company whose fiscal year ended last.
+**What to build:** `What are Cisco's earnings per share?` is refused: "Per-share figures for this quarter are reported only for a longer period". Cisco's latest report is its 10-K, whose fourth quarter has no standalone per-share figure, and ADR 0007 does not derive one (annual EPS less nine months' is not the quarter's EPS when the share count moves). The plan was right, and the evaluation now scores this as no data, not a planning failure. But a refusal answers the most ordinary question an analyst asks about a company with nothing, for about a quarter of each year for every company whose fiscal year ended last.
 
 Options:
 
@@ -16,6 +16,8 @@ Found by the set-5 brief's probe dry-run (6 October 2026): a blind session label
 
 **Acceptance:** the cases below are read right; any phrase-coverage case named is taken off `KNOWN_GAPS`; `uv run python -m pytest` passes; `uv run python scripts/compare_answers.py` names every conversation whose answer changes, and each change is intended.
 
-**Blocked by:** None — needs a decision
+**Blocked by:** None — can start immediately
 
-**Status:** ready-for-human
+**Decided (2026-10-06):** option 1, the latest quarter that has its own per-share figure, with the note.
+
+**Status:** ready-for-agent
