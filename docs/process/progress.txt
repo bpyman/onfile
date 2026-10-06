@@ -1437,3 +1437,27 @@ Blockers / next:
 - None. All 1,945 Python tests pass; ruff and mypy pass; compare_answers reports
   `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
   regenerated. Ticket 02 (last twelve months before a metric is LTM) is next.
+
+
+## 2026-10-06 — brief-5-probe-gaps 02 "Last twelve months" before a metric is the trailing-year figure
+
+Task completed: `docs/process/tickets/brief-5-probe-gaps/issues/02-last-twelve-months-before-a-metric-is-ltm.md`
+
+Key decisions:
+- The catalog's trailing-year words (`_TRAILING_YEAR_WORDS`, `services/metric_catalog.py`) accept
+  `last`/`past` + `twelve`/`12 months` directly before a metric with a trailing-year form, so
+  `last twelve months net income` resolves to `net_income_ttm` and the words are stripped before
+  the window is read, as for `LTM`. The words count only just before the metric, so
+  `net income over the last twelve months` stays a 4-quarter window. `request_wording` unchanged.
+- Phrase coverage gains `WINDOW_QUESTIONS`: whole questions whose window words only read right
+  beside their metric; first entry `pfizer net income over the last twelve months` (4 quarters).
+
+Files changed:
+- `src/financial_analyst_agent/{services/metric_catalog.py,phrase_coverage.py (2 cases off KNOWN_GAPS, 1 new)}`
+- `tests/unit/services/test_metric_phrase.py`, `tests/unit/test_derived_and_named_periods.py`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,949 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
+  regenerated. Ticket 03 ("apples to apples" is not Apple) is next.

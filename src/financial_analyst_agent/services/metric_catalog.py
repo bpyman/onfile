@@ -576,14 +576,18 @@ def _longest_unique_phrases(query: str) -> list[tuple[int, int, str]]:
 # A figure's trailing year, as the catalog names it: "TTM net income" is one
 # amount over the four quarters to the latest report (ADR 0008), not a window
 # of quarters. A figure with no trailing-year form ("TTM revenue") keeps the window.
+# LTM is "last twelve months": spelled out before the metric ("last twelve months
+# net income") it is the same figure; after the metric ("net income over the
+# last twelve months") it is a span of quarters, which these words do not reach.
 _TRAILING_YEAR_FORM: dict[str, str] = {"net_income": "net_income_ttm"}
 _TRAILING_YEAR_WORDS = re.compile(
-    r"\b(?:ttm|ltm|trailing[\s-]+(?:twelve|12)[\s-]+months?)\s+$"
+    r"\b(?:ttm|ltm|trailing[\s-]+(?:twelve|12)[\s-]+months?"
+    r"|(?:last|past)\s+(?:twelve|12)\s+months)\s+$"
 )
 
 
 def _trailing_year_words_before(query: str, start: int) -> int | None:
-    """Where "TTM" or "trailing twelve months" starts, when it comes just before ``start``."""
+    """Where "TTM" or "last twelve months" starts, when it comes just before ``start``."""
     match = _TRAILING_YEAR_WORDS.search(query, 0, start)
     return match.start() if match is not None else None
 

@@ -374,7 +374,12 @@ def test_derived_values_are_marked_and_explained() -> None:
 def test_trailing_twelve_months_shows_the_four_quarters_behind_it() -> None:
     from financial_analyst_agent.graph.analysis_spec import SpecPatch
 
-    for question in ("Apple TTM revenue", "revenue over the trailing twelve months"):
+    for question in (
+        "Apple TTM revenue",
+        "revenue over the trailing twelve months",
+        # After the metric, "last twelve months" is a span of quarters, not LTM.
+        "pfizer net income over the last twelve months",
+    ):
         patch = bind_periods_from_message(SpecPatch(mode="replace"), question)
         assert patch.set_periods == PeriodSelection(kind="last_n_quarters", count=4)
 
@@ -383,7 +388,12 @@ def test_trailing_twelve_months_before_net_income_is_one_figure_not_a_window() -
     from financial_analyst_agent.graph.analysis_spec import SpecPatch
     from financial_analyst_agent.request_wording import read_window
 
-    for question in ("Apple TTM net income", "trailing twelve month net income for Apple"):
+    for question in (
+        "Apple TTM net income",
+        "trailing twelve month net income for Apple",
+        "pfizer's last twelve months net income",
+        "Apple last 12 months net income",
+    ):
         window = read_window(question)
         assert not window.trailing_year
         assert not window.counted_window

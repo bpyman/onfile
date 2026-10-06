@@ -254,6 +254,11 @@ WINDOW_PHRASES: tuple[tuple[str, str, int | None], ...] = (
     ("for FY2024", "named", None),
     ("in calendar Q1 2026", "named", None),
 )
+# Whole questions whose window words only read right beside their metric: after
+# net income, "last twelve months" is a span of quarters; before it, LTM.
+WINDOW_QUESTIONS: tuple[tuple[str, str, int | None], ...] = (
+    ("pfizer net income over the last twelve months", "last_n_quarters", 4),
+)
 
 YEAR_OVER_YEAR_QUESTIONS = (
     "Apple revenue year over year",
@@ -509,6 +514,11 @@ def cases() -> list[PhraseCase]:
                 _window(kind, count),
             )
         )
+    for question, kind, count in WINDOW_QUESTIONS:
+        expected = kind if count is None else f"{kind} {count}"
+        found.append(
+            PhraseCase(f"window:{question}", "Windows", (question,), expected, _window(kind, count))
+        )
     for question in YEAR_OVER_YEAR_QUESTIONS:
         found.append(
             PhraseCase(
@@ -562,8 +572,6 @@ def cases() -> list[PhraseCase]:
 KNOWN_GAPS: frozenset[str] = frozenset(
     {
         # Found by the set-5 brief's probe dry-run; filed in brief-5-probe-gaps.
-        "metric:last twelve months net income:question",
-        "metric:last twelve months net income:terse",
         "no_base:What caused Apple's revenue to fall?",
     }
 )
