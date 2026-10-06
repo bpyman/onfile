@@ -391,6 +391,8 @@ def test_last_twelve_months_after_the_metric_is_a_window_not_the_trailing_year()
         ("price to sales", "price to sales"),
         ("EV/EBITDA", "EV/EBITDA"),
         ("share price history", "stock performance"),
+        ("remaining performance obligations", "remaining performance obligations"),
+        ("RPO", "remaining performance obligations"),
     ],
 )
 def test_an_unknown_measure_is_unknown_not_the_word_inside_it(phrase: str, named: str) -> None:

@@ -106,13 +106,61 @@ def test_which_is_bigger_compares_market_cap_and_revenue() -> None:
     assert bound.add_metrics == ("market_cap", "revenue")
 
 
-def test_a_company_on_its_own_gets_an_overview() -> None:
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Nvidia",
+        "How is Nvidia doing?",
+        "Tell me about Nvidia",
+        "Give me the rundown on how Nvidia is performing",
+        "How is Nvidia performing?",
+        "How has Nvidia been performing?",
+        "the rundown on Nvidia",
+        "a quick read on Nvidia",
+        "a quick look at Nvidia",
+        "Nvidia's performance",
+        "Nvidia's performance over the last 4 quarters",
+    ],
+)
+def test_a_company_on_its_own_gets_an_overview(question: str) -> None:
     patch = SpecPatch(mode="replace", add_companies=("NVDA",), add_metrics=("unknown",))
 
-    for question in ("Nvidia", "How is Nvidia doing?", "Tell me about Nvidia"):
-        bound, refusal = bind_metrics_from_message(patch, question)
-        assert refusal is None
-        assert bound.add_metrics == OVERVIEW_METRICS
+    bound, refusal = bind_metrics_from_message(patch, question)
+
+    assert refusal is None
+    assert bound.add_metrics == OVERVIEW_METRICS
+
+
+@pytest.mark.parametrize("guessed", ["unknown", "stock performance"])
+def test_a_measure_the_catalog_lacks_is_not_an_overview(guessed: str) -> None:
+    # "Performance" is an overview word, but "stock performance" is a measure the
+    # catalog lacks by name: refused, whichever planner proposed the metric.
+    patch = SpecPatch(mode="replace", add_companies=("AAPL",), add_metrics=(guessed,))
+
+    _bound, refusal = bind_metrics_from_message(patch, "Apple's stock performance")
+
+    assert refusal is not None and refusal.renderer is RendererKind.REFUSE
+    assert "'stock performance'" in (refusal.message or "")
+
+
+def test_the_rules_planner_reads_overview_words_as_no_metric() -> None:
+    # "rundown" and "performing" are not the word the catalog lacks: the plan
+    # names no metric, and the shared reading gives the overview.
+    planner = _live()
+
+    for question in (
+        "Give me the rundown on how Wells Fargo is performing",
+        "How has Wells Fargo been performing?",
+        "a quick read on Wells Fargo",
+    ):
+        plan = planner.complete(question)
+        assert plan.intent is Intent.LOOKUP, question
+        assert plan.metric == "unknown", question
+        patch, refusal = bind_metrics_from_message(
+            plan_to_spec_patch(plan), question, intent=plan.intent
+        )
+        assert refusal is None, question
+        assert patch.add_metrics == OVERVIEW_METRICS, question
 
 
 def test_growth_wording_asks_for_year_over_year() -> None:

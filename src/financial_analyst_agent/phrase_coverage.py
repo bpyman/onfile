@@ -43,6 +43,7 @@ from financial_analyst_agent.domain.errors import PlannerError
 from financial_analyst_agent.planner_cascade import CascadeCompleter
 from financial_analyst_agent.planner_evaluation import Observation, observe
 from financial_analyst_agent.ranking import SnapshotRanking
+from financial_analyst_agent.request_wording import OVERVIEW_METRICS
 from financial_analyst_agent.runtime import recorded_runtime
 from financial_analyst_agent.thread_store import EphemeralThreadStore
 
@@ -312,6 +313,20 @@ IDIOM_QUESTIONS: tuple[tuple[str, tuple[str, ...], str], ...] = (
     ("Merck vs Pfizer net margin, apples and oranges", ("MRK", "PFE"), "net_margin"),
     ("the building blocks of Microsoft and Oracle revenue", ("MSFT", "ORCL"), "revenue"),
 )
+# Asking how a company is doing, in any of its words, is the overview: revenue,
+# net income and three margins. "Performance" and "rundown" name no metric.
+OVERVIEW_QUESTIONS: tuple[tuple[str, tuple[str, ...], tuple[str, int | None]], ...] = (
+    ("How is Apple doing?", ("AAPL",), ("latest_quarter", None)),
+    ("Give me the rundown on how Wells Fargo is performing", ("WFC",), ("latest_quarter", None)),
+    ("How is Wells Fargo performing?", ("WFC",), ("latest_quarter", None)),
+    ("How has Wells Fargo been performing?", ("WFC",), ("latest_quarter", None)),
+    ("the rundown on Apple", ("AAPL",), ("latest_quarter", None)),
+    ("Give me the rundown on Apple and Microsoft", ("AAPL", "MSFT"), ("latest_quarter", None)),
+    ("a quick read on Apple", ("AAPL",), ("latest_quarter", None)),
+    ("a quick look at Apple", ("AAPL",), ("latest_quarter", None)),
+    ("Wells Fargo's performance", ("WFC",), ("latest_quarter", None)),
+    ("Apple's performance over the last 4 quarters", ("AAPL",), ("last_n_quarters", 4)),
+)
 # A measure the catalog lacks is refused by name, even when a word inside it
 # would be ambiguous alone ("equity") or would name a metric ("turnover").
 UNKNOWN_MEASURE_QUESTIONS: tuple[tuple[str, str], ...] = (
@@ -328,6 +343,9 @@ UNKNOWN_MEASURE_QUESTIONS: tuple[tuple[str, str], ...] = (
     ("JPMorgan net interest margin", "net interest margin"),
     ("Apple asset turnover", "asset turnover"),
     ("Apple price to book", "price to book"),
+    ("Apple's stock performance", "stock performance"),
+    ("Oracle remaining performance obligations", "remaining performance obligations"),
+    ("Oracle RPO", "remaining performance obligations"),
     ("Apple's price-to-sales ratio", "price to sales"),
     ("Apple EV/EBITDA", "EV/EBITDA"),
     ("Apple's customer acquisition cost", "customer acquisition cost"),
@@ -609,6 +627,16 @@ def cases() -> list[PhraseCase]:
                 _reads(frozenset(tickers), frozenset({metric}), period, None),
             )
         )
+    for question, tickers, window in OVERVIEW_QUESTIONS:
+        found.append(
+            PhraseCase(
+                f"overview:{question}",
+                "Overviews",
+                (question,),
+                _expected(tickers, OVERVIEW_METRICS, window, None),
+                _reads(frozenset(tickers), frozenset(OVERVIEW_METRICS), window, None),
+            )
+        )
     for question, measure in UNKNOWN_MEASURE_QUESTIONS:
         found.append(
             PhraseCase(
@@ -640,10 +668,16 @@ KNOWN_GAPS: frozenset[str] = frozenset()
 # The phrasings the cascade sends to the LLM planner. The ambiguous words name no
 # catalog metric, so the rules planner is unsure; the shared guard asks which
 # metric was meant whatever the LLM planner proposes (ADR 0004), so the call
-# costs a second but cannot misread them. Any other phrasing sent on is a
-# rules-planner reading the live app would not use: make the rules planner sure
-# of it, or add it here with the reason.
-SENT_TO_MODEL: frozenset[str] = frozenset(f"ambiguous:{word}" for word in AMBIGUOUS_WORDS)
+# costs a second but cannot misread them. An overview of named companies ("How
+# is Apple doing?") names no catalog metric either, so the rules planner's
+# lookup plan is unsure of it; the shared reading of its words gives the
+# overview whichever planner proposed no metric, and the LLM planner is told to
+# propose none for it. Any other phrasing sent on is a rules-planner reading the
+# live app would not use: make the rules planner sure of it, or add it here with
+# the reason.
+SENT_TO_MODEL: frozenset[str] = frozenset(
+    f"ambiguous:{word}" for word in AMBIGUOUS_WORDS
+) | frozenset(f"overview:{question}" for question, _tickers, _period in OVERVIEW_QUESTIONS)
 
 
 # ``unsure_reason``'s codes, in words.

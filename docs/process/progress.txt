@@ -1572,3 +1572,40 @@ Blockers / next:
   customer acquisition cost (was "costs") and `case:h2_current_ratio_unknown` names current
   ratio (was "ratio"). docs/evaluation/phrase-coverage.md not regenerated. Ticket 07
   (overview words) is next.
+
+
+## 2026-10-06 — brief-5-probe-gaps 07 "The rundown" and "how is X performing" ask for the overview
+
+Task completed: `docs/process/tickets/brief-5-probe-gaps/issues/07-overview-words.md`
+
+Key decisions:
+- `_OVERVIEW` (`request_wording.py`), the shared reading of words that ask how a company is
+  doing, gains `rundown`, `quick read/look/take`, `perform(s|ed|ing|ance)` and `how has/have/were`.
+  `Give me the rundown on how Wells Fargo is performing`, `How has Wells Fargo been performing?`,
+  `the rundown on Apple`, `a quick read on Apple` and `Wells Fargo's performance` give the overview;
+  with a window, those quarters. The rules planner is unchanged: its leftover-word reading already
+  defers to the shared words.
+- `bind_metrics_from_message` implies no metrics when the catalog names a measure it lacks, so
+  `Apple's stock performance` stays refused by name whatever the planner proposed (before, a
+  three-word question with an unknown measure and no proposed metric got the overview).
+- `_UNKNOWN_MEASURES` gains `remaining performance obligations` / `RPO`, so Oracle's RPO is
+  refused by name rather than read as an overview through "performance".
+- Phrase coverage gains "Overviews" (`OVERVIEW_QUESTIONS`, 10 cases), listed in `SENT_TO_MODEL`:
+  an overview lookup names no catalog metric, so the live cascade sends it to the LLM planner as
+  it already did for `How is Apple doing?`. `UNKNOWN_MEASURE_QUESTIONS` gains 3 cases.
+- README's overview row names the new phrasings and the window and stock-performance edges.
+
+Files changed:
+- `src/financial_analyst_agent/{request_wording.py,services/metric_catalog.py,phrase_coverage.py}`
+- `tests/unit/test_planner_rules.py` (overview parametrize, unknown-measure guard, rules-planner
+  reading), `tests/unit/services/test_metric_phrase.py` (RPO)
+- `README.md`, the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,006 Python tests pass; ruff and mypy pass; compare_answers reports
+  `1 of 244 conversations differ from HEAD`, intended: `case:h3_orcl_rpo` still refuses, now
+  naming "remaining performance obligations" through the guide (was "remaining obligations").
+  docs/evaluation/phrase-coverage.md not regenerated. Making the rules planner sure of an overview
+  lookup (metric `overview`, which the cascade already keeps) would take these turns off the LLM
+  planner live; not done here, since no ticket asks for it. Ticket 08 (a general question naming
+  a metric explains) is next.

@@ -394,9 +394,12 @@ _GROWING = re.compile(
 )
 
 
+# "How is Apple doing?", "the rundown on Apple", "how has Apple been performing":
+# asking how a company is doing, in any of its words (README, overview row).
 _OVERVIEW = re.compile(
     r"\b(?:overview|snapshot|summary|profile|financials|fundamentals|numbers|"
-    r"key metrics|at a glance|tell me about|how (?:is|are|was)|how's|doing|results)\b",
+    r"key metrics|at a glance|tell me about|how (?:is|are|was|were|has|have)|how's|doing|"
+    r"results|run-?down|quick (?:read|look|take)|perform(?:s|ed|ing|ance)?)\b",
     re.IGNORECASE,
 )
 
@@ -521,9 +524,11 @@ def bind_metrics_from_message(
         metric not in ALLOWED_METRICS and metric not in ("unknown", OVERVIEW_PLAN)
         for metric in patch.add_metrics
     )
+    # A measure the catalog lacks by name ("stock performance") is refused, not
+    # read as the overview its words ("performance") or its length would imply.
     implied = (
         implied_metrics(message, short=not unknown_word)
-        if _names_companies(patch) and not guessed
+        if _names_companies(patch) and not guessed and resolved.term is None
         else ()
     )
     if not implied and _names_companies(patch) and OVERVIEW_PLAN in patch.add_metrics:
