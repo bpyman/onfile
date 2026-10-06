@@ -41,8 +41,8 @@ The planner proposes; code owns every number.
 
 | Ask about | For example |
 |---|---|
-| Quarterly figures | revenue, net income, operating and gross margin, EPS, R&D, cash flow, cash, equity, dividends |
-| Derived figures | EBITDA, return on equity, P/E, share price ([ADR 0008](docs/adr/0008-balance-sheet-trailing-year-and-market-figures.md)) |
+| Quarterly figures | revenue, net income, operating and gross margin, EPS, R&D, cash flow, cash, shareholders' and total equity, dividends; for banks, net interest and noninterest income |
+| Derived figures | EBITDA, return on equity, P/E, trailing-year net income, R&D and SG&A as a share of revenue, share price ([ADR 0008](docs/adr/0008-balance-sheet-trailing-year-and-market-figures.md)) |
 | Comparisons and trends | `Compare Eli Lilly and Pfizer revenue over the last eight quarters` |
 | Growth and overviews | `Compare Microsoft and Apple revenue growth` charts the growth rates; `How is Nvidia doing?` answers in a sentence with recent quarters |
 | Rankings | `Top 10 technology companies by net margin`, over a dated snapshot of about 5,200 US operating companies |
@@ -63,7 +63,7 @@ What a question leaves out has a default, so the same words always get the same 
 | Year over year with no period: `Apple revenue year over year`, `versus the same quarter last year`, `up from a year earlier` | The latest 8 quarters, each with its year-over-year change. After a question about several quarters, `show that year over year` keeps those quarters. |
 | Quarter over quarter: `quarter over quarter`, `sequentially` | The latest 5 quarters, each with its change on the quarter before. |
 | A change with no base: `Why did revenue drop?`, `How much did revenue change?`, `What drove the change in revenue?` | A question: compared with what? |
-| An ambiguous word: `profit`, `income`, `margin`, `cash flow`, `interest`, `expenses`, `dividends` | A question: which one? (ADR 0004). `earnings` is net income. |
+| An ambiguous word: `profit`, `income`, `margin`, `cash flow`, `interest`, `expenses`, `dividends` | A question: which one? (ADR 0004). `earnings` is net income. A phrase that names one figure is that figure (`income before taxes`, `noninterest income`); `fee income`, which no single filing figure measures, asks too. |
 | Two metrics: `revenue and net income` | Both. |
 | `How is Apple doing?` | An overview: revenue, net income and three margins for the latest quarter, with five quarters of revenue and net margin. |
 | A ranking: `top banks by revenue`, `biggest tech companies` | The top 10. With a metric, each company's figure for its latest quarter, ordered by it when asked `by` it (`top 5 banks by net income`) and by market value when asked `and their` (`top 5 banks and their net income`); with no metric, by market value. |
