@@ -228,6 +228,25 @@ def test_year_over_year_spelt_another_way_reads_the_same(spelling: str) -> None:
     assert "year_over_year" in bound(spelling).add_operations
 
 
+@pytest.mark.parametrize(
+    "wording",
+    [
+        "from a year earlier",
+        "from a year ago",
+        "from last year",
+        "compared with the same quarter last year",
+        "versus the same quarter a year earlier",
+        "against the year-earlier quarter",
+    ],
+)
+def test_a_year_earlier_reads_as_year_over_year(wording: str) -> None:
+    def bound(base: str) -> SpecPatch:
+        message = f"is unitedhealth's operating cash flow up {base}"
+        return bind_periods_from_message(SpecPatch(mode="replace"), message)
+
+    assert bound(wording) == bound("year over year")
+
+
 def test_every_kind_of_clarification_is_one_entry_in_the_table() -> None:
     from typing import get_args
 

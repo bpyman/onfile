@@ -1250,3 +1250,24 @@ Blockers / next:
 - None. All 1,884 Python tests pass; ruff and mypy pass; compare_answers reports
   `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
   regenerated. Ticket 06 is next.
+
+
+## 2026-10-06 — phrase-coverage-gaps 06 A year earlier is year over year
+
+Task completed: `docs/process/tickets/phrase-coverage-gaps/issues/06-a-year-earlier-is-year-over-year.md`
+
+Key decisions:
+- `YEAR_EARLIER` in `request_wording.py`: "a year ago/earlier/before", "the same quarter
+  (period) last year / a year earlier / of the prior year", "the year-earlier quarter".
+  `YOY` and `EXPLICIT_YOY` both read it, so it asks for year over year alone, 8 quarters
+  with no window, as "year over year" does.
+
+Files changed:
+- `src/financial_analyst_agent/{request_wording.py,phrase_coverage.py (2 cases off KNOWN_GAPS)}`
+- `tests/unit/test_planner_wording.py`
+- `README.md`, the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,890 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
+  regenerated. Ticket 07 is next.
