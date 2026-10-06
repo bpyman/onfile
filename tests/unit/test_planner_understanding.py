@@ -107,7 +107,7 @@ def test_a_full_name_still_resolves() -> None:
 
 @pytest.mark.parametrize(
     "question",
-    ["What is EBITDA?", "gross margin", "what was the revenue?", "what is the market cap?"],
+    ["What is the EBITDA?", "gross margin", "what was the revenue?", "what is the market cap?"],
 )
 def test_a_question_naming_no_company_names_none(question: str) -> None:
     patch = plan_to_spec_patch(DemoCompleter().complete(question))

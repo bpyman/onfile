@@ -33,6 +33,7 @@ from financial_analyst_agent.issuer_index import CompanyNames
 from financial_analyst_agent.observability import log_event
 from financial_analyst_agent.period_window import asked_window
 from financial_analyst_agent.services.metric_catalog import (
+    metric_phrases,
     resolve_metric_phrase,
     without_trailing_year_words,
 )
@@ -353,15 +354,24 @@ _EXPLANATION = re.compile(
 )
 
 
+# "What is EPS?", "what are earnings per share": the measure alone, with no
+# article or possessive, asks what it is. "What's the EPS?" asks for a figure.
+_WHAT_IS = re.compile(r"^\W*what(?:['’]s| is| are) (?P<measure>.+?)[\s?.!]*$", re.IGNORECASE)
+
+
 def asks_for_explanation(message: str) -> bool:
     """Whether the words ask how something works rather than for a figure.
 
     "Explain how a share buyback affects EPS" names a metric and no company, but
     it is a general question (intent explain), as "How might AI change banking?"
-    is. "What's the EPS?" asks for a figure and names no company: it asks which
-    company. The wording tells them apart, not the absence of a company alone.
+    is. "What is EPS?" asks what the measure is: an explanation too. "What's the
+    EPS?" asks for a figure and names no company: it asks which company. The
+    wording tells them apart, not the absence of a company alone.
     """
-    return _EXPLANATION.search(message) is not None
+    if _EXPLANATION.search(message) is not None:
+        return True
+    asked = _WHAT_IS.match(message)
+    return asked is not None and asked.group("measure").casefold() in metric_phrases()
 
 
 YEAR_TO_DATE = re.compile(r"\b(?:ytd|year[\s-]+to[\s-]+date)\b", re.I)

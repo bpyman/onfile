@@ -42,7 +42,7 @@ PHARMA = {"LLY", "JNJ", "ABBV", "MRK", "PFE", "AMGN", "GILD"}
 
 
 @pytest.mark.parametrize(
-    "question", ["gross margin", "What is EBITDA?", "what was the revenue?", "What is P/E?"]
+    "question", ["gross margin", "What is the EBITDA?", "what was the revenue?", "What's the P/E?"]
 )
 def test_no_company_asks_for_one(runtime, question: str) -> None:  # type: ignore[no-untyped-def]
     (answer,) = ask(runtime, question)

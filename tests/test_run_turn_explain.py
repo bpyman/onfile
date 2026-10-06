@@ -175,3 +175,49 @@ def test_a_figure_with_no_company_asks_which_company_not_an_explanation() -> Non
     assert result.renderer is RendererKind.REFUSE
     assert result.message is not None
     assert result.message.startswith("I couldn't tell which company you mean.")
+
+
+class _ExplainProposer:
+    """A planner that reads every question with no company as a general explanation."""
+
+    def complete(self, query: str, current_spec: object = None) -> WorkflowPlan:
+        return WorkflowPlan(intent=Intent.EXPLAIN, topic=query)
+
+
+class _AnyEssay:
+    def complete_essay(self, query: str, tool_json: str = "") -> str:
+        return "The figure spreads one quarter's earnings over the shares outstanding."
+
+
+def _proposed_explanation_runtime() -> Runtime:
+    return Runtime(
+        completer=_ExplainProposer(),
+        facts=_ExplodingFacts(),
+        ranking=_ExplodingRanking(),
+        essay=_AnyEssay(),
+    )
+
+
+@pytest.mark.parametrize("question", ["What's the EPS?", "What's the revenue?"])
+def test_a_figure_with_no_company_asks_which_company_whatever_the_planner_proposed(
+    question: str,
+) -> None:
+    result = run_turn(question, _proposed_explanation_runtime())
+
+    assert result.intent is Intent.LOOKUP
+    assert result.renderer is RendererKind.REFUSE
+    assert result.essay is None
+    assert result.message is not None
+    assert result.message.startswith("I couldn't tell which company you mean.")
+
+
+@pytest.mark.parametrize(
+    "question", ["What is EPS?", BUYBACK_QUERY, "How might AI change banking?"]
+)
+def test_a_general_question_proposed_as_an_explanation_explains(question: str) -> None:
+    result = run_turn(question, _proposed_explanation_runtime())
+
+    assert result.intent is Intent.EXPLAIN
+    assert result.renderer is RendererKind.ESSAY
+    assert MODEL_ANALYSIS_BANNER in result.banners
+    assert result.table_rows == []

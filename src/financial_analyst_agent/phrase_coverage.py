@@ -365,6 +365,7 @@ UNKNOWN_MEASURE_QUESTIONS: tuple[tuple[str, str], ...] = (
 
 # A general question that names a metric asks how something works, not for a
 # figure: an explanation (intent explain), as "How might AI change banking?" is.
+# "What is EPS?" (the measure alone, no article) asks what the measure is.
 EXPLANATION_QUESTIONS = (
     "Explain how a share buyback affects EPS",
     "How does a buyback affect EPS?",
@@ -373,13 +374,14 @@ EXPLANATION_QUESTIONS = (
     "How is EPS calculated?",
     "Why does operating margin matter?",
     "What does diluted EPS mean?",
+    "What is EPS?",
     "How might AI change banking?",
 )
 # A figure with no company asks which company: the absence of a company alone
-# does not make a question general.
+# does not make a question general, whichever planner read it.
 NO_COMPANY_QUESTIONS = (
     "What's the EPS?",
-    "What is EPS?",
+    "What is the EPS?",
     "What's the revenue?",
     "What was the revenue last quarter?",
 )
@@ -724,9 +726,10 @@ KNOWN_GAPS: frozenset[str] = frozenset()
 # costs a second but cannot misread them. A figure with no company ("What's the EPS?") leaves the
 # rules planner unsure too; the LLM planner is told to name companies as the
 # user wrote them, and the user wrote none, so its proposal asks which company
-# the same way. Any other phrasing sent on is a rules-planner reading the live
-# app would not use: make the rules planner sure of it, or add it here with the
-# reason.
+# the same way, and the shared typing of a turn asks it even when the LLM
+# planner read the figure as an explanation. Any other phrasing sent on is a
+# rules-planner reading the live app would not use: make the rules planner sure
+# of it, or add it here with the reason.
 SENT_TO_MODEL: frozenset[str] = (
     frozenset(f"ambiguous:{word}" for word in AMBIGUOUS_WORDS)
     | frozenset(f"no_company:{question}" for question in NO_COMPANY_QUESTIONS)
