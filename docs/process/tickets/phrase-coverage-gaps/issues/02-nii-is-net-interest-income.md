@@ -8,4 +8,8 @@ Found by phrase coverage ([report](../../../../evaluation/phrase-coverage.md), `
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+"NII" is a unique phrase for `net_interest_income` in the catalog (`services/metric_catalog.py`), which both planners read through, as "eps", "fcf" and "roe" are. The two NII cases are off `KNOWN_GAPS`. `compare_answers`: 0 of 244 conversations differ; no recorded conversation says "NII".

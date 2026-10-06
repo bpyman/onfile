@@ -221,6 +221,13 @@ def test_net_interest_income_is_unique_not_ambiguous_interest() -> None:
     assert "net_interest_income" in ALLOWED_METRICS
 
 
+def test_nii_is_net_interest_income() -> None:
+    # The standard abbreviation, read as EPS, FCF and ROE are.
+    resolved = resolve_metric_phrase("What was JPMorgan's NII?")
+    assert resolved.kind == "unique"
+    assert resolved.metric == "net_interest_income"
+
+
 @pytest.mark.parametrize(
     ("phrase", "metric"),
     [

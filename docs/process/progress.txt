@@ -1159,3 +1159,22 @@ Blockers / next:
   `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md was
   not regenerated (the run rules keep evaluation reports out unless a ticket asks);
   it still shows 236 of 273. Ticket 02 is next.
+
+
+## 2026-10-06 — phrase-coverage-gaps 02 NII is net interest income
+
+Task completed: `docs/process/tickets/phrase-coverage-gaps/issues/02-nii-is-net-interest-income.md`
+
+Key decisions:
+- "nii" is one more unique phrase in the catalog, beside "eps", "fcf" and "roe".
+  No new mechanism.
+
+Files changed:
+- `src/financial_analyst_agent/{services/metric_catalog.py,phrase_coverage.py (KNOWN_GAPS)}`
+- `tests/unit/services/test_metric_phrase.py`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,857 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
+  regenerated. Ticket 03 is next.

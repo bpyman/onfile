@@ -324,6 +324,7 @@ _UNIQUE_PHRASES: tuple[tuple[str, str], ...] = (
     # A bank's interest earned less interest paid; not "interest" alone.
     ("net interest income", "net_interest_income"),
     ("net_interest_income", "net_interest_income"),
+    ("nii", "net_interest_income"),
     # A bank's fees, trading and other income besides interest.
     ("noninterest income", "noninterest_income"),
     ("non-interest income", "noninterest_income"),
