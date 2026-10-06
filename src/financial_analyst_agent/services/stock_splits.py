@@ -25,7 +25,9 @@ _SAME_SPLIT = timedelta(days=90)
 # rounding: half a cent.
 _HALF_CENT = Decimal("0.005")
 _QUARTER_DAYS = (70, 110)
-# The most places an adjusted value is given to keep it from reading zero.
+# An adjusted value keeps four places, the finest the window shows a per-share
+# figure at, and more only where four would read zero.
+_PLACES = 4
 _MAX_PLACES = 6
 
 _WORDS = [
@@ -116,12 +118,13 @@ def _divisor(splits: tuple[StockSplit, ...]) -> Decimal:
 
 
 def _adjusted(value: Decimal, divisor: Decimal) -> Decimal:
-    """The value over the divisor, to the places it was filed at, as a company restates it.
+    """The value over the divisor, to four places: the quotient, not re-rounded to cents.
 
-    $5.98 over 10 is $0.60, NVIDIA's own restated figure; a place more only where
-    those places would read zero ($0.04 over 10 is $0.004).
+    $5.98 over 10 is $0.598, within a third of a cent of NVIDIA's own restated $0.60.
+    Rounded to the cents first filed, a quarter filed at $0.27 before a ten-for-one
+    split would read $0.03, 11% off, in every change and ratio computed from it.
     """
-    places = max(-int(value.as_tuple().exponent), 0)
+    places = _PLACES
     adjusted = (value / divisor).quantize(Decimal(1).scaleb(-places))
     while value and not adjusted and places < _MAX_PLACES:
         places += 1

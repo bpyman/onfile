@@ -38,9 +38,9 @@ def _present(rows: list[TableRow]) -> tuple[list[str], list[TableRow]]:
 def test_nvidia_s_eps_before_the_split_is_on_the_later_basis() -> None:
     (row,) = _rows("NVDA", "eps_diluted", date(2024, 4, 28))
 
-    # $5.98 over 10, to the cents it was filed in: NVIDIA's own restated figure.
-    assert row.value == Decimal("0.60")
-    assert format_metric_value("eps_diluted", row.value) == "$0.60"
+    # $5.98 over 10, the quotient: NVIDIA restates it as $0.60, within rounding.
+    assert row.value == Decimal("0.598")
+    assert format_metric_value("eps_diluted", row.value) == "$0.598"
     # The evidence keeps the May 2024 10-Q that first reported $5.98.
     assert row.accession_number == "0001045810-24-000124"
     assert row.split_adjustment is not None
@@ -67,7 +67,7 @@ def test_an_adjusted_split_has_no_note_and_a_quarter_over_quarter_change() -> No
         for banner in banners
     )
     (sequential,) = [row for row in changes if row.comparison == "sequential"]
-    assert sequential.value == Decimal("0.07")
+    assert sequential.value == Decimal("0.072")
 
 
 def test_the_inspector_shows_the_figure_as_first_filed_and_the_ratio() -> None:
@@ -211,7 +211,7 @@ def test_an_agreeing_restated_figure_adjusts() -> None:
         _record(_EPS, "0.60", end, date(2025, 5, 28), start=start),
     ]
 
-    assert on_latest_basis(fact, splits, records).value == Decimal("0.60")
+    assert on_latest_basis(fact, splits, records).value == Decimal("0.598")
 
 
 def test_the_comparative_in_the_same_filing_takes_the_same_divisor() -> None:
@@ -232,7 +232,7 @@ def test_the_comparative_in_the_same_filing_takes_the_same_divisor() -> None:
     adjusted = on_latest_basis(fact.model_copy(update={"year_earlier": before}), splits, [])
 
     assert adjusted.year_earlier is not None
-    assert adjusted.year_earlier.value == Decimal("0.08")
+    assert adjusted.year_earlier.value == Decimal("0.082")
     assert adjusted.year_earlier.split_adjustment is not None
 
 
