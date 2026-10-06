@@ -25,7 +25,11 @@ from financial_analyst_agent.planner import OpenAIStructuredCompleter
 from financial_analyst_agent.planner_cascade import CascadeCompleter
 from financial_analyst_agent.providers.sec.cache import CachingSECDataSource
 from financial_analyst_agent.providers.sec.client import SECClient
-from financial_analyst_agent.providers.sec.filing_watch import FilingWatch, ensure_filing_watch
+from financial_analyst_agent.providers.sec.filing_watch import (
+    FilingWatch,
+    current_filing_watch,
+    start_filing_watch,
+)
 from financial_analyst_agent.ranking import SnapshotRanking
 from financial_analyst_agent.rules_planner import (
     FIXTURE_UNIVERSE_SNAPSHOT_PATH as FIXTURE_UNIVERSE_SNAPSHOT_PATH,
@@ -265,6 +269,34 @@ def tavily_enabled(settings: Settings) -> bool:
     )
 
 
+def company_needs_warming(watch: FilingWatch, cache: CachingSECDataSource, cik: str) -> bool:
+    """Whether the warm-up should fetch a company: its facts digest or its submissions.
+
+    A company SEC keeps no facts for counts as warm once that is known.
+    """
+    facts = watch.needs_warming(
+        cik, cache.company_written(f"digest-{cik}.json.gz")
+    ) and watch.needs_warming(cik, cache.company_written(f"facts-{cik}.missing"))
+    return facts or watch.needs_warming(cik, cache.company_written(f"submissions-{cik}.json"))
+
+
+def _sec_cache_dir(settings: Settings) -> Path:
+    return Path(settings.sec_cache_dir or Path(".cache") / "sec")
+
+
+def start_background_sec_work(settings: Settings | None = None) -> None:
+    """Start the filing watch and the warm-up, for a long-running server (ADR 0013, 0014).
+
+    The API calls this once. A script or an MCP call that builds a live runtime
+    starts neither: its cached data keeps the hour rule.
+    """
+    resolved = settings or get_settings()
+    sec = _shared_sec_client(resolved)
+    watch = start_filing_watch(sec.get_latest_filings, resolved.sec_filing_watch_seconds)
+    if watch is not None and resolved.sec_warm_companies:
+        _start_warming(resolved, sec, _sec_cache_dir(resolved), watch, _snapshot_ranking(None))
+
+
 def _start_warming(
     settings: Settings,
     sec: SECClient,
@@ -281,19 +313,13 @@ def _start_warming(
         watch=watch,
     )
 
-    def needs_warming(cik: str) -> bool:
-        # A company SEC keeps no facts for is warm once that is known.
-        facts = watch.needs_warming(
-            cik, cache.company_written(f"digest-{cik}.json.gz")
-        ) and watch.needs_warming(cik, cache.company_written(f"facts-{cik}.missing"))
-        return facts or watch.needs_warming(cik, cache.company_written(f"submissions-{cik}.json"))
-
     ensure_facts_warmer(
         lambda: FactsWarmer(
             ranking.largest_ciks(settings.sec_warm_companies),
-            # A lookup a company, so nothing it keeps outlives the warming.
-            warm=lambda cik: SecFactLookup(client=cache).warm(cik),
-            needs_warming=needs_warming,
+            # A lookup a company, so nothing it keeps outlives the warming; in the
+            # background, it neither takes a visitor's parse slot nor fills their memory.
+            warm=lambda cik: SecFactLookup(client=cache, background=True).warm(cik),
+            needs_warming=lambda cik: company_needs_warming(watch, cache, cik),
             idle=sec.idle,
             rate=settings.sec_warm_requests_per_second,
         ),
@@ -327,22 +353,18 @@ def live_runtime(
         else RecordedEssayCompleter(live=True)
     )
     news = TavilyNewsSearch(resolved) if use_tavily else RecordedNewsSearch()
-    cache_dir = resolved.sec_cache_dir or Path(".cache") / "sec"
     display_names, listed_tickers = _snapshot_maps(None)
-    sec = _shared_sec_client(resolved)
-    # A company's cached data lasts until it files again (ADR 0013).
-    watch = ensure_filing_watch(sec.get_latest_filings, resolved.sec_filing_watch_seconds)
     client = CachingSECDataSource(
-        sec,
-        Path(cache_dir),
+        _shared_sec_client(resolved),
+        _sec_cache_dir(resolved),
         budget=budget,
         # Waiting on another turn's fetch longer than one request may take is pointless.
         fill_wait_seconds=resolved.sec_request_deadline_seconds,
         max_bytes=resolved.sec_cache_max_bytes,
-        watch=watch,
+        # Where the server started a filing watch, a company's cached data lasts until
+        # it files again (ADR 0013); otherwise the hour.
+        watch=current_filing_watch(),
     )
-    if watch is not None and resolved.sec_warm_companies:
-        _start_warming(resolved, sec, Path(cache_dir), watch, ranking)
     return Runtime(
         completer=completer,
         filings=client,

@@ -9,7 +9,7 @@ What a lookup keeps of a facts file is small. The catalog's concepts, with the t
 ## Decision
 
 - **A lookup keeps a company's digest on disk in place of its facts file.** The first parse of a facts file writes `digest-{cik}.json.gz` and deletes the raw file. The digest is dated when the facts file was fetched, so a filing in between still dates it, and it is as fresh as the facts file was, by ADR 0013's rule. A digest carries a tag made from its layout and the concepts a lookup reads, so one made by other code is fetched again rather than read.
-- **A warm-up fetches the largest companies before anyone asks.** It is a background thread that starts with the filing watch, and only while the watch is on. It walks the largest snapshot members that file 10-Qs, largest first (`SEC_WARM_COMPANIES`, 250 by default; 0 turns it off), fetching each one's first submissions page and facts digest when the watch says it should:
+- **A warm-up fetches the largest companies before anyone asks.** It is a background thread the API server starts with the filing watch, and only while the watch is on. It parses in a slot of its own and keeps nothing in the visitors' memory of parses, so a visitor's parse never waits behind it, and a company it fetched but could not keep (a cache that cannot write) is left alone for six hours. It walks the largest snapshot members that file 10-Qs, largest first (`SEC_WARM_COMPANIES`, 250 by default; 0 turns it off), fetching each one's first submissions page and facts digest when the watch says it should:
   - when the company is not cached;
   - when it has filed since its files were written;
   - when its week is up.

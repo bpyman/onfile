@@ -20,8 +20,9 @@ from financial_analyst_agent.providers.sec.filing_watch import (
     PAGE_SIZE,
     VOUCHED_SECONDS,
     FilingWatch,
-    ensure_filing_watch,
+    current_filing_watch,
     parse_feed,
+    start_filing_watch,
 )
 from sec_fixtures import FixtureSEC, _load
 
@@ -126,7 +127,8 @@ def test_after_a_filing_the_files_refresh_often_for_a_day() -> None:
     assert watch.lifetime("0000000099", NOW - 600) == AFTER_FILING_SECONDS
     clock.now = NOW + DAY
     watch.poll()
-    assert watch.lifetime("0000000099", NOW) == VOUCHED_SECONDS
+    # Written more than a day after the filing: vouched for again.
+    assert watch.lifetime("0000000099", NOW + DAY - 600) == VOUCHED_SECONDS
 
 
 def test_a_file_written_before_the_watch_could_see_falls_back_to_the_hour() -> None:
@@ -186,7 +188,8 @@ def test_a_gap_the_pages_cannot_close_moves_the_coverage_forward() -> None:
 
 
 def test_no_interval_starts_no_watch() -> None:
-    assert ensure_filing_watch(lambda form, start: "", 0) is None
+    assert start_filing_watch(lambda form, start: "", 0) is None
+    assert current_filing_watch() is None
 
 
 class _CountingFixture(FixtureSEC):
@@ -277,3 +280,50 @@ def test_a_page_that_is_not_the_feed_is_refused() -> None:
 def _no_process_watch() -> Any:
     yield
     filing_watch._WATCH = None
+
+
+def test_a_file_fetched_just_after_a_filing_never_turns_fresh_for_a_week() -> None:
+    feed, clock = _Feed(), _Clock(NOW + 600)
+    feed.filings["10-Q"].append(("0000000099", "10-Q", NOW))
+    watch = _watch(feed, clock)
+    watch.poll()
+    written = NOW + 360  # six minutes after the filing: may lack its quarter
+
+    for later in (3600, 23 * 3600, 25 * 3600, 3 * DAY):
+        clock.now = NOW + later
+        watch.poll()
+        lifetime = watch.lifetime("0000000099", written)
+        assert lifetime == AFTER_FILING_SECONDS
+        assert clock.now - written > lifetime, later
+    # Within the day its visitors refresh it; after the day the warm-up does, once.
+    clock.now = NOW + 3600
+    assert watch.needs_warming("0000000099", written) is False
+    clock.now = NOW + 25 * 3600
+    assert watch.needs_warming("0000000099", written) is True
+
+
+def test_a_later_poll_that_does_not_reach_the_last_one_moves_the_coverage() -> None:
+    feed, clock = _Feed(), _Clock(NOW)
+    watch = _watch(feed, clock)
+    watch.poll()
+    assert watch.lifetime("0000000099", NOW - DAY) == VOUCHED_SECONDS
+
+    # A short page whose filings are all newer than the last poll: a gap before them.
+    feed.filings["10-Q"] = [("0000000001", "10-Q", NOW + 2 * DAY)]
+    clock.now = NOW + 2 * DAY + 60
+    watch.poll()
+
+    assert watch.lifetime("0000000099", NOW + DAY) == DEFAULT_SECONDS
+    assert watch.lifetime("0000000099", NOW + 2 * DAY + 30) == VOUCHED_SECONDS
+
+
+def test_an_empty_later_page_vouches_only_from_now() -> None:
+    feed, clock = _Feed(), _Clock(NOW)
+    watch = _watch(feed, clock)
+    watch.poll()
+
+    feed.filings["10-K"] = []
+    clock.now = NOW + 600
+    watch.poll()
+
+    assert watch.lifetime("0000000099", NOW + 300) == DEFAULT_SECONDS

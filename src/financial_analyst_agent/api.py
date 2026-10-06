@@ -64,6 +64,7 @@ from financial_analyst_agent.runtime import (
     resolve_runtime_kind,
     runtime_for,
     runtime_locked,
+    start_background_sec_work,
     tavily_enabled,
 )
 from financial_analyst_agent.session import (
@@ -555,6 +556,9 @@ def create_app(
         if live_sec_configured(resolved)
         else LIVE_RUNTIME_UNCONFIGURED_NOTICE
     )
+    if not runtime_locked(resolved):
+        # The filing watch and the warm-up, for this server's live turns (ADR 0013, 0014).
+        start_background_sec_work(resolved)
     if not live_sec_configured(resolved):
         _LOGGER.warning(
             "SEC_USER_AGENT is not set, so the live runtime is locked: every thread runs "

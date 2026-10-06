@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import logging
 import threading
+import time
 from collections.abc import Callable, Sequence
 
 from financial_analyst_agent.observability import log_event
@@ -26,6 +27,9 @@ _IDLE_CHECK_SECONDS = 0.25
 _READY_CHECK_SECONDS = 1.0
 # The pause after a failure: SEC asking for quiet, or a company it would not serve.
 _FAILURE_PAUSE_SECONDS = 30.0
+# A company still not warm after warming (a cache that cannot keep its files) is not
+# fetched again for this long, so a broken disk is not a download loop.
+_NOT_KEPT_SECONDS = 6 * 3600.0
 
 
 class FactsWarmer:
@@ -43,12 +47,15 @@ class FactsWarmer:
         needs_warming: Callable[[str], bool],
         idle: Callable[[], bool],
         rate: float,
+        clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self._ciks = tuple(ciks)
         self._warm = warm
         self._needs_warming = needs_warming
         self._idle = idle
         self._pause = _REQUESTS_A_COMPANY / rate
+        self._clock = clock
+        self._not_kept: dict[str, float] = {}
 
     def sweep(self, stop: threading.Event) -> int:
         """One walk over the companies; how many were warmed."""
@@ -57,6 +64,9 @@ class FactsWarmer:
             if stop.is_set():
                 break
             if not self._needs_warming(cik):
+                continue
+            skipped_at = self._not_kept.get(cik)
+            if skipped_at is not None and self._clock() - skipped_at < _NOT_KEPT_SECONDS:
                 continue
             while not self._idle():
                 if stop.wait(_IDLE_CHECK_SECONDS):
@@ -69,6 +79,10 @@ class FactsWarmer:
                     break
                 continue
             warmed += 1
+            if self._needs_warming(cik):
+                # Fetched, but nothing lasting kept: leave it to visitors for a while.
+                self._not_kept[cik] = self._clock()
+                log_event("sec_warm_not_kept", cik=cik)
             if stop.wait(self._pause):
                 break
         return warmed

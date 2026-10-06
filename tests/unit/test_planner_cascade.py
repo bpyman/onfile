@@ -144,3 +144,28 @@ def test_paired_counts_each_case_once_by_its_majority_of_runs() -> None:
     assert (held_out["both"], held_out["only_first"], held_out["only_second"]) == (1, 2, 1)
     assert held_out["neither"] == 0
     assert held_out["p_value"] == pytest.approx(mcnemar_p(2, 1))
+
+
+def test_a_plan_the_model_writes_invalid_falls_back_to_the_rules_plan() -> None:
+    from types import SimpleNamespace
+
+    import pydantic
+
+    from financial_analyst_agent.planner import OpenAIStructuredCompleter, Plan
+
+    try:
+        # A comparison of one company: the plan's own rules refuse it.
+        Plan.model_validate({"intent": "compare", "companies": ["Apple"], "metric": "revenue"})
+    except pydantic.ValidationError as exc:
+        invalid = exc
+
+    def parse(**_kwargs: Any) -> Any:
+        raise invalid
+
+    client = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(parse=parse)))
+    llm = OpenAIStructuredCompleter(client, "gpt-test")
+    with pytest.raises(PlannerError):
+        llm.complete("compare apple")
+
+    unsure = WorkflowPlan(intent=Intent.COMPARE, companies=("Apple",), metric="profit")
+    assert CascadeCompleter(_Planner(unsure), llm, _knows).complete("compare apple") == unsure

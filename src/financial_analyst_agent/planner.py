@@ -333,6 +333,13 @@ class OpenAIStructuredCompleter:
                 _PLANNER_FAILED_MESSAGE,
                 details={"stage": "http", "error_class": type(exc).__name__},
             ) from exc
+        except ValueError as exc:
+            # The SDK validates the model's JSON against the plan's own rules (a
+            # comparison of one company, a blank name) and raises pydantic's error.
+            raise PlannerError(
+                _PLANNER_FAILED_MESSAGE,
+                details={"stage": "invalid_plan", "error_class": type(exc).__name__},
+            ) from exc
         try:
             choice = completion.choices[0]
             message = choice.message
