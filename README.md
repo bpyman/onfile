@@ -58,10 +58,10 @@ What a question leaves out has a default, so the same words always get the same 
 | No period: `Apple revenue` | The latest quarter. |
 | A window: `last 3 quarters`, `past two years`, `18 months`, `the past decade`, `since 2024` | That many recent quarters (`since 2024`: every quarter since), at most 40. A year is 4 quarters, a decade 40, and months are a third, rounded up; `the past year`, `a few` and `several` are 4, and `a couple of` is 2. |
 | Trailing twelve months: `TTM net income`, `LTM net income`, `trailing twelve month net income` | One amount: net income over the four quarters to the latest report, the 10-K's year or derived from it and the year to date (ADR 0008). A figure with no trailing-year form (`TTM revenue`) shows its latest 4 quarters. |
-| A named period: `Q2 2025`, `fiscal 2025` | That quarter or year on each company's own fiscal calendar; `calendar Q2 2025` for the calendar quarter. |
+| A named period: `Q2 2025`, `fiscal 2025` | That quarter or year on each company's own fiscal calendar; `calendar Q2 2025` for the calendar quarter. With a change (`Q2 2025 year over year`, `fiscal 2025 quarter over quarter`), those quarters, each with its change. |
 | Growth with no period: `How fast is Apple's revenue growing?` | The latest 5 quarters, each with its year-over-year change. |
 | Year over year with no period: `Apple revenue year over year`, `versus the same quarter last year`, `up from a year earlier` | The latest 8 quarters, each with its year-over-year change. After a question about several quarters, `show that year over year` keeps those quarters. |
-| Quarter over quarter: `quarter over quarter`, `sequentially` | The latest 5 quarters, each with its change on the quarter before. |
+| Quarter over quarter: `quarter over quarter`, `sequentially` | The latest 5 quarters, each with its change on the quarter before. With a window (`last 2 quarters quarter over quarter`), that many quarters. |
 | A change with no base: `Why did revenue drop?`, `How much did revenue change?`, `What drove the change in revenue?` | A question: compared with what? |
 | An ambiguous word: `profit`, `income`, `margin`, `cash flow`, `interest`, `expenses`, `dividends` | A question: which one? (ADR 0004). `earnings` is net income, and `profit margin` is net margin, with a note saying so. A phrase that names one figure is that figure (`income before taxes`, `noninterest income`); `fee income`, which no single filing figure measures, asks too. |
 | Two metrics: `revenue and net income` | Both. |
@@ -111,7 +111,7 @@ The images are captured from the window by a Playwright script against the recor
 | [Planner comparison](docs/evaluation/planner-comparison.md) | Held out: rules planner 85%, LLM planner 88%, cascade 88% (p = 0.50) | 66 conversations written from a brief frozen first, run end to end on the recorded runtime with only the planner swapped |
 | [Filing check](docs/evaluation/filing-check.md) | 25 of 25 figures found in the filing's own text | Figures the live window shows, across sectors and metrics, looked up in the 10-Q each cites |
 | [Numeral lock](docs/evaluation/numeral-lock.md) | Withholds every changed or invented number, passes every true figure as shown or rounded | Known sentences over ten recorded answers' grounding; no model |
-| [Phrase coverage](docs/evaluation/phrase-coverage.md) | All 273 everyday phrasings of metrics, windows, changes and follow-ups read as [the defaults](#how-a-question-is-read) say | Each asked as a whole question on the recorded runtime; a test fails on any new misreading |
+| [Phrase coverage](docs/evaluation/phrase-coverage.md) | 396 of 406 everyday phrasings of metrics, windows, changes and follow-ups, alone and in combination, read as [the defaults](#how-a-question-is-read) say | Each asked as a whole question on the recorded runtime; a test fails on any new misreading |
 | [Company name coverage](docs/evaluation/company-coverage.md) | 98.7–98.8% of 5,161 companies found for each name form, 100% as `$TICKER` | Every snapshot company asked about in six forms of its name |
 | [Scorecard](docs/evaluation/scorecard.md) | 30 recorded-runtime cases, with p50/p95 latency | Lookups, calendars and derived quarters, growth, rankings, refusals, clarification, follow-ups, filing changes, the numeral lock |
 

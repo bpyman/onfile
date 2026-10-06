@@ -11,6 +11,12 @@ what a reasonable analyst means, not what the code's word lists hold.
 a case that newly fails is a regression, and a gap that starts passing must be
 taken off the list.
 
+Each phrasing is asked alone first. Then the combinations: every pair of a
+company form, a metric phrasing, a window and a change word is asked together
+at least once (all pairs, not every combination), and each kind of first
+question is followed by each kind of follow-up, since a reading can be right
+alone and wrong beside another.
+
 The live app plans with the cascade (ADR 0012), which sends a turn the rules
 planner is unsure of to the LLM planner. Here a stand-in that declines takes the
 LLM planner's place, so every answer is still the rules planner's, and the
@@ -23,6 +29,7 @@ though it is read right here. ``SENT_TO_MODEL`` lists them, kept true the same w
 from __future__ import annotations
 
 import argparse
+import itertools
 import uuid
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
@@ -87,6 +94,35 @@ def _sequential(seen: Observation, turn: ConversationTurn) -> bool:
     return seen.outcome in ("answer", "no_data") and any(
         row.comparison == "sequential" for row in turn.result.table_rows
     )
+
+
+def _reads(
+    tickers: frozenset[str],
+    metrics: frozenset[str],
+    period: tuple[str, int | None] | None,
+    comparison: str | None,
+) -> Check:
+    """Companies, metrics, the period (``None``: not checked) and change rows, all as read."""
+
+    def check(seen: Observation, turn: ConversationTurn) -> bool:
+        return (
+            seen.outcome in ("answer", "no_data")
+            and seen.tickers == tickers
+            and seen.metrics == metrics
+            and (
+                period is None
+                or (
+                    seen.periods[0] == period[0]
+                    and (period[1] is None or seen.periods[1] == period[1])
+                )
+            )
+            and (
+                comparison is None
+                or any(row.comparison == comparison for row in turn.result.table_rows)
+            )
+        )
+
+    return check
 
 
 def _companies(*tickers: str, metrics: tuple[str, ...] = ("revenue",), count: int = 4) -> Check:
@@ -256,6 +292,150 @@ FOLLOW_UPS: tuple[tuple[str, str, Check, str], ...] = (
 )
 
 
+# The combinations. Each dimension's values are read right alone (above); here
+# every pair of values from two dimensions is asked together at least once.
+COMBINED_COMPANIES: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("Apple", ("AAPL",)),
+    ("apple", ("AAPL",)),
+    ("AAPL", ("AAPL",)),
+    ("$AAPL", ("AAPL",)),
+    ("Apple and Microsoft", ("AAPL", "MSFT")),
+    ("AAPL vs MSFT", ("AAPL", "MSFT")),
+    ("Nvidia, AMD and Intel", ("NVDA", "AMD", "INTC")),
+)
+COMBINED_METRICS: tuple[tuple[str, str], ...] = (
+    ("sales", "revenue"),
+    ("top line", "revenue"),
+    ("earnings", "net_income"),
+    ("bottom line", "net_income"),
+    ("EPS", "eps_diluted"),
+    ("gross margin", "gross_margin"),
+    ("operating profit margin", "operating_margin"),
+    ("profit margin", "net_margin"),
+    ("R&D", "research_and_development"),
+    ("income before taxes", "pretax_income"),
+    ("free cash flow", "free_cash_flow"),
+    ("cash from operations", "operating_cash_flow"),
+    ("D&A", "depreciation_amortization"),
+    ("SG&A", "selling_general_and_administrative"),
+)
+COMBINED_WINDOWS: tuple[tuple[str, tuple[str, int | None] | None], ...] = (
+    ("", None),
+    ("over the last 4 quarters", ("last_n_quarters", 4)),
+    ("over the past two years", ("last_n_quarters", 8)),
+    ("for the last 18 months", ("last_n_quarters", 6)),
+    ("for the last couple of quarters", ("last_n_quarters", 2)),
+    ("in Q2 2025", ("named", None)),
+    ("for fiscal 2025", ("named", None)),
+)
+# A change word, the window it shows when none is named, and the rows it adds.
+COMBINED_CHANGES: tuple[tuple[str, tuple[str, int | None], str | None], ...] = (
+    ("", ("latest_quarter", None), None),
+    ("growth", ("last_n_quarters", 5), "year_over_year"),
+    ("year over year", ("last_n_quarters", 8), "year_over_year"),
+    ("quarter over quarter", ("last_n_quarters", 5), "sequential"),
+)
+
+
+def _all_pairs(sizes: Sequence[int]) -> list[tuple[int, ...]]:
+    """Rows of value indices covering every pair of values of every two dimensions."""
+    pairs = list(itertools.combinations(range(len(sizes)), 2))
+    uncovered = {(i, x, j, y) for i, j in pairs for x in range(sizes[i]) for y in range(sizes[j])}
+    candidates = list(itertools.product(*(range(size) for size in sizes)))
+    rows: list[tuple[int, ...]] = []
+    while uncovered:
+        best = max(
+            candidates, key=lambda row: sum((i, row[i], j, row[j]) in uncovered for i, j in pairs)
+        )
+        rows.append(best)
+        uncovered -= {(i, best[i], j, best[j]) for i, j in pairs}
+    return rows
+
+
+def _combined_cases() -> list[PhraseCase]:
+    found = []
+    sizes = [len(COMBINED_COMPANIES), len(COMBINED_METRICS), len(COMBINED_WINDOWS)]
+    for c, m, w, ch in _all_pairs([*sizes, len(COMBINED_CHANGES)]):
+        company, tickers = COMBINED_COMPANIES[c]
+        phrase, metric = COMBINED_METRICS[m]
+        window_words, window = COMBINED_WINDOWS[w]
+        change, default_window, comparison = COMBINED_CHANGES[ch]
+        words = [company, phrase, "growth" if change == "growth" else "", window_words]
+        words.append(change if change not in ("", "growth") else "")
+        question = " ".join(word for word in words if word)
+        period = window or default_window
+        found.append(
+            PhraseCase(
+                f"combined:{question}",
+                "Combinations",
+                (question,),
+                _expected(tickers, (metric,), period, comparison),
+                _reads(frozenset(tickers), frozenset({metric}), period, comparison),
+            )
+        )
+    return found
+
+
+# A first question of each kind, then each kind of follow-up.
+_FIRST_QUESTIONS: tuple[tuple[str, str, tuple[str, int | None], str | None], ...] = (
+    ("Apple revenue over the last 6 quarters", "revenue", ("last_n_quarters", 6), None),
+    ("Apple revenue for fiscal 2025", "revenue", ("named", None), None),
+    ("Apple revenue", "revenue", ("latest_quarter", None), None),
+    ("Apple revenue growth", "revenue", ("last_n_quarters", 5), "year_over_year"),
+    ("Apple gross margin year over year", "gross_margin", ("last_n_quarters", 8), "year_over_year"),
+)
+_FOLLOW_KINDS: tuple[tuple[str, str], ...] = (
+    ("add Microsoft", "add"),
+    ("what about Microsoft?", "swap"),
+    ("same for Microsoft", "swap"),
+    ("show that year over year", "year_over_year"),
+    ("add net income", "metric"),
+    ("and net income too", "metric"),
+    ("make it the last 8 quarters", "window"),
+)
+
+
+def _combined_follow_up_cases() -> list[PhraseCase]:
+    found = []
+    for (first, metric, period, comparison), (follow, kind) in itertools.product(
+        _FIRST_QUESTIONS, _FOLLOW_KINDS
+    ):
+        tickers = {"add": ("AAPL", "MSFT"), "swap": ("MSFT",)}.get(kind, ("AAPL",))
+        metrics = (metric, "net_income") if kind == "metric" else (metric,)
+        shown: tuple[str, int | None] | None = (
+            ("last_n_quarters", 8) if kind == "window" else period
+        )
+        if kind == "year_over_year":
+            comparison = "year_over_year"
+            if period[0] == "latest_quarter":
+                # The README keeps the quarters on screen; one quarter it leaves open.
+                shown = None
+        found.append(
+            PhraseCase(
+                f"combined_follow_up:{first} | {follow}",
+                "Follow-up combinations",
+                (first, follow),
+                _expected(tickers, metrics, shown, comparison),
+                _reads(frozenset(tickers), frozenset(metrics), shown, comparison),
+            )
+        )
+    return found
+
+
+def _expected(
+    tickers: Sequence[str],
+    metrics: Sequence[str],
+    period: tuple[str, int | None] | None,
+    comparison: str | None,
+) -> str:
+    parts = [", ".join(tickers), ", ".join(f"`{metric}`" for metric in metrics)]
+    if period is not None:
+        parts.append(period[0] if period[1] is None else f"{period[0]} {period[1]}")
+    if comparison is not None:
+        parts.append(f"{comparison} rows")
+    return "; ".join(parts)
+
+
 def _metric_cases() -> list[PhraseCase]:
     cases = []
     for slug, phrases in METRIC_PHRASES:
@@ -335,12 +515,29 @@ def cases() -> list[PhraseCase]:
                 check,
             )
         )
-    return found
+    return [*found, *_combined_cases(), *_combined_follow_up_cases()]
 
 
 # The cases that fail today, each a gap in the shared reading of words. Take a case
 # off when it is fixed; the test fails until the list matches.
-KNOWN_GAPS: frozenset[str] = frozenset()
+KNOWN_GAPS: frozenset[str] = frozenset(
+    {
+        # Quarter over quarter replaces a window shorter than 5 quarters with 5.
+        "combined:$AAPL earnings over the last 4 quarters quarter over quarter",
+        "combined:AAPL vs MSFT gross margin for the last couple of quarters quarter over quarter",
+        "combined:AAPL vs MSFT operating profit margin over the last 4 quarters quarter over "
+        "quarter",
+        "combined:apple D&A over the last 4 quarters quarter over quarter",
+        # A named period drops its change, or reads year over year as two named periods.
+        "combined:Apple and Microsoft gross margin growth in Q2 2025",
+        "combined:AAPL vs MSFT EPS in Q2 2025 year over year",
+        "combined:AAPL R&D in Q2 2025 year over year",
+        "combined:Apple profit margin in Q2 2025 quarter over quarter",
+        "combined:Apple R&D for fiscal 2025 quarter over quarter",
+        # "Show that year over year" replaces a named period with 8 quarters.
+        "combined_follow_up:Apple revenue for fiscal 2025 | show that year over year",
+    }
+)
 
 
 # The phrasings the cascade sends to the LLM planner. The ambiguous words name no
