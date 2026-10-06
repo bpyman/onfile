@@ -280,6 +280,7 @@ NO_BASE_QUESTIONS = (
     "How much did Apple's revenue change?",
     "What drove the change in Apple's revenue?",
     "Why did Apple's revenue go up?",
+    "What caused Apple's revenue to fall?",
 )
 
 _FIRST = "Apple revenue over the last 4 quarters"
@@ -563,6 +564,7 @@ KNOWN_GAPS: frozenset[str] = frozenset(
         "window:since the start of 2024",
         "metric:last twelve months net income:question",
         "metric:last twelve months net income:terse",
+        "no_base:What caused Apple's revenue to fall?",
     }
 )
 

@@ -5,6 +5,11 @@
 > label differs from the app is settled: the brief is made clearer, or the app
 > is fixed. Then this note is removed, and the commit that removes it is the
 > frozen prompt. No case is written from a draft.
+>
+> Two rounds of 30 probes ran on 6 October 2026: the brief and the README's
+> "How a question is read" were made clearer after each, and the app gaps they
+> found are tickets in `brief-5-probe-gaps`. Those are fixed before the freeze,
+> so the set measures wording nobody has seen rather than gaps already known.
 
 This brief was committed before any case was written, and is given unchanged to
 the session that writes the cases. Its commit is the frozen prompt; see the
@@ -59,9 +64,10 @@ what this set tests.
 - An answer is a table of figures: one company (a lookup), several companies (a
   comparison), or a ranking of an industry or sector.
 - It does not give investment advice, predict, or answer outside its scope.
-- Figures it does not have (a metric outside the catalog, a segment such as
-  iPhone or AWS, a period before 2015 or in the future) are refused or asked
-  about, never guessed.
+- Figures it does not have (a metric outside the catalog, a period before
+  2015 or in the future) are refused or asked about, never guessed. A segment
+  (iPhone, AWS, Google Cloud) shows the company-wide figure with a note, as the
+  README says: label it as an answer with the company-wide metric.
 - The recording holds each company's 10-Qs and 10-Ks from about mid-2024 to
   mid-2026; for the four banks, from the third quarter of 2025. Name quarters
   and fiscal years inside that span. A named period between 2015 and the start
@@ -119,6 +125,8 @@ shown and whatever the first turn asked.
 
 ### Periods, as labels
 
+- Label the period of every answer, the latest quarter included; a ranking's
+  is the latest quarter.
 - The latest quarter: `{"kind": "latest_quarter"}`.
 - A window of recent quarters: `{"kind": "last_n_quarters", "count": N}`, with N
   as the README's table counts it. For a window `since` a year, leave the count
@@ -126,7 +134,8 @@ shown and whatever the first turn asked.
 - A named fiscal or calendar quarter or year: `{"kind": "named"}`; leave the
   count out.
 - A trailing-year figure (`TTM net income`): label the metric `net_income_ttm`
-  and leave the period out.
+  and leave the period out. A figure with no trailing-year form (`TTM
+  revenue`) is its latest 4 quarters: `last_n_quarters`, count 4.
 - A period in the future, or before 2015, is refused.
 
 ### Changes, as labels
