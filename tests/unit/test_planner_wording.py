@@ -56,10 +56,38 @@ def test_a_filing_comparison_in_other_words(question: str) -> None:
     assert DemoCompleter(issuer_index()).complete(question).intent is Intent.FILING_CHANGE
 
 
-def test_a_hyphened_phrase_is_not_a_misspelt_name() -> None:
-    found = issuer_index().correct("an apples-to-apples comparison of Microsoft and Nvidia")
+@pytest.mark.parametrize(
+    "question",
+    [
+        "an apples-to-apples comparison of Microsoft and Nvidia",
+        "Apples to apples: Merck vs Pfizer net margin",
+        "comparing apples to apples, how do Merck and Pfizer stack up on net income?",
+        "Merck and Pfizer net margin, apples with apples",
+        "Merck vs Pfizer net margin, apples for apples",
+        "Merck vs Pfizer revenue is apples and oranges",
+        "the building blocks of Microsoft and Oracle revenue",
+    ],
+)
+def test_a_word_inside_an_idiom_is_not_a_misspelt_name(question: str) -> None:
+    """A hyphened phrase or an idiom owns its words: "apples" is not Apple."""
+    found = issuer_index().correct(question)
 
     assert found == []
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Apples to apples: Merck vs Pfizer net margin",
+        "Merck vs Pfizer net margin, apples and oranges",
+    ],
+)
+def test_an_idiom_beside_real_companies_names_only_them(question: str) -> None:
+    plan = DemoCompleter(issuer_index()).complete(question)
+
+    assert plan.intent is Intent.COMPARE
+    assert plan.companies == ("MRK", "PFE")
+    assert plan.notes == ()
 
 
 def _spec(*companies: str, metrics: tuple[str, ...] = ("net_income",)):

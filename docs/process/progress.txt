@@ -1461,3 +1461,28 @@ Blockers / next:
 - None. All 1,949 Python tests pass; ruff and mypy pass; compare_answers reports
   `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
   regenerated. Ticket 03 ("apples to apples" is not Apple) is next.
+
+
+## 2026-10-06 — brief-5-probe-gaps 03 "Apples to apples" does not name Apple
+
+Task completed: `docs/process/tickets/brief-5-probe-gaps/issues/03-apples-to-apples-is-not-apple.md`
+
+Key decisions:
+- The misreading was the index's typo corrector: "apples" is one letter from "apple" and not on the
+  common-words list, so `IssuerIndex.correct` read it as Apple. `_IDIOMS` (`issuer_index.py`) lists
+  idioms whose words are the idiom's ("apples to/with/for/and apples|oranges", "building|stumbling|road
+  blocks"); `correct` ignores their words as it already ignores a hyphened phrase's parts. `find` is
+  unchanged, so "apple to apple" still names Apple.
+- Phrase coverage gains the group "Idioms beside a company" (`IDIOM_QUESTIONS`, 6 cases), each
+  expecting only the real companies for the latest quarter.
+
+Files changed:
+- `src/financial_analyst_agent/{issuer_index.py,phrase_coverage.py}`
+- `tests/unit/test_planner_wording.py`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,957 Python tests pass; ruff and mypy pass; compare_answers reports
+  `1 of 244 conversations differ from HEAD`: `case:h3_apples_to_apples` now shows Nvidia and AMD
+  only, as its label expects (intended). docs/evaluation/phrase-coverage.md not regenerated.
+  Ticket 04 (EPS when the latest quarter is a fiscal fourth) is next.

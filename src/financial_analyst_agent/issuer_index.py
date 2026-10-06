@@ -628,14 +628,19 @@ class IssuerIndex:
         """Close misspellings of a company name ("Microsft", "Nvida").
 
         A word inside a hyphened phrase ("apples-to-apples", "year-over-year")
-        is that phrase's, not a misspelt name.
+        or an idiom ("apples to apples", "building blocks") is that phrase's,
+        not a misspelt name.
         """
         candidates = self._typo_candidates
-        ignore = ignore | {
-            part.casefold()
-            for compound in re.findall(r"\w+(?:-\w+)+", question)
-            for part in compound.split("-")
-        }
+        ignore = (
+            ignore
+            | {
+                part.casefold()
+                for compound in re.findall(r"\w+(?:-\w+)+", question)
+                for part in compound.split("-")
+            }
+            | {word for idiom in _IDIOMS.findall(normalize(question)) for word in idiom.split()}
+        )
         mentions: list[CompanyMention] = []
         position = 0
         for word in normalize(question).split():
@@ -847,6 +852,13 @@ def _ordinary(phrase: str) -> bool:
     return phrase in _everyday_words() or phrase in _common_words()
 
 
+# Idioms whose words are the idiom's, not a misspelt company name: "apples to
+# apples" is not Apple, "building blocks" is not Block.
+_IDIOMS = re.compile(
+    r"\b(?:apples (?:to|with|for|and) (?:apples|oranges)"
+    r"|oranges (?:to|with|for|and) (?:oranges|apples)"
+    r"|(?:building|stumbling|road) blocks)\b"
+)
 # Words before an everyday word that make it the word, not the company:
 # "its target", "the gap", "any intel", "price target".
 _WORD_BEFORE = frozenset(

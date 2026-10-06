@@ -288,6 +288,20 @@ NO_BASE_QUESTIONS = (
     "Why did Apple's revenue go up?",
     "What caused Apple's revenue to fall?",
 )
+# An idiom that contains a company's everyday-word name ("apples to apples",
+# "building blocks") names no company: only the real companies are read.
+IDIOM_QUESTIONS: tuple[tuple[str, tuple[str, ...], str], ...] = (
+    ("Apples to apples: Merck vs Pfizer net margin", ("MRK", "PFE"), "net_margin"),
+    (
+        "comparing apples to apples, how do Merck and Pfizer stack up on net income?",
+        ("MRK", "PFE"),
+        "net_income",
+    ),
+    ("an apples-to-apples comparison of Merck and Pfizer net margin", ("MRK", "PFE"), "net_margin"),
+    ("Merck and Pfizer net margin, apples with apples", ("MRK", "PFE"), "net_margin"),
+    ("Merck vs Pfizer net margin, apples and oranges", ("MRK", "PFE"), "net_margin"),
+    ("the building blocks of Microsoft and Oracle revenue", ("MSFT", "ORCL"), "revenue"),
+)
 
 _FIRST = "Apple revenue over the last 4 quarters"
 _BOTH = "Compare Apple and Microsoft revenue over the last 4 quarters"
@@ -553,6 +567,17 @@ def cases() -> list[PhraseCase]:
     for question in NO_BASE_QUESTIONS:
         found.append(
             PhraseCase(f"no_base:{question}", "Changes with no base", (question,), "asks", _asks)
+        )
+    for question, tickers, metric in IDIOM_QUESTIONS:
+        period = ("latest_quarter", None)
+        found.append(
+            PhraseCase(
+                f"idiom:{question}",
+                "Idioms beside a company",
+                (question,),
+                _expected(tickers, (metric,), period, None),
+                _reads(frozenset(tickers), frozenset({metric}), period, None),
+            )
         )
     for first, follow, check, expected in FOLLOW_UPS:
         found.append(
