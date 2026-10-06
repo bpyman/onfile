@@ -35,6 +35,7 @@ from financial_analyst_agent.issuer_index import (
 from financial_analyst_agent.providers.sec.submissions import ACCESSION_PATTERN
 from financial_analyst_agent.request_wording import (
     OVERVIEW_PLAN,
+    asks_for_explanation,
     asks_to_swap,
     implied_metrics,
     parse_named_periods,
@@ -598,6 +599,10 @@ class DemoCompleter:
         if "disrupt" in normalized or re.search(
             r"\bhow (?:can|could|will|might|would) ai\b", normalized
         ):
+            return WorkflowPlan(intent=Intent.EXPLAIN, topic=query)
+        if not companies and asks_for_explanation(query):
+            # "Explain how a share buyback affects EPS": a general question that
+            # names a metric, not a figure with no company (the shared words decide).
             return WorkflowPlan(intent=Intent.EXPLAIN, topic=query)
         if _is_exploratory_query(normalized):
             return WorkflowPlan(intent=Intent.EXPLORATORY_RESEARCH, topic=query)

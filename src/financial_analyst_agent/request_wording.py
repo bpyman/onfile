@@ -336,6 +336,33 @@ YEAR_OF_QUARTERS = re.compile(
 WHY_CHANGE = re.compile(r"^\s*why\b", re.I)
 
 
+# "Explain how a share buyback affects EPS", "how does a buyback affect EPS?",
+# "what is free cash flow and why does it matter?": a general question about how
+# something works, which no company's figure answers (README, general question).
+_EXPLANATION = re.compile(
+    r"^\W*(?:(?:please|can you|could you|would you)\s+)?explain\b"
+    r"|\bhow (?:does|do|did|would|could|can|might|will|should) (?:a |an |the )?[\w'/&-]+"
+    r"(?: [\w'/&-]+){0,3}? (?:affects?|impacts?|influences?|works?|matters?)\b"
+    r"|\bhow (?:is|are|was|were) (?:a |an |the )?[\w'/&-]+(?: [\w'/&-]+){0,3}?"
+    r" (?:calculated|computed|measured|defined|derived|determined|recogni[sz]ed|accounted"
+    r"|reported)\b"
+    r"|\bwhy (?:does|do|is|are|would|should|might|can) .+?\b(?:matters?|important)\b"
+    r"|\bwhat (?:does|do) .+? mean\b",
+    re.IGNORECASE,
+)
+
+
+def asks_for_explanation(message: str) -> bool:
+    """Whether the words ask how something works rather than for a figure.
+
+    "Explain how a share buyback affects EPS" names a metric and no company, but
+    it is a general question (intent explain), as "How might AI change banking?"
+    is. "What's the EPS?" asks for a figure and names no company: it asks which
+    company. The wording tells them apart, not the absence of a company alone.
+    """
+    return _EXPLANATION.search(message) is not None
+
+
 YEAR_TO_DATE = re.compile(r"\b(?:ytd|year[\s-]+to[\s-]+date)\b", re.I)
 
 

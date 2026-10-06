@@ -75,7 +75,11 @@ from financial_analyst_agent.guide import (
 )
 from financial_analyst_agent.issuer_index import CompanyNames
 from financial_analyst_agent.observability import call_provider, log_event
-from financial_analyst_agent.request_wording import planner_window, read_window
+from financial_analyst_agent.request_wording import (
+    asks_for_explanation,
+    planner_window,
+    read_window,
+)
 from financial_analyst_agent.turn import (
     current_events_answer,
     explain_answer,
@@ -122,12 +126,30 @@ def with_peers(proposal: WorkflowPlan | SpecPatch, ranking: Any) -> WorkflowPlan
     return proposal.model_copy(update={"companies": companies})
 
 
+def _names_a_company(proposal: WorkflowPlan | SpecPatch) -> bool:
+    """Whether a figures proposal names a company or ranks a group ("unknown" names none)."""
+    if isinstance(proposal, SpecPatch):
+        return bool(proposal.add_companies) or proposal.ranked_request is not None
+    if proposal.intent in (Intent.RANK, Intent.RANK_AND_LOOKUP):
+        return True
+    company = proposal.company if proposal.company and proposal.company != "unknown" else None
+    return bool(company or proposal.companies)
+
+
 def request_from_proposal(
     proposal: WorkflowPlan | SpecPatch, message: str, deps: TurnDeps
 ) -> AnalystRequest:
     """Type the planner's proposal: one of the closed request kinds, or an error."""
     if isinstance(proposal, WorkflowPlan) and is_filing_change_proposal(proposal):
         return bind_filing_change(proposal, message)
+    if (
+        is_structured_proposal(proposal)
+        and not _names_a_company(proposal)
+        and asks_for_explanation(message)
+    ):
+        # "Explain how a share buyback affects EPS": a general question that names
+        # a metric, whichever planner read it as a figure with no company.
+        return QualitativeRequest(intent=Intent.EXPLAIN, topic=message)
     if isinstance(proposal, WorkflowPlan) and is_qualitative_proposal(proposal):
         topic = proposal.topic
         # Validated: the intent is one of the qualitative three.

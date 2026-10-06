@@ -73,6 +73,18 @@ def _asks(seen: Observation, _turn: ConversationTurn) -> bool:
     return seen.outcome == "clarify"
 
 
+def _explains(seen: Observation, _turn: ConversationTurn) -> bool:
+    # The recorded demo replays one written answer; any other explanation is
+    # refused by the essay completer after it was read right, so the intent decides.
+    return seen.intent == "explain"
+
+
+def _asks_which_company(seen: Observation, turn: ConversationTurn) -> bool:
+    return seen.outcome == "refuse" and (turn.result.message or "").startswith(
+        "I couldn't tell which company you mean"
+    )
+
+
 def _refuses_naming(measure: str) -> Check:
     def check(seen: Observation, turn: ConversationTurn) -> bool:
         return seen.outcome == "refuse" and f"look up {measure}" in (turn.result.message or "")
@@ -349,6 +361,27 @@ UNKNOWN_MEASURE_QUESTIONS: tuple[tuple[str, str], ...] = (
     ("Apple's price-to-sales ratio", "price to sales"),
     ("Apple EV/EBITDA", "EV/EBITDA"),
     ("Apple's customer acquisition cost", "customer acquisition cost"),
+)
+
+# A general question that names a metric asks how something works, not for a
+# figure: an explanation (intent explain), as "How might AI change banking?" is.
+EXPLANATION_QUESTIONS = (
+    "Explain how a share buyback affects EPS",
+    "How does a buyback affect EPS?",
+    "How do buybacks impact diluted EPS?",
+    "What is free cash flow and why does it matter?",
+    "How is EPS calculated?",
+    "Why does operating margin matter?",
+    "What does diluted EPS mean?",
+    "How might AI change banking?",
+)
+# A figure with no company asks which company: the absence of a company alone
+# does not make a question general.
+NO_COMPANY_QUESTIONS = (
+    "What's the EPS?",
+    "What is EPS?",
+    "What's the revenue?",
+    "What was the revenue last quarter?",
 )
 
 _FIRST = "Apple revenue over the last 4 quarters"
@@ -647,6 +680,26 @@ def cases() -> list[PhraseCase]:
                 _refuses_naming(measure),
             )
         )
+    for question in EXPLANATION_QUESTIONS:
+        found.append(
+            PhraseCase(
+                f"general:{question}",
+                "General questions",
+                (question,),
+                "an explanation (intent explain)",
+                _explains,
+            )
+        )
+    for question in NO_COMPANY_QUESTIONS:
+        found.append(
+            PhraseCase(
+                f"no_company:{question}",
+                "General questions",
+                (question,),
+                "asks which company",
+                _asks_which_company,
+            )
+        )
     for first, follow, check, expected in FOLLOW_UPS:
         found.append(
             PhraseCase(
@@ -672,12 +725,17 @@ KNOWN_GAPS: frozenset[str] = frozenset()
 # is Apple doing?") names no catalog metric either, so the rules planner's
 # lookup plan is unsure of it; the shared reading of its words gives the
 # overview whichever planner proposed no metric, and the LLM planner is told to
-# propose none for it. Any other phrasing sent on is a rules-planner reading the
-# live app would not use: make the rules planner sure of it, or add it here with
-# the reason.
-SENT_TO_MODEL: frozenset[str] = frozenset(
-    f"ambiguous:{word}" for word in AMBIGUOUS_WORDS
-) | frozenset(f"overview:{question}" for question, _tickers, _period in OVERVIEW_QUESTIONS)
+# propose none for it. A figure with no company ("What's the EPS?") leaves the
+# rules planner unsure too; the LLM planner is told to name companies as the
+# user wrote them, and the user wrote none, so its proposal asks which company
+# the same way. Any other phrasing sent on is a rules-planner reading the live
+# app would not use: make the rules planner sure of it, or add it here with the
+# reason.
+SENT_TO_MODEL: frozenset[str] = (
+    frozenset(f"ambiguous:{word}" for word in AMBIGUOUS_WORDS)
+    | frozenset(f"overview:{question}" for question, _tickers, _period in OVERVIEW_QUESTIONS)
+    | frozenset(f"no_company:{question}" for question in NO_COMPANY_QUESTIONS)
+)
 
 
 # ``unsure_reason``'s codes, in words.
@@ -717,6 +775,8 @@ def _describe(seen: Observation, turn: ConversationTurn) -> str:
     parts.append(kind if count is None else f"{kind} {count}")
     if comparisons:
         parts.append("changes " + ", ".join(comparisons))
+    if seen.intent in ("explain", "news_and_explain", "exploratory_research"):
+        parts.append(f"intent {seen.intent}")
     if turn.result.renderer is RendererKind.REFUSE and turn.result.message:
         parts.append(f"“{turn.result.message[:80]}”")
     return "; ".join(parts)

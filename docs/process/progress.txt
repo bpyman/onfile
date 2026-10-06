@@ -1609,3 +1609,34 @@ Blockers / next:
   lookup (metric `overview`, which the cascade already keeps) would take these turns off the LLM
   planner live; not done here, since no ticket asks for it. Ticket 08 (a general question naming
   a metric explains) is next.
+
+
+## 2026-10-06 — brief-5-probe-gaps 08 A general question that names a metric is an explanation
+
+Task completed: `docs/process/tickets/brief-5-probe-gaps/issues/08-a-general-question-naming-a-metric-explains.md`
+
+Key decisions:
+- `asks_for_explanation` (`request_wording.py`) is the shared reading of explanation wording:
+  `explain …`, `how does … affect/impact/work`, `how is … calculated`, `why does … matter`,
+  `what does … mean`. The rules planner proposes `explain` for such a question that names no
+  company (its AI rule is unchanged); `request_from_proposal` (`turn_graph.py`) turns either
+  planner's figures proposal naming no company into an explain request when the words ask for
+  one. The LLM planner's prompt names the case too.
+- `Explain how a share buyback affects EPS`, `How does a buyback affect EPS?`, `What is free cash
+  flow and why does it matter?` explain; `What's the EPS?` still asks which company; with a
+  company named, the figure is shown as before.
+- Phrase coverage gains "General questions": `EXPLANATION_QUESTIONS` (8, intent explain) and
+  `NO_COMPANY_QUESTIONS` (4, asks which company; listed in `SENT_TO_MODEL`, since a lookup with
+  no company leaves the rules planner unsure). `KNOWN_GAPS` stays empty.
+
+Files changed:
+- `src/financial_analyst_agent/{request_wording.py,rules_planner.py,planner.py,phrase_coverage.py,graph/turn_graph.py}`
+- `tests/unit/test_planner_wording.py` (19 wording cases), `tests/unit/test_planner_rules.py`
+  (rules planner: 4 explanations, 1 figure with no company), `tests/test_run_turn_explain.py`
+  (an LLM-style figures proposal still explains; a figure with no company still asks)
+- `README.md`, the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,032 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not regenerated.
+  Ticket 08 was the last open ticket in brief-5-probe-gaps.

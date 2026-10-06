@@ -417,3 +417,35 @@ def test_taking_a_company_away_removes_it(message: str) -> None:
     patch = refine_patch_from_message(SpecPatch(mode="extend"), message, spec, index=index)
 
     assert (patch.remove_companies, patch.add_companies, patch.add_metrics) == (("MSFT",), (), ())
+
+
+@pytest.mark.parametrize(
+    ("message", "explanation"),
+    [
+        # A general question: how something works, not a figure (README, general question).
+        ("Explain how a share buyback affects EPS", True),
+        ("explain EPS", True),
+        ("Can you explain how revenue is recognized?", True),
+        ("How does a buyback affect EPS?", True),
+        ("How do buybacks impact diluted EPS?", True),
+        ("How is EPS calculated?", True),
+        ("How does depreciation work?", True),
+        ("What is free cash flow and why does it matter?", True),
+        ("Why does EPS matter?", True),
+        ("Why is operating margin important?", True),
+        ("What does diluted EPS mean?", True),
+        # A figure with no company asks which company; a change with no base asks its base.
+        ("What's the EPS?", False),
+        ("What is EPS?", False),
+        ("revenue", False),
+        ("Why did revenue drop?", False),
+        ("How much did revenue change?", False),
+        ("How is Apple doing?", False),
+        ("How does Oracle's net income compare with Cisco's?", False),
+        ("What changed in the latest 10-Q?", False),
+    ],
+)
+def test_explanation_wording_is_told_from_a_figure(message: str, explanation: bool) -> None:
+    from financial_analyst_agent.request_wording import asks_for_explanation
+
+    assert asks_for_explanation(message) is explanation

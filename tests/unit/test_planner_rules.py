@@ -747,3 +747,24 @@ def test_the_rules_planner_returns_a_frozen_workflow_plan() -> None:
     )
     with pytest.raises(ValidationError):
         plan.metric = "net_income"  # type: ignore[misc]
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Explain how a share buyback affects EPS",
+        "How does a buyback affect EPS?",
+        "What is free cash flow and why does it matter?",
+        "How might AI change banking?",
+    ],
+)
+def test_a_general_question_naming_a_metric_is_an_explanation(question: str) -> None:
+    plan = _live().complete(question)
+
+    assert (plan.intent, plan.topic) == (Intent.EXPLAIN, question)
+
+
+def test_a_figure_with_no_company_still_asks_which_company() -> None:
+    plan = _live().complete("What's the EPS?")
+
+    assert (plan.intent, plan.company, plan.metric) == (Intent.LOOKUP, None, "eps_diluted")
