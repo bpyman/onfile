@@ -294,3 +294,28 @@ def test_catalog_slug_is_unique(metric: str) -> None:
 def test_parse_metric_unknown_raises_unknown_metric_error() -> None:
     with pytest.raises(UnknownMetricError):
         parse_metric("roe")
+
+
+@pytest.mark.parametrize(
+    ("phrase", "metric"),
+    [
+        ("R&D as a percentage of revenue", "rd_to_sales"),
+        ("SG&A as a percentage of sales", "sga_ratio"),
+        ("research and development as a share of revenue", "rd_to_sales"),
+        ("SG&A expenses as a percent of net sales", "sga_ratio"),
+        ("R&D as % of revenue", "rd_to_sales"),
+        ("gross profit as a percentage of revenue", "gross_margin"),
+        ("operating income as a share of sales", "operating_margin"),
+        ("net income as a percentage of total revenue", "net_margin"),
+    ],
+)
+def test_a_figure_as_a_percentage_of_revenue_is_its_ratio(phrase: str, metric: str) -> None:
+    resolved = resolve_metric_phrase(f"What was the company's {phrase}?")
+    assert resolved.kind == "unique"
+    assert resolved.metrics == (metric,)
+
+
+def test_a_figure_without_a_ratio_shows_both_figures() -> None:
+    # The catalog has no capex-to-sales ratio: the two figures, side by side.
+    resolved = resolve_metric_phrase("What was the company's capex as a percentage of revenue?")
+    assert resolved.metrics == ("capital_expenditure", "revenue")

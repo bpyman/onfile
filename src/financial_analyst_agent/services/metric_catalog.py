@@ -547,7 +547,43 @@ def _nonoverlapping_unique_matches(query: str) -> list[tuple[int, int, str]]:
             continue
         accepted.append((start, end, metric))
     accepted.sort(key=lambda item: item[0])
-    return accepted
+    return _as_ratios_of_revenue(query, accepted)
+
+
+# A figure over revenue, as the catalog names it: "R&D as a percentage of
+# revenue" is R&D to sales, not R&D and revenue side by side.
+_RATIO_OF_REVENUE: dict[str, str] = {
+    "gross_profit": "gross_margin",
+    "operating_income": "operating_margin",
+    "net_income": "net_margin",
+    "research_and_development": "rd_to_sales",
+    "selling_general_and_administrative": "sga_ratio",
+}
+_AS_A_SHARE_OF = re.compile(
+    r"\s*as\s+(?:an?\s+)?(?:percentage|percent|share|proportion|fraction|%)\s+of\s+"
+    r"(?:(?:the|its|their|total)\s+)*"
+)
+
+
+def _as_ratios_of_revenue(
+    query: str, matches: list[tuple[int, int, str]]
+) -> list[tuple[int, int, str]]:
+    """Read "X as a percentage (or share) of revenue" as X's ratio, where the catalog has one."""
+    merged: list[tuple[int, int, str]] = []
+    for start, end, metric in matches:
+        if merged:
+            prior_start, prior_end, prior = merged[-1]
+            ratio = _RATIO_OF_REVENUE.get(prior)
+            between = query[prior_end:start]
+            if (
+                ratio is not None
+                and metric == "revenue"
+                and _AS_A_SHARE_OF.fullmatch(between) is not None
+            ):
+                merged[-1] = (prior_start, end, ratio)
+                continue
+        merged.append((start, end, metric))
+    return merged
 
 
 def _spans_overlap(start: int, end: int, occupied: list[tuple[int, int]]) -> bool:

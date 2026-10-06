@@ -8,4 +8,8 @@ Found by phrase coverage ([report](../../../../evaluation/phrase-coverage.md), `
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+The catalog (`services/metric_catalog.py`), which both planners read through, now reads a figure followed by "as a percentage (percent, %, share, proportion or fraction) of revenue or sales" as that figure's ratio over revenue, where the catalog has one: R&D → `rd_to_sales`, SG&A → `sga_ratio`, and likewise gross profit, operating income and net income → their margins. A figure with no such ratio ("capex as a percentage of revenue") still shows the figure and revenue side by side. The four cases are off `KNOWN_GAPS`. `compare_answers`: 0 of 244 conversations differ; no recorded conversation uses this phrasing.

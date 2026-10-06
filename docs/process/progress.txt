@@ -1178,3 +1178,26 @@ Blockers / next:
 - None. All 1,857 Python tests pass; ruff and mypy pass; compare_answers reports
   `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
   regenerated. Ticket 03 is next.
+
+
+## 2026-10-06 — phrase-coverage-gaps 03 "As a percentage of revenue" asks for the ratio
+
+Task completed: `docs/process/tickets/phrase-coverage-gaps/issues/03-a-percentage-of-revenue-is-the-ratio.md`
+
+Key decisions:
+- One rule in the catalog's unique matches, after the longest spans are taken: a
+  figure, then "as a percentage/percent/%/share/proportion/fraction of
+  [the/its/their/total] revenue|sales", becomes the figure's ratio over revenue.
+- The ratios: R&D → rd_to_sales, SG&A → sga_ratio, gross profit → gross_margin,
+  operating income → operating_margin, net income → net_margin. Any other figure
+  keeps the figure and revenue side by side.
+
+Files changed:
+- `src/financial_analyst_agent/{services/metric_catalog.py,phrase_coverage.py (4 cases off KNOWN_GAPS)}`
+- `tests/unit/services/test_metric_phrase.py`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 1,866 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 244 conversations differ from HEAD`. docs/evaluation/phrase-coverage.md not
+  regenerated. Ticket 04 is next.
