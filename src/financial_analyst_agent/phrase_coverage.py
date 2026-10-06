@@ -11,6 +11,12 @@ what a reasonable analyst means, not what the code's word lists hold.
 a case that newly fails is a regression, and a gap that starts passing must be
 taken off the list.
 
+The live app plans with the cascade (ADR 0012), which sends a turn the rules
+planner is unsure of to the LLM planner. Here a stand-in that declines takes the
+LLM planner's place, so every answer is still the rules planner's, and the
+report lists the phrasings the live app would send on: each can be misread live
+though it is read right here. ``SENT_TO_MODEL`` lists them, kept true the same way.
+
     uv run python -m financial_analyst_agent.phrase_coverage   # writes the report
 """
 
@@ -19,14 +25,17 @@ from __future__ import annotations
 import argparse
 import uuid
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from financial_analyst_agent.contracts import RendererKind
 from financial_analyst_agent.conversation import ConversationTurn, run_conversation_turn
+from financial_analyst_agent.domain.errors import PlannerError
+from financial_analyst_agent.planner_cascade import CascadeCompleter
 from financial_analyst_agent.planner_evaluation import Observation, observe
+from financial_analyst_agent.ranking import SnapshotRanking
 from financial_analyst_agent.runtime import recorded_runtime
 from financial_analyst_agent.thread_store import EphemeralThreadStore
 
@@ -331,10 +340,33 @@ def cases() -> list[PhraseCase]:
 
 # The cases that fail today, each a gap in the shared reading of words. Take a case
 # off when it is fixed; the test fails until the list matches.
-KNOWN_GAPS: frozenset[str] = frozenset(
-    {
-    }
-)
+KNOWN_GAPS: frozenset[str] = frozenset()
+
+
+# The phrasings the cascade sends to the LLM planner. The ambiguous words name no
+# catalog metric, so the rules planner is unsure; the shared guard asks which
+# metric was meant whatever the LLM planner proposes (ADR 0004), so the call
+# costs a second but cannot misread them. Any other phrasing sent on is a
+# rules-planner reading the live app would not use: make the rules planner sure
+# of it, or add it here with the reason.
+SENT_TO_MODEL: frozenset[str] = frozenset(f"ambiguous:{word}" for word in AMBIGUOUS_WORDS)
+
+
+# ``unsure_reason``'s codes, in words.
+_UNSURE = {
+    "notes": "it corrected a name or left part unanswered",
+    "metric": "no catalog metric",
+    "company": "no company",
+    "industry": "an industry the snapshot lacks",
+    "edit": "an edit it cannot place",
+}
+
+
+class _NoModel:
+    """The LLM planner's place in the cascade: declining keeps the rules plan."""
+
+    def complete(self, query: str, current_spec: Any = None) -> Any:
+        raise PlannerError("phrase coverage calls no model")
 
 
 @dataclass(frozen=True)
@@ -342,6 +374,8 @@ class Outcome:
     case: PhraseCase
     passed: bool
     seen: str
+    # Why the cascade would send it to the LLM planner, or None.
+    sent_to_model: str | None = None
 
 
 def _describe(seen: Observation, turn: ConversationTurn) -> str:
@@ -362,16 +396,27 @@ def _describe(seen: Observation, turn: ConversationTurn) -> str:
 
 def run(selected: Sequence[PhraseCase] | None = None, runtime: Any = None) -> list[Outcome]:
     runtime = runtime or recorded_runtime()
+    ranking = runtime.ranking
+    assert isinstance(ranking, SnapshotRanking)
+    cascade = CascadeCompleter(runtime.completer, _NoModel(), ranking.knows_industry)
+    runtime = replace(runtime, completer=cascade)
     outcomes = []
     for case in selected if selected is not None else cases():
         store = EphemeralThreadStore()
         thread = f"phrase-{uuid.uuid4().hex}"
         turn: ConversationTurn | None = None
-        for message in case.turns:
+        sent: list[str] = []
+        for number, message in enumerate(case.turns, start=1):
+            cascade.last_reason = None
             turn = run_conversation_turn(thread, message, runtime, store=store)
+            if cascade.last_reason is not None:
+                why = _UNSURE.get(cascade.last_reason, cascade.last_reason)
+                sent.append(why if len(case.turns) == 1 else f"turn {number}: {why}")
         assert turn is not None
         seen = observe(turn)
-        outcomes.append(Outcome(case, case.check(seen, turn), _describe(seen, turn)))
+        outcomes.append(
+            Outcome(case, case.check(seen, turn), _describe(seen, turn), "; ".join(sent) or None)
+        )
     return outcomes
 
 
@@ -380,6 +425,7 @@ def render_markdown(outcomes: Sequence[Outcome]) -> str:
     for outcome in outcomes:
         groups.setdefault(outcome.case.group, []).append(outcome)
     passed = sum(outcome.passed for outcome in outcomes)
+    sent = [outcome for outcome in outcomes if outcome.sent_to_model]
     lines = [
         "# Phrase coverage",
         "",
@@ -387,7 +433,8 @@ def render_markdown(outcomes: Sequence[Outcome]) -> str:
         f"planner. {len(outcomes)} everyday phrasings of a metric, a window, a change or a "
         "follow-up, each asked as a whole question and judged by the README's "
         "[How a question is read](../../README.md#how-a-question-is-read). No network and no "
-        f"model. **{passed} of {len(outcomes)} ({passed / len(outcomes):.0%}) are read right.**",
+        f"model. **{passed} of {len(outcomes)} ({passed / len(outcomes):.0%}) are read right**; "
+        f"the live app's cascade would send {len(sent)} to the LLM planner.",
         "",
         "| Group | Phrasings | Read right |",
         "| --- | ---: | ---: |",
@@ -410,6 +457,29 @@ def render_markdown(outcomes: Sequence[Outcome]) -> str:
         "through (ADR 0010, 0011); `KNOWN_GAPS` in `phrase_coverage.py` lists them, and the "
         "test fails when a phrasing outside it is misread, or one on it starts being read "
         "right.",
+        "",
+        "## Sent to the LLM planner",
+        "",
+        "The live app plans with the cascade (ADR 0012): the rules planner, and the LLM "
+        "planner on a turn the rules planner is unsure of. Here a stand-in that declines "
+        "takes the LLM planner's place, so every answer above is the rules planner's. "
+        "These are the phrasings the live app would send on, and so could read differently "
+        "from this report.",
+        "",
+    ]
+    if not sent:
+        lines.append("None.")
+    else:
+        lines += ["| Question | Why the rules planner is unsure | Read right here |"]
+        lines += ["| --- | --- | --- |"]
+        for outcome in sent:
+            question = " → ".join(f"`{turn}`" for turn in outcome.case.turns)
+            read = "yes" if outcome.passed else "no"
+            lines.append(f"| {question} | {outcome.sent_to_model} | {read} |")
+    lines += [
+        "",
+        "`SENT_TO_MODEL` in `phrase_coverage.py` lists them with the reason each is "
+        "expected, and the test fails when the list and the cascade disagree.",
         "",
     ]
     return "\n".join(lines)

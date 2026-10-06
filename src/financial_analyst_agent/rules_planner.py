@@ -38,6 +38,7 @@ from financial_analyst_agent.request_wording import (
     asks_to_swap,
     implied_metrics,
     parse_named_periods,
+    takes_out_or_swaps,
 )
 from financial_analyst_agent.services.metric_catalog import (
     metric_phrases,
@@ -993,6 +994,9 @@ def _follow_up(
     if companies and metric == "unknown" and spec.companies:
         if _ADD_WORDING.search(normalized) or _COMPARE_TO_WORDING.search(normalized):
             return SpecPatch(mode="extend", add_companies=tuple(companies))
+        if takes_out_or_swaps(normalized):
+            # The shared reading of the edit's words says which companies go (ADR 0010).
+            return SpecPatch(mode="extend")
         if asks_to_swap(normalized) or len(normalized.split()) <= 2:
             return SpecPatch(
                 mode="extend",
