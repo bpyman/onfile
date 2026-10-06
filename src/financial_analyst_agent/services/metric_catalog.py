@@ -109,6 +109,12 @@ METRIC_CONCEPTS: dict[Metric, list[tuple[str, str]]] = {
         ("us-gaap", "StockholdersEquity"),
         ("us-gaap", "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"),
     ],
+    # The balance sheet's total, noncontrolling interests included. A company with
+    # none tags only StockholdersEquity, which is then the same total.
+    Metric.TOTAL_EQUITY: [
+        ("us-gaap", "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"),
+        ("us-gaap", "StockholdersEquity"),
+    ],
 }
 METRIC_CONCEPTS[Metric.DEPRECIATION] = [("us-gaap", "Depreciation")]
 METRIC_CONCEPTS[Metric.AMORTIZATION_OF_INTANGIBLES] = [
@@ -179,6 +185,7 @@ METRIC_DISPLAY: dict[str, MetricDisplay] = {
     "dividends_per_share": MetricDisplay("Dividends per share", "per_share"),
     "cash": MetricDisplay("Cash and equivalents"),
     "shareholders_equity": MetricDisplay("Shareholders' equity"),
+    "total_equity": MetricDisplay("Total equity"),
     "net_income_ttm": MetricDisplay("Trailing-year net income"),
     "depreciation": MetricDisplay("Depreciation"),
     "amortization_of_intangibles": MetricDisplay("Amortization of intangibles"),
@@ -205,7 +212,9 @@ PER_SHARE_METRICS: frozenset[Metric] = frozenset(
     metric for metric in Metric if METRIC_DISPLAY[metric].value_kind == "per_share"
 )
 # Balance-sheet amounts: one value at the report date, never a duration (ADR 0008).
-INSTANT_METRICS: frozenset[Metric] = frozenset({Metric.CASH, Metric.SHAREHOLDERS_EQUITY})
+INSTANT_METRICS: frozenset[Metric] = frozenset(
+    {Metric.CASH, Metric.SHAREHOLDERS_EQUITY, Metric.TOTAL_EQUITY}
+)
 # Sums over the four quarters ending on the report date (ADR 0008).
 TRAILING_YEAR_METRICS: frozenset[Metric] = frozenset({Metric.NET_INCOME_TTM})
 
@@ -329,7 +338,6 @@ _UNIQUE_PHRASES: tuple[tuple[str, str], ...] = (
     ("noninterest income", "noninterest_income"),
     ("non-interest income", "noninterest_income"),
     ("noninterest_income", "noninterest_income"),
-    ("fee income", "noninterest_income"),
     ("interest coverage ratio", "interest_coverage"),
     ("interest coverage", "interest_coverage"),
     ("interest_coverage", "interest_coverage"),
@@ -442,7 +450,10 @@ _UNIQUE_PHRASES: tuple[tuple[str, str], ...] = (
     ("stockholders' equity", "shareholders_equity"),
     ("shareholder equity", "shareholders_equity"),
     ("shareholders_equity", "shareholders_equity"),
-    ("total equity", "shareholders_equity"),
+    ("total equity", "total_equity"),
+    ("equity including noncontrolling interests", "total_equity"),
+    ("equity including minority interests", "total_equity"),
+    ("total_equity", "total_equity"),
     ("book value", "shareholders_equity"),
     ("dividends per share", "dividends_per_share"),
     ("dividend per share", "dividends_per_share"),

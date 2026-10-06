@@ -240,21 +240,19 @@ def test_nii_is_net_interest_income() -> None:
         ("pretax earnings", "pretax_income"),
         ("noninterest income", "noninterest_income"),
         ("non-interest income", "noninterest_income"),
-        ("fee income", "noninterest_income"),
         ("selling, general and administrative expenses", "selling_general_and_administrative"),
         ("SG&A expenses", "selling_general_and_administrative"),
         ("R&D expenses", "research_and_development"),
         ("research and development expense", "research_and_development"),
         ("interest expenses", "interest_expense"),
-        ("total equity", "shareholders_equity"),
+        ("total equity", "total_equity"),
+        ("equity including noncontrolling interests", "total_equity"),
         ("times interest earned", "interest_coverage"),
         ("earnings before interest and taxes", "operating_income"),
         ("earnings before interest, taxes, depreciation and amortization", "ebitda"),
     ],
 )
-def test_a_longer_phrase_names_its_metric_not_its_ambiguous_word(
-    phrase: str, metric: str
-) -> None:
+def test_a_longer_phrase_names_its_metric_not_its_ambiguous_word(phrase: str, metric: str) -> None:
     # The longest span that names one metric wins over "income", "tax",
     # "interest", "expenses", "equity" or "earned" inside it (ADR 0004).
     resolved = resolve_metric_phrase(f"What was the company's {phrase}?")

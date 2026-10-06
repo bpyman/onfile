@@ -27,6 +27,8 @@ class Metric(StrEnum):
     # Balance-sheet amounts at the quarter's end date, not over the quarter.
     CASH = "cash"
     SHAREHOLDERS_EQUITY = "shareholders_equity"
+    # Equity including noncontrolling (minority) interests.
+    TOTAL_EQUITY = "total_equity"
     # Net income over the four quarters ending on the report date (ADR 0008).
     NET_INCOME_TTM = "net_income_ttm"
     # The two halves of D&A, for filers that tag no combined line (Microsoft).

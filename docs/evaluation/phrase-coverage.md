@@ -1,6 +1,6 @@
 # Phrase coverage
 
-Generated `2026-10-06T12:02:56.485668+00:00` on the recorded runtime with the rules planner. 273 everyday phrasings of a metric, a window, a change or a follow-up, each asked as a whole question and judged by the README's [How a question is read](../../README.md#how-a-question-is-read). No network and no model. **271 of 273 (99%) are read right.**
+Generated `2026-10-06T16:26:31.922420+00:00` on the recorded runtime with the rules planner. 273 everyday phrasings of a metric, a window, a change or a follow-up, each asked as a whole question and judged by the README's [How a question is read](../../README.md#how-a-question-is-read). No network and no model. **271 of 273 (99%) are read right.**
 
 | Group | Phrasings | Read right |
 | --- | ---: | ---: |

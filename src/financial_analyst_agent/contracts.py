@@ -76,6 +76,7 @@ REPORTED_METRICS: tuple[str, ...] = (
     "dividends_per_share",
     "cash",
     "shareholders_equity",
+    "total_equity",
     # A bank's; other companies report none (missing_fact).
     "net_interest_income",
     "noninterest_income",
@@ -138,7 +139,7 @@ TRAILING_YEAR_FIGURES: tuple[str, ...] = ("net_income_ttm", *TRAILING_YEAR_FORMU
 # since the snapshot holds today's market cap, not a past one (ADR 0008).
 MARKET_FORMULAS: tuple[str, ...] = ("pe_ratio",)
 # Balance-sheet amounts: one value at the quarter's end date (ADR 0008).
-INSTANT_METRICS: tuple[str, ...] = ("cash", "shareholders_equity")
+INSTANT_METRICS: tuple[str, ...] = ("cash", "shareholders_equity", "total_equity")
 PER_SHARE_METRICS: tuple[str, ...] = tuple(
     metric for metric in ALLOWED_METRICS if METRIC_DISPLAY[metric].value_kind == "per_share"
 )
