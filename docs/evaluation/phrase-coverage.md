@@ -1,6 +1,6 @@
 # Phrase coverage
 
-Generated `2026-10-07T23:26:15.578452+00:00` on the recorded runtime with the rules planner. 550 everyday phrasings of a metric, a window, a change or a follow-up, each asked as a whole question and judged by the README's [How a question is read](../../README.md#how-a-question-is-read). No network and no model. **550 of 550 (100%) are read right**; the live app's cascade would send 14 to the LLM planner.
+Generated `2026-10-07T23:41:38.233995+00:00` on the recorded runtime with the rules planner. 555 everyday phrasings of a metric, a window, a change or a follow-up, each asked as a whole question and judged by the README's [How a question is read](../../README.md#how-a-question-is-read). No network and no model. **555 of 555 (100%) are read right**; the live app's cascade would send 14 to the LLM planner.
 
 | Group | Phrasings | Read right |
 | --- | ---: | ---: |
@@ -19,7 +19,7 @@ Generated `2026-10-07T23:26:15.578452+00:00` on the recorded runtime with the ru
 | A segment names its company | 7 | 7 (100%) |
 | Overviews | 10 | 10 (100%) |
 | Unknown measures | 19 | 19 (100%) |
-| General questions | 16 | 16 (100%) |
+| General questions | 21 | 21 (100%) |
 | Rankings | 21 | 21 (100%) |
 | Follow-ups | 19 | 19 (100%) |
 | Change switches | 6 | 6 (100%) |
