@@ -69,7 +69,7 @@ A company name that 10-Q filings write in lower case mid-sentence as an ordinary
 _Avoid_: common-word company, stopword name
 
 **Comparison base**:
-What a change is measured against: the same quarter a year earlier (year over year) or the quarter before (sequential). Growth is year over year unless the analyst says sequential; a change that names neither is asked about (ADR 0010).
+What a change is measured against: the same quarter a year earlier (year over year) or the quarter before (sequential). Growth is year over year unless the analyst says sequential; a change that names neither is asked about (ADR 0010). Naming both shows both changes on every quarter, wherever the bases sit in the question.
 _Avoid_: delta, period-over-period (unqualified)
 
 **Window**:

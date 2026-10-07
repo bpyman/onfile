@@ -116,6 +116,23 @@ def _sequential(seen: Observation, turn: ConversationTurn) -> bool:
     )
 
 
+def _both_changes(seen: Observation, turn: ConversationTurn) -> bool:
+    """Every quarter shown has its year-over-year change, and all but the oldest
+    their change on the quarter before."""
+    rows = turn.result.table_rows
+    levels = sorted(
+        row.end_date
+        for row in rows
+        if row.comparison is None and row.value is not None and row.end_date is not None
+    )
+    sequential = {row.end_date for row in rows if row.comparison == "sequential"}
+    return (
+        seen.outcome in ("answer", "no_data")
+        and _each_quarter_changed(turn, "year_over_year")
+        and set(levels[1:]) <= sequential
+    )
+
+
 def _each_quarter_changed(turn: ConversationTurn, comparison: str) -> bool:
     """Every quarter shown has its change: no row stands only as another's base."""
     rows = turn.result.table_rows
@@ -352,6 +369,17 @@ SEQUENTIAL_QUESTIONS = (
     "Apple revenue QoQ",
     "Apple revenue sequentially",
     "Apple revenue versus the previous quarter",
+)
+# Naming both bases shows both changes, wherever the bases sit in the question
+# (held-out-5-findings ticket 01): each quarter's year-over-year change from
+# its own comparative, and its change on the quarter before.
+BOTH_BASES_QUESTIONS = (
+    "Sequentially or versus last year, Goldman net interest income",
+    "Year over year and quarter over quarter, Apple revenue",
+    "Goldman net interest income, sequentially or versus last year",
+    "Apple revenue quarter over quarter and year over year",
+    "Did Cisco's revenue grow sequentially or versus last year?",
+    "Apple revenue QoQ and YoY",
 )
 NO_BASE_QUESTIONS = (
     "Why did Apple revenue drop?",
@@ -817,6 +845,16 @@ def cases() -> list[PhraseCase]:
                 "each quarter shown with its year-over-year change",
                 lambda seen, turn: seen.outcome in ("answer", "no_data")
                 and _each_quarter_changed(turn, "year_over_year"),
+            )
+        )
+    for question in BOTH_BASES_QUESTIONS:
+        found.append(
+            PhraseCase(
+                f"both_bases:{question}",
+                "Both bases",
+                (question,),
+                "each quarter with both changes",
+                _both_changes,
             )
         )
     for question in NO_BASE_QUESTIONS:

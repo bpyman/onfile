@@ -217,6 +217,10 @@ SUPPORTED_OPERATIONS: frozenset[str] = frozenset(
         "rank",
         "order_by_metric",
         "year_over_year",
+        # The change on the quarter before, asked for beside year over year
+        # ("sequentially or versus last year"): both changes are shown. Alone it
+        # is the quarter-over-quarter view, which "across_periods" already means.
+        "sequential",
         "lowest_first",
     }
 )
@@ -429,7 +433,9 @@ def resolve_spec(
         operations.append("across_companies")
     if constituents is not None and "rank" not in operations:
         operations.append("rank")
-    if "year_over_year" in operations and "across_periods" not in operations:
+    if ("year_over_year" in operations or "sequential" in operations) and (
+        "across_periods" not in operations
+    ):
         # A change is drawn from the quarters' rows; year over year without them,
         # as a model's follow-up may ask, would show no change at all.
         operations.append("across_periods")

@@ -325,7 +325,7 @@ What a question leaves out has a default, so the same words always get the same 
 - Growth with no metric (`How fast is Apple growing?`) is revenue.
 - Year over year is also `versus the same quarter last year` and `up from a year earlier`. After a question about several quarters or a named period, a follow-up asking for year-over-year change or growth (`show that year over year`, `as growth`) keeps those quarters; after one quarter, it shows the latest 8.
 - Quarter over quarter is also `quarter on quarter`. Where a quarter's year-earlier quarter is on screen too, its year-over-year change shows beside. After a year-over-year view, `sequential instead` switches the change and keeps the quarters, as `year over year instead` switches back.
-- Naming both bases (`sequentially or versus last year`) shows both changes.
+- Naming both bases (`sequentially or versus last year`, `quarter over quarter and year over year`), wherever they sit in the question, shows both changes on every quarter: year over year from each quarter's own comparative, and the change on the quarter before. With no window, 5 quarters. As a follow-up, it keeps the quarters on screen. One base `instead of` or `rather than` the other is that base alone.
 - A change with no base also: `What drove the change in revenue?`, `What caused revenue to fall?`. A yes-no question about figures (`Is AMD's gross margin close to Nvidia's?`) shows them; Management's Discussion and Analysis explains why.
 
 **Metric words**

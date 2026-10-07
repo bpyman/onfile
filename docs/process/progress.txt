@@ -2299,3 +2299,38 @@ Blockers / next:
   concept the catalog does not read needs live data; if so, reading it would make its EBITDA
   computable. Tickets 01-11 in probe-round-3-gaps are all resolved.
 
+2026-10-07
+
+Task completed: `docs/process/tickets/held-out-5-findings/issues/01-both-change-bases-leading.md`
+
+Key decisions:
+- The ticket's premise was wrong and is recorded in rules-to-review: where the bases sit made no
+  difference. Naming both bases was read as a quarter-over-quarter view, which adds the
+  year-over-year change only where the year-earlier quarter is on screen; the recording holds
+  four Goldman quarters, so none was, while Cisco's five quarters gave its newest one row.
+- Naming both bases (`names_both_bases` in `request_wording.py`, wherever they sit; not when one
+  is asked `instead of`, `rather than` or `not` the other) adds a new `sequential` operation
+  beside `year_over_year`. The merge then keeps the sequential change on and takes each quarter's
+  year-over-year change from its own comparative (ADR 0009). Follow-ups: both bases after a
+  window keep the quarters as `sequential instead` does; `year over year instead` and
+  `sequential instead` each drop the other; `remove year over year` drops all three.
+- The rules planner no longer reads "Sequentially" or "QoQ and YoY" beside a list joiner as an
+  unfound name, so the cascade keeps its plan for the held-out wording.
+- Set 5 is development data from here on (case file's about, findings doc, `HeldOutSet(5,
+  findings=True)`); no label was changed.
+
+Files changed:
+- `src/financial_analyst_agent/request_wording.py`, `graph/spec_turn.py`,
+  `graph/analysis_spec.py`, `planner.py`, `rules_planner.py`, `phrase_coverage.py` (+6
+  `BOTH_BASES_QUESTIONS`), `planner_evaluation.py`
+- `tests/test_held_out_5_findings.py` (new), `tests/unit/test_planner_wording.py` (+8 tests, one
+  expectation gains `sequential`)
+- `README.md`, `CONTEXT.md`, `docs/adr/0010-one-reading-of-names-and-windows.md`,
+  `docs/evaluation/held-out-5-findings.md`, `docs/evaluation/planner-cases-held-out-5.json`
+  (about only), `docs/process/rules-to-review.md`, `scripts/compare_answers.py` (+3
+  conversations), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All Python tests pass; ruff and mypy pass; compare_answers reports `3 of 344
+  conversations differ from HEAD`, the three conversations added for this ticket. Tickets 02-09
+  in held-out-5-findings remain.

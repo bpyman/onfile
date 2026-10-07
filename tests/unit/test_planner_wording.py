@@ -140,6 +140,24 @@ def test_a_word_inside_an_idiom_is_not_a_misspelt_name(question: str) -> None:
 
 
 @pytest.mark.parametrize(
+    ("question", "company"),
+    [
+        # A change word beside a list joiner is not a name the planner failed to
+        # find, so the cascade keeps the rules plan (held-out-5-findings ticket 01).
+        ("Sequentially or versus last year, Goldman net interest income", "GS"),
+        ("Apple revenue QoQ and YoY", "Apple"),
+    ],
+)
+def test_a_change_word_beside_a_list_joiner_is_not_an_unfound_name(
+    question: str, company: str
+) -> None:
+    plan = DemoCompleter(issuer_index()).complete(question)
+
+    assert plan.notes == ()
+    assert company in (plan.company, *plan.companies)
+
+
+@pytest.mark.parametrize(
     "question",
     [
         "Apples to apples: Merck vs Pfizer net margin",
@@ -304,6 +322,27 @@ def test_what_a_change_is_measured_against(message: str, base: str | None) -> No
 
 
 @pytest.mark.parametrize(
+    "message",
+    [
+        # The bases leading the question, before the company (held-out set 5).
+        "Sequentially or versus last year, Goldman net interest income",
+        "Year over year and quarter over quarter, Apple revenue",
+        # Trailing it.
+        "Goldman net interest income, sequentially or versus last year",
+        "Apple revenue quarter over quarter and year over year",
+        "Did Cisco's revenue grow sequentially or versus last year?",
+    ],
+)
+def test_naming_both_bases_asks_for_both_changes(message: str) -> None:
+    """README's changes row: naming both bases shows both changes, wherever the
+    bases sit in the question (held-out-5-findings ticket 01)."""
+    patch = bind_periods_from_message(SpecPatch(mode="replace"), message)
+
+    assert patch.set_periods == PeriodSelection(kind="last_n_quarters", count=5)
+    assert {"across_periods", "year_over_year", "sequential"} <= set(patch.add_operations)
+
+
+@pytest.mark.parametrize(
     ("message", "year", "fiscal"),
     [
         ("Apple revenue since 2025 year over year", 2025, False),
@@ -416,7 +455,8 @@ def test_removing_year_over_year_takes_the_change_away_and_keeps_the_window(mess
     patch = bind_periods_from_message(SpecPatch(mode="extend"), message)
 
     assert patch.set_periods is None
-    assert set(patch.remove_operations) == {"across_periods", "year_over_year"}
+    # A sequential change asked beside year over year goes with it.
+    assert set(patch.remove_operations) == {"across_periods", "year_over_year", "sequential"}
     assert not patch.add_operations
 
 
@@ -632,6 +672,80 @@ def test_year_over_year_instead_after_a_sequential_window_keeps_the_quarters(
 
     assert draft.periods.shown == 6
     assert "year_over_year" in draft.operations
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Apple revenue quarter over quarter instead of year over year",
+        "Apple revenue sequentially rather than versus last year",
+        "Apple revenue sequentially, not year over year",
+    ],
+)
+def test_one_base_instead_of_the_other_is_that_base_alone(message: str) -> None:
+    patch = bind_periods_from_message(SpecPatch(mode="replace"), message)
+
+    assert patch.set_periods == PeriodSelection(kind="last_n_quarters", count=5)
+    assert not {"year_over_year", "sequential"} & set(patch.add_operations)
+
+
+_BOTH_CHANGES = ("across_periods", "year_over_year", "sequential")
+
+
+@pytest.mark.parametrize("message", ["year over year instead", "make it year over year"])
+def test_year_over_year_instead_after_both_changes_drops_the_sequential_one(
+    message: str,
+) -> None:
+    spec, index = _spec("GS", metrics=("net_interest_income",))
+    spec = spec.model_copy(update={"periods": _window(5), "operations": _BOTH_CHANGES})
+
+    patch = refine_patch_from_message(SpecPatch(mode="extend"), message, spec, index=index)
+    draft = apply_patch(spec, patch)
+
+    assert draft.periods.shown == 5
+    assert draft.operations == ("across_periods", "year_over_year")
+
+
+@pytest.mark.parametrize("message", ["sequential instead", "quarter over quarter instead"])
+def test_sequential_instead_after_both_changes_drops_the_year_over_year_one(
+    message: str,
+) -> None:
+    spec, index = _spec("GS", metrics=("net_interest_income",))
+    spec = spec.model_copy(update={"periods": _window(5), "operations": _BOTH_CHANGES})
+
+    patch = refine_patch_from_message(SpecPatch(mode="extend"), message, spec, index=index)
+    draft = apply_patch(spec, patch)
+
+    assert draft.periods == PeriodSelection(kind="last_n_quarters", count=6, asked=5)
+    assert draft.operations == ("across_periods",)
+
+
+def test_removing_year_over_year_after_both_changes_removes_both() -> None:
+    spec, index = _spec("GS", metrics=("net_interest_income",))
+    spec = spec.model_copy(update={"periods": _window(5), "operations": _BOTH_CHANGES})
+
+    patch = refine_patch_from_message(
+        SpecPatch(mode="extend"), "remove year over year", spec, index=index
+    )
+    draft = apply_patch(spec, patch)
+
+    assert not set(draft.operations) & set(_BOTH_CHANGES)
+
+
+@pytest.mark.parametrize(
+    "message", ["sequentially or versus last year", "quarter over quarter and year over year"]
+)
+def test_naming_both_bases_as_a_follow_up_keeps_the_window_on_screen(message: str) -> None:
+    """As "sequential instead" does: the quarter before the oldest one shown is
+    read as its base, not shown, and each quarter gets both changes."""
+    spec, index = _spec("AAPL", metrics=("revenue",))
+    spec = spec.model_copy(update={"periods": _window(6), "operations": ("across_periods",)})
+
+    patch = refine_patch_from_message(SpecPatch(mode="extend"), message, spec, index=index)
+    draft = apply_patch(spec, patch)
+
+    assert draft.periods == PeriodSelection(kind="last_n_quarters", count=7, asked=6)
+    assert set(draft.operations) >= set(_BOTH_CHANGES)
 
 
 @pytest.mark.parametrize(

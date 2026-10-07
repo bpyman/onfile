@@ -64,6 +64,20 @@ label says the latest quarter, as the brief's rule does. But the analysis
 records the window asked for (4 quarters), and the evaluation reads the period
 from the analysis. The label and the screen agree; the record does not.
 
+## Fixed since the run
+
+`h5_gr_gs_both` showed the sequential change only because a quarter-over-quarter
+view adds the year-over-year change only where the year-earlier quarter is on
+screen, and the recording holds four Goldman quarters, so none was. Where the
+bases sat made no difference: "Goldman net interest income, sequentially or
+versus last year" failed the same way, and "Sequentially or versus last year,
+Cisco revenue" passed, on the one year-over-year row its five quarters allow.
+Naming both bases now carries a `sequential` operation beside `year_over_year`,
+so every quarter shown has both changes, year over year from its own
+comparative (held-out-5-findings ticket 01). The rules planner also no longer
+reads "Sequentially" or "QoQ and YoY" as names it could not find, so the
+cascade keeps its plan. Set 5 is development data from here on.
+
 ## What follows
 
 - The planners do not differ significantly on 160 cases. The cascade is the most

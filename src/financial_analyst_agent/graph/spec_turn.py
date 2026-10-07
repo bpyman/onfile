@@ -703,11 +703,15 @@ def _yoy_prior(row: TableRow, ordered: list[TableRow]) -> TableRow | None:
 
 
 def across_period_change_rows(
-    levels: list[TableRow], *, sequential: bool = True
+    levels: list[TableRow], *, sequential: bool = True, year_over_year: bool = False
 ) -> list[TableRow]:
     """Sequential and year-over-year change from period-aligned level cells.
 
     ``sequential`` is off when the analyst asked for year-over-year change only.
+    ``year_over_year`` is on when year over year was asked for, alone or beside
+    the sequential change ("sequentially or versus last year"): each quarter's
+    change then starts from its own filing's comparative (ADR 0009), not only
+    from a year-earlier quarter that happens to be on screen.
     """
     by_key: dict[tuple[str, str], list[TableRow]] = {}
     for row in levels:
@@ -734,7 +738,9 @@ def across_period_change_rows(
                     )
                 )
         for row in ordered:
-            prior = _year_earlier_level(row, ordered, comparatives_only=not sequential)
+            prior = _year_earlier_level(
+                row, ordered, comparatives_only=year_over_year or not sequential
+            )
             if prior is not None:
                 changes.append(_change_row(row, prior, comparison="year_over_year"))
     return changes
@@ -746,6 +752,7 @@ def merge_task_results(
     *,
     across_periods: bool = False,
     sequential: bool = True,
+    year_over_year: bool = False,
 ) -> TurnResult:
     """Assemble independent cell results into one analysis table."""
     if len(results) == 1 and not across_periods:
@@ -773,7 +780,9 @@ def merge_task_results(
                 return result
 
     if across_periods:
-        rows = list(rows) + across_period_change_rows(rows, sequential=sequential)
+        rows = list(rows) + across_period_change_rows(
+            rows, sequential=sequential, year_over_year=year_over_year
+        )
 
     intent = results[0].intent
     if any(task.kind == "compare" for task in tasks):
@@ -1184,7 +1193,10 @@ def merge_analysis(compiled: CompiledAnalysis, results: list[TurnResult]) -> Tur
         compiled.tasks,
         results,
         across_periods="across_periods" in spec.operations,
-        sequential="year_over_year" not in spec.operations,
+        # Year over year alone turns the sequential change off; asked for beside
+        # it ("sequentially or versus last year"), both changes are shown.
+        sequential="year_over_year" not in spec.operations or "sequential" in spec.operations,
+        year_over_year="year_over_year" in spec.operations,
     )
     merged = _one_company_left(_without_base_quarters(merged, spec))
     if len(spec.companies) == 1 and spec.constituents is None:

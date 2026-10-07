@@ -84,7 +84,9 @@ _FOLLOW_UP_PROMPT = (
     "Operations: across_companies (several companies side by side), across_periods "
     "(a window of quarters), rank (the top N of an industry), order_by_metric (sort the "
     'companies by the metric: "sort by revenue", "which is biggest"), year_over_year '
-    '(growth against the same quarter a year earlier: "show year-over-year"), lowest_first '
+    '(growth against the same quarter a year earlier: "show year-over-year"), sequential '
+    "(the change on the quarter before, only beside year_over_year when both are asked: "
+    '"sequentially or versus last year"), lowest_first '
     '(the ordered rows from the lowest value: "lowest first"; remove it for "largest first"). '
     "Remove year_over_year when they ask for plain levels again. "
     "Periods in the follow-up's wording are also read by code."
@@ -215,6 +217,7 @@ Operation = Literal[
     "rank",
     "order_by_metric",
     "year_over_year",
+    "sequential",
     "lowest_first",
 ]
 

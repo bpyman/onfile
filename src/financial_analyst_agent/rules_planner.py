@@ -875,6 +875,7 @@ def _unfound_names(query: str, mentions: list[CompanyMention]) -> list[str]:
         if all(
             word in _METRIC_WORDS
             or word in _QUESTION_WORDS
+            or word in _CHANGE_WORDS
             or re.fullmatch(r"[qh]\d|fy\d*|\d+|cy\d*", word)
             for word in words
         ):
@@ -882,6 +883,15 @@ def _unfound_names(query: str, mentions: list[CompanyMention]) -> list[str]:
         if name not in found:
             found.append(name)
     return found
+
+
+# The words of a change ("Sequentially or versus last year", "QoQ and YoY"):
+# beside a list joiner they are not a name the planner failed to find.
+_CHANGE_WORDS = frozenset(
+    """
+    sequential sequentially qoq yoy y/y growth grew growing grown trend trending over on
+    """.split()  # noqa: SIM905
+)
 
 
 # Words a short question uses around a company and a figure, none a metric:
