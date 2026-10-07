@@ -6,4 +6,18 @@
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped 7 October 2026. `ranked_group` (rules_planner.py) reads the group a ranking's words
+name exactly as the rules planner's own plan does (the same `_group_named`, now shared by
+both), and `WHOLE_MARKET` when they name none. `request_from_proposal`
+(graph/turn_graph.py) fills a rank or rank_and_lookup proposal with no industry from it, so
+`top 10 companies in AI` and `top 10 AI companies by revenue` are refused as an unknown
+industry (`ai`) with a fake LLM planner proposing a ranking with no group, as with the rules
+planner; `which companies are worth the most?` still ranks every company. `_lifted_plan`'s
+whole-market default stays for proposals typed without a message. Tests: three in
+`tests/test_held_out_5_findings.py`, each run with both planners. compare_answers: 0 of 375
+conversations differ (the recorded demo uses the rules planner, which already read the group);
+the three questions are added.

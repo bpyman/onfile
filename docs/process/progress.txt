@@ -2565,3 +2565,25 @@ Blockers / next:
   `h4_other_explain_ai_drug_discovery`, now an explanation as its case expects.
 - Phrase coverage (555 of 555 on a local run) and the README's count are not regenerated.
 - Ticket 11 in held-out-5-findings remains.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/held-out-5-findings/issues/11-an-unknown-group-is-refused-whichever-planner.md`
+
+Key decisions:
+- `ranked_group` (rules_planner.py) reads a ranking's group as the rules planner's plan does
+  (`_group_named`, shared with `_plan`); `WHOLE_MARKET` when the words name none.
+- `request_from_proposal` (graph/turn_graph.py) gives a ranking proposal with no industry
+  that group, so an unknown one ("top 10 companies in AI") is refused whichever planner left
+  it out. `_lifted_plan`'s whole-market default is kept for callers with no message.
+
+Files changed:
+- `src/financial_analyst_agent/rules_planner.py`, `graph/turn_graph.py`
+- `tests/test_held_out_5_findings.py` (+3 tests)
+- `README.md`, `docs/evaluation/held-out-5-findings.md`, `scripts/compare_answers.py` (+3
+  conversations), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,324 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 375
+  conversations differ from HEAD`. Every ticket in held-out-5-findings is resolved.
+- Phrase coverage and the README's count are still not regenerated (from ticket 10).

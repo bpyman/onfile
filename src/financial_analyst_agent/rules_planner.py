@@ -548,6 +548,32 @@ def _ranked_industry(normalized: str) -> str:
     return label or _industry_from_query(normalized)
 
 
+def _group_named(ranking: str, which: re.Match[str] | None, group_by: str | None) -> str:
+    """The group a ranking names, from "which bank has the most", "banks by" or "top 5 banks"."""
+    if which is not None:
+        group = which.group("group")
+        industry = group if which.group("noun") else _plural_group(group)
+    elif group_by is not None:
+        industry = group_by
+    else:
+        industry = _ranked_industry(ranking)
+    industry = _clean_group(industry)
+    return _INDUSTRY_WORDS.get(industry, industry)
+
+
+def ranked_group(query: str) -> str:
+    """The group a ranking's words name, read as this planner reads them.
+
+    ``WHOLE_MARKET`` when they name none ("which companies are worth the most?");
+    otherwise the words, known to the snapshot or not ("top 10 companies in AI").
+    """
+    query, _ = _whole_counts(_count_words_as_digits(expand_groups(plain_text(query))))
+    ranking = _without_preamble(query.strip().casefold())
+    rank_words = _RANK_WORDS.search(ranking) is not None
+    group_by = _group_by_metric(ranking) if not rank_words else None
+    return _group_named(ranking, _WHICH_HIGHEST.search(ranking), group_by)
+
+
 def _mention_note(index: IssuerIndex, mention: CompanyMention) -> str:
     name = short_name(index.display_name(mention.query)) or mention.query
     return f"Showing {name} for “{mention.typed}”."
@@ -656,15 +682,7 @@ class DemoCompleter:
         group_by = _group_by_metric(ranking) if not companies and not rank_words else None
         ranked = rank_words or which is not None or group_by is not None
         if ranked and _ranks_with(ranking, companies):
-            if which is not None:
-                group = which.group("group")
-                industry = group if which.group("noun") else _plural_group(group)
-            elif group_by is not None:
-                industry = group_by
-            else:
-                industry = _ranked_industry(ranking)
-            industry = _clean_group(industry)
-            industry = _INDUSTRY_WORDS.get(industry, industry)
+            industry = _group_named(ranking, which, group_by)
             limit = _limit(ranking)
             notes = (
                 (_left_out_of_ranking(self.index, mentions[0], industry, limit),)

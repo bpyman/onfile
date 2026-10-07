@@ -82,6 +82,7 @@ from financial_analyst_agent.request_wording import (
     planner_window,
     read_window,
 )
+from financial_analyst_agent.rules_planner import ranked_group
 from financial_analyst_agent.services.metric_catalog import resolve_metric_phrase
 from financial_analyst_agent.turn import (
     current_events_answer,
@@ -194,6 +195,15 @@ def request_from_proposal(
         return QualitativeRequest.model_validate(
             {"intent": proposal.intent, "topic": topic if topic and topic.strip() else message}
         )
+    if (
+        isinstance(proposal, WorkflowPlan)
+        and proposal.intent in (Intent.RANK, Intent.RANK_AND_LOOKUP)
+        and not (proposal.industry and proposal.industry.strip())
+    ):
+        # "top 10 companies in AI": a group the words name is read from them when a
+        # planner leaves it out, so one the snapshot does not know is refused;
+        # only words that name no group rank every company.
+        proposal = proposal.model_copy(update={"industry": ranked_group(message)})
     if is_structured_proposal(proposal):
         # A planner's window stands only where the words ask about time.
         window = read_window(message)

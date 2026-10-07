@@ -617,3 +617,40 @@ def test_a_change_asked_as_news_by_name_stays_news(question: str, runtime: Runti
     turn = _turn(question, _ProposedPlan(_NEWS), runtime)
 
     assert turn.result.intent is Intent.NEWS_AND_EXPLAIN
+
+
+_NO_GROUP = {
+    Intent.RANK: WorkflowPlan(intent=Intent.RANK),
+    Intent.RANK_AND_LOOKUP: WorkflowPlan(
+        intent=Intent.RANK_AND_LOOKUP, metric="revenue", limit=10, order_by_metric=True
+    ),
+}
+
+
+@pytest.mark.parametrize(
+    ("question", "intent"),
+    [
+        ("top 10 companies in AI", Intent.RANK),
+        ("top 10 AI companies by revenue", Intent.RANK_AND_LOOKUP),
+    ],
+)
+def test_an_unknown_group_is_refused_whichever_planner_leaves_it_out(
+    question: str, intent: Intent, runtime: Runtime
+) -> None:
+    """A ranking of a group the snapshot does not know is refused (ticket 11),
+    even when a planner proposes the ranking with no group."""
+    for planner in (runtime.completer, _ProposedPlan(_NO_GROUP[intent])):
+        turn = _turn(question, planner, runtime)
+
+        assert turn.result.model_dump()["refusal"]["code"] == "unknown_industry"
+        assert turn.result.model_dump()["refusal"]["details"]["industry"] == "ai"
+
+
+def test_a_ranking_that_names_no_group_ranks_every_company_whichever_planner(
+    runtime: Runtime,
+) -> None:
+    for planner in (runtime.completer, _ProposedPlan(_NO_GROUP[Intent.RANK])):
+        turn = _turn("which companies are worth the most?", planner, runtime)
+
+        assert turn.result.model_dump()["refusal"] is None
+        assert turn.result.tool_traces[0].args["industry"] == "companies"

@@ -172,3 +172,8 @@ which the shared resolution refused as an unknown industry. A ranking with no
 group now ranks every company in the snapshot by market value, whichever
 planner left the group out, as the rules planner's does (held-out-5-findings
 ticket 09).
+When a planner leaves the group out, the shared typing reads the question for one
+as the rules planner does (`ranked_group`), so a group the snapshot does not know
+("top 10 companies in AI", "top 10 AI companies by revenue") is refused as an
+unknown industry whichever planner proposed the ranking; only words that name no
+group rank every company (held-out-5-findings ticket 11).
