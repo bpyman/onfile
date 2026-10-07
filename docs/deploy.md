@@ -113,7 +113,7 @@ The live runtime bounds what a slow or failing SEC can cost, also with defaults 
 | `SEC_CACHE_MAX_BYTES` | 1 GiB | The SEC disk cache, trimmed oldest files first. |
 | `SEC_FILING_WATCH_SECONDS` | 300 | How often the API reads SEC's latest 10-Q and 10-K filings (two requests). A company's cached data then lasts until it files again, up to a week ([ADR 0013](adr/0013-cached-sec-data-lasts-until-the-company-files.md)). `0` turns it off, and cached data is fetched again after an hour. Only the API server starts it; a script or an MCP server keeps the hour. The watch needs the process to stay up: after a restart, cached data falls back to the hour until the watch has polled, and data fetched within a day of the first poll's oldest filing lasts 15 minutes, as data fetched within a day of a filing does. |
 | `SEC_WARM_COMPANIES` | 250 | With the filing watch on, the largest companies' SEC data is fetched in the background before anyone asks, largest first ([ADR 0014](adr/0014-a-warm-set-of-company-digests.md)). After a deploy the set fills in about four minutes; `0` turns it off. |
-| `SEC_WARM_REQUESTS_PER_SECOND` | 2 | The warm-up's share of the SEC request rate. It also waits while any visitor's request is queued. |
+| `SEC_WARM_REQUESTS_PER_SECOND` | 2 | The warm-up's share of the SEC request rate. Before each of its requests it also waits while any visitor's request is queued. |
 
 **Who a visitor is.** The per-visitor limits count by client address. With
 `API_PROXY_TOKEN` set, the API answers only the proxy and reads the visitor's address

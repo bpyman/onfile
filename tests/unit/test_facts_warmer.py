@@ -36,14 +36,13 @@ def _warmer(
 ) -> FactsWarmer:
     answers = iter(idle or [])
 
-    def warm(cik: str) -> None:
+    def submissions(cik: str) -> None:
         if cik in failing:
             raise RuntimeError("SEC would not serve it")
-        warmed.append(cik)
 
     return FactsWarmer(
         ("A", "B", "C", "D"),
-        warm=warm,
+        requests=(submissions, warmed.append),
         needs_warming=lambda cik: cik in needing,
         idle=lambda: next(answers, True),
         rate=1000.0,
@@ -66,6 +65,50 @@ def test_the_warm_up_waits_while_visitors_requests_are_queued() -> None:
     _warmer({"A"}, warmed, idle=idle).sweep(threading.Event())
 
     assert warmed == ["A"]
+
+
+def test_the_warm_up_waits_before_each_of_a_companys_requests() -> None:
+    """A visitor who queues between the two requests is not behind the second."""
+    log: list[str] = []
+    answers = iter([True, False, False, True])
+
+    def idle() -> bool:
+        free = next(answers, True)
+        log.append("idle" if free else "busy")
+        return free
+
+    warmer = FactsWarmer(
+        ("A",),
+        requests=(lambda cik: log.append("submissions"), lambda cik: log.append("facts")),
+        needs_warming=lambda cik: True,
+        idle=idle,
+        rate=1000.0,
+    )
+
+    assert warmer.sweep(threading.Event()) == 1
+    assert log == ["idle", "submissions", "busy", "busy", "idle", "facts"]
+
+
+def test_a_stopped_warm_up_makes_no_further_request_for_a_company() -> None:
+    log: list[str] = []
+    stop = threading.Event()
+
+    def idle() -> bool:
+        if "submissions" in log:
+            stop.set()
+            return False
+        return True
+
+    warmer = FactsWarmer(
+        ("A", "B"),
+        requests=(lambda cik: log.append("submissions"), lambda cik: log.append("facts")),
+        needs_warming=lambda cik: True,
+        idle=idle,
+        rate=1000.0,
+    )
+
+    assert warmer.sweep(stop) == 0
+    assert log == ["submissions"]
 
 
 def test_a_company_that_fails_is_left_for_a_visitors_turn() -> None:
@@ -184,7 +227,7 @@ def test_a_company_whose_warming_keeps_nothing_is_skipped_for_hours() -> None:
     now = [0.0]
     warmer = FactsWarmer(
         ("A",),
-        warm=warmed.append,
+        requests=(warmed.append,),
         # A cache that cannot keep its files: the company still needs warming.
         needs_warming=lambda cik: True,
         idle=lambda: True,

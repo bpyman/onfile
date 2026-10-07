@@ -1828,3 +1828,32 @@ Blockers / next:
   `0 of 247 conversations differ from HEAD`. `--from-json` ignores `--no-write` and writes the
   report files (unchanged here); not a rule, so not recorded for review. Ticket 06 in review-69-90
   remains.
+
+## 2026-10-06 — review-69-90 06 The warm-up waits for visitors before each request
+
+Task completed: `docs/process/tickets/review-69-90/issues/06-the-warm-up-waits-before-each-request.md`
+
+Key decisions:
+- `FactsWarmer` takes `requests`, a sequence of per-file fetches, in place of one `warm(cik)`,
+  so the sweep owns every wait: it asks `idle()` before each request, waiting as it did before
+  each company and returning when `stop` is set. The lookup knows nothing of the scheduling.
+- `SecFactLookup.warm` is split into `warm_submissions` and `warm_facts`; the runtime builds a
+  lookup a request, so nothing it keeps outlives the warming.
+- The pause between companies is `len(requests) / rate`; `_REQUESTS_A_COMPANY` is gone.
+- A request that fails leaves the company's later requests unmade, logged, and left to a
+  visitor's turn, as before. The wait before a request is made even when the file is cached and
+  no request follows; the check is cheap and the warmer cannot know in advance.
+- ADR 0014's "never goes ahead of a visitor" bullet and the `SEC_WARM_REQUESTS_PER_SECOND` row in
+  `docs/deploy.md` say the wait is before each request.
+
+Files changed:
+- `src/financial_analyst_agent/facts_warmer.py`, `src/financial_analyst_agent/sec_facts.py`,
+  `src/financial_analyst_agent/runtime.py`
+- `tests/unit/test_facts_warmer.py` (+2 tests, helper adjusted),
+  `tests/unit/providers/test_parsed_facts_cache.py` (one call renamed)
+- `docs/adr/0014-a-warm-set-of-company-digests.md`, `docs/deploy.md`, the ticket,
+  `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,074 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 247 conversations differ from HEAD`. review-69-90 is complete: no tickets remain.

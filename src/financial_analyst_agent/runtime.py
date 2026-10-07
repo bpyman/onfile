@@ -316,9 +316,12 @@ def _start_warming(
     ensure_facts_warmer(
         lambda: FactsWarmer(
             ranking.largest_ciks(settings.sec_warm_companies),
-            # A lookup a company, so nothing it keeps outlives the warming; in the
+            # A lookup a request, so nothing it keeps outlives the warming; in the
             # background, it neither takes a visitor's parse slot nor fills their memory.
-            warm=lambda cik: SecFactLookup(client=cache, background=True).warm(cik),
+            requests=(
+                lambda cik: SecFactLookup(client=cache, background=True).warm_submissions(cik),
+                lambda cik: SecFactLookup(client=cache, background=True).warm_facts(cik),
+            ),
             needs_warming=lambda cik: company_needs_warming(watch, cache, cik),
             idle=sec.idle,
             rate=settings.sec_warm_requests_per_second,

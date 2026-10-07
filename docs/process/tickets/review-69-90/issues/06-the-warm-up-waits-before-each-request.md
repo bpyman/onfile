@@ -8,4 +8,22 @@ Check `idle()` before each of the warm-up's requests, waiting as the sweep does 
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped 6 October 2026. `FactsWarmer` (`facts_warmer.py`) takes `requests`, a sequence of
+per-file fetches (`SecFactLookup.warm_submissions`, `SecFactLookup.warm_facts`), in place of
+one `warm(cik)`. The sweep asks `idle()` before each request and waits as it did before each
+company, returning when `stop` is set; the pause between companies is `len(requests) / rate`,
+so the `_REQUESTS_A_COMPANY` constant is gone. A request that fails leaves the company's later
+requests unmade, logged and left to a visitor's turn, as before. The runtime builds a lookup a
+request (`runtime._start_warming`), so nothing it keeps outlives the warming.
+
+Tests: `test_the_warm_up_waits_before_each_of_a_companys_requests` logs the interleaving with a
+fake `idle` that turns busy after the first request (`idle, submissions, busy, busy, idle,
+facts`); `test_a_stopped_warm_up_makes_no_further_request_for_a_company` stops between the two.
+ADR 0014's "never goes ahead of a visitor" bullet and `docs/deploy.md`'s
+`SEC_WARM_REQUESTS_PER_SECOND` row say the wait is before each request. 2,074 tests pass; ruff
+and mypy pass; `compare_answers` reports 0 of 247 conversations differ (the recorded runtime
+starts no warm-up).
