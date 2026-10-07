@@ -1,5 +1,7 @@
 # A Next.js audience window over a thin HTTP seam, not Streamlit
 
+> **Revised (28 September 2026, hosting):** the API moved from Render's free web service to the `starter` plan ($7/month, 512 MB of RAM, half a CPU; `render.yaml`). It is always on: no sleep after idle minutes and no minute-long wake, so the first visitor no longer waits. The window's "Waking the analysis service…" message and its `/api/health` ping on load stay; the message now covers a redeploy or a slow reply. The free-tier reasoning below is kept as it was decided.
+
 The audience window moves from Streamlit to a React/Next.js app (`web/`) that talks to the Python core through a small FastAPI service (`financial_analyst_agent.api`). The API is a transport over seams that already exist: `run_conversation_turn` for a turn, `present_turn` for display records, `LocalThreadStore` for thread state, `SessionBudget` for public quotas, `runtime_for` for the recorded versus live runtime. It adds no financial logic, and the browser receives the `Presentation` mapping as JSON — formatted strings, chart records, evidence items, traces — so the client never formats a number.
 
 This supersedes PRD story 34 ("Streamlit to be the only audience window") and the audience-window ticket's out-of-scope line "Leaving Streamlit". It does not touch ADRs 0001–0005: membership, lookup gating, the quarterly fact module, clarify rules, and the stateful graph run underneath, unchanged.

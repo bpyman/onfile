@@ -21,7 +21,7 @@ services:
     # the image smoke test, and the Playwright check).
     autoDeployTrigger: checksPass
     # Rebuild only when something the image is built from changes, so a
-    # web-only commit does not redeploy (and wake) the API.
+    # web-only commit does not redeploy the API.
     buildFilter:
       paths:
         - Dockerfile
