@@ -12,13 +12,20 @@ says whether any result had been seen.
    each, labelled blind from the draft brief. The app agreed with 26 and then 24
    of them; each round's doubts and disagreements went into the brief, the
    README's "How a question is read", and tickets (`brief-5-probe-gaps`). A third
-   round runs on the brief as it will be frozen, written by the model that will
-   write the cases, in a folder holding only the files the brief lets it read. It
-   stops the probing if it finds no error in the brief and at most two app gaps;
-   otherwise the brief's unclear parts are rewritten before freezing, not probed
-   again. App gaps the probes find are fixed before the freeze, as in rounds 1 and
-   2. The Protocol records how many probe rounds ran, which model wrote them, and
-   what they changed. The probes are discarded, and none is a case.
+   round runs on the brief as it will be frozen, in two parts, each in a folder
+   holding only the files the brief lets a writer read:
+   - **The brief's clarity:** the case writer (Grok 4.7) writes probes and its
+     doubts about the rules. Only the doubts are read, to make the brief and the
+     README clearer; its probe questions are not scored against the app, so no fix
+     is tuned to the phrasing of the model that writes the set.
+   - **App gaps:** another lab's model (Claude, which wrote rounds 1 and 2) writes
+     probes that are scored against the app, and the gaps they find are fixed
+     before the freeze.
+
+   It stops the probing if it finds no error in the brief and at most two app
+   gaps; otherwise the brief's unclear parts are rewritten before freezing, not
+   probed again. The Protocol records how many probe rounds ran, which model wrote
+   them, and what they changed. The probes are discarded, and none is a case.
 2. **Freeze.** The draft note is removed from
    [`held-out-5-brief.md`](held-out-5-brief.md); that commit is the frozen prompt.
    No planner or reading code changes from the freeze until the run.
