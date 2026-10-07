@@ -12,7 +12,7 @@
 
 **Acceptance:**
 
-- On `tests/fixtures/sec/nvda.json` (fake facts in a unit test are fine too), diluted EPS for the quarter ended 28 April 2024 is $0.60 (5.98 ÷ 10, rounded as the window rounds), its evidence names the May 2024 10-Q and the ratio, and no split note is shown for it.
+- On `tests/fixtures/sec/nvda.json` (fake facts in a unit test are fine too), diluted EPS for the quarter ended 28 April 2024 is $0.598 (5.98 ÷ 10, kept to four places; revised on review, 6 October 2026: the line first read "$0.60, rounded as the window rounds", and the Answer says why the quotient is kept), its evidence names the May 2024 10-Q and the ratio, and no split note is shown for it.
 - A quarter before both splits is divided by 40.
 - A reverse split (ratio below 1) multiplies.
 - A disagreement with the reported comparative leaves the series as first filed, with today's note.

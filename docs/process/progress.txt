@@ -1740,3 +1740,29 @@ Files changed:
 Blockers / next:
 - None. All 2,059 Python tests pass; ruff and mypy pass; compare_answers reports
   `0 of 246 conversations differ from HEAD`. Tickets 03-06 in review-69-90 remain.
+
+## 2026-10-06 — review-69-90 03 ADR 0009 and the split ticket say what the code does
+
+Task completed: `docs/process/tickets/review-69-90/issues/03-adr-0009-and-ticket-04-say-what-the-code-does.md`
+
+Key decisions:
+- ADR 0009's Decision states the revised sequential rule (the quarter before the oldest is read
+  as the base and not shown; the window shows the quarters asked for) and names the rule it
+  replaces, rather than leaving the withdrawn sentence beside the revision note.
+- combination-gaps ticket 04's acceptance reads $0.598 to four places, marked revised on review.
+- ADR 0009's per-share revision note and `series_agrees`'s docstring say the cross-check guards
+  only where a later filing restates a quarter; a quarter reported on one basis alone is
+  adjusted by the reported ratio alone, as intended.
+- The binder's `count = 5` comment and the extend step's docstring still describe the base
+  quarter as shown; the branch never changes a sequential window. Recorded in
+  `docs/process/rules-to-review.md`; code left unchanged (documentation-only ticket).
+
+Files changed:
+- `docs/adr/0009-year-over-year-reads-the-comparative.md`
+- `docs/process/tickets/combination-gaps/issues/04-per-share-figures-across-a-split-on-the-latest-basis.md`
+- `src/financial_analyst_agent/services/stock_splits.py` (docstring only)
+- `docs/process/rules-to-review.md`, the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,059 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 246 conversations differ from HEAD`. Tickets 04-06 in review-69-90 remain.
