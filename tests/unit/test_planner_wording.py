@@ -825,3 +825,32 @@ def test_explanation_wording_is_told_from_a_figure(message: str, explanation: bo
     from financial_analyst_agent.request_wording import asks_for_explanation
 
     assert asks_for_explanation(message) is explanation
+
+
+@pytest.mark.parametrize(
+    ("message", "speculative"),
+    [
+        # What could happen is an explanation, even about a named company's figure.
+        ("How might AI change Apple's revenue?", True),
+        ("How could tariffs affect Nvidia's gross margin?", True),
+        ("How would a recession affect JPMorgan's net income?", True),
+        ("What if Apple's revenue fell 10%?", True),
+        ("What would happen to Tesla's gross margin if prices drop?", True),
+        ("What would happen if rates rose?", True),
+        # A figure, a follow-up or a request to the analyst is not speculation.
+        ("How does Apple's buyback affect its EPS?", False),
+        ("How did Apple's revenue change?", False),
+        ("How would you rank banks by revenue?", False),
+        ("How could I see Apple's revenue by quarter?", False),
+        ("How would that look sequentially?", False),
+        ("How would Apple's revenue compare with Microsoft's?", False),
+        ("What if we look at Microsoft instead?", False),
+        ("Apple revenue", False),
+    ],
+)
+def test_speculative_wording_is_read_once(message: str, speculative: bool) -> None:
+    from financial_analyst_agent.request_wording import asks_for_explanation, asks_speculatively
+
+    assert asks_speculatively(message) is speculative
+    if speculative:
+        assert asks_for_explanation(message)

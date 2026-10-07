@@ -550,6 +550,30 @@ def test_a_question_naming_no_company_figure_stays_an_explanation(
     assert not turn.result.table_rows
 
 
+@pytest.mark.parametrize(
+    ("question", "company", "metric"),
+    [
+        ("How might AI change Apple's revenue?", "Apple", "revenue"),
+        ("How could tariffs affect Nvidia's gross margin?", "Nvidia", "gross_margin"),
+    ],
+)
+def test_a_speculative_question_is_an_explanation_whichever_planner(
+    question: str, company: str, metric: str, runtime: Runtime
+) -> None:
+    """What could happen is an explanation (ticket 10), even when it names a
+    company and a catalog metric: the latest figure answers none of it."""
+    lookup = WorkflowPlan(intent=Intent.LOOKUP, company=company, metric=metric)
+    for planner in (
+        runtime.completer,
+        _ProposedPlan(lookup),
+        _ProposedPlan(WorkflowPlan(intent=Intent.EXPLAIN)),
+    ):
+        turn = _turn(question, planner, runtime)
+
+        assert turn.result.intent is Intent.EXPLAIN
+        assert not turn.result.table_rows
+
+
 _NEWS = WorkflowPlan(intent=Intent.NEWS_AND_EXPLAIN)
 
 

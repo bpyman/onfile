@@ -39,6 +39,7 @@ from financial_analyst_agent.request_wording import (
     OVERVIEW_METRICS,
     OVERVIEW_PLAN,
     asks_for_explanation,
+    asks_speculatively,
     asks_to_swap,
     implied_metrics,
     parse_named_periods,
@@ -612,9 +613,13 @@ class DemoCompleter:
                     update={"company": companies[0], "other_companies": tuple(companies[1:])}
                 )
             return plan.model_copy(update={"notes": tuple(notes)})
-        if "disrupt" in normalized or re.search(
-            r"\bhow (?:can|could|will|might|would) ai\b", normalized
+        if (
+            "disrupt" in normalized
+            or re.search(r"\bhow (?:can|could|will|might|would) ai\b", normalized)
+            or asks_speculatively(query)
         ):
+            # "How could tariffs affect Nvidia's gross margin?": what could happen,
+            # even about a named company's figure (the shared words decide).
             return WorkflowPlan(intent=Intent.EXPLAIN, topic=query)
         if not companies and asks_for_explanation(query):
             # "Explain how a share buyback affects EPS": a general question that

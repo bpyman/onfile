@@ -360,6 +360,25 @@ _EXPLANATION = re.compile(
 _WHAT_IS = re.compile(r"^\W*what(?:['’]s| is| are) (?P<measure>.+?)[\s?.!]*$", re.IGNORECASE)
 
 
+# "How might AI change Apple's revenue?", "What if rates rise?": what could happen,
+# which no filed figure answers, even when a company and a metric are named
+# (README, general question). A request to the analyst ("How would you rank
+# banks?"), a follow-up ("How would that look sequentially?", "What if we look
+# at Microsoft?") and a comparison ("How would Apple's revenue compare ...") are not.
+_SPECULATIVE = re.compile(
+    r"\bhow (?:might|could|would) (?!(?:i|we|you|one|it|that|this|these|those|they)\b)"
+    r"(?!.*\bcompare\b)"
+    r"|\bwhat if (?!(?:i|we|you)\b)|\bwhat would happen\b",
+    re.IGNORECASE,
+)
+
+
+def asks_speculatively(message: str) -> bool:
+    """Whether the words ask what could happen: an explanation, marked as the
+    model's, even about a named company's figure, whichever planner reads it."""
+    return _SPECULATIVE.search(message) is not None
+
+
 def asks_for_explanation(message: str) -> bool:
     """Whether the words ask how something works rather than for a figure.
 
@@ -369,7 +388,7 @@ def asks_for_explanation(message: str) -> bool:
     EPS?" asks for a figure and names no company: it asks which company. The
     wording tells them apart, not the absence of a company alone.
     """
-    if _EXPLANATION.search(message) is not None:
+    if _EXPLANATION.search(message) is not None or asks_speculatively(message):
         return True
     asked = _WHAT_IS.match(message)
     return asked is not None and asked.group("measure").casefold() in metric_phrases()
@@ -769,7 +788,7 @@ def comparison_asked(message: str) -> ComparisonBase | Literal["unclear"] | None
 
 
 # "news", "headlines": news asked for by name.
-_NEWS_BY_NAME = re.compile(r"news|headlines?", re.IGNORECASE)
+_NEWS_BY_NAME = re.compile(r"\bnews\b|\bheadlines?\b", re.IGNORECASE)
 
 
 def asks_change_without_base(message: str) -> bool:

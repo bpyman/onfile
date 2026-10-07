@@ -78,6 +78,7 @@ from financial_analyst_agent.observability import call_provider, log_event
 from financial_analyst_agent.request_wording import (
     asks_change_without_base,
     asks_for_explanation,
+    asks_speculatively,
     planner_window,
     read_window,
 )
@@ -172,19 +173,20 @@ def request_from_proposal(
     """Type the planner's proposal: one of the closed request kinds, or an error."""
     if isinstance(proposal, WorkflowPlan) and is_filing_change_proposal(proposal):
         return bind_filing_change(proposal, message)
-    if isinstance(proposal, WorkflowPlan) and is_qualitative_proposal(proposal):
+    speculative = asks_speculatively(message)
+    if isinstance(proposal, WorkflowPlan) and is_qualitative_proposal(proposal) and not speculative:
         # "Why did NVIDIA's revenue drop?" asks against what, whichever intent a
         # planner proposed, unless it asks for news by name.
         change = asks_change_without_base(message)
         if change or proposal.intent is Intent.EXPLAIN:
             proposal = _figure_asked(message, deps, change=change) or proposal
-    if (
-        is_structured_proposal(proposal)
-        and not _names_a_company(proposal)
-        and asks_for_explanation(message)
+    if is_structured_proposal(proposal) and (
+        speculative or (not _names_a_company(proposal) and asks_for_explanation(message))
     ):
         # "Explain how a share buyback affects EPS": a general question that names
         # a metric, whichever planner read it as a figure with no company.
+        # "How might AI change Apple's revenue?": what could happen, even with a
+        # company named; the latest figure answers none of it.
         return QualitativeRequest(intent=Intent.EXPLAIN, topic=message)
     if isinstance(proposal, WorkflowPlan) and is_qualitative_proposal(proposal):
         topic = proposal.topic

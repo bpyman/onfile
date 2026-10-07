@@ -2539,3 +2539,29 @@ Files changed:
 Blockers / next:
 - None. All 2,305 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 368
   conversations differ from HEAD`. Every ticket in held-out-5-findings is resolved.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/held-out-5-findings/issues/10-a-speculative-question-is-an-explanation.md`
+
+Key decisions:
+- `asks_speculatively` (request_wording.py), included in `asks_for_explanation`: `how
+  might/could/would`, `what if`, `what would happen`; not when the subject is a pronoun
+  (a request to the analyst or a follow-up) or the question compares.
+- `request_from_proposal`: a structured proposal for a speculative question is an
+  explanation, company named or not; a speculative explanation is never re-typed as a
+  figure. The rules planner proposes an explanation for it too.
+
+Files changed:
+- `src/financial_analyst_agent/request_wording.py`, `graph/turn_graph.py`,
+  `rules_planner.py`, `phrase_coverage.py` (+5 general questions)
+- `tests/unit/test_planner_wording.py`, `tests/test_held_out_5_findings.py`
+- `README.md`, `docs/evaluation/held-out-5-findings.md`, `scripts/compare_answers.py`
+  (+4 conversations), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,321 Python tests pass; ruff and mypy pass; compare_answers reports 4 of 372
+  conversations differ, each intended (named in the ticket's Answer), including held-out-4's
+  `h4_other_explain_ai_drug_discovery`, now an explanation as its case expects.
+- Phrase coverage (555 of 555 on a local run) and the README's count are not regenerated.
+- Ticket 11 in held-out-5-findings remains.

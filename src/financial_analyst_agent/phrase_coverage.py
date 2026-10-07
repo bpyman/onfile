@@ -514,6 +514,13 @@ EXPLANATION_QUESTIONS = (
     "What does diluted EPS mean?",
     "What is EPS?",
     "How might AI change banking?",
+    # What could happen is an explanation even about a named company's figure
+    # (held-out-5-findings ticket 10): one case for each speculative wording.
+    "How might AI change Apple's revenue?",
+    "How could tariffs affect Nvidia's gross margin?",
+    "How would a recession affect JPMorgan's net income?",
+    "What if Apple's revenue fell 10%?",
+    "What would happen to Tesla's gross margin if prices drop?",
 )
 # Everyday group names rank their industry, and a group "by" a metric is a ranking
 # without "top". The recorded snapshot's members of each group, by ticker.

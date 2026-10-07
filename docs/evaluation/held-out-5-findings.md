@@ -150,6 +150,13 @@ the question asks why, so "How does Apple's buyback affect its EPS?" is Apple's
 diluted EPS and "Why is Goldman's revenue so volatile?" Goldman's revenue
 whichever planner reads them. A company and no metric ("How might AI change
 Goldman Sachs's business?") stays an explanation (held-out-5-findings ticket 07).
+A question about what could happen ("How might AI change Apple's revenue?",
+"How could tariffs affect Nvidia's gross margin?") is an explanation even when it
+names a company and a catalog metric, whichever planner reads it and whichever
+intent it proposed; the shared reading (`asks_speculatively`) decides, and the
+rules planner reads it too. Held-out-4's `h4_other_explain_ai_drug_discovery`
+("How might generative AI change drug discovery?") is now the explanation its
+case expects (held-out-5-findings ticket 10).
 
 `h5_cl_drop` and `h5_cl_fall` were read by the LLM planner as news on one run of
 three, and the shared typing kept any news proposal as news. It now types a
