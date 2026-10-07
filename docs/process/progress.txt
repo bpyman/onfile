@@ -1954,3 +1954,50 @@ Blockers / next:
 - None. All 2,095 Python tests pass; ruff and mypy pass; compare_answers reports
   `1 of 252 conversations differ from HEAD`, the new case: `SPY and Apple revenue` is a lookup
   (compare before). Tickets 04-07 in probe-round-3-gaps remain.
+
+## 2026-10-07 — probe-round-3-gaps 04 Everyday group names, and a ranking without "top"
+
+Task completed: `docs/process/tickets/probe-round-3-gaps/issues/04-everyday-group-names-and-rankings-without-top.md`
+
+Key decisions:
+- `semis`, `big pharma` and `big banks` join `INDUSTRY_GROUP_ALIASES` in `universe.py`
+  (Semiconductors; Drug Manufacturers - General; Banks - Diversified). `chipmakers`, `chip
+  companies`, `chip stocks`, `drugmakers` and `drug makers` already resolved. Both planners'
+  rankings resolve through the aliases.
+- The rules planner reads `<group> by <metric>` with no rank word as a ranking of the default
+  length, ordered by the metric, when the group is at most three words that name no metric and
+  what follows `by` is a metric (`_group_by_metric`). `revenue by segment` and `Apple revenue by
+  quarter` stay lookups. Intent is the planner's to pick, so this part is in the rules planner
+  (ADR 0011: a keyless visitor's question it misread).
+- "Lowest first" is an operation, `lowest_first`, not a spec field: a field would have changed
+  every stored spec dump (compare_answers flagged 211 conversations on the first try), while an
+  operation appears only where asked, and chips already map operations. It is read from the
+  words for both planners by `bind_order_from_message` (request_wording), bound in the shared
+  flow after the metrics: `lowest first`, `smallest first`, `ascending`, `from the lowest`, `low
+  to high` add it; `largest first`, `highest first`, `descending` and naming another order (`sort
+  by revenue`) remove it. `add Apple` keeps it.
+- `_order_by_metric` and `_order_companies_by_metric` take `ascending`; a plain ranking with
+  `lowest first` is ordered by market cap from the lowest, with no "Ordered by" banner about a
+  metric. `TurnResult.ordered_lowest_first` carries it to the banner (`, lowest first`) and the
+  chart caption. The chip is `Lowest first`, its × sends `largest first`, and the rules
+  planner's `_follow_up` reads an order phrase alone (`_ORDER_ONLY`) as an extend patch.
+  `_ranked_industry` strips the order words, so `top 5 banks lowest first` ranks banks.
+- The guide's `smallest` rule no longer catches `smallest first`; `bottom 5` stays refused.
+- ADR 0010 gains "A ranking's group and order". The README already described the behaviour.
+
+Files changed:
+- `src/financial_analyst_agent/universe.py`, `rules_planner.py`, `request_wording.py`,
+  `graph/analysis_spec.py` (SUPPORTED_OPERATIONS), `graph/spec_turn.py`, `presentation.py`,
+  `contracts.py` (ordered_lowest_first), `guide.py`, `planner.py` (Operation literal and
+  follow-up prompt), `phrase_coverage.py` (+14 RANKING_QUESTIONS)
+- `tests/test_says_what_it_cannot_do.py` (+8 tests), `tests/unit/test_planner_wording.py` (+4),
+  `tests/unit/test_planner_rules.py` (+1 with 8 cases), `tests/unit/test_analysis_spec.py` (+1)
+- `docs/adr/0010-one-reading-of-names-and-windows.md`, `scripts/compare_answers.py` (+5
+  conversations), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,139 Python tests pass; ruff and mypy pass; compare_answers reports
+  `5 of 257 conversations differ from HEAD`, the five new conversations, each refused or asking
+  which company before and ranking now. Noted, not fixed: `lowest first` as a first turn with
+  nothing on screen refuses with "Unknown metric 'unknown'", as any order-only message did
+  before. Tickets 05-07 in probe-round-3-gaps remain.

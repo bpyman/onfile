@@ -92,8 +92,10 @@ from financial_analyst_agent.request_wording import (
     COMPARISON_LABELS,
     FORECAST,
     INVALID_QUARTER,
+    LOWEST_FIRST,
     OVERVIEW_METRICS,
     bind_metrics_from_message,
+    bind_order_from_message,
     comparison_asked,
     read_window,
     refine_patch_from_message,
@@ -725,11 +727,12 @@ def _one_company_left(merged: TurnResult) -> TurnResult:
     return merged.model_copy(update={"intent": Intent.LOOKUP})
 
 
-def _order_by_metric(result: TurnResult, metric: str) -> TurnResult:
+def _order_by_metric(result: TurnResult, metric: str, *, ascending: bool = False) -> TurnResult:
     """Order a ranking's market-cap members by ``metric``, largest first.
 
     Membership stays the snapshot's top N by market cap: ranking a whole
     industry by a filed metric would mean a lookup per company in it.
+    ``ascending`` ("lowest first") runs the same members from the lowest value.
     """
     latest: dict[str, TableRow] = {}
     for row in result.table_rows:
@@ -742,10 +745,12 @@ def _order_by_metric(result: TurnResult, metric: str) -> TurnResult:
     if not latest or not ranks:
         return result
 
+    sign = Decimal(1) if ascending else Decimal(-1)
+
     def key(cik: str) -> tuple[bool, Decimal, int]:
         row = latest.get(cik)
         value = row.value if row is not None else None
-        return (value is None, -(value or Decimal(0)), ranks[cik] or 0)
+        return (value is None, sign * (value or Decimal(0)), ranks[cik] or 0)
 
     order = {cik: index for index, cik in enumerate(sorted(ranks, key=key), start=1)}
     rows = sorted(
@@ -755,10 +760,19 @@ def _order_by_metric(result: TurnResult, metric: str) -> TurnResult:
         ),
         key=lambda row: (row.rank is None, row.rank or 0),
     )
-    return result.model_copy(update={"table_rows": rows, "ordered_by": metric})
+    return result.model_copy(
+        update={
+            "table_rows": rows,
+            # A plain ranking is by market cap already: only another metric is "ordered by".
+            "ordered_by": metric if metric != "market_cap" else result.ordered_by,
+            "ordered_lowest_first": ascending,
+        }
+    )
 
 
-def _order_companies_by_metric(result: TurnResult, metric: str) -> TurnResult:
+def _order_companies_by_metric(
+    result: TurnResult, metric: str, *, ascending: bool = False
+) -> TurnResult:
     """Order named companies by their latest ``metric``, largest first ("sort by revenue")."""
     latest: dict[str, TableRow] = {}
     for row in result.table_rows:
@@ -771,15 +785,16 @@ def _order_companies_by_metric(result: TurnResult, metric: str) -> TurnResult:
     if not latest:
         return result
     first_seen = list(dict.fromkeys(row.cik or row.company_name for row in result.table_rows))
+    sign = Decimal(1) if ascending else Decimal(-1)
 
     def order(company: str) -> tuple[bool, Decimal, int]:
         row = latest.get(company)
         value = row.value if row is not None else None
-        return (value is None, -(value or Decimal(0)), first_seen.index(company))
+        return (value is None, sign * (value or Decimal(0)), first_seen.index(company))
 
     ranking = {company: index for index, company in enumerate(sorted(first_seen, key=order))}
     rows = sorted(result.table_rows, key=lambda row: ranking[row.cik or row.company_name])
-    return result.model_copy(update={"table_rows": rows})
+    return result.model_copy(update={"table_rows": rows, "ordered_lowest_first": ascending})
 
 
 def _fill_identity(result: TurnResult, spec: AnalysisSpec) -> TurnResult:
@@ -930,6 +945,7 @@ def resolve_request(
     patch, early = bind_metrics_from_message(patch, message, intent=intent)
     if early is not None:
         return answered(early, current_spec)
+    patch = bind_order_from_message(patch, message)
     emptied = emptied_by(current_spec, patch)
     if emptied is not None:
         return answered(_refusal(intent, EMPTIED_MESSAGES[emptied]), current_spec)
@@ -1085,10 +1101,15 @@ def merge_analysis(compiled: CompiledAnalysis, results: list[TurnResult]) -> Tur
     if len(spec.companies) == 1 and spec.constituents is None:
         merged = _one_company_failure(merged, results)
     merged = _fill_identity(merged, spec)
-    if "order_by_metric" in spec.operations and spec.constituents is not None and spec.metrics:
-        merged = _order_by_metric(merged, _ordering_metric(spec))
-    elif "order_by_metric" in spec.operations and spec.companies and spec.metrics:
-        merged = _order_companies_by_metric(merged, _ordering_metric(spec))
+    # "Lowest first" orders a ranking even when nothing else asked for an order.
+    lowest_first = LOWEST_FIRST in spec.operations
+    ordered = ("order_by_metric" in spec.operations and bool(spec.metrics)) or lowest_first
+    if ordered and spec.constituents is not None:
+        merged = _order_by_metric(merged, _ordering_metric(spec), ascending=lowest_first)
+    elif ordered and spec.companies and spec.metrics:
+        merged = _order_companies_by_metric(
+            merged, _ordering_metric(spec), ascending=lowest_first
+        )
     return merged
 
 
@@ -1257,10 +1278,10 @@ def _one_company_failure(merged: TurnResult, results: list[TurnResult]) -> TurnR
 
 
 def _ordering_metric(spec: AnalysisSpec) -> str:
-    """The metric request wording recorded for ordering, else the first."""
+    """The metric "sort by …" recorded, else the first; a plain ranking's is market cap."""
     if spec.order_by in spec.metrics:
         return str(spec.order_by)
-    return spec.metrics[0]
+    return spec.metrics[0] if spec.metrics else "market_cap"
 
 
 def _with_market_date(spec: AnalysisSpec, runtime: Runtime) -> AnalysisSpec:

@@ -12,7 +12,7 @@ from datetime import date
 
 import pytest
 
-from conversation_replay import ask, column_of, replay, tickers_of
+from conversation_replay import ask, column_of, last_result, replay, tickers_of
 
 
 # Imported per test, as in test_tester_conversations.
@@ -25,6 +25,8 @@ def runtime():  # type: ignore[no-untyped-def]
 
 PHARMA = {"LLY", "JNJ", "ABBV", "MRK", "PFE", "AMGN", "GILD"}
 TECH = {"AAPL", "MSFT", "NVDA", "AVGO", "MU", "INTC", "ORCL", "AMD", "CSCO", "PLTR", "AMAT"}
+SEMIS = {"NVDA", "AVGO", "MU", "AMD", "INTC", "AMAT"}
+BANKS = {"JPM", "BAC", "WFC"}
 
 
 # Rankings
@@ -61,6 +63,61 @@ def test_smallest_says_rankings_start_from_the_largest(runtime) -> None:  # type
     assert answer.message is not None
     assert answer.message.startswith("Rankings start from the largest companies")
     assert list(answer.suggestions) == ["Top 5 healthcare companies by revenue"]
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Top 5 banks by revenue, lowest first",
+        "Top 5 banks by revenue, smallest first",
+        "Top 5 banks by revenue ascending",
+    ],
+)
+def test_lowest_first_orders_the_same_companies_from_the_lowest(runtime, question: str) -> None:  # type: ignore[no-untyped-def]
+    shown = replay(runtime, question)
+    (answer,) = shown.answers
+    # The members are still the largest banks by market cap, from the lowest revenue.
+    assert column_of(answer, "Ticker") == ["WFC", "BAC", "JPM"]
+    assert "Lowest first" in shown.chips
+
+
+def test_bottom_n_is_still_refused(runtime) -> None:  # type: ignore[no-untyped-def]
+    (answer,) = ask(runtime, "Bottom 5 banks by revenue")
+    assert answer.table is None
+    assert answer.message is not None
+    assert answer.message.startswith("Rankings start from the largest companies")
+
+
+@pytest.mark.parametrize(
+    ("question", "group"),
+    [
+        ("top 5 semis by market cap and revenue", SEMIS),
+        ("chipmakers by free cash flow, lowest first", SEMIS),
+        ("top 5 chip companies by revenue", SEMIS),
+        ("chip stocks by revenue", SEMIS),
+        ("drugmakers by revenue", PHARMA),
+        ("top 5 drug makers by revenue", PHARMA),
+        ("big pharma by revenue", PHARMA),
+        ("big banks by revenue", BANKS),
+        ("top 5 big banks by revenue", BANKS),
+    ],
+)
+def test_everyday_group_names_rank_their_industry(runtime, question: str, group: set[str]) -> None:  # type: ignore[no-untyped-def]
+    (answer,) = ask(runtime, question)
+    assert answer.table is not None and "Rank" in answer.table.headers, answer.message
+    tickers = tickers_of(answer)
+    assert tickers and set(tickers) <= group
+
+
+def test_a_group_by_a_metric_lowest_first_ranks_from_the_lowest(runtime) -> None:  # type: ignore[no-untyped-def]
+    result = last_result(runtime, "chipmakers by free cash flow, lowest first")
+    values = [
+        row.value
+        for row in sorted(result.table_rows, key=lambda row: row.rank or 0)
+        if row.metric == "free_cash_flow" and row.value is not None
+    ]
+    assert len(values) >= 3
+    assert values == sorted(values)
 
 
 def test_a_ranking_names_the_period_it_shows(runtime) -> None:  # type: ignore[no-untyped-def]
@@ -249,6 +306,28 @@ def test_a_change_from_a_derived_quarter_is_marked(runtime) -> None:  # type: ig
 def test_sort_by_orders_the_table(runtime) -> None:  # type: ignore[no-untyped-def]
     answers = ask(runtime, "Compare Microsoft, Apple and Nvidia revenue", "sort by revenue")
     assert column_of(answers[1], "Ticker") == ["AAPL", "NVDA", "MSFT"]
+
+
+def test_sort_by_lowest_first_orders_named_companies_from_the_lowest(runtime) -> None:  # type: ignore[no-untyped-def]
+    answers = ask(
+        runtime, "Compare Microsoft, Apple and Nvidia revenue", "sort by revenue, lowest first"
+    )
+    assert column_of(answers[1], "Ticker") == ["MSFT", "NVDA", "AAPL"]
+
+
+def test_the_order_direction_is_a_follow_up_and_the_chip_turns_it_back(runtime) -> None:  # type: ignore[no-untyped-def]
+    shown = replay(runtime, "Top 5 banks by revenue", "lowest first", "largest first")
+    assert [column_of(answer, "Ticker") for answer in shown.answers] == [
+        ["JPM", "BAC", "WFC"],
+        ["WFC", "BAC", "JPM"],
+        ["JPM", "BAC", "WFC"],
+    ]
+    assert "Lowest first" not in shown.chips
+
+
+def test_lowest_first_with_no_metric_orders_by_market_cap(runtime) -> None:  # type: ignore[no-untyped-def]
+    (answer,) = ask(runtime, "Top 5 banks lowest first")
+    assert column_of(answer, "Ticker") == ["WFC", "BAC", "JPM"]
 
 
 def test_start_over_clears_the_analysis(runtime) -> None:  # type: ignore[no-untyped-def]

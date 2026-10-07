@@ -874,6 +874,56 @@ def _extend(patch: SpecPatch, **fields: Any) -> SpecPatch:
 
 _CHANGE_OPERATIONS = ("across_periods", "year_over_year")
 
+# "lowest first", "smallest first", "ascending": the same companies, ordered from the
+# lowest value of the metric. "Largest first" and "descending" turn it back.
+ASCENDING = re.compile(
+    r"\b(?:lowest|smallest|least|low|small)\s+first\b|\bascending\b"
+    r"|\bfrom\s+the\s+(?:lowest|smallest|bottom)\b|\blow(?:est)?\s+to\s+high(?:est)?\b"
+    r"|\bin\s+(?:increasing|rising)\s+order\b",
+    re.IGNORECASE,
+)
+DESCENDING = re.compile(
+    r"\b(?:largest|biggest|highest|most|high|big)\s+first\b|\bdescending\b"
+    r"|\bfrom\s+the\s+(?:largest|biggest|highest|top)\b|\bhigh(?:est)?\s+to\s+low(?:est)?\b",
+    re.IGNORECASE,
+)
+
+
+def order_direction_asked(message: str) -> bool | None:
+    """True for "lowest first", False for "largest first", None when the words say neither."""
+    if ASCENDING.search(message):
+        return True
+    if DESCENDING.search(message):
+        return False
+    return None
+
+
+LOWEST_FIRST = "lowest_first"
+
+
+def bind_order_from_message(patch: SpecPatch, message: str) -> SpecPatch:
+    """The order's direction comes from the analyst's words, whichever planner proposed.
+
+    "Lowest first" adds the operation and "largest first" removes it. It holds
+    across edits until another order is named: "sort by revenue" after "lowest
+    first" starts again from the largest.
+    """
+    ascending = order_direction_asked(message)
+    if ascending is None and patch.set_order_by is None:
+        return patch
+    if ascending:
+        if LOWEST_FIRST in patch.add_operations:
+            return patch
+        return patch.model_copy(update={"add_operations": (*patch.add_operations, LOWEST_FIRST)})
+    if LOWEST_FIRST in patch.remove_operations:
+        return patch
+    return patch.model_copy(
+        update={
+            "add_operations": tuple(op for op in patch.add_operations if op != LOWEST_FIRST),
+            "remove_operations": (*patch.remove_operations, LOWEST_FIRST),
+        }
+    )
+
 
 def drops_comparison(message: str) -> bool:
     """ "remove year over year", "no YoY": take the change away, keep the quarters."""

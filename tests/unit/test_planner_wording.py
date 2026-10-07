@@ -15,6 +15,7 @@ from financial_analyst_agent.graph.analysis_spec import (
 from financial_analyst_agent.ranking import SnapshotRanking
 from financial_analyst_agent.request_wording import (
     bind_metrics_from_message,
+    bind_order_from_message,
     bind_periods_from_message,
     refine_patch_from_message,
 )
@@ -37,6 +38,69 @@ def test_a_ranking_reads_its_group_and_count(question: str, industry: str, limit
 
     assert plan.intent in (Intent.RANK, Intent.RANK_AND_LOOKUP)
     assert (plan.industry, plan.limit) == (industry, limit)
+
+
+@pytest.mark.parametrize(
+    ("question", "industry", "metric"),
+    [
+        ("chipmakers by free cash flow, lowest first", "chipmakers", "free_cash_flow"),
+        ("big pharma by revenue", "big pharma", "revenue"),
+        ("big banks by revenue", "big banks", "revenue"),
+        ("Semiconductor companies by net margin", "semiconductor", "net_margin"),
+    ],
+)
+def test_a_group_by_a_metric_is_a_ranking_without_top(
+    question: str, industry: str, metric: str
+) -> None:
+    plan = DemoCompleter(issuer_index()).complete(question)
+
+    assert plan.intent is Intent.RANK_AND_LOOKUP
+    assert (plan.industry, plan.limit, plan.metric) == (industry, 10, metric)
+    assert plan.order_by_metric is True
+
+
+@pytest.mark.parametrize(
+    "question", ["revenue by segment", "Apple revenue by quarter", "net income by year"]
+)
+def test_a_metric_by_something_is_not_a_ranking(question: str) -> None:
+    plan = DemoCompleter(issuer_index()).complete(question)
+
+    assert plan.intent is Intent.LOOKUP
+
+
+@pytest.mark.parametrize(
+    ("message", "ascending"),
+    [
+        ("top 5 banks by revenue, lowest first", True),
+        ("chipmakers by free cash flow, smallest first", True),
+        ("top 5 banks by revenue ascending", True),
+        ("top 5 banks by revenue in ascending order", True),
+        ("top 5 banks by revenue from the lowest", True),
+        ("top 5 banks by revenue, largest first", False),
+        ("top 5 banks by revenue, highest first", False),
+        ("top 5 banks by revenue descending", False),
+        ("top 5 banks by revenue", None),
+        ("Apple revenue in the first quarter", None),
+    ],
+)
+def test_the_order_direction_is_read_from_the_words(message: str, ascending: bool | None) -> None:
+    patch = bind_order_from_message(SpecPatch(mode="replace"), message)
+
+    added = "lowest_first" in patch.add_operations
+    removed = "lowest_first" in patch.remove_operations
+    assert (added, removed) == {True: (True, False), False: (False, True), None: (False, False)}[
+        ascending
+    ]
+
+
+def test_naming_another_order_starts_again_from_the_largest() -> None:
+    patch = bind_order_from_message(
+        SpecPatch(mode="extend", set_order_by="revenue", add_operations=("order_by_metric",)),
+        "sort by revenue",
+    )
+
+    assert patch.remove_operations == ("lowest_first",)
+    assert patch.add_operations == ("order_by_metric",)
 
 
 def test_the_two_largest_counts_a_group() -> None:

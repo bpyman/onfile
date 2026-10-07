@@ -469,6 +469,8 @@ class TurnResult(BaseModel):
     guide: bool = False
     # A ranking whose market-cap members are ordered by this metric instead.
     ordered_by: str | None = None
+    # The ordered rows run from the lowest value ("lowest first").
+    ordered_lowest_first: bool = False
     # A few quarters of revenue and net margin beside one company's overview.
     trend_rows: list[TableRow] = Field(default_factory=list)
     # The quarter before a lone fact, for its quarter-over-quarter change.

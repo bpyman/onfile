@@ -138,7 +138,8 @@ SMALLEST_MESSAGE = (
     "Rankings start from the largest companies by market cap, so I can't list the "
     "smallest yet."
 )
-_SMALLEST = re.compile(r"\b(?:smallest|tiniest|bottom\s+\d+)\b")
+# "Smallest first" orders a ranking from the lowest value; it asks for no smaller members.
+_SMALLEST = re.compile(r"\b(?:smallest|tiniest)\b(?!\s+first\b)|\bbottom\s+\d+\b")
 _SMALLEST_GROUP = re.compile(
     r"\b(?:smallest|tiniest|bottom)\s+(?:\d+\s+)?(?P<group>[a-z&][a-z& -]*?)\s+"
     r"(?:companies|company|stocks|firms)\b"

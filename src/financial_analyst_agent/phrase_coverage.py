@@ -391,6 +391,49 @@ EXPLANATION_QUESTIONS = (
     "What is EPS?",
     "How might AI change banking?",
 )
+# Everyday group names rank their industry, and a group "by" a metric is a ranking
+# without "top". The recorded snapshot's members of each group, by ticker.
+_SEMIS = frozenset({"NVDA", "AVGO", "MU", "AMD", "INTC", "AMAT"})
+_DRUGMAKERS = frozenset({"LLY", "JNJ", "ABBV", "MRK", "PFE", "AMGN", "GILD"})
+_BIG_BANKS = frozenset({"JPM", "BAC", "WFC"})
+RANKING_QUESTIONS: tuple[tuple[str, frozenset[str], str, bool | None], ...] = (
+    ("top 5 semis by market cap and revenue", _SEMIS, "market_cap", None),
+    ("chipmakers by free cash flow, lowest first", _SEMIS, "free_cash_flow", True),
+    ("top 5 chipmakers by revenue", _SEMIS, "revenue", None),
+    ("top 5 chip companies by revenue", _SEMIS, "revenue", None),
+    ("chip stocks by revenue", _SEMIS, "revenue", None),
+    ("drugmakers by revenue", _DRUGMAKERS, "revenue", None),
+    ("top 5 drug makers by revenue", _DRUGMAKERS, "revenue", None),
+    ("big pharma by revenue", _DRUGMAKERS, "revenue", None),
+    ("big banks by revenue", _BIG_BANKS, "revenue", None),
+    ("top 5 big banks by revenue", _BIG_BANKS, "revenue", None),
+    ("Top 5 banks by revenue, lowest first", _BIG_BANKS, "revenue", True),
+    ("Top 5 banks by revenue, smallest first", _BIG_BANKS, "revenue", True),
+    ("Top 5 banks by revenue ascending", _BIG_BANKS, "revenue", True),
+    ("Top 5 banks by revenue, largest first", _BIG_BANKS, "revenue", False),
+)
+
+
+def _ranks(group: frozenset[str], metric: str, ascending: bool | None) -> Check:
+    """A ranking of the group's members showing ``metric``, ordered as asked."""
+
+    def check(seen: Observation, turn: ConversationTurn) -> bool:
+        if seen.outcome not in ("answer", "no_data") or seen.intent != "rank_and_lookup":
+            return False
+        if not seen.tickers or not seen.tickers <= group or metric not in seen.metrics:
+            return False
+        if ascending is None:
+            return True
+        shown = sorted(
+            (row for row in turn.result.table_rows if row.metric == metric and row.rank),
+            key=lambda row: row.rank or 0,
+        )
+        values = [row.value for row in shown if row.value is not None]
+        return len(values) >= 2 and values == sorted(values, reverse=not ascending)
+
+    return check
+
+
 # A figure with no company asks which company: the absence of a company alone
 # does not make a question general, whichever planner read it.
 NO_COMPANY_QUESTIONS = (
@@ -718,6 +761,17 @@ def cases() -> list[PhraseCase]:
                 (question,),
                 "asks which company",
                 _asks_which_company,
+            )
+        )
+    for question, group, metric, ascending in RANKING_QUESTIONS:
+        order = {None: "", True: ", lowest first", False: ", largest first"}[ascending]
+        found.append(
+            PhraseCase(
+                f"ranking:{question}",
+                "Rankings",
+                (question,),
+                f"ranks the group by {metric}{order}",
+                _ranks(group, metric, ascending),
             )
         )
     for first, follow, check, expected in FOLLOW_UPS:

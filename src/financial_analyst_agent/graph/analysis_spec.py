@@ -203,8 +203,16 @@ MAX_QUARTERS_ASKED = 40
 # Companies a thread remembers having looked at.
 _MAX_SEEN_COMPANIES = 12
 
+# "lowest_first" runs the ordered rows from the lowest value ("lowest first").
 SUPPORTED_OPERATIONS: frozenset[str] = frozenset(
-    {"across_companies", "across_periods", "rank", "order_by_metric", "year_over_year"}
+    {
+        "across_companies",
+        "across_periods",
+        "rank",
+        "order_by_metric",
+        "year_over_year",
+        "lowest_first",
+    }
 )
 
 

@@ -280,12 +280,16 @@ def build_universe_snapshot(
 # that prefix ("Banks -" covers "Banks - Regional" and "Banks - Diversified").
 INDUSTRY_GROUP_ALIASES: dict[str, tuple[str, ...]] = {
     "semiconductor": ("Semiconductors",),
+    "semi": ("Semiconductors",),
     "chip": ("Semiconductors",),
     "chipmaker": ("Semiconductors",),
     "chip maker": ("Semiconductors",),
     "software": ("Software -",),
     "bank": ("Banks", "Banks -"),
     "banking": ("Banks", "Banks -"),
+    # "Big banks" and "big pharma" are the money-center banks and the large drugmakers.
+    "big bank": ("Banks - Diversified",),
+    "big pharma": ("Drug Manufacturers - General",),
     "biotech": ("Biotechnology",),
     "pharma": ("Drug Manufacturers -", "Medical - Pharmaceuticals"),
     "pharmaceutical": ("Drug Manufacturers -", "Medical - Pharmaceuticals"),

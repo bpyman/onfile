@@ -28,6 +28,39 @@ def test_apply_patch_replace_builds_draft_from_empty() -> None:
     assert draft.ranked_request is None
 
 
+def test_apply_patch_keeps_lowest_first_across_edits_of_a_ranking() -> None:
+    from financial_analyst_agent.graph.analysis_spec import (
+        AnalysisSpec,
+        RankedRequest,
+        RankedSet,
+        SpecPatch,
+        apply_patch,
+    )
+
+    ranked = SpecPatch(
+        mode="replace",
+        ranked_request=RankedRequest(industry="banks", limit=5),
+        add_metrics=("revenue",),
+        add_operations=("rank", "order_by_metric", "lowest_first"),
+    )
+    assert "lowest_first" in apply_patch(None, ranked).operations
+
+    current = AnalysisSpec(
+        constituents=RankedSet(industry="banks", limit=5),
+        metrics=("revenue",),
+        operations=("rank", "order_by_metric", "lowest_first"),
+    )
+    # A follow-up that says nothing about the order keeps it.
+    kept = apply_patch(current, SpecPatch(mode="extend", add_metrics=("net_income",)))
+    assert "lowest_first" in kept.operations
+    # "largest first" turns it back.
+    back = apply_patch(current, SpecPatch(mode="extend", remove_operations=("lowest_first",)))
+    assert "lowest_first" not in back.operations
+    # "add Apple" turns the ranking into those companies, still from the lowest.
+    added = apply_patch(current, SpecPatch(mode="extend", add_companies=("Apple",)))
+    assert "lowest_first" in added.operations and "rank" not in added.operations
+
+
 def test_apply_patch_extend_adds_and_removes_companies() -> None:
     from financial_analyst_agent.graph.analysis_spec import (
         AnalysisSpec,

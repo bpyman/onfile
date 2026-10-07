@@ -205,6 +205,30 @@ def test_industry_words_name_industries_inside_a_sector() -> None:
     assert resolve_industry_group("spaceships", groups) is None
 
 
+DRUG_MANUFACTURERS = {"Drug Manufacturers - General", "Drug Manufacturers - Specialty & Generic"}
+
+
+@pytest.mark.parametrize(
+    ("words", "industries"),
+    [
+        ("semis", {"Semiconductors"}),
+        ("chipmakers", {"Semiconductors"}),
+        ("chip companies", {"Semiconductors"}),
+        ("chip stocks", {"Semiconductors"}),
+        ("drugmakers", DRUG_MANUFACTURERS),
+        ("drug makers", DRUG_MANUFACTURERS),
+        ("big pharma", {"Drug Manufacturers - General"}),
+        ("big banks", {"Banks - Diversified"}),
+    ],
+)
+def test_everyday_group_names_name_their_industry(words: str, industries: set[str]) -> None:
+    groups = SnapshotGroups.of(load_universe_snapshot())
+
+    group = resolve_industry_group(words, groups)
+
+    assert group is not None and group.industries == industries
+
+
 def test_a_ranking_by_a_metric_is_ordered_by_it() -> None:
     by = _live().complete("top 5 healthcare companies by revenue")
     their = _live().complete("biggest banks and their net income")
