@@ -316,6 +316,26 @@ def test_a_change_over_the_past_year_is_year_over_year_over_four_quarters(runtim
     assert all("%" in change for change in column_of(apple, "YoY change"))
 
 
+def test_a_change_over_a_window_is_year_over_year_whatever_the_wording(runtime) -> None:  # type: ignore[no-untyped-def]
+    # README's growth row (probe-round-3-gaps ticket 09): "how much did ... change"
+    # and "how has ... moved" over a window read as "how did ... change" does.
+    shown = replay(runtime, "How much did Intel's revenue change over the last year?")
+    (intel,) = shown.answers
+    assert len(column_of(intel, "Quarter ended")) == 4
+    assert all("%" in change for change in column_of(intel, "YoY change"))
+    assert "Last 4 quarters" in shown.chips and "Year over year" in shown.chips
+    # The recording holds 9 of Thermo Fisher's 10 quarters; each shows its change.
+    shown = replay(runtime, "Over the past 10 quarters, how has Thermo Fisher's revenue moved?")
+    (thermo,) = shown.answers
+    assert len(column_of(thermo, "Quarter ended")) == 9
+    assert all("%" in change for change in column_of(thermo, "YoY change"))
+    assert "Year over year" in shown.chips
+    # With no window, the same words still ask against what.
+    (asked,) = ask(runtime, "How much did Intel's revenue change?")
+    assert asked.table is None
+    assert asked.clarify_prompt == "Compared with what?"
+
+
 def test_a_change_with_no_window_still_asks_against_what(runtime) -> None:  # type: ignore[no-untyped-def]
     (asked,) = ask(runtime, "How did AMD's EBITDA change?")
     assert asked.clarify_prompt == "Compared with what?"

@@ -354,6 +354,11 @@ WINDOW_CHANGE_QUESTIONS: tuple[tuple[str, tuple[str, ...], str, int], ...] = (
     ("How did Apple's revenue change over the past year?", ("AAPL",), "revenue", 4),
     ("How has Tesla's revenue changed over the last year?", ("TSLA",), "revenue", 4),
     ("How did Apple's revenue grow over the last 2 years?", ("AAPL",), "revenue", 8),
+    # Whatever the change wording (probe-round-3-gaps ticket 09).
+    ("How much did Intel's revenue change over the last year?", ("INTC",), "revenue", 4),
+    ("Over the past 10 quarters, how has Thermo Fisher's revenue moved?", ("TMO",), "revenue", 10),
+    ("How did Apple's revenue change over the last 2 quarters?", ("AAPL",), "revenue", 2),
+    ("How has Apple's revenue grown over the past 6 quarters?", ("AAPL",), "revenue", 6),
 )
 # An idiom that contains a company's everyday-word name ("apples to apples",
 # "building blocks") names no company: only the real companies are read.

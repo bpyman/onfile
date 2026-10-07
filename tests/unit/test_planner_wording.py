@@ -229,6 +229,11 @@ def test_over_the_past_year_is_the_years_quarters_not_growth() -> None:
         ("How did AMD's EBITDA change in the last 12 months?", 4),
         ("How did AMD's EBITDA grow over the last 2 years?", 8),
         ("AMD EBITDA growth over the last 4 quarters", 4),
+        # Whatever the change wording (probe-round-3-gaps ticket 09).
+        ("How much did Intel's revenue change over the last year?", 4),
+        ("Over the past 10 quarters, how has Thermo Fisher's revenue moved?", 10),
+        ("How did Apple's revenue change over the last 2 quarters?", 2),
+        ("How has Apple's revenue grown over the past 6 quarters?", 6),
     ],
 )
 def test_a_change_over_a_named_window_is_year_over_year_over_that_window(
@@ -280,8 +285,12 @@ def test_a_change_over_a_named_window_is_year_over_year_over_that_window(
         ("What drove the change in Apple's revenue since 2023?", None),
         ("How much did Intel's revenue change year over year?", "year_over_year"),
         ("How much did Intel's revenue change since last quarter?", "sequential"),
-        ("How much did Intel's revenue change over the last year?", None),
-        ("Over the past 10 quarters, how has Thermo Fisher's revenue moved?", None),
+        # A change over a named window is year over year over it, whatever the
+        # change wording (README's growth row, probe-round-3-gaps ticket 09).
+        ("How much did Intel's revenue change over the last year?", "year_over_year"),
+        ("Over the past 10 quarters, how has Thermo Fisher's revenue moved?", "year_over_year"),
+        ("How did Apple's revenue change over the last 2 quarters?", "year_over_year"),
+        ("How has Apple's revenue grown over the past 6 quarters?", "year_over_year"),
         ("How much did Intel's revenue change since 2023?", None),
         ("Apple revenue last quarter", None),
     ],

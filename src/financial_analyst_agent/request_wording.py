@@ -716,22 +716,29 @@ def comparison_asked(message: str) -> ComparisonBase | Literal["unclear"] | None
     over year by convention), "unclear" where it asks about a change but not
     against what ("why did revenue drop?"), and None where it asks for no change.
     """
-    if YOY.search(message) is None and _SEQUENTIAL.search(message) is None:
-        return "unclear" if _asks_change_without_base(message) else None
     if _SEQUENTIAL.search(message) is not None:
         return "sequential"
+    if YOY.search(message) is None and not _asks_change(message):
+        return None
     if (
         EXPLICIT_YOY.search(message) is not None
         or GROWTH.search(message) is not None
-        or _YEAR_BASE.search(message) is not None
+        or _names_a_window(message)
     ):
         return "year_over_year"
     return "unclear"
 
 
-def _asks_change_without_base(message: str) -> bool:
-    """A change asked about ("how much did revenue change?") with no base named."""
-    return _CHANGE.search(message) is not None and not _names_a_span(message)
+def _asks_change(message: str) -> bool:
+    """A change asked about in words that name no base ("how much did revenue change?").
+
+    Over a named window it is year over year over that window; with no window it
+    is asked about. Over a "since" window or named periods alone, the quarters
+    themselves are the answer, so no change is asked.
+    """
+    return _CHANGE.search(message) is not None and (
+        _names_a_window(message) or not _names_a_span(message)
+    )
 
 
 def window_words(message: str) -> str:
@@ -739,16 +746,23 @@ def window_words(message: str) -> str:
     return without_trailing_year_words(message)
 
 
-def _names_a_span(message: str) -> bool:
-    """Whether the wording names quarters a change runs across ("over the past 10 quarters").
+def _names_a_window(message: str) -> bool:
+    """Whether the wording names a window of quarters ("over the past 10 quarters",
+    "over the last year").
 
-    The span's first quarter is the change's base, so the span is the answer.
+    A change asked over one, in any wording, is year over year over that window
+    (README's growth row).
     """
     window = asked_window(window_words(message))
+    return (window is not None and window.quarters > 1) or _YEAR_BASE.search(message) is not None
+
+
+def _names_a_span(message: str) -> bool:
+    """Whether the wording names quarters a change runs across: a window, a "since"
+    window or several named periods."""
     return (
-        (window is not None and window.quarters > 1)
+        _names_a_window(message)
         or SINCE_YEAR.search(message) is not None
-        or _YEAR_BASE.search(message) is not None
         or len(parse_named_periods(message)) > 1
     )
 
@@ -774,7 +788,7 @@ def bind_periods_from_message(
         )
     asked = window.asked_quarters if window.counted_window else None
     # "How much did revenue change?" shows the quarters "how has it changed?" does.
-    yoy = YOY.search(message) is not None or _asks_change_without_base(message)
+    yoy = YOY.search(message) is not None or _asks_change(message)
     # "quarter over quarter" is a window of sequential changes.
     sequential = _SEQUENTIAL.search(message) is not None
     if asked is None and (yoy or sequential) and _YEAR_BASE.search(message) is not None:
@@ -860,8 +874,9 @@ def bind_periods_from_message(
         )
     if (yoy or sequential) and count < 5 and not (explicit_yoy and asked is not None):
         # Only a change that names no base gets here with a window under 5 ("how did
-        # revenue change over the last 2 quarters?"): it is read over 5 until the
-        # analyst says against what. A sequential window returned above.
+        # revenue change last quarter?"): it is read over 5 until the analyst says
+        # against what. A change over a window of two or more quarters is year over
+        # year over it, and a sequential window returned above.
         count = 5
     if explicit_yoy and EXPLICIT_YOY.search(message) is not None and asked is None:
         # "Year over year" with no window: two years of quarters. A window the
