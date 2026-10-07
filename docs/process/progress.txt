@@ -2518,3 +2518,24 @@ Files changed:
 Blockers / next:
 - None. All 2,304 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 366
   conversations differ from HEAD`. Ticket 09 in held-out-5-findings remains.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/held-out-5-findings/issues/09-a-ranking-with-no-group-whichever-planner.md`
+
+Key decisions:
+- The LLM planner proposed `rank` with no industry for `which companies are worth the most?`.
+  `_lifted_plan` (graph/spec_turn.py) gives a ranking plan with no industry `WHOLE_MARKET`
+  (now in universe.py), so every company is ranked, as the rules planner does.
+- `test_run_turn_rank.py`'s refusal of a ranking with no industry now expects every company;
+  recorded in rules-to-review.
+
+Files changed:
+- `src/financial_analyst_agent/graph/spec_turn.py`, `universe.py`, `rules_planner.py`
+- `tests/test_held_out_5_findings.py` (+1 LLM plan), `tests/test_run_turn_rank.py`
+- `docs/evaluation/held-out-5-findings.md`, `docs/process/rules-to-review.md`,
+  `scripts/compare_answers.py` (+2 conversations), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,305 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 368
+  conversations differ from HEAD`. Every ticket in held-out-5-findings is resolved.

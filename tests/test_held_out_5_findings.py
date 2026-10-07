@@ -96,6 +96,8 @@ _LLM_PLANS = {
     "h5_cl_fall": WorkflowPlan(
         intent=Intent.NEWS_AND_EXPLAIN, topic="What caused Pfizer's earnings to fall?"
     ),
+    # A ranking with no group, refused as an unknown industry.
+    "h5_rk_worth": WorkflowPlan(intent=Intent.RANK),
 }
 
 

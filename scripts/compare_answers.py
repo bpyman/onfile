@@ -83,6 +83,8 @@ EXTRA = [
     ["How might AI change Apple's revenue?"],
     ["Why did NVIDIA's revenue drop?"],
     ["What's the news on why NVIDIA's revenue dropped?"],
+    ["rank companies by net income"],
+    ["top 5 by revenue"],
     ["Apple revenue over the last 6 quarters quarter over quarter", "year over year instead"],
     ["Apple revenue since 2025 year over year"],
     ["Apple revenue since 2025", "year over year"],

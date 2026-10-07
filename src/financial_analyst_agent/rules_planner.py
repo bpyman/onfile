@@ -54,6 +54,7 @@ from financial_analyst_agent.services.metric_catalog import (
 from financial_analyst_agent.universe import (
     DEFAULT_SNAPSHOT_PATH,
     INELIGIBLE_ISSUER_NAMES,
+    WHOLE_MARKET,
     former_names,
     ineligible_issuers,
     load_universe_snapshot,
@@ -127,8 +128,6 @@ _ISSUER_PHRASES: tuple[tuple[str, str], ...] = (
     ("pfe", "PFE"),
     ("danaher", "DHR"),
 )
-# The industry a ranking with none named ranks: every snapshot member.
-WHOLE_MARKET = "companies"
 RECORDED_FILING_OLDER = "0000950170-25-061046"
 RECORDED_FILING_NEWER = "0001193125-26-191507"
 

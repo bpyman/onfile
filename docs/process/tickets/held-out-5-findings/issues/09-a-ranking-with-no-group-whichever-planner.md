@@ -8,4 +8,17 @@ Case: `h5_rk_worth`, with a fake LLM planner proposing a ranking with no industr
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped 7 October 2026. The run's observation shows the LLM planner proposed a ranking
+(`rank`) with no industry and no metric, refused as an unknown industry. `_lifted_plan`
+(graph/spec_turn.py) now gives a ranking plan with no industry the whole market
+(`WHOLE_MARKET`, moved from rules_planner.py to universe.py), the group the rules planner
+already uses when the words name none, so every company in the snapshot is ranked by
+market value, whichever planner proposed it. Tests: h5_rk_worth with a fake LLM planner
+proposing `WorkflowPlan(intent=Intent.RANK)`; `test_run_turn_rank.py`'s test that refused
+a ranking with no industry now expects every company (recorded in rules-to-review).
+compare_answers: 0 of 368 conversations differ (the recorded demo uses the rules planner,
+which names the group); two conversations added.

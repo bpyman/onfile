@@ -123,6 +123,7 @@ from financial_analyst_agent.turn import (
 )
 from financial_analyst_agent.universe import (
     INELIGIBLE_ISSUER_NAMES,
+    WHOLE_MARKET,
     sec_identity_is_operating,
 )
 
@@ -164,7 +165,10 @@ def _lifted_plan(plan: WorkflowPlan) -> SpecPatch:
         )
     if intent not in (Intent.RANK, Intent.RANK_AND_LOOKUP):
         raise ValueError(f"cannot lift intent to spec patch: {intent!r}")
-    ranked = RankedRequest(industry=plan.industry or "", limit=plan.limit or DEFAULT_RANK_LIMIT)
+    # "which companies are worth the most?": a ranking with no group ranks every
+    # company, whichever planner left the group out (README, a ranking with no group).
+    industry = plan.industry if plan.industry and plan.industry.strip() else WHOLE_MARKET
+    ranked = RankedRequest(industry=industry, limit=plan.limit or DEFAULT_RANK_LIMIT)
     if intent is Intent.RANK:
         return SpecPatch(mode="replace", ranked_request=ranked)
     return SpecPatch(

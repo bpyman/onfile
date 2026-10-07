@@ -159,3 +159,9 @@ whatever intent the planner proposed, so "Why did NVIDIA's revenue drop?" and
 whichever planner reads them, and "Why did revenue drop?" asks which company. A
 question that asks for news by name ("What's the news on why NVIDIA's revenue
 dropped?") stays news (held-out-5-findings ticket 08).
+
+`h5_rk_worth` was proposed by the LLM planner as a ranking with no industry,
+which the shared resolution refused as an unknown industry. A ranking with no
+group now ranks every company in the snapshot by market value, whichever
+planner left the group out, as the rules planner's does (held-out-5-findings
+ticket 09).
