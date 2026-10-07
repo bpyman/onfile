@@ -51,9 +51,9 @@ brief adds only what a label needs that the README does not say: the companies
 in the recording, the metric names, the label format and the categories. Where
 this brief and that table seem to differ, the table wins.
 
-Do not copy the README's example wording into a question. Its examples show the
-rule; your questions should be phrased the way analysts phrase them, which is
-what this set tests.
+Do not copy the README's examples verbatim. They show the rules; write each
+question the way an analyst would phrase it, which is what this set tests. Where
+an analyst would naturally ask much as an example does, ask it that way.
 
 ## The product, as far as labels need it
 
@@ -170,6 +170,7 @@ the answer, the largest by market value in that group, never the full list.
 ```json
 {
   "about": "<one paragraph: who wrote the set, from what, and the conventions used>",
+  "writer": "<the model that wrote and labelled the cases, as its maker names it>",
   "label_changes": [],
   "adjudications": [],
   "cases": [

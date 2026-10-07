@@ -6,9 +6,14 @@ what a visitor would get from that planner, after the shared guards, period
 reading and resolution, not the planner's raw output. Cases are labelled in
 ``docs/evaluation/``: the scorecard's questions and the development cases in
 ``planner-cases.json``, ``planner-cases-v2.json`` and ``planner-cases-v3.json``,
-and the held-out cases in ``planner-cases-held-out-4.json``. Held-out cases are
-written from a brief frozen before them (``held-out-4-brief.md``) by a separate
-session, and nobody changing a planner reads them before they are run.
+and the held-out cases in the newest ``planner-cases-held-out-N.json`` (each
+older held-out set is development data once a newer one exists). Held-out cases
+are written from a brief frozen before them (``held-out-N-brief.md``) by a
+separate session, and nobody changing a planner reads them before they are run.
+A held-out case may name its ``writer`` (the model that wrote it), and the
+cases a newer set shares a template with earlier data are listed in
+``held-out-N-overlap.json`` (``held_out_overlap``); the report scores the
+held-out cases by writer and as familiar or novel, beside the whole set.
 
 Each case is scored twice. As labelled: the labels as committed, the score
 to compare across sets. After adjudication: a case file's ``adjudications``
@@ -57,11 +62,43 @@ from financial_analyst_agent.runtime import recorded_runtime
 from financial_analyst_agent.thread_store import EphemeralThreadStore
 
 CASES_PATH = Path("docs/evaluation/planner-cases.json")
+EVALUATION_DIR = Path("docs/evaluation")
+
+
+@dataclass(frozen=True)
+class HeldOutSet:
+    """A held-out set: its cases, the brief they were written from, and what its run found."""
+
+    number: int
+    findings: bool = False
+
+    @property
+    def cases(self) -> Path:
+        return EVALUATION_DIR / f"planner-cases-held-out-{self.number}.json"
+
+    @property
+    def brief(self) -> Path:
+        return EVALUATION_DIR / f"held-out-{self.number}-brief.md"
+
+    @property
+    def overlap(self) -> Path:
+        return EVALUATION_DIR / f"held-out-{self.number}-overlap.json"
+
+
+HELD_OUT_SETS = (HeldOutSet(4, findings=True), HeldOutSet(5))
+
+
+def current_held_out() -> HeldOutSet:
+    """The newest held-out set whose cases exist; every older one is development data."""
+    existing = [held for held in HELD_OUT_SETS if held.cases.exists()]
+    return existing[-1] if existing else HELD_OUT_SETS[0]
+
+
 CASE_PATHS = (
     CASES_PATH,
-    Path("docs/evaluation/planner-cases-v2.json"),
-    Path("docs/evaluation/planner-cases-v3.json"),
-    Path("docs/evaluation/planner-cases-held-out-4.json"),
+    EVALUATION_DIR / "planner-cases-v2.json",
+    EVALUATION_DIR / "planner-cases-v3.json",
+    *(held.cases for held in HELD_OUT_SETS),
 )
 SPLITS = (("scorecard", "Scorecard"), ("dev", "Development"), ("held_out", "Held out"))
 REPORT_PATH = Path("docs/evaluation/planner-comparison.md")
@@ -96,6 +133,10 @@ class PlannerCase:
     turns: tuple[str, ...]
     expect: dict[str, Any]
     adjudication: Adjudication | None = None
+    # The model that wrote the case, where its file says ("" where it does not).
+    writer: str = ""
+    # Whether the case shares a template with earlier data (None: not checked).
+    familiar: bool | None = None
 
     @property
     def adjudicated(self) -> dict[str, Any] | None:
@@ -189,16 +230,24 @@ class BudgetExceeded(RuntimeError):
 def load_cases(*paths: Path) -> list[PlannerCase]:
     """The cases in ``paths``, or in every case file that exists."""
     chosen = paths or tuple(path for path in CASE_PATHS if path.exists())
-    files = [json.loads(path.read_text(encoding="utf-8")) for path in chosen]
+    held_out = current_held_out()
+    older = {held.cases.resolve() for held in HELD_OUT_SETS if held != held_out}
+    familiar = _familiar_ids(held_out.overlap)
+    files = [(path, json.loads(path.read_text(encoding="utf-8"))) for path in chosen]
     cases = [
         PlannerCase(
             case_id=raw["id"],
-            split=raw["split"],
+            # Once a newer set is held out, an older one is development data.
+            split="dev" if raw["split"] == "held_out" and path.resolve() in older else raw["split"],
             category=raw["category"],
             turns=tuple(raw["turns"]),
             expect=dict(raw["expect"]),
+            writer=str(raw.get("writer", data.get("writer", ""))),
+            familiar=(raw["id"] in familiar)
+            if familiar is not None and path.resolve() == held_out.cases.resolve()
+            else None,
         )
-        for data in files
+        for path, data in files
         for raw in data["cases"]
     ]
     splits = {case.split for case in cases} - {split for split, _ in SPLITS}
@@ -206,7 +255,7 @@ def load_cases(*paths: Path) -> list[PlannerCase]:
         raise ValueError(f"unknown splits: {sorted(splits)}")
     if len({case.case_id for case in cases}) != len(cases):
         raise ValueError("case ids must be unique")
-    adjudications = load_adjudications(files)
+    adjudications = load_adjudications([data for _path, data in files])
     unknown_ids = {item.case_id for item in adjudications} - {case.case_id for case in cases}
     if unknown_ids:
         raise ValueError(f"adjudications of unknown cases: {sorted(unknown_ids)}")
@@ -216,6 +265,14 @@ def load_cases(*paths: Path) -> list[PlannerCase]:
     if unknown:
         raise ValueError(f"unknown expectation fields: {sorted(unknown)}")
     return cases
+
+
+def _familiar_ids(overlap: Path) -> set[str] | None:
+    """The held-out cases ``held_out_overlap`` found familiar, or None when it has not run."""
+    if not overlap.exists():
+        return None
+    report = json.loads(overlap.read_text(encoding="utf-8"))
+    return {row["id"] for row in report["familiar"]}
 
 
 def load_adjudications(files: Sequence[dict[str, Any]]) -> list[Adjudication]:
@@ -276,8 +333,7 @@ def check_rule_history(adjudications: Sequence[Adjudication], repo: Path) -> lis
     for item in adjudications:
         if item.rule_commit == item.cases_commit:
             problems.append(
-                f"{item.case_id}: rule commit {item.rule_commit} is the cases commit, "
-                "not before it"
+                f"{item.case_id}: rule commit {item.rule_commit} is the cases commit, not before it"
             )
         else:
             ancestry = _git(
@@ -291,9 +347,7 @@ def check_rule_history(adjudications: Sequence[Adjudication], repo: Path) -> lis
                 )
         shown = _git(repo, "show", f"{item.rule_commit}:{item.rule_file}")
         if shown.returncode != 0:
-            problems.append(
-                f"{item.case_id}: {item.rule_file} is not at commit {item.rule_commit}"
-            )
+            problems.append(f"{item.case_id}: {item.rule_file} is not at commit {item.rule_commit}")
         elif item.rule not in shown.stdout.decode("utf-8", "replace"):
             problems.append(
                 f"{item.case_id}: the rule is not quoted as {item.rule_file} has it at "
@@ -605,6 +659,7 @@ def scores(cases: Sequence[PlannerCase], results: Sequence[CaseRun]) -> dict[str
         }
     return {
         "splits": splits,
+        "held_out_groups": _held_out_groups(cases, results, runs),
         "runs": len(runs),
         # The run the budget ran out in, left out of every figure above.
         "stopped_in_run": stopped[0].run if stopped else None,
@@ -625,6 +680,40 @@ def scores(cases: Sequence[PlannerCase], results: Sequence[CaseRun]) -> dict[str
             if not r.passed
         ],
     }
+
+
+def _held_out_groups(
+    cases: Sequence[PlannerCase], results: Sequence[CaseRun], runs: Sequence[int]
+) -> dict[str, dict[str, Any]]:
+    """Held-out accuracy by writer, when several wrote the set, and as familiar or novel."""
+    held_out = [case for case in cases if case.split == "held_out"]
+    groups: list[tuple[str, set[str]]] = []
+    writers = sorted({case.writer for case in held_out if case.writer})
+    if len(writers) > 1:
+        groups += [
+            (f"written by {writer}", {c.case_id for c in held_out if c.writer == writer})
+            for writer in writers
+        ]
+    if any(case.familiar is not None for case in held_out):
+        groups += [
+            ("familiar", {c.case_id for c in held_out if c.familiar}),
+            ("novel", {c.case_id for c in held_out if c.familiar is False}),
+        ]
+    out: dict[str, dict[str, Any]] = {}
+    for label, ids in groups:
+        chosen = [result for result in results if result.case_id in ids]
+        if not chosen:
+            continue
+        per_run = [
+            statistics.mean(r.passed for r in chosen if r.run == run)
+            for run in runs
+            if any(r.run == run for r in chosen)
+        ]
+        out[label] = {
+            "cases": len({r.case_id for r in chosen}),
+            "accuracy": statistics.mean(per_run),
+        }
+    return out
 
 
 def case_passes(results: Sequence[CaseRun], *, adjudicated: bool = False) -> dict[str, bool]:
@@ -800,7 +889,34 @@ def _pct(value: float | None) -> str:
     return "—" if value is None else f"{value:.0%}"
 
 
-PROTOCOL = (
+def protocol(held_out: int, held_out_count: int) -> tuple[str, ...]:
+    """The protocol section, as of the set held out in this report."""
+    fourth = (
+        "66), the held-out split here."
+        if held_out == 4
+        else "66), held out for the run of 5 October 2026 "
+        "([findings](held-out-4-findings.md)) and development data since."
+    )
+    lines = [
+        line.replace("66), the held-out split here.", fourth).replace(
+            "66 cases detect only large", f"{held_out_count} cases detect only large"
+        )
+        for line in _PROTOCOL
+    ]
+    if held_out >= 5:
+        lines.insert(
+            _FIFTH_AT,
+            "5. **Fifth set** ([`planner-cases-held-out-5.json`](planner-cases-held-out-5.json), "
+            f"{held_out_count}), the held-out split here. Its brief "
+            "([`held-out-5-brief.md`](held-out-5-brief.md)) was tried first on rounds of "
+            "throwaway probe questions and frozen before any case existed; the plan for its "
+            "run, scoring included, was committed before it "
+            "([`held-out-5-plan.md`](held-out-5-plan.md)).",
+        )
+    return tuple(lines)
+
+
+_PROTOCOL = (
     "## Protocol",
     "",
     "Held-out cases measure how a planner generalises only until someone changing a "
@@ -847,16 +963,23 @@ PROTOCOL = (
     "adjudication made after a paid run is scored with `--from-json` without running a "
     "planner again.",
     "",
-    "Two limits. The cases were written by a Claude model, and the rules planner was "
+    "Two limits. Sets one to four were written by a Claude model, and the rules planner was "
     "written with Claude-based coding agents, so shared habits of phrasing may favour the "
-    "rules planner; the LLM planner is an OpenAI model. And 66 cases detect only large "
+    "rules planner; the LLM planner is an OpenAI model. A held-out case may name its "
+    "`writer`, and the report then scores the set by writer. And 66 cases detect only large "
     "differences: McNemar's test needs about six cases passed by one planner alone, and "
     "none by the other, before p falls below 0.05.",
     "",
 )
+_FIFTH_AT = next(
+    index
+    for index, line in enumerate(_PROTOCOL)
+    if line == "" and _PROTOCOL[index - 1].endswith("only its cost line was read.")
+)
 
 
 def render_markdown(report: dict[str, Any]) -> str:
+    held = next(h for h in HELD_OUT_SETS if h.number == report.get("held_out_set", 4))
     lines = [
         "# Rules planner vs LLM planner",
         "",
@@ -866,9 +989,9 @@ def render_markdown(report: dict[str, Any]) -> str:
         "[`planner-cases-v2.json`](planner-cases-v2.json), "
         "[`planner-cases-v3.json`](planner-cases-v3.json)), and "
         f"{report['held_out_count']} held-out cases "
-        "([`planner-cases-held-out-4.json`](planner-cases-held-out-4.json)). Every case was "
+        f"([`{held.cases.name}`]({held.cases.name})). Every case was "
         "labelled before a planner ran on it. The held-out cases were written from a brief "
-        "frozen first ([`held-out-4-brief.md`](held-out-4-brief.md)) by a separate session, "
+        f"frozen first ([`{held.brief.name}`]({held.brief.name})) by a separate session, "
         "and were not read by whoever changed a planner until this run; see "
         "[Protocol](#protocol).",
         "",
@@ -876,9 +999,13 @@ def render_markdown(report: dict[str, Any]) -> str:
             [
                 "The planners that call OpenAI ran on the "
                 f"{report['paid_split'].lower().replace(' ', '-')} cases only, to keep "
-                "within the evaluation budget; the rules planner ran on every case. What "
-                "each held-out failure was is in "
-                "[held-out-4-findings.md](held-out-4-findings.md).",
+                "within the evaluation budget; the rules planner ran on every case."
+                + (
+                    " What each held-out failure was is in "
+                    f"[held-out-{held.number}-findings.md](held-out-{held.number}-findings.md)."
+                    if held.findings
+                    else ""
+                ),
                 "",
             ]
             if report.get("paid_split")
@@ -1019,7 +1146,7 @@ def render_markdown(report: dict[str, Any]) -> str:
                 f"{row['why']} |"
             )
         lines.append("")
-    lines.extend(PROTOCOL)
+    lines.extend(protocol(report.get("held_out_set", 4), report["held_out_count"]))
     if report.get("estimate"):
         est = report["estimate"]
         lines.append("## Estimated cost of an LLM run")
@@ -1075,9 +1202,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         "--planners", default="rules", help="any of rules, llm and cascade, comma-separated"
     )
     parser.add_argument("--runs", type=int, default=3)
-    parser.add_argument(
-        "--split", choices=("all", *(name for name, _ in SPLITS)), default="all"
-    )
+    parser.add_argument("--split", choices=("all", *(name for name, _ in SPLITS)), default="all")
     parser.add_argument("--limit", type=int, default=0, help="only the first N cases (a pilot)")
     parser.add_argument(
         "--paid-split",
@@ -1126,6 +1251,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         "scorecard_count": sum(case.split == "scorecard" for case in cases),
         "dev_count": sum(case.split == "dev" for case in cases),
         "held_out_count": sum(case.split == "held_out" for case in cases),
+        "held_out_set": current_held_out().number,
         "planners": {},
     }
     if prices is not None:
