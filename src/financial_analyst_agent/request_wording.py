@@ -562,9 +562,13 @@ def bind_metrics_from_message(
     # read as the overview its words ("performance") or its length would imply.
     implied = (
         implied_metrics(message, short=not unknown_word)
-        if _names_companies(patch) and not guessed and resolved.term is None
+        if _names_companies(patch) and resolved.term is None
         else ()
     )
+    if not set(guessed) <= set(implied):
+        # A slug the wording does not imply is the planner's alone. One it does
+        # ("How fast is Broadcom growing?" as revenue) is the wording's reading.
+        implied = ()
     if not implied and _names_companies(patch) and OVERVIEW_PLAN in patch.add_metrics:
         implied = OVERVIEW_METRICS
     if implied:

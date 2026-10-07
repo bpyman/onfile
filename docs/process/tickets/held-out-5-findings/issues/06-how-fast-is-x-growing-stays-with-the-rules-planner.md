@@ -8,4 +8,25 @@ Case: `h5_gr_fast_avgo` under the cascade with a fake LLM planner that refuses; 
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped 7 October 2026. The rules planner proposes revenue for growth with no metric
+(`implied_metrics` gives `("revenue",)` beside a named company), as it proposes the overview for
+"How is Apple doing?", so `unsure_reason` finds nothing and the cascade keeps the plan;
+`unsure_reason` is unchanged.
+
+Planning revenue exposed a shared refusal: `bind_metrics_from_message` refused any catalog slug
+the wording does not name, even one the wording implies, so a plan of revenue for "How fast is
+Broadcom growing?" was refused "Unknown metric 'unknown'". That is what the LLM planner's
+refusing run shows too. The shared reading now keeps a planner's metrics when the wording
+implies them all; a slug the wording does not imply is still the planner's alone and refused.
+
+- Tests: `h5_gr_fast_avgo` under the cascade with a refusing LLM planner (the rules plan is kept
+  and passes every field), with an LLM planner proposing Broadcom revenue, and the rules plan
+  for three growth wordings.
+- Phrase coverage: +5 `GROWTH_NO_METRIC_QUESTIONS`, all read right and none sent to the model;
+  `SENT_TO_MODEL` unchanged.
+- compare_answers: `0 of 360 conversations differ` (+2 added: "How fast is Broadcom growing?",
+  "Is Apple growing?"); the rules planner already answered these through the shared reading.

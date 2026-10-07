@@ -75,6 +75,8 @@ EXTRA = [
     ["top 3 drugmakers by gross margin"],
     ["Over the past year, the top 3 drugmakers by gross margin", "add Pfizer"],
     ["top 5 banks by revenue growth", "add Apple"],
+    ["How fast is Broadcom growing?"],
+    ["Is Apple growing?"],
     ["Apple revenue over the last 6 quarters quarter over quarter", "year over year instead"],
     ["Apple revenue since 2025 year over year"],
     ["Apple revenue since 2025", "year over year"],

@@ -20,7 +20,8 @@ import pytest
 
 from financial_analyst_agent.contracts import Intent, Runtime, WorkflowPlan
 from financial_analyst_agent.conversation import run_conversation_turn
-from financial_analyst_agent.planner_cascade import unsure_reason
+from financial_analyst_agent.domain.errors import PlannerError
+from financial_analyst_agent.planner_cascade import CascadeCompleter, unsure_reason
 from financial_analyst_agent.planner_evaluation import PlannerCase, load_cases, run_planner
 from financial_analyst_agent.rules_planner import DemoCompleter, issuer_index
 from financial_analyst_agent.runtime import recorded_runtime
@@ -71,6 +72,8 @@ _LLM_PLANS = {
         intent=Intent.COMPARE, companies=("Cisco", "Oracle"), metric="cash"
     ),
     "h5_mw_iphone": WorkflowPlan(intent=Intent.LOOKUP, company="Apple", metric="revenue"),
+    # Revenue, which the question implies but does not name: refused on one run.
+    "h5_gr_fast_avgo": WorkflowPlan(intent=Intent.LOOKUP, company="Broadcom", metric="revenue"),
     "h5_rk_drugs_gm": WorkflowPlan(
         intent=Intent.RANK_AND_LOOKUP,
         industry="drugmakers",
@@ -439,3 +442,34 @@ def test_adding_a_company_to_a_growth_ranking_shows_growth_over_its_window(
     assert turn.analysis_spec.periods.kind == "last_n_quarters"
     assert "year_over_year" in turn.analysis_spec.operations
     assert {row.ticker for row in turn.result.table_rows} == {"AAPL", "JPM", "BAC", "WFC"}
+
+
+class _Refuses:
+    """The LLM planner's place on the runs that refused: it plans nothing."""
+
+    def complete(self, query: str, current_spec: Any = None) -> WorkflowPlan:
+        raise PlannerError("the LLM planner refused")
+
+
+def test_growth_with_no_metric_keeps_the_rules_plan_under_the_cascade(runtime: Runtime) -> None:
+    """"How fast is Broadcom growing?" is revenue growth (README): the rules planner
+    proposes revenue, so a refusing LLM planner is never asked."""
+    cascade = CascadeCompleter(runtime.completer, _Refuses(), lambda industry: True)
+
+    (result,) = run_planner([_case("h5_gr_fast_avgo")], cascade, runs=1, runtime=runtime)
+
+    assert cascade.last_reason is None
+    assert not result.error
+    assert result.checks == {name: True for name in result.checks}
+
+
+@pytest.mark.parametrize(
+    "question", ["How fast is Broadcom growing?", "Is Apple growing?", "How has Nvidia grown?"]
+)
+def test_the_rules_planner_proposes_revenue_for_growth_with_no_metric(
+    question: str, runtime: Runtime
+) -> None:
+    plan = runtime.completer.complete(question)
+
+    assert plan.metric == "revenue"
+    assert unsure_reason(plan, lambda industry: True) is None

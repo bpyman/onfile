@@ -2449,3 +2449,26 @@ Blockers / next:
   conversations differ from HEAD`, all intended (h3_chips_window's recorded period, the windowed
   drugmakers ranking's banners, and "add Pfizer" after it). Also committed this run: ticket 04's
   finished but uncommitted work. Tickets 06-09 in held-out-5-findings remain.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/held-out-5-findings/issues/06-how-fast-is-x-growing-stays-with-the-rules-planner.md`
+
+Key decisions:
+- The rules planner plans revenue when a named company's question implies it (`implied_metrics`
+  is `("revenue",)`: growth with no metric), beside the overview case, so the cascade keeps it.
+- `bind_metrics_from_message` (request_wording.py) keeps a planner's catalog metrics when the
+  wording implies all of them; before, any slug not named in words was refused, which refused
+  revenue for "How fast is Broadcom growing?" whichever planner proposed it.
+
+Files changed:
+- `src/financial_analyst_agent/rules_planner.py`, `request_wording.py`, `phrase_coverage.py` (+5
+  `GROWTH_NO_METRIC_QUESTIONS`)
+- `tests/test_held_out_5_findings.py` (+1 LLM plan, +2 tests)
+- `README.md`, `docs/adr/0010-one-reading-of-names-and-windows.md`,
+  `docs/evaluation/held-out-5-findings.md`, `scripts/compare_answers.py` (+2 conversations), the
+  ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,287 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 360
+  conversations differ from HEAD`. Tickets 07-09 in held-out-5-findings remain.

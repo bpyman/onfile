@@ -362,6 +362,15 @@ YEAR_OVER_YEAR_QUESTIONS = (
     "How fast is Apple's revenue growing?",
     "Is Apple's revenue up from a year earlier?",
 )
+# Growth with no metric is revenue growth (README), whichever planner reads it
+# (held-out-5-findings ticket 06): five quarters, each with its change.
+GROWTH_NO_METRIC_QUESTIONS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("How fast is Broadcom growing?", ("AVGO",)),
+    ("Is Apple growing?", ("AAPL",)),
+    ("How has Nvidia grown?", ("NVDA",)),
+    ("How quickly is Microsoft growing?", ("MSFT",)),
+    ("Broadcom growth", ("AVGO",)),
+)
 # A named fiscal year is four quarters, each with its change from its own comparative.
 NAMED_CHANGE_QUESTIONS = ("Apple R&D for fiscal 2025 year over year",)
 SEQUENTIAL_QUESTIONS = (
@@ -855,6 +864,17 @@ def cases() -> list[PhraseCase]:
                 (question,),
                 "year-over-year rows",
                 _year_over_year,
+            )
+        )
+    growth: tuple[str, int | None] = ("last_n_quarters", 5)
+    for question, tickers in GROWTH_NO_METRIC_QUESTIONS:
+        found.append(
+            PhraseCase(
+                f"growth:{question}",
+                "Growth with no metric",
+                (question,),
+                _expected(tickers, ("revenue",), growth, "year_over_year"),
+                _reads(frozenset(tickers), frozenset({"revenue"}), growth, "year_over_year"),
             )
         )
     for question in SEQUENTIAL_QUESTIONS:

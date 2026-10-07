@@ -131,3 +131,13 @@ ranking's note, so the "four latest quarters" banner no longer sits beside a
 ranking that shows one, and "add Pfizer" after it compares the latest quarter.
 A ranking's growth needs no window: each company's latest quarter is set
 against the comparative its filing reports (held-out-5-findings ticket 05).
+
+`h5_gr_fast_avgo` was read right by the rules planner, but its plan named no
+metric, so the cascade sent it on, and the LLM planner's run that refused
+proposed revenue: the shared reading refused a catalog metric the question
+does not name in words, even one its words imply. The rules planner now
+proposes what the shared reading implies (revenue, for growth with no metric),
+so the cascade keeps its plan, and the shared reading keeps a planner's metric
+when the wording implies it ("How fast is Broadcom growing?" as revenue), so a
+plan of revenue is answered whichever planner made it. A metric the wording
+does not imply is still refused (held-out-5-findings ticket 06).
