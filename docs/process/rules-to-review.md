@@ -42,6 +42,7 @@ Each entry: date, ticket, where, the rule, why it looks wrong, what the agent di
 - **The rule:** on the recorded runtime, `Apple revenue since 2024` should show no "only N of M" note, because the recording holds every quarter since 2024.
 - **Why it looks wrong:** the recording's oldest Apple quarter ended 29 June 2024. Ten quarters ended between 1 January 2024 and the latest filed quarter (27 June 2026); the recording holds nine, and the quarter ended 30 March 2024 is inside the span. The ticket's own rule ("a window note says a quarter is missing only when the filings lack one inside the span") then calls for a note, and silence would tell the analyst that Apple's first quarter of 2024 ended in June.
 - **What you did:** followed the rule over the example. The answer says "The filings here hold only 9 of the 10 quarters since 2024" (counted from the filings, so it no longer drifts with the calendar); `since 2025`, where the recording holds every quarter, shows no note. The recorded-runtime test pins the 9-of-10 note rather than its absence.
+- **Decided (2026-10-06):** the agent is right; the ticket's example was wrong. The recording lacks Apple's quarter ended 30 March 2024, so the 9-of-10 note is true.
 
 ## 2026-10-06 — review-69-90 03: a code comment still says a sequential change widens the window
 
@@ -49,3 +50,4 @@ Each entry: date, ticket, where, the rule, why it looks wrong, what the agent di
 - **The rule:** both read as if the base quarter were shown, which is what ADR 0009's withdrawn sentence said.
 - **Why it looks wrong:** a window with quarter over quarter returns earlier in the binder with `count = asked + 1` and `asked` set, and with no window `count` is already 5, so the branch the comment explains never changes a sequential window; `Apple revenue growth last 4 quarters` keeps 4 too (growth counts as explicit year over year). The base quarter is read and not shown (combination-gaps 01).
 - **What you did:** left both as they are; this ticket changes documentation only, and the branch's behaviour is unchanged. ADR 0009's Decision now states the revised rule.
+- **Decided (2026-10-06):** the comments were wrong. Both now say the base quarter is read and not shown; the `count = 5` branch's comment says it is reached only by a change that names no base.

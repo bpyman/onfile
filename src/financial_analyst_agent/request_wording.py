@@ -850,7 +850,9 @@ def bind_periods_from_message(
             }
         )
     if (yoy or sequential) and count < 5 and not (explicit_yoy and asked is not None):
-        # A sequential change needs the quarter before the oldest one shown.
+        # Only a change that names no base gets here with a window under 5 ("how did
+        # revenue change over the last 2 quarters?"): it is read over 5 until the
+        # analyst says against what. A sequential window returned above.
         count = 5
     if explicit_yoy and EXPLICIT_YOY.search(message) is not None and asked is None:
         # "Year over year" with no window: two years of quarters. A window the
@@ -979,8 +981,8 @@ def _keep_window_for_change(
     were four quarters with the year before each, the 5 four with the year-earlier
     base of the newest. Each quarter's base is now the comparative its own filing
     reports (ADR 0009), so a window the analyst already has needs no extra rows,
-    nor does a named period, read as on a window. A sequential change still needs
-    the quarter before the oldest one shown.
+    nor does a named period, read as on a window. A sequential change reads the
+    quarter before the oldest one shown as its base, without showing it.
     """
     on_screen = current_spec.periods
     if (

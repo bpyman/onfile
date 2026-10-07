@@ -1,12 +1,12 @@
 # Phrase coverage
 
-Generated `2026-10-06T23:14:56.976316+00:00` on the recorded runtime with the rules planner. 466 everyday phrasings of a metric, a window, a change or a follow-up, each asked as a whole question and judged by the README's [How a question is read](../../README.md#how-a-question-is-read). No network and no model. **466 of 466 (100%) are read right**; the live app's cascade would send 11 to the LLM planner.
+Generated `2026-10-07T01:46:07.679396+00:00` on the recorded runtime with the rules planner. 471 everyday phrasings of a metric, a window, a change or a follow-up, each asked as a whole question and judged by the README's [How a question is read](../../README.md#how-a-question-is-read). No network and no model. **471 of 471 (100%) are read right**; the live app's cascade would send 11 to the LLM planner.
 
 | Group | Phrasings | Read right |
 | --- | ---: | ---: |
 | Metrics | 208 | 208 (100%) |
 | Ambiguous metric words | 7 | 7 (100%) |
-| Windows | 27 | 27 (100%) |
+| Windows | 32 | 32 (100%) |
 | Year over year | 11 | 11 (100%) |
 | Quarter over quarter | 4 | 4 (100%) |
 | A named period with a change | 1 | 1 (100%) |
