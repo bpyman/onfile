@@ -114,3 +114,13 @@ Meta), in the rules planner's plan and in the shared reading, so the cascade
 keeps the rules plan and an LLM plan with no company gets the same company. The
 segment note moved from the rules planner's plan to the answer's shared notes,
 so it shows whichever planner planned (held-out-5-findings ticket 03).
+
+`h5_rk_banks_ni` and `h5_rk_drugs_gm` were refused by the rules planner: a
+count before a group `by` a metric ("5 banks by net income") was not read as a
+group, and a leading window ("Over the past year, the top 3 drugmakers by …")
+was read as the group's name. The rules planner now reads a ranking whatever
+comes first: a leading count is its length, and a clause before the first comma
+that names no measure and ranks nothing is set aside for the ranking (the window
+is still read from the whole question). Both are ranked by the rules planner,
+so the cascade keeps its plan. `h5_rk_drugs_gm`'s recorded period is ticket 05's
+(held-out-5-findings ticket 04).

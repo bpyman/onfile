@@ -2395,3 +2395,30 @@ Blockers / next:
   conversations differ from HEAD`, all added here ("iPhone sales", "Azure revenue", and "what
   about iPhone sales?" after Apple revenue gaining the note). README's phrase-coverage count (518)
   is still behind and left for the next regeneration. Tickets 04-09 in held-out-5-findings remain.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/held-out-5-findings/issues/04-rankings-with-a-leading-count-or-window.md`
+
+Key decisions:
+- The rules planner reads a ranking from `_without_preamble(normalized)`: a clause before the
+  first comma that names no measure and has no rank word is dropped when the rest is a ranking.
+  Only the ranking reading uses it; a question naming a company keeps its words.
+- A count leading a group `by` a metric (`_GROUP_BY_METRIC`, `_LEADING_COUNT` in `_limit`) is
+  the ranking's length; a count of quarters, years or months is not.
+- The window stays in the question for the shared reading, so the ranking shows each company's
+  latest quarter with the ranking note.
+
+Files changed:
+- `src/financial_analyst_agent/rules_planner.py`, `phrase_coverage.py` (+7 `RANKING_QUESTIONS`)
+- `tests/test_held_out_5_findings.py` (+1 rules case, +5 tests)
+- `README.md`, `docs/adr/0010-one-reading-of-names-and-windows.md`,
+  `docs/evaluation/held-out-5-findings.md`, `scripts/compare_answers.py` (+4 conversations), the
+  ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. compare_answers reports `3 of 356 conversations differ from HEAD`, the three refused
+  rankings added here, each now ranked. Ticket 05: a windowed ranking also shows the window's
+  banner ("the four latest quarters, shown one by one") beside the ranking note, from the
+  recorded window it replaces. README's phrase-coverage count (518) is still behind. Tickets
+  05-09 in held-out-5-findings remain.

@@ -526,6 +526,14 @@ RANKING_QUESTIONS: tuple[tuple[str, frozenset[str], str, bool | None], ...] = (
     ("Top 5 banks by revenue, smallest first", _BIG_BANKS, "revenue", True),
     ("Top 5 banks by revenue ascending", _BIG_BANKS, "revenue", True),
     ("Top 5 banks by revenue, largest first", _BIG_BANKS, "revenue", False),
+    # A leading count or window does not hide the ranking (held-out-5-findings ticket 04).
+    ("5 banks by net income", _BIG_BANKS, "net_income", None),
+    ("3 chipmakers by revenue", _SEMIS, "revenue", None),
+    ("the 3 biggest drugmakers by revenue", _DRUGMAKERS, "revenue", None),
+    ("Over the past year, the top 3 drugmakers by gross margin", _DRUGMAKERS, "gross_margin", None),
+    ("This quarter, top 5 banks by net income", _BIG_BANKS, "net_income", None),
+    ("Last quarter, chipmakers by revenue", _SEMIS, "revenue", None),
+    ("Over the last 4 quarters, 5 banks by revenue", _BIG_BANKS, "revenue", None),
 )
 
 

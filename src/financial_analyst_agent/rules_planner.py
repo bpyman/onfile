@@ -47,6 +47,7 @@ from financial_analyst_agent.request_wording import (
 from financial_analyst_agent.services.metric_catalog import (
     metric_phrases,
     resolve_metric_phrase,
+    resolve_metric_phrases,
     segment_companies,
     segment_term,
 )
@@ -358,6 +359,10 @@ _GROUP_COUNT_WORD = re.compile(
 _GROUP_COUNT = re.compile(
     rf"\b{_GROUP_COUNTED_BY}\s+(\d+)\b(?!\s+(?:quarters?|years?|months?))"
 )
+# "5 banks by net income": a count leading the group, not a number of quarters.
+_LEADING_COUNT = re.compile(
+    r"^((?:the|show|show me|list)\s+)?(\d+)\s+(?!(?:quarters?|years?|months?)\b)"
+)
 # Words before an industry that say how a ranking is cut, not which group it is.
 _GROUP_LEAD = re.compile(
     r"^(?:(?:the|top|\d+|biggest|largest|leading|most valuable|best)\s+)+", re.IGNORECASE
@@ -449,7 +454,7 @@ def _limit(normalized: str) -> int:
     match = _LIMIT_WORDS.search(normalized)
     if match is not None:
         return int(match.group(1) or match.group(2))
-    counted = _GROUP_COUNT.search(normalized)
+    counted = _GROUP_COUNT.search(normalized) or _LEADING_COUNT.match(normalized)
     if counted is not None:
         return int(counted.group(2))
     return DEFAULT_RANK_LIMIT
@@ -639,34 +644,37 @@ class DemoCompleter:
     ) -> WorkflowPlan:
         """The closed plan a question asks for, before notes on what it leaves out."""
         companies = [mention.query for mention in mentions]
-        which = _WHICH_HIGHEST.search(normalized) if not companies else None
-        rank_words = _RANK_WORDS.search(normalized) is not None
-        group_by = _group_by_metric(normalized) if not companies and not rank_words else None
+        # "Over the past year, the top 3 drugmakers by …": the ranking follows the
+        # preamble, and the window is read from the whole question.
+        ranking = _without_preamble(normalized) if not companies else normalized
+        which = _WHICH_HIGHEST.search(ranking) if not companies else None
+        rank_words = _RANK_WORDS.search(ranking) is not None
+        group_by = _group_by_metric(ranking) if not companies and not rank_words else None
         ranked = rank_words or which is not None or group_by is not None
-        if ranked and _ranks_with(normalized, companies):
+        if ranked and _ranks_with(ranking, companies):
             if which is not None:
                 group = which.group("group")
                 industry = group if which.group("noun") else _plural_group(group)
             elif group_by is not None:
                 industry = group_by
             else:
-                industry = _ranked_industry(normalized)
+                industry = _ranked_industry(ranking)
             industry = _clean_group(industry)
             industry = _INDUSTRY_WORDS.get(industry, industry)
-            limit = _limit(normalized)
+            limit = _limit(ranking)
             notes = (
                 (_left_out_of_ranking(self.index, mentions[0], industry, limit),)
                 if mentions
                 else ()
             )
-            phrase = resolve_metric_phrase(normalized)
+            phrase = resolve_metric_phrase(ranking)
             if metric not in ALLOWED_METRICS and phrase.kind == "ambiguous" and phrase.candidates:
                 # "highest income": still a ranked lookup ordered by the metric; the
                 # spec asks which metric before any provider call.
                 metric = phrase.candidates[0]
             if metric in ALLOWED_METRICS:
                 ordered = metric != "market_cap" and (
-                    which is not None or bool(_ORDER_WORDING.search(normalized))
+                    which is not None or bool(_ORDER_WORDING.search(ranking))
                 )
                 return WorkflowPlan(
                     intent=Intent.RANK_AND_LOOKUP,
@@ -776,10 +784,31 @@ def _question_parts(query: str) -> list[str]:
 
 
 _RANK_NAMED = re.compile(r"\b(?:rank|ranked|sort|sorted|order|ordered)\b")
+_LEADING_CLAUSE = re.compile(r"^(?P<lead>[^,]+),\s*(?P<rest>.+)$")
+
+
+def _without_preamble(normalized: str) -> str:
+    """A ranking after a leading clause, alone: "this quarter, top 5 banks by …".
+
+    The clause before the first comma is dropped when it names no measure and
+    ranks nothing itself, and what follows it is a ranking.
+    """
+    match = _LEADING_CLAUSE.match(normalized)
+    if match is None:
+        return normalized
+    lead, rest = match.group("lead"), match.group("rest")
+    if _RANK_WORDS.search(lead) or resolve_metric_phrases(lead):
+        return normalized
+    if _RANK_WORDS.search(rest) or _group_by_metric(rest) is not None:
+        return rest
+    return normalized
+
+
 # "chipmakers by free cash flow": a group and "by" a metric, with no "top", is a
 # ranking of the README's default length.
 _GROUP_BY_METRIC = re.compile(
-    r"^(?:(?:the|show|show me|list)\s+)?(?P<group>[a-z&][a-z&\- ]*?)"
+    r"^(?:(?:the|show|show me|list)\s+)?(?:\d+\s+(?!(?:quarters?|years?|months?)\b))?"
+    r"(?P<group>[a-z&][a-z&\- ]*?)"
     r"(?:\s+(?:companies|stocks|firms|names))?\s+by\s+(?P<rest>.+)$"
 )
 _GROUP_BY_METRIC_MAX_WORDS = 3

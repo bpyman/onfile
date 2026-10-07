@@ -87,6 +87,8 @@ _LLM_PLANS = {
         "h5_ow_oracle_word",
         # A segment one company reports names it (ticket 03).
         "h5_mw_iphone",
+        # A ranking reads whatever comes first: a count (ticket 04).
+        "h5_rk_banks_ni",
     ],
 )
 def test_a_fixed_held_out_case_passes_with_the_rules_planner(
@@ -276,3 +278,80 @@ def test_a_segment_of_an_unrecorded_company_names_it(question: str, company: str
 
         assert facts.asked == [company]
         assert any("not segments" in banner for banner in result.banners)
+
+
+def test_a_ranking_after_a_leading_window_is_ranked_by_the_rules_planner(
+    runtime: Runtime,
+) -> None:
+    """ "Over the past year, the top 3 drugmakers by gross margin" (h5_rk_drugs_gm)
+    ranks; the period the analysis records is ticket 05's, so it is left out here."""
+    (result,) = run_planner([_case("h5_rk_drugs_gm")], runtime.completer, runs=1, runtime=runtime)
+
+    assert not result.error
+    assert {name: ok for name, ok in result.checks.items() if name != "periods"} == {
+        name: True for name in result.checks if name != "periods"
+    }
+    assert (
+        unsure_reason(
+            runtime.completer.complete(_case("h5_rk_drugs_gm").turns[0]), lambda industry: True
+        )
+        is None
+    )
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Over the past year, the top 3 drugmakers by gross margin",
+        "This quarter, the top 3 drugmakers by gross margin",
+        "the 3 biggest drugmakers by gross margin",
+        "3 drugmakers by gross margin",
+    ],
+)
+def test_a_ranking_reads_whatever_comes_first(question: str, runtime: Runtime) -> None:
+    """A leading count or window: the top three drugmakers, each its latest quarter."""
+    turn = run_conversation_turn(
+        f"held-out-5-{uuid.uuid4()}", question, runtime, store=EphemeralThreadStore()
+    )
+
+    rows = turn.result.table_rows
+    assert [row.ticker for row in rows] == ["LLY", "ABBV", "JNJ"]
+    assert {row.metric for row in rows} == {"gross_margin"}
+    assert [row.rank for row in rows] == [1, 2, 3]
+
+
+def test_a_ranking_over_a_window_shows_the_latest_quarter_with_its_note(
+    runtime: Runtime,
+) -> None:
+    turn = run_conversation_turn(
+        f"held-out-5-{uuid.uuid4()}",
+        "Over the past year, the top 3 drugmakers by gross margin",
+        runtime,
+        store=EphemeralThreadStore(),
+    )
+
+    assert len(turn.result.table_rows) == 3
+    assert any("latest quarter" in banner for banner in turn.result.banners)
+
+
+@pytest.mark.parametrize(
+    ("question", "group"),
+    [
+        ("5 banks by net income", "banks"),
+        ("Last quarter, chipmakers by revenue", "chipmakers"),
+        ("Over the last 4 quarters, 5 banks by revenue", "banks"),
+    ],
+)
+def test_the_cascade_keeps_the_rules_ranking(question: str, group: str, runtime: Runtime) -> None:
+    plan = runtime.completer.complete(question)
+
+    assert plan.intent is Intent.RANK_AND_LOOKUP
+    assert plan.industry == group
+    assert unsure_reason(plan, lambda industry: True) is None
+
+
+def test_a_count_of_quarters_leading_by_a_metric_ranks_no_group(runtime: Runtime) -> None:
+    """ "the 5 quarters by revenue" counts quarters, not a group to rank."""
+    plan = runtime.completer.complete("the 5 quarters by revenue")
+
+    assert plan.intent is not Intent.RANK_AND_LOOKUP
