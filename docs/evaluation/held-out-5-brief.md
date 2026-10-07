@@ -17,11 +17,15 @@ protocol in [planner-comparison.md](planner-comparison.md).
 
 ## Your task
 
-Write and label at least 140 conversations (aim for 150 to 170) that an analyst
-might type into Onfile, a research window over SEC quarterly filings. They are
-a held-out test set: planners will later be scored on them, and nobody changing
+Write and label conversations that an analyst might type into Onfile, a
+research window over SEC quarterly filings. They are a held-out test set: planners will later be scored on them, and nobody changing
 a planner will read them before that run. Label each from the product rules
 below, as a correct answer must look, before anything is run.
+
+The set has two writers, each a different model writing from this brief alone.
+Write your half: 75 to 85 conversations, with each category's count in the
+table below halved and rounded up. Start every id with `h5_` and a short tag
+for your model (`h5_grok_`, `h5_claude_`), so the two halves never share one.
 
 Write the cases to `docs/evaluation/planner-cases-held-out-5.json` in the format
 below. Then reply with only the number of cases in each category and the total.

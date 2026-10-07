@@ -13,19 +13,33 @@ says whether any result had been seen.
    of them; each round's doubts and disagreements went into the brief, the
    README's "How a question is read", and tickets (`brief-5-probe-gaps`). A third
    round runs on the brief as it will be frozen, with one probe writer per model
-   that will write cases. It stops the probing if it finds no error in the brief
-   and at most two app gaps; otherwise the brief's unclear parts are rewritten
-   before freezing, not probed again. From round 3 on, only an error in the brief
-   or the README, or a clear bug, is fixed before the run; any other app gap it
-   finds is filed and left, so the set can still measure it. The probes are
-   discarded, and none is a case.
+   that will write cases, each in a folder holding only the files the brief lets
+   it read. It stops the probing if it finds no error in the brief and at most two
+   app gaps; otherwise the brief's unclear parts are rewritten before freezing,
+   not probed again. App gaps the probes find are fixed before the freeze, as in
+   rounds 1 and 2. The probe writers are the same models as the case writers, so
+   each gap fixed is one the set would likely have found: the held-out score is
+   that much kinder than real traffic would be, and the Protocol says how many
+   probe rounds ran and what they changed. The probes are discarded, and none is
+   a case.
 2. **Freeze.** The draft note is removed from
    [`held-out-5-brief.md`](held-out-5-brief.md); that commit is the frozen prompt.
    No planner or reading code changes from the freeze until the run.
 3. **Writers.** The writers and their share of the 150 to 170 cases are set here
    before the freeze. Each writes from the frozen brief alone, as the brief allows
    it to read, and puts its model's name in the file's `writer` (or each case's).
-   Writers decided: _to be filled in before the freeze_.
+   Writers (decided 6 October 2026): two, writing about half each, 75 to 85
+   conversations with the brief's category counts halved:
+   - **Claude**, through Claude Code (`claude -p`), the family that wrote sets 1
+     to 4;
+   - **Grok 4.7** (`grok-4.7-high`), xAI's, through the Cursor agent CLI: a third
+     lab, neither the one whose model is the LLM planner (OpenAI) nor the one whose
+     models wrote the rules planner and the earlier sets (Anthropic).
+
+   Each runs in its own folder holding only the frozen brief and the files it lets
+   a writer read, so neither can search the repository; the two files are merged
+   into `planner-cases-held-out-5.json` with each case's `writer`. The report
+   scores the set by writer beside the whole (step 12).
 
 ## After the cases, before any planner runs
 
