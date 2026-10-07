@@ -297,7 +297,9 @@ def test_run_turn_consolidates_goog_and_googl_to_one_alphabet_row() -> None:
         ),
     )
 
-    assert result.intent is Intent.COMPARE
+    # Two share classes collapse to one company on screen, so the answer is a
+    # lookup (README: one company left on screen is a lookup; ADR 0010).
+    assert result.intent is Intent.LOOKUP
     assert result.renderer is RendererKind.TABLE
     assert len(result.table_rows) == 1
     row = result.table_rows[0]

@@ -1921,3 +1921,36 @@ Blockers / next:
 - None. All 2,093 Python tests pass; ruff and mypy pass; compare_answers reports
   `2 of 251 conversations differ from HEAD`, both the new cases: each asks which company instead
   of "I couldn't find a company called “net”". probe-round-3-gaps is complete: no tickets remain.
+
+## 2026-10-07 — probe-round-3-gaps 03 One company left on screen is a lookup
+
+Task completed: `docs/process/tickets/probe-round-3-gaps/issues/03-one-company-left-is-a-lookup.md`
+
+Key decisions:
+- `_one_company_left` in `graph/spec_turn.py`, applied in `merge_analysis` just after the task
+  results are merged, so both planners pass through it. A comparison whose table shows exactly
+  one company is a lookup. A row reading `company_not_found` or `not_operating_company` is a name
+  the answer says it left out, so it is not on screen; a missing fact or an unavailable source
+  keeps the company on screen. None left keeps the comparison asked for.
+- The merge's early return (one task, no across-periods) hands the task's own result back, so the
+  rule had to sit after `merge_task_results`, not inside it.
+- `compare GOOG and GOOGL operating margins` with no index, where the share classes collapse to
+  one Alphabet row only in the facts lookup, is a lookup too: the test's `compare` expectation
+  predates the README's rule and was updated. The follow-up wording tests' fake facts gave every
+  non-Google company Microsoft's CIK, so Google and Apple were one company on screen; the fake now
+  keeps the CIK it is asked by.
+- ADR 0010's "One resolver" paragraph states the rule; the README already did.
+- Recorded for review: the README says a fund beside a company is "left out with a note", but the
+  SPY row stays in the table reading "Company not found" with a note that only names the fund.
+
+Files changed:
+- `src/financial_analyst_agent/graph/spec_turn.py`
+- `tests/test_recorded_regressions.py` (+2 tests), `tests/test_run_turn_compare.py` (one
+  expectation), `tests/unit/test_follow_up_wording.py` (fake facts)
+- `docs/adr/0010-one-reading-of-names-and-windows.md`, `docs/process/rules-to-review.md`,
+  `scripts/compare_answers.py` (+`SPY and Apple revenue`), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,095 Python tests pass; ruff and mypy pass; compare_answers reports
+  `1 of 252 conversations differ from HEAD`, the new case: `SPY and Apple revenue` is a lookup
+  (compare before). Tickets 04-07 in probe-round-3-gaps remain.

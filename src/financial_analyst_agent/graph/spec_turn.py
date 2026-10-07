@@ -30,9 +30,11 @@ from financial_analyst_agent.answer_notes import (
 )
 from financial_analyst_agent.contracts import (
     ALLOWED_METRICS,
+    COMPANY_NOT_FOUND,
     DEFAULT_RANK_LIMIT,
     LOOKUP_FAILED,
     MISSING_FACT,
+    NOT_OPERATING_COMPANY,
     QUALITATIVE_INTENTS,
     SNAPSHOT_METRICS,
     SOURCE_UNAVAILABLE,
@@ -702,6 +704,27 @@ def merge_task_results(
     )
 
 
+# A name no company matched, or a fund's, is left out with a note: not on screen.
+_LEFT_OUT = frozenset({COMPANY_NOT_FOUND, NOT_OPERATING_COMPANY})
+
+
+def _one_company_left(merged: TurnResult) -> TurnResult:
+    """A comparison with one company left on screen is a lookup.
+
+    The intent follows the companies on screen (ADR 0010): "SPY and Apple
+    revenue" leaves the fund out with a note, so Apple alone is a lookup, as
+    "Google and Alphabet revenue" already is once the two names collapse to one.
+    """
+    if merged.intent is not Intent.COMPARE or merged.renderer is not RendererKind.TABLE:
+        return merged
+    on_screen = {
+        row.cik or row.company_name for row in merged.table_rows if row.reason not in _LEFT_OUT
+    }
+    if len(on_screen) != 1:
+        return merged
+    return merged.model_copy(update={"intent": Intent.LOOKUP})
+
+
 def _order_by_metric(result: TurnResult, metric: str) -> TurnResult:
     """Order a ranking's market-cap members by ``metric``, largest first.
 
@@ -1058,7 +1081,7 @@ def merge_analysis(compiled: CompiledAnalysis, results: list[TurnResult]) -> Tur
         across_periods="across_periods" in spec.operations,
         sequential="year_over_year" not in spec.operations,
     )
-    merged = _without_base_quarters(merged, spec)
+    merged = _one_company_left(_without_base_quarters(merged, spec))
     if len(spec.companies) == 1 and spec.constituents is None:
         merged = _one_company_failure(merged, results)
     merged = _fill_identity(merged, spec)

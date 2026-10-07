@@ -8,6 +8,8 @@ from an older thread.
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 import pytest
 
 from financial_analyst_agent.contracts import Intent, RendererKind, Runtime
@@ -357,3 +359,65 @@ def test_a_ranking_by_an_ambiguous_metric_keeps_its_order_after_the_answer() -> 
     assert answered.ordered_by == "net_income"
     incomes = [row.value for row in answered.table_rows if row.value is not None]
     assert incomes == sorted(incomes, reverse=True)
+
+
+def test_a_comparison_with_one_company_left_on_screen_is_a_lookup(runtime: Runtime) -> None:
+    # README: the intent follows the companies on screen. SPY is a fund, left out
+    # with a note, so Apple alone is a lookup; two companies stay a comparison.
+    one_left = run_turn("SPY and Apple revenue", runtime)
+    two = run_turn("Apple and Microsoft revenue", runtime)
+
+    assert one_left.intent is Intent.LOOKUP
+    assert {row.ticker for row in one_left.table_rows if row.value is not None} == {"AAPL"}
+    assert two.intent is Intent.COMPARE
+
+
+def test_a_missing_fact_keeps_a_comparison() -> None:
+    # Microsoft is on screen though its quarter has no figure: still a comparison.
+    from financial_analyst_agent.contracts import (
+        COMPANY_NOT_FOUND,
+        MISSING_FACT,
+        TableRow,
+        TurnResult,
+    )
+    from financial_analyst_agent.graph.analysis_spec import (
+        AnalysisSpec,
+        CompiledTask,
+        ResolvedCompany,
+        SpecPatch,
+    )
+    from financial_analyst_agent.graph.spec_turn import merge_analysis
+    from financial_analyst_agent.graph.state import CompiledAnalysis
+
+    apple = ResolvedCompany(cik="0000320193", name="Apple Inc.", ticker="AAPL", query="Apple")
+
+    def compared(other: ResolvedCompany, reason: str) -> TurnResult:
+        task = CompiledTask(kind="compare", issuers=(apple.cik, other.handle), metric="revenue")
+        compiled = CompiledAnalysis(
+            spec=AnalysisSpec(companies=(apple, other), metrics=("revenue",)),
+            tasks=(task,),
+            patch=SpecPatch(mode="replace"),
+            wording=f"{apple.query} and {other.query} revenue",
+        )
+        rows = [
+            TableRow(
+                company_name=apple.name, ticker=apple.ticker, cik=apple.cik,
+                metric="revenue", value=Decimal("109417000000"),
+            ),
+            TableRow(
+                company_name=other.name, ticker=other.ticker, cik=other.cik,
+                metric="revenue", reason=reason,
+            ),
+        ]
+        result = TurnResult(
+            intent=Intent.COMPARE, renderer=RendererKind.TABLE, tool_traces=[], table_rows=rows
+        )
+        return merge_analysis(compiled, [result])
+
+    microsoft = ResolvedCompany(
+        cik="0000789019", name="Microsoft Corporation", ticker="MSFT", query="Microsoft"
+    )
+    spy = ResolvedCompany(cik="", name="SPY", ticker="", query="SPY")
+
+    assert compared(microsoft, MISSING_FACT).intent is Intent.COMPARE
+    assert compared(spy, COMPANY_NOT_FOUND).intent is Intent.LOOKUP

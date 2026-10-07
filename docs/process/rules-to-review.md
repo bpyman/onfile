@@ -51,3 +51,10 @@ Each entry: date, ticket, where, the rule, why it looks wrong, what the agent di
 - **Why it looks wrong:** a window with quarter over quarter returns earlier in the binder with `count = asked + 1` and `asked` set, and with no window `count` is already 5, so the branch the comment explains never changes a sequential window; `Apple revenue growth last 4 quarters` keeps 4 too (growth counts as explicit year over year). The base quarter is read and not shown (combination-gaps 01).
 - **What you did:** left both as they are; this ticket changes documentation only, and the branch's behaviour is unchanged. ADR 0009's Decision now states the revised rule.
 - **Decided (2026-10-06):** the comments were wrong. Both now say the base quarter is read and not shown; the `count = 5` branch's comment says it is reached only by a change that names no base.
+
+## 2026-10-07 — probe-round-3-gaps 03: the README says a fund beside a company is "left out with a note"
+
+- **Where:** `README.md`, "How a question is read", the "A company's other names" row.
+- **The rule:** "A fund beside a company (`SPY and Apple revenue`) is left out with a note; one company left on screen is a lookup."
+- **Why it looks wrong:** the fund is not left out of the table. On the recorded runtime `SPY and Apple revenue` shows two rows, SPY reading "Company not found" and Apple's figure, and the only note is "Showing SPDR S&P 500 ETF TRUST for “SPY”", which names the fund without saying it is one or that it is left out. On the live runtime SEC identifies SPY and the row would read "not an operating company" instead. A name no company matched (`Apple and Acme Widgets revenue`) is what the README describes: no row, and a note saying it is left out.
+- **What you did:** followed the ticket, which asks only that the intent follow the companies on screen: the answer is now a lookup, and a row that says the company was not found or is not an operating company does not count as on screen. The SPY row and its note are unchanged; whether the fund's row should go, with a note saying SPY is a fund, is for a person to decide.
