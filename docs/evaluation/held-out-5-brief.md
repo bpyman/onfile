@@ -18,8 +18,9 @@ protocol in [planner-comparison.md](planner-comparison.md).
 ## Your task
 
 Write and label conversations that an analyst might type into Onfile, a
-research window over SEC quarterly filings. They are a held-out test set: planners will later be scored on them, and nobody changing
-a planner will read them before that run. Label each from the product rules
+research window over SEC quarterly filings. They are a held-out test set:
+planners will later be scored on them, and nobody changing a planner will read
+them before that run. Label each from the product rules
 below, as a correct answer must look, before anything is run.
 
 The set has two writers, each a different model writing from this brief alone.
