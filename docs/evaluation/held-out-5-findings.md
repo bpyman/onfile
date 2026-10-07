@@ -124,3 +124,10 @@ that names no measure and ranks nothing is set aside for the ranking (the window
 is still read from the whole question). Both are ranked by the rules planner,
 so the cascade keeps its plan. `h5_rk_drugs_gm`'s recorded period is ticket 05's
 (held-out-5-findings ticket 04).
+
+`h5_rk_drugs_gm`'s period: a ranking now records the latest quarter it shows,
+whichever planner planned it. The window asked for is said only in the
+ranking's note, so the "four latest quarters" banner no longer sits beside a
+ranking that shows one, and "add Pfizer" after it compares the latest quarter.
+A ranking's growth needs no window: each company's latest quarter is set
+against the comparative its filing reports (held-out-5-findings ticket 05).

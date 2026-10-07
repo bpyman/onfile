@@ -2422,3 +2422,30 @@ Blockers / next:
   banner ("the four latest quarters, shown one by one") beside the ranking note, from the
   recorded window it replaces. README's phrase-coverage count (518) is still behind. Tickets
   05-09 in held-out-5-findings remain.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/held-out-5-findings/issues/05-a-rankings-period-is-the-latest-quarter.md`
+
+Key decisions:
+- `resolve_spec` gives a ranked analysis `PeriodSelection()` (latest quarter). `ranked_window_asked`
+  (analysis_spec.py) reads the draft; `CompiledAnalysis.ranked_window_asked` takes it to
+  `period_notes`, which, for a ranking, adds only the ranked-latest-quarter note when asked.
+- `validate_spec` asks no window of a ranking's `across_periods`: a growth ranking's change is each
+  company's latest quarter against its comparative (ADR 0009), and its rows are unchanged.
+- Ranking -> companies (`add Apple`): a plain ranking keeps the latest quarter; one carrying a
+  change gets growth's five-quarter window (`_GROWTH_QUARTERS`), as before.
+
+Files changed:
+- `src/financial_analyst_agent/graph/analysis_spec.py`, `graph/state.py`, `graph/spec_turn.py`,
+  `answer_notes.py`
+- `tests/test_held_out_5_findings.py` (h5_rk_drugs_gm on every field for both planners, +6 tests)
+- `README.md`, `docs/adr/0010-one-reading-of-names-and-windows.md`,
+  `docs/evaluation/held-out-5-findings.md`, `scripts/compare_answers.py` (+2 conversations), the
+  ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All Python tests pass; ruff and mypy pass; compare_answers reports `3 of 358
+  conversations differ from HEAD`, all intended (h3_chips_window's recorded period, the windowed
+  drugmakers ranking's banners, and "add Pfizer" after it). Also committed this run: ticket 04's
+  finished but uncommitted work. Tickets 06-09 in held-out-5-findings remain.

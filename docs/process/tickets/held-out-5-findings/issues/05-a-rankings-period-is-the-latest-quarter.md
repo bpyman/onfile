@@ -8,4 +8,14 @@ Case: `h5_rk_drugs_gm`'s period, once ticket 04 lets the rules planner rank it.
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped 7 October 2026. `resolve_spec` records a ranking's period as the latest quarter it shows, whichever planner planned it; `ranked_window_asked` (from the draft) carries the asked window or named period to `period_notes`, which says so in the ranking's note and nothing else. The "four latest quarters" banner no longer sits beside a ranking that shows one, and no report dates are listed for it.
+
+What read the recorded window: the period chip already said "Latest quarter"; `add Intel` after a ranking took the ranking's window and now keeps the latest quarter. A growth ranking (`top 5 banks by revenue growth`) needed a window only to pass validation: its change is each company's latest quarter against its filing's comparative, so `validate_spec` no longer asks a ranking for a window, and the rows are as before. Adding a company to a growth ranking shows growth over growth's own five quarters, as it did.
+
+Tests: `h5_rk_drugs_gm` on every field with the rules planner and with the LLM planner's proposal (4 recent quarters); windowed, counted and named-period rankings record the latest quarter with the note; a ranking with no window has none; `add Pfizer` after a windowed ranking keeps the latest quarter; a growth ranking and `add Apple` after it.
+
+compare_answers: 3 of 358 conversations differ, all intended: `h3_chips_window` records the latest quarter (its answer is unchanged); "Over the past year, the top 3 drugmakers by gross margin" loses the four-quarters banner; and "add Pfizer" after it compares the latest quarter, not four. "top 5 banks by revenue growth" then "add Apple" does not differ.

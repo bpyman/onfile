@@ -71,6 +71,14 @@ _LLM_PLANS = {
         intent=Intent.COMPARE, companies=("Cisco", "Oracle"), metric="cash"
     ),
     "h5_mw_iphone": WorkflowPlan(intent=Intent.LOOKUP, company="Apple", metric="revenue"),
+    "h5_rk_drugs_gm": WorkflowPlan(
+        intent=Intent.RANK_AND_LOOKUP,
+        industry="drugmakers",
+        metric="gross_margin",
+        limit=3,
+        order_by_metric=True,
+        recent_quarters=4,
+    ),
 }
 
 
@@ -89,6 +97,8 @@ _LLM_PLANS = {
         "h5_mw_iphone",
         # A ranking reads whatever comes first: a count (ticket 04).
         "h5_rk_banks_ni",
+        # A ranking records the latest quarter it shows (ticket 05).
+        "h5_rk_drugs_gm",
     ],
 )
 def test_a_fixed_held_out_case_passes_with_the_rules_planner(
@@ -280,23 +290,10 @@ def test_a_segment_of_an_unrecorded_company_names_it(question: str, company: str
         assert any("not segments" in banner for banner in result.banners)
 
 
-def test_a_ranking_after_a_leading_window_is_ranked_by_the_rules_planner(
-    runtime: Runtime,
-) -> None:
-    """ "Over the past year, the top 3 drugmakers by gross margin" (h5_rk_drugs_gm)
-    ranks; the period the analysis records is ticket 05's, so it is left out here."""
-    (result,) = run_planner([_case("h5_rk_drugs_gm")], runtime.completer, runs=1, runtime=runtime)
+def test_a_ranking_after_a_leading_window_keeps_the_rules_plan(runtime: Runtime) -> None:
+    plan = runtime.completer.complete(_case("h5_rk_drugs_gm").turns[0])
 
-    assert not result.error
-    assert {name: ok for name, ok in result.checks.items() if name != "periods"} == {
-        name: True for name in result.checks if name != "periods"
-    }
-    assert (
-        unsure_reason(
-            runtime.completer.complete(_case("h5_rk_drugs_gm").turns[0]), lambda industry: True
-        )
-        is None
-    )
+    assert unsure_reason(plan, lambda industry: True) is None
 
 
 @pytest.mark.parametrize(
@@ -355,3 +352,90 @@ def test_a_count_of_quarters_leading_by_a_metric_ranks_no_group(runtime: Runtime
     plan = runtime.completer.complete("the 5 quarters by revenue")
 
     assert plan.intent is not Intent.RANK_AND_LOOKUP
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Over the past year, the top 3 drugmakers by gross margin",
+        "top 3 drugmakers by gross margin over the last 4 quarters",
+        "top 3 drugmakers by gross margin in fiscal 2025",
+    ],
+)
+def test_a_ranking_records_the_latest_quarter_with_the_window_note(
+    question: str, runtime: Runtime
+) -> None:
+    """The window asked for is said in the note, not kept as the analysis's period:
+    no "four latest quarters" banner for a ranking that shows one."""
+    turn = run_conversation_turn(
+        f"held-out-5-{uuid.uuid4()}", question, runtime, store=EphemeralThreadStore()
+    )
+
+    assert turn.analysis_spec is not None
+    assert turn.analysis_spec.periods.kind == "latest_quarter"
+    assert any("latest quarter" in banner for banner in turn.result.banners)
+    assert not any("four latest quarters" in banner for banner in turn.result.banners)
+
+
+def test_a_ranking_with_no_window_has_no_window_note(runtime: Runtime) -> None:
+    turn = run_conversation_turn(
+        f"held-out-5-{uuid.uuid4()}",
+        "top 3 drugmakers by gross margin",
+        runtime,
+        store=EphemeralThreadStore(),
+    )
+
+    assert not any("Ranked lists" in banner for banner in turn.result.banners)
+
+
+def test_adding_a_company_to_a_windowed_ranking_keeps_the_latest_quarter(
+    runtime: Runtime,
+) -> None:
+    store = EphemeralThreadStore()
+    thread = f"held-out-5-{uuid.uuid4()}"
+    run_conversation_turn(
+        thread, "Over the past year, the top 3 drugmakers by gross margin", runtime, store=store
+    )
+
+    turn = run_conversation_turn(thread, "add Pfizer", runtime, store=store)
+
+    assert turn.analysis_spec is not None
+    assert turn.analysis_spec.periods.kind == "latest_quarter"
+    assert len({row.end_date for row in turn.result.table_rows if row.ticker == "LLY"}) == 1
+
+
+def test_a_growth_ranking_records_the_latest_quarter_and_shows_its_change(
+    runtime: Runtime,
+) -> None:
+    """Each bank's latest quarter beside its change on the year before (ADR 0009)."""
+    turn = run_conversation_turn(
+        f"held-out-5-{uuid.uuid4()}",
+        "top 5 banks by revenue growth",
+        runtime,
+        store=EphemeralThreadStore(),
+    )
+
+    assert turn.analysis_spec is not None
+    assert turn.analysis_spec.periods.kind == "latest_quarter"
+    rows = turn.result.table_rows
+    assert [row.ticker for row in rows if row.comparison == "year_over_year"] == [
+        "JPM",
+        "BAC",
+        "WFC",
+    ]
+    assert len({row.end_date for row in rows}) == 1
+
+
+def test_adding_a_company_to_a_growth_ranking_shows_growth_over_its_window(
+    runtime: Runtime,
+) -> None:
+    store = EphemeralThreadStore()
+    thread = f"held-out-5-{uuid.uuid4()}"
+    run_conversation_turn(thread, "top 5 banks by revenue growth", runtime, store=store)
+
+    turn = run_conversation_turn(thread, "add Apple", runtime, store=store)
+
+    assert turn.analysis_spec is not None
+    assert turn.analysis_spec.periods.kind == "last_n_quarters"
+    assert "year_over_year" in turn.analysis_spec.operations
+    assert {row.ticker for row in turn.result.table_rows} == {"AAPL", "JPM", "BAC", "WFC"}

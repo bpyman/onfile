@@ -83,6 +83,7 @@ from financial_analyst_agent.graph.analysis_spec import (
     calendar_groups,
     compile_tasks,
     emptied_by,
+    ranked_window_asked,
     resolve_spec,
     validate_spec,
 )
@@ -1183,6 +1184,7 @@ def resolve_request(
             annual_filers=tuple(annual_filers),
             funds=tuple(funds),
             unrecorded=request.unrecorded,
+            ranked_window_asked=ranked_window_asked(draft),
         ),
     )
 
@@ -1303,7 +1305,12 @@ def annotate_analysis(
         *missing_component_notes(merged.table_rows),
         *already_present_notes(patch, compiled.prior_spec, spec),
         *metric_reading_notes(compiled.wording, spec),
-        *period_notes(compiled.wording, spec, window=compiled.window),
+        *period_notes(
+            compiled.wording,
+            spec,
+            window=compiled.window,
+            ranked_window=compiled.ranked_window_asked,
+        ),
         *short_ranking_notes(spec),
         *capped_ranking_notes(patch),
     ]

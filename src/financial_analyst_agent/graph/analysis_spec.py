@@ -137,6 +137,10 @@ class RankedRequest(BaseModel):
         return value
 
 
+# Growth with no window named: four quarters and the year-earlier base of the newest.
+_GROWTH_QUARTERS = 5
+
+
 class RankedSet(BaseModel):
     industry: str
     limit: int
@@ -304,6 +308,10 @@ def apply_patch(current: AnalysisSpec | None, patch: SpecPatch) -> SpecDraft:
         dropped = ("rank", *patch.remove_operations)
         operations = [op for op in current.operations if op not in dropped]
         operations.extend(op for op in patch.add_operations if op not in operations)
+        if periods.kind == "latest_quarter" and "across_periods" in operations:
+            # A ranking's growth is its latest quarter's; the companies' is over
+            # growth's window, as "Apple and JPMorgan revenue growth" would be.
+            periods = PeriodSelection(kind="last_n_quarters", count=_GROWTH_QUARTERS)
         presentation = patch.set_presentation or current.presentation
         ranked = None
         order_by = patch.set_order_by or current.order_by
@@ -444,7 +452,9 @@ def resolve_spec(
         companies=tuple(companies),
         constituents=constituents,
         metrics=draft.metrics,
-        periods=draft.periods,
+        # A ranking shows each company's latest quarter, so that is its period;
+        # a window asked for is said in a note (ranked_window_asked), not kept.
+        periods=draft.periods if constituents is None else PeriodSelection(),
         operations=tuple(operations),
         presentation=draft.presentation,
         earlier_companies=draft.earlier_companies,
@@ -482,6 +492,11 @@ def _resolve_company(
     return ResolvedCompany(cik="", name=query, ticker="", query=query)
 
 
+def ranked_window_asked(draft: SpecDraft) -> bool:
+    """Whether a ranking was asked over a window or named period it does not show."""
+    return draft.ranked_request is not None and draft.periods.kind != "latest_quarter"
+
+
 def validate_spec(spec: AnalysisSpec) -> SpecRejection | None:
     """Validate a resolved spec against closed catalogs. No provider I/O."""
     for metric in spec.metrics:
@@ -499,7 +514,9 @@ def validate_spec(spec: AnalysisSpec) -> SpecRejection | None:
                     f"Allowed: {', '.join(sorted(SUPPORTED_OPERATIONS))}"
                 ),
             )
-        if operation == "across_periods" and (
+        # A ranking's change is each company's latest quarter against the
+        # comparative its filing reports (ADR 0009): it needs no window.
+        if operation == "across_periods" and spec.constituents is None and (
             spec.periods.kind not in ("last_n_quarters", "named")
             or (spec.periods.kind == "last_n_quarters" and (spec.periods.count or 0) < 2)
         ):

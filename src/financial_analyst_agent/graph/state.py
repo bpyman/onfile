@@ -141,6 +141,8 @@ class CompiledAnalysis(BaseModel):
     # Funds named beside a company, left out of the table: (ticker, SEC name).
     funds: tuple[tuple[str, str], ...] = ()
     unrecorded: tuple[str, ...] = ()
+    # A ranking asked over a window it does not show: its note says so.
+    ranked_window_asked: bool = False
 
 
 class Clarification(BaseModel):
