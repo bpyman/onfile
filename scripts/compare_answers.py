@@ -46,6 +46,8 @@ EXTRA = [
     ["Apple revenue 18 months"],
     ["Danaher net income the last year and a half"],
     ["Apple revenue over the past 2.5 years"],
+    ["What was net income this quarter?"],
+    ["What was net interest income?"],
     ["Apple and Microsoft revenue fiscal 2025"],
     ["Apple and Microsoft revenue calendar Q2 2026"],
     ["Apple revenue growth last 4 quarters"],

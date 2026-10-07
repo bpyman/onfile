@@ -1889,3 +1889,35 @@ Blockers / next:
   `2 of 249 conversations differ from HEAD`, both the new cases: Danaher shows 6 quarters and loses
   the last-year banner (4 before), Apple asks 10 quarters (20 before). Ticket 02 in
   probe-round-3-gaps remains.
+
+## 2026-10-07 — probe-round-3-gaps 02 A figure with no company asks which company
+
+Task completed: `docs/process/tickets/probe-round-3-gaps/issues/02-a-figure-with-no-company-asks-which.md`
+
+Key decisions:
+- The rules planner's lookup fallback (`_issuer_from_lookup_query`) no longer captures lazily up
+  to any metric phrase: it finds the question's opener (`what was`, `what is`, `what's`), then the
+  first metric phrase after it with the catalog's phrases longest-first, and the company is the
+  text between. `net income` is one phrase, so `net` is never a company; `free cash flow` and
+  `net interest income` likewise. Nothing before the phrase means no company, and the turn asks
+  which company before any fetch.
+- A possessive before the phrase (`Apple's`) is still stripped; `_NOT_A_NAME` still drops `the`,
+  `total` and the like. The fix is in the rules planner, as the ticket names it: the LLM planner
+  path already asks which company through `_figure_with_no_company`.
+- Phrase coverage: `What was net income this quarter?`, `Net margin last quarter?` and `What was
+  net interest income?` join `NO_COMPANY_QUESTIONS` (so `SENT_TO_MODEL` too: a no-company lookup
+  leaves the rules planner unsure). `what is gross profit?` stays an explanation by the README's
+  `what is X` rule, so it was not added.
+- README general-question row names the example and says a word of the metric phrase is never
+  the company.
+
+Files changed:
+- `src/financial_analyst_agent/rules_planner.py`, `src/financial_analyst_agent/phrase_coverage.py`
+- `tests/unit/test_planner_rules.py` (+2 tests, one with 3 cases)
+- `README.md`, `scripts/compare_answers.py` (+`What was net income this quarter?`, +`What was net
+  interest income?`), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,093 Python tests pass; ruff and mypy pass; compare_answers reports
+  `2 of 251 conversations differ from HEAD`, both the new cases: each asks which company instead
+  of "I couldn't find a company called “net”". probe-round-3-gaps is complete: no tickets remain.

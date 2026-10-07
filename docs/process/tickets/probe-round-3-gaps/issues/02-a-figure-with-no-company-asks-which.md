@@ -6,4 +6,8 @@
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped 7 October 2026. The rules planner's lookup fallback (`_issuer_from_lookup_query` in `rules_planner.py`) now reads the company as whatever stands between the question's opener (`what was`, `what is`, `what's`) and the first metric phrase, found longest-first with the catalog's own phrases, so `net income` is one phrase and `net` is never left over as a company; `free` in `free cash flow` and `net` in `net interest income` likewise. With nothing before the phrase, the plan names no company and the turn asks which company, as `free cash flow last quarter?` already did. `what was Apple's net income` and `what was Danaher's net interest income` still name their company. Phrase coverage holds the three questions as no-company cases (the cascade sends them to the LLM planner, as every no-company case); the README's general-question row names the example and the rule. `compare_answers.py` reports 2 of 251 conversations differ, both new: `What was net income this quarter?` and `What was net interest income?` ask which company (before: "I couldn't find a company called “net”").

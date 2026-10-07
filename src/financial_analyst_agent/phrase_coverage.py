@@ -398,6 +398,10 @@ NO_COMPANY_QUESTIONS = (
     "What is the EPS?",
     "What's the revenue?",
     "What was the revenue last quarter?",
+    # A word of the metric phrase ("net", "free") is never the company.
+    "What was net income this quarter?",
+    "Net margin last quarter?",
+    "What was net interest income?",
 )
 
 _FIRST = "Apple revenue over the last 4 quarters"

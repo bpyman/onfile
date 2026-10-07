@@ -156,19 +156,25 @@ def _companies_from_query(normalized: str) -> list[str]:
     return sorted(first_seen, key=first_seen.__getitem__)
 
 
-# "what was Apple's revenue": the words between the question and a metric.
-_LOOKUP_ISSUER = re.compile(
-    r"\b(?:what (?:was|is|were)|whats)\s+(.+?)(?:'s)?\s+(?:"
-    + "|".join(re.escape(phrase) for phrase in metric_phrases())
-    + r")\b"
+# "what was Apple's revenue": the words between the question and its metric.
+_LOOKUP_OPENER = re.compile(r"\b(?:what (?:was|is|were)|whats)\s+")
+# Longest phrase first, so "net income" is one phrase and "net" is not left over.
+_METRIC_PHRASE = re.compile(
+    r"\b(?:" + "|".join(re.escape(phrase) for phrase in metric_phrases()) + r")\b"
 )
 
 
 def _issuer_from_lookup_query(normalized: str) -> str | None:
-    match = _LOOKUP_ISSUER.search(normalized)
-    if match is None:
+    opener = _LOOKUP_OPENER.search(normalized)
+    if opener is None:
         return None
-    issuer = match.group(1).strip(" .,?!'")
+    metric = _METRIC_PHRASE.search(normalized, opener.end())
+    if metric is None:
+        return None
+    # A word of the metric phrase ("net" in "net income", "free" in "free cash
+    # flow") is never a company: the company is what stands before the phrase.
+    between = normalized[opener.end() : metric.start()].strip(" .,?!'’")
+    issuer = re.sub(r"['’]s$", "", between)
     # "what was the revenue?" names no company: "the" is not one.
     words = [word for word in issuer.split() if word not in _NOT_A_NAME]
     return " ".join(words) or None

@@ -772,3 +772,29 @@ def test_a_figure_with_no_company_still_asks_which_company() -> None:
     plan = _live().complete("What's the EPS?")
 
     assert (plan.intent, plan.company, plan.metric) == (Intent.LOOKUP, None, "eps_diluted")
+
+
+@pytest.mark.parametrize(
+    ("question", "metric"),
+    [
+        ("what was net income this quarter?", "net_income"),
+        ("what was net interest income?", "net_interest_income"),
+        ("what was free cash flow last quarter?", "free_cash_flow"),
+    ],
+)
+def test_a_word_of_the_metric_phrase_is_never_the_company(question: str, metric: str) -> None:
+    # "net" in "net income" and "free" in "free cash flow" belong to the metric, so
+    # the question names no company and asks which one (README, general question).
+    plan = _live().complete(question)
+
+    assert (plan.intent, plan.company, plan.metric) == (Intent.LOOKUP, None, metric)
+
+
+def test_a_lookup_question_naming_a_company_before_the_metric_keeps_it() -> None:
+    plan = _live().complete("what was Danaher's net interest income?")
+
+    assert (plan.intent, plan.company, plan.metric) == (
+        Intent.LOOKUP,
+        "DHR",
+        "net_interest_income",
+    )
