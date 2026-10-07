@@ -1,6 +1,6 @@
 # Phrase coverage
 
-Generated `2026-10-07T06:41:19.419228+00:00` on the recorded runtime with the rules planner. 518 everyday phrasings of a metric, a window, a change or a follow-up, each asked as a whole question and judged by the README's [How a question is read](../../README.md#how-a-question-is-read). No network and no model. **518 of 518 (100%) are read right**; the live app's cascade would send 14 to the LLM planner.
+Generated `2026-10-07T07:02:15.505556+00:00` on the recorded runtime with the rules planner. 518 everyday phrasings of a metric, a window, a change or a follow-up, each asked as a whole question and judged by the README's [How a question is read](../../README.md#how-a-question-is-read). No network and no model. **518 of 518 (100%) are read right**; the live app's cascade would send 14 to the LLM planner.
 
 | Group | Phrasings | Read right |
 | --- | ---: | ---: |
