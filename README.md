@@ -22,7 +22,7 @@ Ask about a company and get the number and the filing behind it. Onfile is an ev
 
 **Results**
 - **Planners, on 160 held-out conversations written by another lab's model (xAI's Grok 4.7):** rules planner 96%, LLM planner 94%, and the rules-first cascade 97% ([comparison](docs/evaluation/planner-comparison.md)).
-- **Within noise, so decided on cost:** no difference between the planners is significant (p = 0.22 to 0.73). The live demo runs the cascade, which asks the LLM on 7% of turns: $0.13 for the run against $1.93 for the LLM planner alone ([ADR 0012](docs/adr/0012-the-live-planner-is-a-rules-first-cascade.md)).
+- **Within noise, so decided on cost:** no difference between the planners is significant (p = 0.22 to 0.73). The live demo runs the cascade ([ADR 0012](docs/adr/0012-the-live-planner-is-a-rules-first-cascade.md)), which sent 7% of planner calls to the LLM: $0.13 for the run against $1.93 for the LLM planner alone ([comparison](docs/evaluation/planner-comparison.md)).
 - **Everyday wording:** 518 of 518 phrasings of metrics, windows, changes and follow-ups, alone and in combination, read as [the defaults](#how-a-question-is-read) say ([phrase coverage](docs/evaluation/phrase-coverage.md)).
 - **Figures checked against their filings:** 25 of 25 found in the text of the 10-Q they cite ([filing check](docs/evaluation/filing-check.md)).
 - **What did not work, and what changed:** [retired approaches, wrong numbers, and a held-out set I had read](#what-failed-and-what-i-changed).
@@ -34,7 +34,7 @@ The planner proposes; code owns every number.
 1. **SEC quarterly facts, with provenance.** Standalone 10-Q amounts from companyfacts XBRL, each with its accession, period, concept, and an EDGAR filing link.
 2. **Constrained planning.** The planner (rules first, a language model where the rules are unsure) proposes a typed analysis-spec patch; code resolves CIKs, catalog metrics, and period windows. It does not chain tools or invent constituents.
 3. **Answers the model cannot rewrite.** Tables and charts render from tool output. Essays pass a numeral lock. Ambiguous metrics get a clarifying question; unknown scope is refused.
-4. **Follow-ups edit the analysis.** `add Apple`, `show year-over-year` or `make that the last four quarters` patches the spec on screen instead of starting over; each chip above the conversation can be removed or added to.
+4. **Follow-ups edit the analysis.** `add Tesla`, `show year-over-year` or `make that the last four quarters` patches the spec on screen instead of starting over; the chips above the conversation show it, and a chip's × removes it while + adds a company or metric.
 5. **Like-for-like comparisons.** Year-over-year change reads the prior quarter as the current filing restates it, so stock splits and restatements don't distort growth, and a per-share level filed before a split is shown on the basis after it, divided by the split ratio the company reports ([ADR 0009](docs/adr/0009-year-over-year-reads-the-comparative.md)). Ratios on a negative base (return on negative equity, a margin on negative revenue) say "Not meaningful" instead of printing a number.
 6. **Degrades instead of failing.** Every SEC request has a deadline and every turn a budget; a company whose data fails gets its own "Source unavailable" row while the rest of a ranking or comparison answers; bad documents are never cached; SEC's rate limits are honoured. The app was red-teamed across its API, planner, numbers, window and failure modes.
 
@@ -46,7 +46,7 @@ The planner proposes; code owns every number.
 | Derived figures | EBITDA, return on equity, P/E, trailing-year net income, R&D and SG&A as a share of revenue, share price ([ADR 0008](docs/adr/0008-balance-sheet-trailing-year-and-market-figures.md)). A derived figure whose part a company's filings do not report as a standalone quarter is missing, with a note naming the part: AMD's EBITDA, since its filings report depreciation only for the year. |
 | Comparisons and trends | `Compare Eli Lilly and Pfizer revenue over the last eight quarters` |
 | Growth and overviews | `Compare Microsoft and Apple revenue growth` charts the growth rates; `How is Nvidia doing?` answers in a sentence with recent quarters |
-| Rankings | `Top 10 technology companies by net margin`, over a dated snapshot of about 5,200 US operating companies |
+| Rankings | `Top 10 technology companies by net margin`, over a dated snapshot of about 5,200 US-listed operating companies; the roughly 4,000 that file 10-Qs are ranked |
 | Filing changes | `What changed in Microsoft's latest 10-Q?`, a paragraph diff of MD&A and Risk Factors with the changed words marked |
 | Context | recent news and a short explanation, kept apart from the numbers |
 
@@ -75,7 +75,7 @@ Every answer can be checked and taken away: click a figure for its source, sort 
 
 ## Try it
 
-Hosted demo (opens on the live runtime, straight from SEC EDGAR; switch to Recorded for the captured filings): [onfile-analyst.vercel.app](https://onfile-analyst.vercel.app). While the API wakes from sleep, the guided stories answer at once from the recorded runtime, marked "Demo data". The window also installs as a desktop app from the browser. Or [run it locally](#run-it-locally) in two commands.
+Hosted demo (opens on the live runtime, straight from SEC EDGAR; switch to Recorded for the captured filings): [onfile-analyst.vercel.app](https://onfile-analyst.vercel.app). If the API is slow to answer, the guided stories answer at once from the recorded runtime, marked "Demo data". The window also installs as a desktop app from the browser. Or [run it locally](#run-it-locally) in two commands.
 
 ![Compare Eli Lilly, Pfizer and Merck revenue, show it year over year, then inspect the exact 10-Q source](docs/portfolio/images/demo-walkthrough.gif)
 
@@ -91,12 +91,12 @@ The images are captured from the window by a Playwright script against the recor
 | --- | --- | --- |
 | [Planner comparison](docs/evaluation/planner-comparison.md) | Held out: rules planner 96%, LLM planner 94%, cascade 97% (no difference significant) | 160 conversations xAI's Grok 4.7 wrote from a brief frozen first, labelled again blind, run end to end on the recorded runtime with only the planner swapped |
 | [Filing check](docs/evaluation/filing-check.md) | 25 of 25 figures found in the filing's own text | Figures the live window shows, across sectors and metrics, looked up in the 10-Q each cites |
-| [Numeral lock](docs/evaluation/numeral-lock.md) | Withholds every changed or invented number, passes every true figure as shown or rounded | Known sentences over ten recorded answers' grounding; no model |
+| [Numeral lock](docs/evaluation/numeral-lock.md) | Withholds every changed or invented number; passes every true figure as shown, or rounded to two or more significant digits | Known sentences over ten recorded answers' grounding; no model |
 | [Phrase coverage](docs/evaluation/phrase-coverage.md) | 518 of 518 everyday phrasings of metrics, windows, changes and follow-ups, alone and in combination, read as [the defaults](#how-a-question-is-read) say | Each asked as a whole question on the recorded runtime; a test fails on any new misreading, and on any phrasing the live cascade would newly send to the LLM |
 | [Company name coverage](docs/evaluation/company-coverage.md) | 98.7–98.8% of 5,161 companies found for each name form, 100% as `$TICKER` | Every snapshot company asked about in six forms of its name |
 | [Scorecard](docs/evaluation/scorecard.md) | 30 recorded-runtime cases, with p50/p95 latency | Lookups, calendars and derived quarters, growth, rankings, refusals, clarification, follow-ups, filing changes, the numeral lock |
 
-**Which planner, and why.** The live demo plans every turn with the rules planner, and asks the LLM planner only where the rules planner's plan shows it was unsure: 7% of planner calls on the fifth held-out set. On those 160 conversations the cascade scored 97% against the LLM planner's 94% and the rules planner's 96%, at $0.0002 a planner call against $0.0035, and with a median planner time of 1 ms against 1.1 s. No difference between the planners is significant ([ADR 0012](docs/adr/0012-the-live-planner-is-a-rules-first-cascade.md)).
+**Which planner, and why.** The live demo plans every turn with the rules planner, and asks the LLM planner only where the rules planner's plan shows it was unsure: 7% of planner calls on the fifth held-out set. On those 160 conversations the cascade scored 97% against the LLM planner's 94% and the rules planner's 96%, at $0.0002 a planner call against $0.0035, and with a median planner time of 1 ms against 1.1 s. No difference between the planners is significant ([findings](docs/evaluation/held-out-5-findings.md)); the decision itself is [ADR 0012](docs/adr/0012-the-live-planner-is-a-rules-first-cascade.md), made on the fourth set and borne out by the fifth.
 
 **How the held-out set was kept honest.** Its brief was committed before any case existed, after three rounds of throwaway probe questions had made its rules clear. Grok 4.7, from a lab that built neither planner, wrote and labelled the 160 cases in a folder holding only the brief, the README, the glossary and three ADRs; a blind Claude session labelled them again, and the two agreed on every field of 159 (the one difference was settled before any planner ran). The cases, an overlap report and the analysis plan were committed before the run ([plan](docs/evaluation/held-out-5-plan.md)). Earlier sets were each held out once and then read or tuned on; the [protocol](docs/evaluation/planner-comparison.md#protocol) says what happened to each. The three cases every planner failed are defects in the code all planners share; questions whose template the app had seen score 3 to 4 points higher than novel ones ([findings](docs/evaluation/held-out-5-findings.md)).
 
@@ -161,7 +161,7 @@ What the planner comparisons found ([ADR 0010](docs/adr/0010-one-reading-of-name
 - **"Target" the word.** "Nvidia's target margin" added Target. Whether a name is also an everyday word now comes from case in 10-Q text, and the word counts as the company only where the question uses it as one.
 - **A held-out set I had read.** My brief asked the first blind labelling session to return its cases, so I saw them while changing the planner. They became development cases, and a second session wrote the held-out set, reporting only counts.
 
-- **A numeral lock that withheld true figures.** It matched digits exactly, and an essay's grounding holds 22974000000, so a true "$22.97 B" or "30.9%" was withheld every time. A number now also passes when it rounds from a grounded value at the precision written; changed and invented numbers are still withheld ([measurement](docs/evaluation/numeral-lock.md)).
+- **A numeral lock that withheld true figures.** It matched digits exactly, and an essay's grounding holds 22974000000, so a true "$22.97 B" or "30.9%" was withheld every time. A number now also passes when it rounds from a grounded value at the precision written, to at least two significant digits; changed and invented numbers are still withheld ([measurement](docs/evaluation/numeral-lock.md)).
 
 As an independent check outside the XBRL data the app reads, [the filing check](docs/evaluation/filing-check.md) opens the 10-Q each figure cites and looks for the number in the filing's own text: **25 of 25** figures were found.
 
@@ -215,17 +215,17 @@ npm --prefix web run dev    # the window on http://localhost:3000
 
 Open http://localhost:3000 and click a guided story. [`web/README.md`](web/README.md) lists the window's environment variables, checks, and the browser check.
 
-Beyond the guided stories, try these. Follow-ups such as `add Apple` patch the analysis instead of starting over.
+Beyond the guided stories, try these. Follow-ups such as `add Tesla` patch the analysis instead of starting over.
 
 1. What was Microsoft's latest quarterly pretax income?
 2. Compare Tesla and GM revenue
 3. What are the top 10 tech companies and R&D spend for each?
-4. add Apple
+4. add Tesla
 5. make that the last four quarters
 6. Apple diluted EPS in Q3 FY2025
 7. Compare Cisco and Oracle revenue calendar Q2 2026
 
-Named periods ("Q3 2024", "fiscal 2025", "calendar Q2 2026") use each company's own fiscal calendar. A fiscal fourth quarter, which companies report only inside the 10-K, is derived as the year minus the nine months and marked † with both source facts in the evidence; per-share figures are never derived ([ADR 0007](docs/adr/0007-derived-quarters-and-per-share.md)). Cash and equity are balance-sheet amounts at the quarter's end; return on equity and P/E use trailing-year net income; P/E and share price use the snapshot's market data, so P/E is given for the latest period only ([ADR 0008](docs/adr/0008-balance-sheet-trailing-year-and-market-figures.md)).
+Named periods ("Q3 2024", "fiscal 2025") use each company's own fiscal calendar; a calendar quarter ("calendar Q2 2026") is each company's quarter whose middle falls in it. A fiscal fourth quarter, which companies report only inside the 10-K, is derived as the year minus the nine months and marked † with both source facts in the evidence; per-share figures are never derived ([ADR 0007](docs/adr/0007-derived-quarters-and-per-share.md)). Cash and equity are balance-sheet amounts at the quarter's end; return on equity and P/E use trailing-year net income; P/E and share price use the snapshot's market data, so P/E is given for the latest period only ([ADR 0008](docs/adr/0008-balance-sheet-trailing-year-and-market-figures.md)).
 
 The recorded runtime replays captured SEC, news, and model responses through the same orchestration and renderer as the live runtime. It proves orchestration, not EDGAR freshness. `APP_MODE=live` with the keys in `.env` runs the live runtime.
 
@@ -285,36 +285,76 @@ It starts the recorded API and the built window itself, as the browser check doe
 
 ## How a question is read
 
-What a question leaves out has a default, so the same words always get the same answer. Evaluation sets are labelled from this table, and phrase coverage tests it:
+What a question leaves out has a default, so the same words always get the same answer. Evaluation sets are labelled from these rules, and phrase coverage tests them.
 
 | You ask | You get |
 |---|---|
-| No period: `Apple revenue` | The latest quarter. `last quarter`, `this quarter` and `the most recent quarter` are the latest quarter too. |
-| A window: `last 3 quarters`, `past two years`, `18 months`, `the past decade`, `since 2024` | That many recent quarters, at most 40. A count and a unit after the metric need no `last` or `past` (`Apple revenue 18 months`, `6 quarters`, `a couple of years`); `12-month` in `trailing 12-month revenue` is the trailing year, not a window. `since 2024` or `since the start of 2024` is every filed quarter that ended on or after 1 January 2024, counted from the filings rather than today's date, and the latest 40 when there are more; a note says when the filings lack a quarter inside that span. `since the start of fiscal 2025` (or `since FY2025`) counts from each company's own fiscal 2025. A year is 4 quarters, a decade 40, and months are a third, rounded up; `the past year` is 4; `a few` and `several` are 4 and `a couple of` 2, each of whatever it names (`a few months` is 2 quarters, `a couple of years` 8). A whole number of years and a half is that many years and 2 quarters more: `a year and a half`, `one and a half years` and `1.5 years` are 6, `two and a half years` and `2.5 years` 10. |
-| Trailing twelve months: `TTM net income`, `LTM net income`, `trailing twelve month net income`, `last twelve months net income` | One amount: net income over the four quarters to the latest report, the 10-K's year or derived from it and the year to date (ADR 0008). A figure with no trailing-year form (`TTM revenue`) shows its latest 4 quarters. Only directly before the metric: `net income over the last twelve months` and `last twelve months of net income` are windows of 4 quarters. Beside another metric (`TTM net income and revenue`), the trailing-year figure sits beside the other's latest quarter. |
-| A named period: `Q2 2025`, `fiscal 2025` | That quarter or year on each company's own fiscal calendar; `calendar Q2 2025` for the calendar quarter. `through fiscal 2025` and `during fiscal 2025` are that fiscal year. With a change (`Q2 2025 year over year`, `fiscal 2025 quarter over quarter`), those quarters, each with its change. |
-| Growth with no period: `How fast is Apple's revenue growing?` | The latest 5 quarters, each with its year-over-year change. With no metric either (`How fast is Apple growing?`), revenue. A change over a named window (`How did EBITDA change over the past year?`, `Over the past 10 quarters, how has revenue moved?`, `How much did revenue change since 2023?`) is year over year over that window, whatever the change wording; a `since` window is a window, so `revenue since 2025 year over year` is every quarter since 2025 began, each with its change. |
-| Year over year with no period: `Apple revenue year over year`, `versus the same quarter last year`, `versus last year`, `up from a year earlier` | The latest 8 quarters, each with its year-over-year change. With a window, that window. After a question about several quarters or a named period, a follow-up asking for year-over-year change or growth (`show that year over year`, `as growth`) keeps those quarters; after one quarter, it shows the latest 8. Naming both bases (`sequentially or versus last year`) shows both changes. |
-| Quarter over quarter: `quarter over quarter`, `quarter on quarter`, `QoQ`, `sequentially` | The latest 5 quarters, each with its change on the quarter before. With a window (`last 2 quarters quarter over quarter`), that many quarters. Where a quarter's year-earlier quarter is on screen too, its year-over-year change shows beside. After a year-over-year view, `sequential instead` switches the change and keeps the quarters, as `year over year instead` switches back. |
-| A change with no base: `Why did revenue drop?`, `How much did revenue change?`, `What drove the change in revenue?`, `What caused revenue to fall?` | A question: compared with what? |
-| A why or yes-no question that names no change: `Why is Goldman's revenue so volatile?`, `Is AMD's gross margin close to Nvidia's?` | The figures it names, with a note that filings report what changed, not why; Management's Discussion and Analysis explains. |
-| An ambiguous word: `profit`, `income`, `margin`, `cash flow`, `interest`, `expenses`, `dividends`, `tax` | A question: which one? (ADR 0004), even when the rest of the question hints (`how much interest did JPMorgan pay`) or names a catalog metric beside it (`fee income and noninterest income`). `net interest` asks too; `net interest income` and `NII` name the bank figure. `earnings` is net income, `EPS` and `earnings per share` are diluted EPS (`basic EPS` is basic), `tax rate` is the effective tax rate, `EBIT` is operating income, `SG&A as a percentage of sales` is the SG&A ratio and `R&D as a percentage of revenue` R&D to sales, and `profit margin` is net margin, with a note saying so. A phrase that names one figure is that figure (`income before taxes`, `noninterest income`); `fee income`, which no single filing figure measures, asks too. |
-| Two metrics: `revenue and net income` | Both. |
-| A per-share figure with no period, when the latest quarter is a fiscal fourth: `Cisco EPS` | The latest quarter with its own per-share figure, with a note saying which quarter it stepped past: a 10-K reports EPS and dividends per share only for the year, and per-share figures are never derived (ADR 0007). Named (`Cisco EPS in Q4 FY2026`), that quarter says it is reported only for the year; in a window, it is a blank row saying so. |
-| A measure the catalog lacks: `debt`, `debt-to-equity`, `customer acquisition cost` | It says it cannot look that up yet, and lists what it can. A word inside it that would be ambiguous alone (`equity`) does not make it a question. Beside a catalog metric (`Apple revenue and dividend yield`), the catalog metric is answered. |
-| A company's other names: `Chase`, `Wells`, `BofA`, `$GOOGL`, `Google and Alphabet` | That company, once. A fund beside a company (`SPY and Apple revenue`) is left out with a note; one company left on screen is a lookup. |
-| A segment or operating figure: `Google Cloud revenue`, `iPhone sales`, `deliveries` | The company-wide figure, with a note that filings' structured data reports totals, not segments. |
-| `How is Apple doing?`, `how is Apple performing`, `how has Apple been performing`, `the rundown on Apple`, `a quick read on Apple`, `Apple's performance` | An overview: revenue, net income and three margins for the latest quarter, with five quarters of revenue and net margin. With a window (`Apple's performance over the last 4 quarters`), those quarters. A measure the catalog lacks keeps its refusal (`Apple's stock performance`). A bank reports no gross or operating margin, so those rows say the filings hold none. |
-| A ranking: `top banks by revenue`, `biggest tech companies` | The 10 largest companies in the group by market value, or as many as asked. With a metric, each company's figure for its latest quarter, ordered by it when asked `by` it (`top 5 banks by net income`) and by market value when asked `and their` (`top 5 banks and their net income`); with no metric, by market value. `top 2 semiconductor companies by R&D` is the two largest, ordered by R&D, not the two that spend most. A window (`over the past year`) still shows each company's latest quarter, and a note says so. With no group (`which companies are worth the most?`), every company in the snapshot. Everyday group names name their industry (`semis`, `chipmakers`, `drugmakers`, `big banks`), and a group `by` a metric is a ranking without `top`. Largest first; `lowest first` orders the same companies from the lowest. `bottom 5` is refused: rankings start from the largest. After a ranking, `add Intel` makes a comparison of the companies on screen and Intel. |
-| A follow-up: `add Microsoft`, `also Microsoft`, `Microsoft too` | The companies on screen plus Microsoft, same metric and window. |
-| A follow-up: `what about Microsoft?`, `same for Microsoft` | Microsoft in place of the companies on screen, same metric and window. `drop`, `remove`, `take out`, `without`, `swap X for Y` and `make it the last 8 quarters` edit what is on screen. |
-| A follow-up naming a metric: `add net income`, `and net income too`, `what about net income?` | `add` and `too` show it beside the metrics on screen; `what about` puts it in their place. |
-| A general question: `Explain how a share buyback affects EPS`, `How does a buyback affect EPS?`, `What is free cash flow and why does it matter?`, `What is EPS?`, `How might AI change banking?` | An explanation, marked as the model's, with no figures. The explanation wording decides (`explain`, `how does … affect`, `how is … calculated`, `why does … matter`, `what does … mean`, and `what is X` for a measure alone), not the absence of a company alone: a figure with no company (`What's the EPS?`, `What's the revenue?`, `What was net income this quarter?`) asks which company, whichever planner read it; a word of the metric phrase (`net`, `free`) is never the company. With a company named (`How does Apple's buyback affect its EPS?`), it is that company's figure. |
-| A filing change with nothing named: `What changed in Microsoft's latest 10-Q?` | The latest 10-Q against the one a year earlier, Management's Discussion and Analysis and Risk Factors. `10-K` or `annual report` compares 10-Ks; `what's new in` is `what changed in`. With no company, it asks which. |
+| No period: `Apple revenue`, `last quarter` | The latest quarter |
+| A window: `last 3 quarters`, `past two years`, `18 months`, `since 2024` | That many recent quarters, at most 40 |
+| A named period: `Q2 2025`, `fiscal 2025`, `calendar Q2 2025` | That quarter or year, on each company's own fiscal calendar unless `calendar` is said |
+| Trailing twelve months: `TTM net income`, `LTM net income` | One trailing-year amount (ADR 0008) |
+| Growth: `How fast is Apple's revenue growing?` | With no period, the latest 5 quarters, each with its year-over-year change |
+| Year over year: `Apple revenue year over year`, `versus last year` | With no period, the latest 8 quarters, each with its year-over-year change |
+| Quarter over quarter: `quarter over quarter`, `QoQ`, `sequentially` | With no period, the latest 5 quarters, each with its change on the quarter before |
+| A change with no base: `Why did revenue drop?`, `How much did revenue change?` | A question: compared with what? |
+| A why or yes-no question: `Why is Goldman's revenue so volatile?` | The figures it names, with a note that filings report what changed, not why |
+| An ambiguous word: `profit`, `income`, `margin`, `cash flow`, `interest`, `expenses`, `dividends`, `tax` | A question: which one? (ADR 0004) |
+| Two metrics: `revenue and net income` | Both |
+| A measure the catalog lacks: `debt`, `debt-to-equity`, `customer acquisition cost` | It says it cannot look that up yet, and lists what it can |
+| A segment or operating figure: `iPhone sales`, `Google Cloud revenue`, `deliveries` | The company-wide figure, with a note that filings report totals, not segments |
+| An overview: `How is Apple doing?`, `the rundown on Apple` | Revenue, net income and three margins for the latest quarter, with five quarters of revenue and net margin |
+| A ranking: `top banks by revenue`, `biggest tech companies` | The 10 largest companies in the group by market value, or as many as asked |
+| A follow-up that adds: `add Microsoft`, `also Microsoft`, `Microsoft too`, `add net income`, `and net income too` | What is on screen, plus Microsoft or net income |
+| A follow-up that replaces: `what about Microsoft?`, `same for Microsoft`, `what about net income?` | That in place of the companies, or the metric, on screen |
+| A general question: `What is EPS?`, `How might AI change banking?` | An explanation, marked as the model's, with no figures |
+| A filing change: `What changed in Microsoft's latest 10-Q?` | The latest 10-Q against the one a year earlier: MD&A and Risk Factors |
+
+**Periods**
+
+- `last quarter`, `this quarter` and `the most recent quarter` are the latest quarter.
+- Counting a window: a year is 4 quarters, a decade 40, and months a third, rounded up. `the past year` is 4; `a few` and `several` are 4 and `a couple of` 2, each of whatever they name (`a few months` is 2 quarters, `a couple of years` 8). A year and a half is 6 quarters, `2.5 years` 10.
+- A count and a unit after the metric need no `last` or `past` (`Apple revenue 18 months`, `6 quarters`); `12-month` in `trailing 12-month revenue` is the trailing year, not a window.
+- `since 2024` or `since the start of 2024` is every filed quarter that ended on or after 1 January 2024, counted from the filings rather than today's date, the latest 40 when there are more; a note says when the filings lack a quarter in that span. `since the start of fiscal 2025` (or `since FY2025`) counts from each company's own fiscal 2025.
+- `through fiscal 2025` and `during fiscal 2025` are that fiscal year. A calendar quarter (`calendar Q2 2026`) is each company's quarter whose middle falls in it.
+- Trailing twelve months is also `trailing twelve month` or `last twelve months` directly before the metric: one amount, net income over the four quarters to the latest report, from the 10-K's year or derived from it and the year to date. After the metric, `net income over the last twelve months` and `last twelve months of net income` are windows of 4 quarters. A figure with no trailing-year form (`TTM revenue`) shows its latest 4 quarters, and beside another metric (`TTM net income and revenue`) the trailing-year figure sits beside the other's latest quarter.
+
+**Changes**
+
+- A change over a named window shows that window. Quarter over quarter keeps its base (`last 2 quarters quarter over quarter` is 2 quarters, each with its change on the quarter before); any other change wording is year over year over the window: `growth over the last 4 quarters`, `How did EBITDA change over the past year?`, `Over the past 10 quarters, how has revenue moved?`, `How much did revenue change since 2023?`. `revenue since 2025 year over year` is every quarter since 2025 began, each with its change.
+- With a named period (`Q2 2025 year over year`, `fiscal 2025 quarter over quarter`), those quarters, each with its change.
+- Growth with no metric (`How fast is Apple growing?`) is revenue.
+- Year over year is also `versus the same quarter last year` and `up from a year earlier`. After a question about several quarters or a named period, a follow-up asking for year-over-year change or growth (`show that year over year`, `as growth`) keeps those quarters; after one quarter, it shows the latest 8.
+- Quarter over quarter is also `quarter on quarter`. Where a quarter's year-earlier quarter is on screen too, its year-over-year change shows beside. After a year-over-year view, `sequential instead` switches the change and keeps the quarters, as `year over year instead` switches back.
+- Naming both bases (`sequentially or versus last year`) shows both changes.
+- A change with no base also: `What drove the change in revenue?`, `What caused revenue to fall?`. A yes-no question about figures (`Is AMD's gross margin close to Nvidia's?`) shows them; Management's Discussion and Analysis explains why.
+
+**Metric words**
+
+- An ambiguous word asks even when the rest of the question hints (`how much interest did JPMorgan pay`) or names a catalog metric beside it (`fee income and noninterest income`). `net interest` asks too; `net interest income` and `NII` name the bank figure.
+- A phrase that names one figure is that figure: `earnings` is net income; `EPS` and `earnings per share` are diluted EPS, `basic EPS` basic; `tax rate` is the effective tax rate; `EBIT` is operating income; `SG&A as a percentage of sales` is the SG&A ratio and `R&D as a percentage of revenue` R&D to sales; `income before taxes` and `noninterest income` are those figures. `profit margin` is net margin, with a note saying so. `fee income`, which no single filing figure measures, asks which.
+- An unknown measure stays unknown even when a word inside it would be ambiguous alone (`equity` in `debt-to-equity`). Beside a catalog metric (`Apple revenue and dividend yield`), the catalog metric is answered.
+- A per-share figure with no period, when the latest quarter is a fiscal fourth (`Cisco EPS`), is the latest quarter with its own per-share figure, with a note saying which quarter it stepped past: a 10-K reports EPS and dividends per share only for the year, and per-share figures are never derived (ADR 0007). Named (`Cisco EPS in Q4 FY2026`), that quarter says it is reported only for the year; in a window, it is a blank row saying so.
+
+**Companies**
+
+- A company's other names (`Chase`, `Wells`, `BofA`, `$GOOGL`) are that company, and `Google and Alphabet` is one company. A fund beside a company (`SPY and Apple revenue`) is left out with a note; one company left on screen is a lookup.
+- A figure with no company (`What's the EPS?`, `What was net income this quarter?`) asks which company, whichever planner read it; a word of the metric phrase (`net`, `free`) is never the company.
+
+**Overviews and rankings**
+
+- An overview is also `how is Apple performing`, `how has Apple been performing`, `a quick read on Apple` or `Apple's performance`. With a window (`Apple's performance over the last 4 quarters`), those quarters. A measure the catalog lacks keeps its refusal (`Apple's stock performance`). A bank reports no gross or operating margin, so those rows say the filings hold none.
+- A ranking with a metric shows each company's latest quarter, ordered by it when asked `by` it (`top 5 banks by net income`) and by market value when asked `and their` (`top 5 banks and their net income`). `top 2 semiconductor companies by R&D` is the two largest, ordered by R&D, not the two that spend most. A window (`over the past year`) still shows each company's latest quarter, with a note.
+- With no group (`which companies are worth the most?`), every company in the snapshot. Everyday group names name their industry (`semis`, `chipmakers`, `drugmakers`, `big banks`), and a group `by` a metric is a ranking without `top`. Largest first; `lowest first` orders the same companies from the lowest. `bottom 5` is refused: rankings start from the largest. After a ranking, `add Intel` makes a comparison of the companies on screen and Intel.
+
+**Follow-ups, explanations and filing changes**
+
+- A follow-up keeps the metric and window. `drop`, `remove`, `take out`, `without`, `swap X for Y` and `make it the last 8 quarters` edit what is on screen; `add` and `too` show a metric beside the ones on screen, and `what about` puts it in their place.
+- The explanation wording decides (`explain`, `how does … affect`, `how is … calculated`, `why does … matter`, `what does … mean`, and `what is X` for a measure alone), not the absence of a company alone. With a company named (`How does Apple's buyback affect its EPS?`), it is that company's figure.
+- A filing change compares 10-Ks when asked about the `10-K` or `annual report`; `what's new in` is `what changed in`. With no company, it asks which.
 
 ## Limitations
 
-- Ranking membership is a dated US operating-company snapshot, not a live screener.
+- Ranking membership is a dated snapshot of US-listed operating companies, not a live screener; companies that file no 10-Qs (foreign private issuers) are left out of rankings.
 - Quarterly facts are directly reported standalone quarters where the filing has one. Otherwise only two derivations are made, both marked †: a fiscal fourth quarter (the 10-K's year minus the nine months) and a year-to-date difference (ADR 0007). Per-share figures are never derived.
 - The metric catalog is closed. Unknown or ambiguous phrases do not guess, and segment figures (AWS, iPhone) are not reported on their own: the answer shows the company-wide figure and says it is not the segment.
 - Foreign private issuers (20-F and 40-F filers) have no 10-Q facts, and subsidiaries that file jointly with their parent have no quarterly figures of their own in SEC's data.
