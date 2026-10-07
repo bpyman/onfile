@@ -1,16 +1,5 @@
 # Brief: fifth held-out set for the planner comparison
 
-> **Draft, not frozen.** Before it is frozen, a blind session labels a handful
-> of throwaway probe questions from this brief alone, and every probe whose
-> label differs from the app is settled: the brief is made clearer, or the app
-> is fixed. Then this note is removed, and the commit that removes it is the
-> frozen prompt. No case is written from a draft.
->
-> Two rounds of 30 probes ran on 6 October 2026: the brief and the README's
-> "How a question is read" were made clearer after each, and the app gaps they
-> found are tickets in `brief-5-probe-gaps`. Those are fixed before the freeze,
-> so the set measures wording nobody has seen rather than gaps already known.
-
 This brief was committed before any case was written, and is given unchanged to
 the session that writes the cases. Its commit is the frozen prompt; see the
 protocol in [planner-comparison.md](planner-comparison.md).

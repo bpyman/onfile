@@ -26,9 +26,19 @@ says whether any result had been seen.
    gaps; otherwise the brief's unclear parts are rewritten before freezing, not
    probed again. The Protocol records how many probe rounds ran, which model wrote
    them, and what they changed. The probes are discarded, and none is a case.
+
+   Round 3 ran on 7 October 2026. Grok 4.7 wrote 30 probes and 62 doubts (the
+   probes unscored); Claude wrote 30 probes, of which the app agreed with 28, and
+   27 doubts. The doubts found four contradictions between the brief and the
+   README (segments, periods before 2015 against `since` windows, an overview's
+   period, a trailing-year figure's period), so the stopping rule ended the
+   probing: the brief and the README were rewritten, with about 15 rules the app
+   already followed written down, and the app gaps the round found were fixed
+   (`probe-round-3-gaps`, eleven tickets, #94).
 2. **Freeze.** The draft note is removed from
    [`held-out-5-brief.md`](held-out-5-brief.md); that commit is the frozen prompt.
-   No planner or reading code changes from the freeze until the run.
+   No planner or reading code changes from the freeze until the run. Frozen on 7
+   October 2026, in the commit titled "Freeze the fifth held-out brief".
 3. **Writer** (decided 6 October 2026): **Grok 4.7** (`grok-4.7-high`), xAI's,
    through the Cursor agent CLI, writes and labels all 150 to 170 cases from the
    frozen brief alone, and names itself in the file's `writer`. It is a third
