@@ -141,3 +141,12 @@ so the cascade keeps its plan, and the shared reading keeps a planner's metric
 when the wording implies it ("How fast is Broadcom growing?" as revenue), so a
 plan of revenue is answered whichever planner made it. A metric the wording
 does not imply is still refused (held-out-5-findings ticket 06).
+
+`h5_co_buyback` and `h5_co_volatile` were read by the LLM planner as general
+explanations, and the shared typing re-typed an explanation as a lookup only
+when no company was named. It now re-types one whose question names a recorded
+company and a catalog metric as that company's figure, with the why note where
+the question asks why, so "How does Apple's buyback affect its EPS?" is Apple's
+diluted EPS and "Why is Goldman's revenue so volatile?" Goldman's revenue
+whichever planner reads them. A company and no metric ("How might AI change
+Goldman Sachs's business?") stays an explanation (held-out-5-findings ticket 07).

@@ -137,22 +137,28 @@ def _names_a_company(proposal: WorkflowPlan | SpecPatch) -> bool:
     return bool(company or proposal.companies)
 
 
-def _figure_with_no_company(message: str, deps: TurnDeps) -> WorkflowPlan | None:
-    """The lookup "What's the EPS?" asks for, when a planner read it as an explanation.
+def _figure_asked(message: str, deps: TurnDeps) -> WorkflowPlan | None:
+    """The lookup a figures question asks for, when a planner read it as an explanation.
 
-    It names a catalog metric, names no company and has none of the explanation
-    wording: a figures question with no company, which asks which company
-    (README, general question). "What is EPS?" and "How might AI change
-    banking?" stay explanations: the one asks what the measure is, the other
-    names no catalog metric.
+    It names a catalog metric. With a recorded company named, it is that company's
+    figure, however it is worded: "Why is Goldman's revenue so volatile?" (README,
+    the why row; the why note comes from the words). With none, it asks which
+    company only where none of the explanation wording is there: "What's the EPS?"
+    (README, general question). "What is EPS?", "How might AI change banking?" and
+    "How might AI change Goldman Sachs's business?" stay explanations: the first
+    asks what the measure is, the others name no catalog metric.
     """
-    if asks_for_explanation(message):
-        return None
     resolved = resolve_metric_phrase(message)
     if resolved.kind == "unknown":
         return None
     index = names_index(deps.runtime)
-    if index is not None and index.find(message):
+    mentions = index.find(message) if index is not None else []
+    companies = tuple(dict.fromkeys(mention.query for mention in mentions))
+    if len(companies) == 1:
+        return WorkflowPlan(intent=Intent.LOOKUP, company=companies[0], metric=resolved.metric)
+    if companies:
+        return WorkflowPlan(intent=Intent.COMPARE, companies=companies, metric=resolved.metric)
+    if asks_for_explanation(message):
         return None
     return WorkflowPlan(intent=Intent.LOOKUP, metric=resolved.metric)
 
@@ -164,7 +170,7 @@ def request_from_proposal(
     if isinstance(proposal, WorkflowPlan) and is_filing_change_proposal(proposal):
         return bind_filing_change(proposal, message)
     if isinstance(proposal, WorkflowPlan) and proposal.intent is Intent.EXPLAIN:
-        proposal = _figure_with_no_company(message, deps) or proposal
+        proposal = _figure_asked(message, deps) or proposal
     if (
         is_structured_proposal(proposal)
         and not _names_a_company(proposal)

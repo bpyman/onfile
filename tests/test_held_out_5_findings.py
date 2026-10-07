@@ -82,6 +82,13 @@ _LLM_PLANS = {
         order_by_metric=True,
         recent_quarters=4,
     ),
+    # A general explanation, though the question names a company and its figure.
+    "h5_co_buyback": WorkflowPlan(
+        intent=Intent.EXPLAIN, topic="How does Apple's buyback affect its EPS?"
+    ),
+    "h5_co_volatile": WorkflowPlan(
+        intent=Intent.EXPLAIN, topic="Why is Goldman's revenue so volatile?"
+    ),
 }
 
 
@@ -473,3 +480,62 @@ def test_the_rules_planner_proposes_revenue_for_growth_with_no_metric(
 
     assert plan.metric == "revenue"
     assert unsure_reason(plan, lambda industry: True) is None
+
+
+def _turn(question: str, planner: Any, runtime: Runtime) -> Any:
+    return run_conversation_turn(
+        f"held-out-5-{uuid.uuid4()}",
+        question,
+        replace(runtime, completer=planner),
+        store=EphemeralThreadStore(),
+    )
+
+
+@pytest.mark.parametrize(
+    ("question", "ticker", "metric"),
+    [
+        ("Why is Goldman's revenue so volatile?", "GS", "revenue"),
+        ("Why is Apple's gross margin so high?", "AAPL", "gross_margin"),
+        ("How does Apple's buyback affect its EPS?", "AAPL", "eps_diluted"),
+    ],
+)
+def test_a_named_companys_question_is_its_figure_whichever_planner(
+    question: str, ticker: str, metric: str, runtime: Runtime
+) -> None:
+    """A named company and a catalog metric are that company's figure (README, the
+    why row), even when a planner reads the question as a general explanation."""
+    for planner in (runtime.completer, _ProposedPlan(WorkflowPlan(intent=Intent.EXPLAIN))):
+        turn = _turn(question, planner, runtime)
+
+        assert {row.ticker for row in turn.result.table_rows} == {ticker}
+        assert {row.metric for row in turn.result.table_rows} == {metric}
+
+
+def test_a_named_companys_why_has_the_why_note_whichever_planner(runtime: Runtime) -> None:
+    for planner in (runtime.completer, _ProposedPlan(WorkflowPlan(intent=Intent.EXPLAIN))):
+        turn = _turn("Why is Goldman's revenue so volatile?", planner, runtime)
+
+        assert any("not why" in banner for banner in turn.result.banners)
+
+
+def test_a_named_companys_how_has_no_why_note(runtime: Runtime) -> None:
+    turn = _turn(
+        "How does Apple's buyback affect its EPS?",
+        _ProposedPlan(WorkflowPlan(intent=Intent.EXPLAIN)),
+        runtime,
+    )
+
+    assert not any("not why" in banner for banner in turn.result.banners)
+
+
+@pytest.mark.parametrize(
+    "question",
+    ["How might AI change Goldman Sachs's business?", "Explain how a share buyback affects EPS"],
+)
+def test_a_question_naming_no_company_figure_stays_an_explanation(
+    question: str, runtime: Runtime
+) -> None:
+    turn = _turn(question, _ProposedPlan(WorkflowPlan(intent=Intent.EXPLAIN)), runtime)
+
+    assert turn.result.intent is Intent.EXPLAIN
+    assert not turn.result.table_rows

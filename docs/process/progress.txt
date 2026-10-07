@@ -2472,3 +2472,26 @@ Files changed:
 Blockers / next:
 - None. All 2,287 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 360
   conversations differ from HEAD`. Tickets 07-09 in held-out-5-findings remain.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/held-out-5-findings/issues/07-a-named-companys-why-is-its-figure.md`
+
+Key decisions:
+- `_figure_asked` (graph/turn_graph.py, replacing `_figure_with_no_company`): an `explain`
+  proposal whose question names a catalog metric and a recorded company is that company's lookup
+  (several companies: a comparison); with no company, it is a lookup only without the
+  explanation wording, as before. The why note comes from the words, whichever planner.
+- A company and no metric stays an explanation.
+
+Files changed:
+- `src/financial_analyst_agent/graph/turn_graph.py`
+- `tests/test_held_out_5_findings.py` (+2 LLM plans, +4 tests)
+- `README.md`, `docs/evaluation/held-out-5-findings.md`, `docs/process/rules-to-review.md`,
+  `scripts/compare_answers.py` (+4 conversations), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. compare_answers reports `1 of 364 conversations differ from HEAD`: "How might AI change
+  Apple's revenue?" is now Apple's revenue, not an explanation, as the ticket's rule says; recorded for
+  review. compare_answers crashes printing a diff on a cp1252 console (set PYTHONIOENCODING=utf-8).
+  Tickets 08-09 in held-out-5-findings remain.
