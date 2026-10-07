@@ -21,8 +21,9 @@ Ask about a company and get the number and the filing behind it. Onfile is an ev
 <sub>"Compare Eli Lilly and Pfizer revenue over the last eight quarters", on the public demo. Fiscal fourth quarters are derived from the 10-K and marked †.</sub>
 
 **Results**
-- **Planners, on 160 held-out conversations written by another lab's model:** rules planner 96%, LLM planner 94%, and a rules-first cascade 97%, sending 7% of its calls to the LLM ([comparison](docs/evaluation/planner-comparison.md)).
-- **Within noise, so decided on cost:** the LLM passed 2 cases the rules planner missed and none the other way (p = 0.50). The live demo runs the cascade ([ADR 0012](docs/adr/0012-the-live-planner-is-a-rules-first-cascade.md)).
+- **Planners, on 160 held-out conversations written by another lab's model (xAI's Grok 4.7):** rules planner 96%, LLM planner 94%, and the rules-first cascade 97% ([comparison](docs/evaluation/planner-comparison.md)).
+- **Within noise, so decided on cost:** no difference between the planners is significant (p = 0.22 to 0.73). The live demo runs the cascade, which asks the LLM on 7% of turns: $0.13 for the run against $1.93 for the LLM planner alone ([ADR 0012](docs/adr/0012-the-live-planner-is-a-rules-first-cascade.md)).
+- **Everyday wording:** 518 of 518 phrasings of metrics, windows, changes and follow-ups, alone and in combination, read as [the defaults](#how-a-question-is-read) say ([phrase coverage](docs/evaluation/phrase-coverage.md)).
 - **Figures checked against their filings:** 25 of 25 found in the text of the 10-Q they cite ([filing check](docs/evaluation/filing-check.md)).
 - **What did not work, and what changed:** [retired approaches, wrong numbers, and a held-out set I had read](#what-failed-and-what-i-changed).
 
@@ -115,10 +116,10 @@ The images are captured from the window by a Playwright script against the recor
 
 | What | Result | How it was measured |
 | --- | --- | --- |
-| [Planner comparison](docs/evaluation/planner-comparison.md) | Held out: rules planner 96%, LLM planner 94%, cascade 97% (no difference significant) | 160 conversations Grok 4.7 wrote from a brief frozen first, labelled again blind, run end to end on the recorded runtime with only the planner swapped |
+| [Planner comparison](docs/evaluation/planner-comparison.md) | Held out: rules planner 96%, LLM planner 94%, cascade 97% (no difference significant) | 160 conversations xAI's Grok 4.7 wrote from a brief frozen first, labelled again blind, run end to end on the recorded runtime with only the planner swapped |
 | [Filing check](docs/evaluation/filing-check.md) | 25 of 25 figures found in the filing's own text | Figures the live window shows, across sectors and metrics, looked up in the 10-Q each cites |
 | [Numeral lock](docs/evaluation/numeral-lock.md) | Withholds every changed or invented number, passes every true figure as shown or rounded | Known sentences over ten recorded answers' grounding; no model |
-| [Phrase coverage](docs/evaluation/phrase-coverage.md) | 396 of 406 everyday phrasings of metrics, windows, changes and follow-ups, alone and in combination, read as [the defaults](#how-a-question-is-read) say | Each asked as a whole question on the recorded runtime; a test fails on any new misreading |
+| [Phrase coverage](docs/evaluation/phrase-coverage.md) | 518 of 518 everyday phrasings of metrics, windows, changes and follow-ups, alone and in combination, read as [the defaults](#how-a-question-is-read) say | Each asked as a whole question on the recorded runtime; a test fails on any new misreading, and on any phrasing the live cascade would newly send to the LLM |
 | [Company name coverage](docs/evaluation/company-coverage.md) | 98.7–98.8% of 5,161 companies found for each name form, 100% as `$TICKER` | Every snapshot company asked about in six forms of its name |
 | [Scorecard](docs/evaluation/scorecard.md) | 30 recorded-runtime cases, with p50/p95 latency | Lookups, calendars and derived quarters, growth, rankings, refusals, clarification, follow-ups, filing changes, the numeral lock |
 
@@ -136,6 +137,8 @@ The offline suite is the default CI gate. It runs on the recorded runtime and th
 uv run python -m pytest -q
 uv run python -m financial_analyst_agent.evaluation            # the scorecard
 uv run python -m financial_analyst_agent.numeral_lock_evaluation
+uv run python -m financial_analyst_agent.phrase_coverage       # everyday phrasings, about 30 s
+uv run python -m financial_analyst_agent.held_out_overlap      # held-out cases seen before
 uv run python scripts/check_against_filings.py                 # live: reads about 25 filings from SEC
 ```
 
@@ -178,7 +181,7 @@ Bugs the second red-team round found:
 
 What the planner comparisons found ([ADR 0010](docs/adr/0010-one-reading-of-names-and-windows.md), [ADR 0012](docs/adr/0012-the-live-planner-is-a-rules-first-cascade.md)):
 
-- **An LLM planner on every turn.** The live demo planned every turn with `gpt-5.6-terra`. On a fresh held-out set it was not measurably better than the rules planner (88% against 85%, p = 0.50), so it now plans only where the rules planner is unsure: the same 88%, at a fifth of the cost.
+- **An LLM planner on every turn.** The live demo planned every turn with `gpt-5.6-terra`. On the fourth held-out set it was not measurably better than the rules planner (88% against 85%, p = 0.50), so it now plans only where the rules planner is unsure: the same 88%, at a fifth of the cost. The fifth set, written by another lab's model, agreed: LLM planner 94%, rules planner 96%, cascade 97%.
 
 - **Three resolvers for one name.** The rules planner read names with its issuer index, spec resolution used a narrower resolver, and the facts lookup resolved the words again from SEC titles. "Goldman Sachs" from the LLM planner was resolved to GS and then shown as "company not found". Live, "Coca-Cola" came back ambiguous between three bottlers. There is now one reading of a name.
 - **A period reader that knew six numbers.** "Past six quarters" and "previous nine quarters" fell back to the latest quarter. One grammar now reads any recency word, count and unit.
