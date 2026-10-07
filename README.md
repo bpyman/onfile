@@ -301,7 +301,7 @@ What a question leaves out has a default, so the same words always get the same 
 | An ambiguous word: `profit`, `income`, `margin`, `cash flow`, `interest`, `expenses`, `dividends`, `tax` | A question: which one? (ADR 0004) |
 | Two metrics: `revenue and net income` | Both |
 | A measure the catalog lacks: `debt`, `debt-to-equity`, `customer acquisition cost` | It says it cannot look that up yet, and lists what it can |
-| A segment or operating figure: `iPhone sales`, `Google Cloud revenue`, `deliveries` | The company-wide figure, with a note that filings report totals, not segments |
+| A segment or operating figure: `iPhone sales`, `Google Cloud revenue`, `deliveries` | The company-wide figure, with a note that filings report totals, not segments. With no company named, a segment one company reports names it: `iPhone sales` is Apple's revenue, `AWS` Amazon's, `Azure` Microsoft's |
 | An overview: `How is Apple doing?`, `the rundown on Apple` | Revenue, net income and three margins for the latest quarter, with five quarters of revenue and net margin |
 | A ranking: `top banks by revenue`, `biggest tech companies` | The 10 largest companies in the group by market value, or as many as asked |
 | A follow-up that adds: `add Microsoft`, `also Microsoft`, `Microsoft too`, `add net income`, `and net income too` | What is on screen, plus Microsoft or net income |
@@ -339,7 +339,7 @@ What a question leaves out has a default, so the same words always get the same 
 
 - A company's other names (`Chase`, `Wells`, `BofA`, `$GOOGL`) are that company, and `Google and Alphabet` is one company. A fund beside a company (`SPY and Apple revenue`) is left out with a note; one company left on screen is a lookup.
 - A company name that is also a word names the company only where the question uses it as one, whichever planner read it: `intel aside`, `any intel on`, `to the micron`, `a micron`, `the apple of`, `an oracle for` and `apples to apples` name no company, while `Intel and Palantir operating income` names both.
-- A figure with no company (`What's the EPS?`, `What was net income this quarter?`) asks which company, whichever planner read it; a word of the metric phrase (`net`, `free`) is never the company.
+- A figure with no company (`What's the EPS?`, `What was net income this quarter?`) asks which company, whichever planner read it; a word of the metric phrase (`net`, `free`) is never the company. A segment one company reports names it (`iPhone`, `iPad`, `Mac`: Apple; `AWS`: Amazon; `Azure`, `Xbox`: Microsoft; `Google Cloud`, `YouTube`: Alphabet; `Instagram`, `WhatsApp`: Meta), whichever planner read the question; a company named beside it stays the one named.
 
 **Overviews and rankings**
 

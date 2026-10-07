@@ -10,16 +10,23 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import replace
+from datetime import date
+from decimal import Decimal
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
 
 from financial_analyst_agent.contracts import Intent, Runtime, WorkflowPlan
 from financial_analyst_agent.conversation import run_conversation_turn
+from financial_analyst_agent.planner_cascade import unsure_reason
 from financial_analyst_agent.planner_evaluation import PlannerCase, load_cases, run_planner
+from financial_analyst_agent.rules_planner import DemoCompleter, issuer_index
 from financial_analyst_agent.runtime import recorded_runtime
 from financial_analyst_agent.thread_store import EphemeralThreadStore
+from financial_analyst_agent.turn import run_turn
+from helpers import FakeFacts
 
 _CASES = Path(__file__).resolve().parents[1] / "docs/evaluation/planner-cases-held-out-5.json"
 
@@ -63,6 +70,7 @@ _LLM_PLANS = {
     "h5_ow_oracle_word": WorkflowPlan(
         intent=Intent.COMPARE, companies=("Cisco", "Oracle"), metric="cash"
     ),
+    "h5_mw_iphone": WorkflowPlan(intent=Intent.LOOKUP, company="Apple", metric="revenue"),
 }
 
 
@@ -77,6 +85,8 @@ _LLM_PLANS = {
         "h5_ow_micron_unit",
         "h5_ow_apple_idiom",
         "h5_ow_oracle_word",
+        # A segment one company reports names it (ticket 03).
+        "h5_mw_iphone",
     ],
 )
 def test_a_fixed_held_out_case_passes_with_the_rules_planner(
@@ -168,3 +178,101 @@ def test_a_company_named_beside_the_word_stays(
         )
 
         assert {row.ticker for row in turn.result.table_rows} == kept
+
+
+_NO_COMPANY = WorkflowPlan(intent=Intent.LOOKUP, metric="revenue")
+
+
+@pytest.mark.parametrize(
+    ("question", "ticker"),
+    [
+        ("iPhone sales", "AAPL"),
+        ("iPad revenue", "AAPL"),
+        ("Mac sales", "AAPL"),
+        ("Azure revenue", "MSFT"),
+        ("Xbox revenue", "MSFT"),
+        ("YouTube revenue", "GOOG"),
+    ],
+)
+def test_a_segment_names_its_company_whichever_planner(
+    question: str, ticker: str, runtime: Runtime
+) -> None:
+    """With no company named, the segment names it: the company-wide figure, with
+    the note that filings report totals, not segments (README, a segment)."""
+    for planner in (runtime.completer, _ProposedPlan(_NO_COMPANY)):
+        turn = run_conversation_turn(
+            f"held-out-5-{uuid.uuid4()}",
+            question,
+            replace(runtime, completer=planner),
+            store=EphemeralThreadStore(),
+        )
+
+        assert {row.ticker for row in turn.result.table_rows} == {ticker}
+        assert {row.metric for row in turn.result.table_rows} == {"revenue"}
+        assert any("not segments" in banner for banner in turn.result.banners)
+
+
+def test_the_cascade_keeps_the_rules_plan_for_a_segment(runtime: Runtime) -> None:
+    plan = runtime.completer.complete("iPhone sales")
+
+    assert unsure_reason(plan, lambda industry: True) is None
+
+
+def test_a_company_named_beside_a_segment_stays(runtime: Runtime) -> None:
+    """"Microsoft iPhone sales" names Microsoft: the segment names no one else."""
+    turn = run_conversation_turn(
+        f"held-out-5-{uuid.uuid4()}",
+        "Microsoft iPhone sales",
+        runtime,
+        store=EphemeralThreadStore(),
+    )
+
+    assert {row.ticker for row in turn.result.table_rows} == {"MSFT"}
+
+
+class _CompanyWideRevenue(FakeFacts):
+    """Revenue for whichever company is asked, as its company-wide figure."""
+
+    def __init__(self) -> None:
+        self.asked: list[str] = []
+
+    def get_financials(
+        self, company: str, metric: str, *, report_date: date | None = None
+    ) -> SimpleNamespace:
+        self.asked.append(company)
+        return SimpleNamespace(
+            company_name=company,
+            ticker=company[:4].upper(),
+            cik="0000000001",
+            metric=metric,
+            value=Decimal("1000000000"),
+            currency="USD",
+            start_date=date(2026, 4, 1),
+            end_date=date(2026, 6, 30),
+            filed_date=date(2026, 7, 30),
+            form="10-Q",
+            accession_number="0000000001-26-000001",
+            taxonomy="us-gaap",
+            concept="Revenues",
+            source_url="https://www.sec.gov/Archives/edgar/data/1/fake.htm",
+            source="sec_xbrl",
+        )
+
+
+@pytest.mark.parametrize(
+    ("question", "company"),
+    [
+        ("AWS revenue", "Amazon"),
+        ("Instagram revenue", "Meta"),
+        ("WhatsApp sales", "Meta"),
+    ],
+)
+def test_a_segment_of_an_unrecorded_company_names_it(question: str, company: str) -> None:
+    """Amazon and Meta are not in the recording: fake facts stand in."""
+    for planner in (DemoCompleter(issuer_index()), _ProposedPlan(_NO_COMPANY)):
+        facts = _CompanyWideRevenue()
+
+        result = run_turn(question, Runtime(completer=planner, facts=facts))
+
+        assert facts.asked == [company]
+        assert any("not segments" in banner for banner in result.banners)

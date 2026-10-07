@@ -68,6 +68,10 @@ _Avoid_: ambiguous company (in prose), alias collision
 A company name that 10-Q filings write in lower case mid-sentence as an ordinary word ("Target", "Block"). It names the company only where a question uses it as one (ADR 0010): not "intel aside", "to the micron", "the apple of" or "an oracle for", whichever planner proposed the company.
 _Avoid_: common-word company, stopword name
 
+**Segment**:
+A part of a company that the filings' structured data does not report on its own ("iPhone", "AWS", "Azure"). Its figure is the company-wide one, with a note saying so. A question that names no company but names a segment only one company reports is about that company ("iPhone sales" is Apple's revenue), whichever planner read it.
+_Avoid_: product line, business unit (unqualified)
+
 **Comparison base**:
 What a change is measured against: the same quarter a year earlier (year over year) or the quarter before (sequential). Growth is year over year unless the analyst says sequential; a change that names neither is asked about (ADR 0010). Naming both shows both changes on every quarter, wherever the bases sit in the question.
 _Avoid_: delta, period-over-period (unqualified)

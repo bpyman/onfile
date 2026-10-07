@@ -105,3 +105,12 @@ planner's Apple in `h5_ow_apple_idiom` and Oracle in `h5_ow_oracle_word` go
 too (held-out-5-findings ticket 02). One LLM run of `h5_ow_apple_idiom` added
 three drugmakers for "the drug group"; those come from no everyday word, and
 this rule leaves them.
+
+`h5_mw_iphone` was refused by the rules planner for naming no company. A
+segment only one company reports now names it when the question names none
+(`iPhone`, `iPad`, `Mac` to Apple; `AWS` to Amazon; `Azure`, `Xbox` to
+Microsoft; `Google Cloud`, `YouTube` to Alphabet; `Instagram`, `WhatsApp` to
+Meta), in the rules planner's plan and in the shared reading, so the cascade
+keeps the rules plan and an LLM plan with no company gets the same company. The
+segment note moved from the rules planner's plan to the answer's shared notes,
+so it shows whichever planner planned (held-out-5-findings ticket 03).

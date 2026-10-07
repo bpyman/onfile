@@ -443,6 +443,17 @@ WORD_USE_QUESTIONS: tuple[tuple[str, tuple[str, ...], str], ...] = (
     ("Cisco cash, an oracle for the equipment group", ("CSCO",), "cash"),
     ("Intel and Palantir operating income", ("INTC", "PLTR"), "operating_income"),
 )
+# A segment one company reports names it when no company is named
+# (held-out-5-findings ticket 03): the company-wide figure, with the segment note.
+SEGMENT_QUESTIONS: tuple[tuple[str, tuple[str, ...], str], ...] = (
+    ("iPhone sales", ("AAPL",), "revenue"),
+    ("iPad revenue", ("AAPL",), "revenue"),
+    ("What were Mac sales last quarter?", ("AAPL",), "revenue"),
+    ("Azure revenue", ("MSFT",), "revenue"),
+    ("Xbox sales", ("MSFT",), "revenue"),
+    ("YouTube revenue", ("GOOG",), "revenue"),
+    ("Google Cloud operating income", ("GOOG",), "operating_income"),
+)
 # Asking how a company is doing, in any of its words, is the overview: revenue,
 # net income and three margins. "Performance" and "rundown" name no metric.
 OVERVIEW_QUESTIONS: tuple[tuple[str, tuple[str, ...], tuple[str, int | None]], ...] = (
@@ -911,6 +922,17 @@ def cases() -> list[PhraseCase]:
             PhraseCase(
                 f"word use:{question}",
                 "Everyday-word names used as the word",
+                (question,),
+                _expected(tickers, (metric,), period, None),
+                _reads(frozenset(tickers), frozenset({metric}), period, None),
+            )
+        )
+    for question, tickers, metric in SEGMENT_QUESTIONS:
+        period = ("latest_quarter", None)
+        found.append(
+            PhraseCase(
+                f"segment:{question}",
+                "A segment names its company",
                 (question,),
                 _expected(tickers, (metric,), period, None),
                 _reads(frozenset(tickers), frozenset({metric}), period, None),

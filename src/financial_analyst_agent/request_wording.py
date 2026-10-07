@@ -35,6 +35,7 @@ from financial_analyst_agent.period_window import SINCE_YEAR, asked_window
 from financial_analyst_agent.services.metric_catalog import (
     metric_phrases,
     resolve_metric_phrase,
+    segment_companies,
     without_trailing_year_words,
 )
 
@@ -625,6 +626,20 @@ def _without_word_uses(
     return patch.model_copy(update={"add_companies": kept})
 
 
+def _with_segment_companies(patch: SpecPatch, message: str) -> SpecPatch:
+    """A question that names no company names the one its segment belongs to.
+
+    "iPhone sales" is Apple's revenue, whichever planner proposed no company;
+    "Microsoft iPhone sales" names Microsoft, and a ranking names a group.
+    """
+    if patch.add_companies or patch.ranked_request is not None:
+        return patch
+    companies = segment_companies(message)
+    if not companies:
+        return patch
+    return patch.model_copy(update={"add_companies": companies})
+
+
 def _company_tokens(text: str) -> tuple[str, ...]:
     text = _EDIT_FILLER.sub(" ", text)
     parts = re.split(r"\s+and\s+|,\s*", text, flags=re.IGNORECASE)
@@ -1096,7 +1111,7 @@ def refine_patch_from_message(
     patch = _without_word_uses(patch, message, index)
     patch = bind_periods_from_message(patch, message, window=window)
     if current_spec is None:
-        return patch
+        return _with_segment_companies(patch, message)
     return _keep_window_for_change(
         _refine_against(patch, message, current_spec, index), message, current_spec, window
     )

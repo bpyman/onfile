@@ -2365,3 +2365,33 @@ Blockers / next:
   conversations differ from HEAD`, the three intel/micron conversations added here, each now the
   named company alone. README's phrase-coverage count (518) was already behind before this ticket
   and is left for the next regeneration. Tickets 03-09 in held-out-5-findings remain.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/held-out-5-findings/issues/03-a-segment-names-its-company.md`
+
+Key decisions:
+- `segment_companies` (services/metric_catalog.py) maps a segment only one company reports to
+  that company. The rules planner names it when a question names no company (so the cascade keeps
+  the plan), and `_with_segment_companies` in `refine_patch_from_message` adds it, on a first turn,
+  to any patch with no company and no ranking, so both planners agree.
+- The segment note left the rules planner's plan (a plan note would send it to the LLM planner)
+  for the shared answer notes (`segment_notes` in answer_notes.py), placed right after planner
+  notes. A ranking gets no segment note, as before.
+- Follow-ups keep the company on screen; only a first turn takes the segment's company.
+
+Files changed:
+- `src/financial_analyst_agent/services/metric_catalog.py`, `rules_planner.py`,
+  `request_wording.py`, `answer_notes.py`, `graph/spec_turn.py`, `phrase_coverage.py` (+7
+  `SEGMENT_QUESTIONS`)
+- `tests/test_held_out_5_findings.py` (+1 rules case, +1 LLM plan, +4 tests),
+  `tests/unit/test_planner_understanding.py` (segment note read from the shared notes)
+- `README.md`, `CONTEXT.md` (Segment), `docs/adr/0010-one-reading-of-names-and-windows.md`,
+  `docs/evaluation/held-out-5-findings.md`, `scripts/compare_answers.py` (+4 conversations), the
+  ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,262 Python tests pass; ruff and mypy pass; compare_answers reports `3 of 352
+  conversations differ from HEAD`, all added here ("iPhone sales", "Azure revenue", and "what
+  about iPhone sales?" after Apple revenue gaining the note). README's phrase-coverage count (518)
+  is still behind and left for the next regeneration. Tickets 04-09 in held-out-5-findings remain.

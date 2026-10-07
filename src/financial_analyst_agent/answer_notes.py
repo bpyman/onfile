@@ -41,7 +41,11 @@ from financial_analyst_agent.services.fiscal_periods import (
     adjacent_quarters,
     quarters_in_span,
 )
-from financial_analyst_agent.services.metric_catalog import METRIC_DISPLAY
+from financial_analyst_agent.services.metric_catalog import (
+    METRIC_DISPLAY,
+    segment_note,
+    segment_term,
+)
 
 YEAR_OF_QUARTERS_BANNER = (
     "The last year: these are the four latest quarters, shown one by one rather "
@@ -211,6 +215,18 @@ def metric_reading_notes(message: str, spec: AnalysisSpec) -> list[str]:
     if "net_margin" in spec.metrics and _BARE_PROFIT_MARGIN.search(message):
         return [PROFIT_MARGIN_IS_NET_BANNER]
     return []
+
+
+def segment_notes(message: str, spec: AnalysisSpec) -> list[str]:
+    """Say a segment's figure is the company-wide one, whichever planner read it.
+
+    "iPhone sales" shows Apple's revenue: filings' structured data reports
+    totals. A ranking ranks companies, not segments, so it says nothing.
+    """
+    term = segment_term(message)
+    if term is None or not spec.metrics or spec.constituents is not None:
+        return []
+    return [segment_note(term)]
 
 
 def short_ranking_notes(spec: AnalysisSpec) -> list[str]:

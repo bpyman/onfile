@@ -47,7 +47,7 @@ from financial_analyst_agent.request_wording import (
 from financial_analyst_agent.services.metric_catalog import (
     metric_phrases,
     resolve_metric_phrase,
-    segment_note,
+    segment_companies,
     segment_term,
 )
 from financial_analyst_agent.universe import (
@@ -678,8 +678,10 @@ class DemoCompleter:
                     notes=notes,
                 )
             return WorkflowPlan(intent=Intent.RANK, industry=industry, limit=limit, notes=notes)
+        if not companies:
+            # "iPhone sales": a segment one company reports names it.
+            companies = list(segment_companies(query))
         segment = segment_term(query)
-        segment_notes = (segment_note(segment),) if segment and metric in ALLOWED_METRICS else ()
         if len(companies) == 1 and _PEERS.search(normalized):
             # "Compare Nvidia to its peers": the conversation adds the peers.
             return WorkflowPlan(
@@ -708,14 +710,11 @@ class DemoCompleter:
                 intent=Intent.COMPARE,
                 companies=tuple(companies),
                 metric=metric,
-                notes=segment_notes,
                 # "Rank Apple, Microsoft and Nvidia by revenue" orders the companies.
                 order_by_metric=_RANK_NAMED.search(normalized) is not None,
             )
         company = companies[0] if companies else _lookup_company(normalized)
-        return WorkflowPlan(
-            intent=Intent.LOOKUP, company=company, metric=metric, notes=segment_notes
-        )
+        return WorkflowPlan(intent=Intent.LOOKUP, company=company, metric=metric)
 
     def _unanswered_notes(
         self, query: str, normalized: str, plan: WorkflowPlan, mentions: list[CompanyMention]

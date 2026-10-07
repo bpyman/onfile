@@ -28,6 +28,7 @@ from financial_analyst_agent.answer_notes import (
     metric_reading_notes,
     missing_component_notes,
     period_notes,
+    segment_notes,
     short_ranking_notes,
 )
 from financial_analyst_agent.contracts import (
@@ -1306,11 +1307,13 @@ def annotate_analysis(
         *short_ranking_notes(spec),
         *capped_ranking_notes(patch),
     ]
-    banners = list(dict.fromkeys([*compiled.notes, *merged.banners, *notes]))
+    # A segment's note explains the whole answer, as a planner's does.
+    leading = [*compiled.notes, *segment_notes(compiled.wording, spec)]
+    banners = list(dict.fromkeys([*leading, *merged.banners, *notes]))
     snapshot_banner_index = merged.snapshot_banner_index
     if merged.snapshot_as_of is not None:
         before_snapshot = merged.banners[: merged.snapshot_banner_index]
-        snapshot_banner_index = len(dict.fromkeys([*compiled.notes, *before_snapshot]))
+        snapshot_banner_index = len(dict.fromkeys([*leading, *before_snapshot]))
     if banners != merged.banners or snapshot_banner_index != merged.snapshot_banner_index:
         merged = merged.model_copy(
             update={
