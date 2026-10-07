@@ -71,8 +71,9 @@ def test_the_committed_cases_load_with_unique_ids_and_known_fields() -> None:
     cases = load_cases()
 
     assert sum(case.split == "scorecard" for case in cases) == 28
-    assert sum(case.split == "dev" for case in cases) == 50 + 72 + 69
-    assert sum(case.split == "held_out" for case in cases) == 66
+    # Set 4 is development data once set 5 is held out.
+    assert sum(case.split == "dev" for case in cases) == 50 + 72 + 69 + 66
+    assert sum(case.split == "held_out" for case in cases) == 160
     assert all(case.turns and case.expect for case in cases)
 
 
