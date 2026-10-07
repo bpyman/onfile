@@ -6,6 +6,8 @@ from datetime import date
 from decimal import Decimal
 from inspect import signature
 
+import pytest
+
 from financial_analyst_agent.answer_notes import (
     FISCAL_Q4_GAP_BANNER,
     YEAR_OF_QUARTERS_BANNER,
@@ -268,6 +270,45 @@ def test_a_since_window_carries_its_year_to_the_spec_capped_at_forty() -> None:
     assert periods.report_dates == ()
 
 
+@pytest.mark.parametrize(
+    "wording",
+    [
+        "since fiscal 2025",
+        "since the start of fiscal 2025",
+        "since FY2025",
+        "since fiscal year 2025",
+    ],
+)
+def test_since_a_fiscal_year_is_a_window_on_each_companys_own_fiscal_year(wording: str) -> None:
+    from financial_analyst_agent.graph.analysis_spec import SpecPatch
+    from financial_analyst_agent.request_wording import bind_periods_from_message
+
+    message = f"Apple revenue {wording}"
+    window = read_window(message)
+
+    # The year is the company's fiscal year, and "fiscal 2025" is the window's
+    # year rather than a named period left unread (probe-round-3-gaps ticket 06).
+    assert (window.since_year, window.since_fiscal, window.asked_quarters) == (2025, True, None)
+    assert window.unread_named_period is None
+    periods = bind_periods_from_message(SpecPatch(mode="replace"), message).set_periods
+    assert periods is not None
+    assert (periods.kind, periods.since_year, periods.since_fiscal) == (
+        "last_n_quarters",
+        2025,
+        True,
+    )
+
+
+def test_since_a_calendar_year_is_not_fiscal_and_its_spec_dumps_as_before() -> None:
+    assert not read_window("Apple revenue since 2025").since_fiscal
+    calendar = PeriodSelection(kind="last_n_quarters", count=40, since_year=2025)
+    # A stored or compared spec of a calendar window does not change for the flag.
+    assert "since_fiscal" not in calendar.model_dump(mode="json")
+    fiscal = calendar.model_copy(update={"since_fiscal": True})
+    assert fiscal.model_dump(mode="json")["since_fiscal"] is True
+    assert PeriodSelection.model_validate(fiscal.model_dump(mode="json")).since_fiscal
+
+
 def _since_spec(year: int, dates: tuple[date, ...]) -> AnalysisSpec:
     return AnalysisSpec(
         periods=PeriodSelection(
@@ -316,3 +357,41 @@ def test_a_since_window_over_the_cap_says_so_from_the_filed_quarters() -> None:
         "latest 40." in notes
     )
     assert "The filings here hold only 9 of the 40 quarters since 2015." in notes
+
+
+def test_a_since_fiscal_window_note_counts_the_span_on_the_companys_own_labels() -> None:
+    message = "Apple revenue since fiscal 2015"
+    # Q1 of fiscal 2015 to Q3 of fiscal 2026 is 47 quarters on Apple's labels, one
+    # more than the calendar count; the listed spec carries the span as asked.
+    spec = AnalysisSpec(
+        periods=PeriodSelection(
+            kind="last_n_quarters",
+            count=9,
+            since_year=2015,
+            since_fiscal=True,
+            report_dates=_NINE_FROM_JUNE_2024,
+            asked=47,
+        )
+    )
+
+    notes = period_notes(message, spec, window=read_window(message))
+
+    assert (
+        "Quarters since fiscal 2015 number 47; a window shows at most 40, so this asks for "
+        "the latest 40." in notes
+    )
+    assert "The filings here hold only 9 of the 40 quarters since fiscal 2015." in notes
+    assert not any("couldn't read" in note for note in notes)
+
+    # Every quarter of fiscal 2025 and after is held: nothing to say.
+    message = "Apple revenue since fiscal 2025"
+    whole = AnalysisSpec(
+        periods=PeriodSelection(
+            kind="last_n_quarters",
+            count=7,
+            since_year=2025,
+            since_fiscal=True,
+            report_dates=_NINE_FROM_JUNE_2024[:7],
+        )
+    )
+    assert period_notes(message, whole, window=read_window(message)) == []

@@ -378,10 +378,11 @@ YEAR_TO_DATE = re.compile(r"\b(?:ytd|year[\s-]+to[\s-]+date)\b", re.I)
 
 
 # "since 2023", "since the start of 2023", "since early 2023": every quarter from
-# the start of that year.
+# the start of that year. "since fiscal 2025", "since FY2025": from the start of
+# each company's own fiscal year.
 SINCE_YEAR = re.compile(
     r"\bsince\s+(?:the\s+(?:start|beginning)\s+of\s+|early\s+(?:in\s+)?)?"
-    r"(?:fy\s*|fiscal\s+(?:year\s+)?)?(?P<y>(?:19|20)\d{2})\b",
+    r"(?P<fiscal>fy\s*|fiscal\s+(?:year\s+)?)?(?P<y>(?:19|20)\d{2})\b",
     re.I,
 )
 
@@ -400,6 +401,8 @@ class WindowReading(BaseModel):
     # "since 2024": the quarters are every filed quarter since that 1 January,
     # chosen where the companies' report dates are known, so no count is read.
     since_year: int | None = None
+    # "since fiscal 2025": the year is each company's own fiscal year.
+    since_fiscal: bool = False
     unread_named_period: str | None = None
     sub_quarter: bool = False
 
@@ -785,6 +788,7 @@ def bind_periods_from_message(
                     kind="last_n_quarters",
                     count=MAX_SINCE_QUARTERS,
                     since_year=window.since_year,
+                    since_fiscal=window.since_fiscal,
                 )
             }
         )
@@ -1306,6 +1310,10 @@ SPECIFIC_PERIOD = re.compile(
 )
 
 
+def _within(outer: re.Match[str], inner: re.Match[str]) -> bool:
+    return outer.start() <= inner.start() and inner.end() <= outer.end()
+
+
 def read_window(message: str) -> WindowReading:
     """Read once the window details that compilation and answer notes both need."""
     message = window_words(message)
@@ -1314,7 +1322,10 @@ def read_window(message: str) -> WindowReading:
     specific = SPECIFIC_PERIOD.search(message)
     unread = (
         specific.group(0)
-        if specific is not None and not parse_named_periods(message)
+        if specific is not None
+        and not parse_named_periods(message)
+        # "since fiscal 2025" names the window's year, not a period left unread.
+        and not (since is not None and _within(since, specific))
         else None
     )
     return WindowReading(
@@ -1323,6 +1334,7 @@ def read_window(message: str) -> WindowReading:
         interpretation_notes=tuple(window.notes()) if window is not None else (),
         trailing_year=TRAILING_YEAR.search(message) is not None,
         since_year=int(since.group("y")) if since is not None else None,
+        since_fiscal=since is not None and since.group("fiscal") is not None,
         unread_named_period=unread,
         sub_quarter=SUB_QUARTER.search(message) is not None,
     )

@@ -47,11 +47,17 @@ class PeriodSelection(BaseModel):
     ``since_year`` makes a ``last_n_quarters`` window "since 2024": every filed
     quarter that ended on or after 1 January of that year, chosen where the
     company's report dates are listed; until then ``count`` is the window cap.
+    With ``since_fiscal`` the year is each company's own fiscal year ("since
+    fiscal 2025"), chosen where its fiscal periods are listed, as a named
+    fiscal year's quarters are.
     """
 
     kind: Literal["latest_quarter", "last_n_quarters", "named"] = "latest_quarter"
     count: int | None = None
     since_year: int | None = None
+    # Left out of a dump when false, so a calendar window's stored and compared
+    # specs read as they did before fiscal years could be named.
+    since_fiscal: bool = Field(default=False, exclude_if=lambda fiscal: not fiscal)
     report_dates: tuple[date, ...] = ()
     company_report_dates: tuple[tuple[str, tuple[date, ...]], ...] = ()
     named: tuple[NamedPeriodSpec, ...] = ()

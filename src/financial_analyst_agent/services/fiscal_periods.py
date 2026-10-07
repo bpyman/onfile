@@ -452,6 +452,43 @@ def quarters_since(year: int, dates: Iterable[date]) -> tuple[date, ...]:
     return tuple(sorted((end for end in dates if end >= first), reverse=True))
 
 
+def quarters_since_fiscal_year(year: int, periods: Iterable[FiscalPeriod]) -> tuple[date, ...]:
+    """The quarter ends in or after fiscal ``year``, newest first.
+
+    A "since fiscal 2025" window is every filed quarter of that company's fiscal
+    2025 and after, on its own labels: Apple's opens with the quarter ended
+    December 2024, Microsoft's with September 2024. A quarter whose filing
+    declares no fiscal year counts when it ended after one that does.
+    """
+    ordered = sorted(periods, key=lambda period: period.end, reverse=True)
+    first = min(
+        (
+            period.end
+            for period in ordered
+            if period.fiscal_year is not None and period.fiscal_year >= year
+        ),
+        default=None,
+    )
+    if first is None:
+        return ()
+    return tuple(period.end for period in ordered if period.end >= first)
+
+
+def quarters_in_fiscal_span(year: int, periods: Iterable[FiscalPeriod]) -> int:
+    """How many quarters lie from Q1 of fiscal ``year`` to the newest filed one, inclusive.
+
+    Counted on the company's own labels, so it is what filings reaching back
+    that far would show; zero when the year is ahead of the filings, or no
+    filing declares its fiscal quarter.
+    """
+    ordered = sorted(periods, key=lambda period: period.end, reverse=True)
+    for newer, period in enumerate(ordered):
+        if period.fiscal_year is None or period.quarter is None:
+            continue
+        return max((period.fiscal_year - year) * 4 + period.quarter + newer, 0)
+    return 0
+
+
 def quarters_in_span(year: int, newest: date) -> int:
     """How many quarter ends lie from 1 January of ``year`` to ``newest``, inclusive.
 

@@ -2047,3 +2047,47 @@ Blockers / next:
   a count ("asks for 40 rather than 8100") where `Apple revenue since 2025` reads the year.
   Tickets 06-07 in probe-round-3-gaps remain.
 
+## 2026-10-07 — probe-round-3-gaps 06 "Since the start of fiscal 2025" counts from the fiscal year
+
+Task completed: `docs/process/tickets/probe-round-3-gaps/issues/06-since-the-start-of-a-fiscal-year.md`
+
+Key decisions:
+- The shared reading of windows (`read_window` in `request_wording.py`), which both planners
+  pass through (ADR 0010, 0011), now keeps whether a "since" year was named as a fiscal one:
+  `SINCE_YEAR` captures `fiscal`, `fiscal year` and `FY` as `since_fiscal`, carried by
+  `WindowReading` and bound onto `PeriodSelection.since_fiscal`. "fiscal 2025" inside the
+  "since" match is the window's year, not a named period left unread, so the "couldn't read
+  'fiscal 2025' as a period" banner goes. `since 2025` reads as before.
+- A fiscal "since" window is resolved where each company's fiscal periods are listed, as a
+  named fiscal year's quarters are (`_fiscal_window_dates` in `graph/spec_turn.py` over
+  `runtime.facts.fiscal_periods`): every filed quarter whose declared fiscal year is the one
+  named or later, newest first, capped at the window cap (`quarters_since_fiscal_year`). Apple's
+  fiscal 2025 opens with the quarter ended December 2024, Microsoft's with September 2024. A
+  year ahead of the filings shows the latest quarter, as a calendar year does.
+- The span is counted on the company's own labels (`quarters_in_fiscal_span`: Q1 of that fiscal
+  year to the newest filed quarter) and carried as `asked` only when the filings show fewer, so
+  the window note can say "hold only N of M quarters since fiscal 2015"; a span the filings
+  hold whole leaves `asked` None and says nothing.
+- `since_fiscal` is left out of a spec dump when false (`exclude_if`), so stored and compared
+  specs of calendar windows read as they did. The chip and caption say "Since fiscal 2025".
+- CONTEXT.md's Window entry and ADR 0010's period-grammar paragraph state the rule; the README's
+  window row already did.
+
+Files changed:
+- `src/financial_analyst_agent/request_wording.py`, `graph/analysis_spec.py`,
+  `graph/spec_turn.py`, `services/fiscal_periods.py` (+2 functions), `answer_notes.py`,
+  `presentation.py`, `phrase_coverage.py` (+3 `WINDOW_PHRASES`, none sent to the model)
+- `tests/test_says_what_it_cannot_do.py` (+1 recorded-runtime test),
+  `tests/unit/test_calendars_clarification_and_formatting.py` (+4 tests),
+  `tests/unit/test_window_copy.py` (+3 tests, one with 4 cases)
+- `CONTEXT.md`, `docs/adr/0010-one-reading-of-names-and-windows.md`,
+  `scripts/compare_answers.py` (+3 conversations), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,158 Python tests pass; ruff and mypy pass; compare_answers reports
+  `3 of 262 conversations differ from HEAD`, the three new conversations: `Apple revenue since
+  the start of fiscal 2025` (7 quarters from Dec 2024, "Since fiscal 2025" chip; before: a
+  "couldn't read 'fiscal 2025'" banner over the last 6 quarters), `Microsoft revenue since
+  FY2025` (8 quarters from Sep 2024; before: the same banner over 6) and `Apple and Microsoft
+  revenue since fiscal 2025` (each on its own calendar). Ticket 07 in probe-round-3-gaps remains.
+

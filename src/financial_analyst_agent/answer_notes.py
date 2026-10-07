@@ -13,6 +13,7 @@ from datetime import date
 from financial_analyst_agent.graph.analysis_spec import (
     MAX_RANKED_COMPANIES,
     AnalysisSpec,
+    PeriodSelection,
     SpecPatch,
     calendar_groups,
 )
@@ -260,32 +261,41 @@ def period_notes(
     ):
         notes.append(FISCAL_Q4_GAP_BANNER)
     if spec.periods.kind == "last_n_quarters":
-        notes.extend(_window_notes(window, windows))
+        notes.extend(_window_notes(window, spec.periods, windows))
     return notes
 
 
-def _window_notes(window: WindowReading, windows: list[tuple[date, ...]]) -> list[str]:
+def _window_notes(
+    window: WindowReading, periods: PeriodSelection, windows: list[tuple[date, ...]]
+) -> list[str]:
     """Say when a window is shorter than asked: capped, or more than the filings hold."""
     notes = list(window.interpretation_notes)
     shown = max((len(dates) for dates in windows), default=0)
+    if window.since_year is not None and window.since_fiscal:
+        # The span was counted on the company's own labels where its fiscal
+        # periods were listed; none asked means the filings hold all of it.
+        return [
+            *notes,
+            *_since_notes(f"fiscal {window.since_year}", periods.asked or shown, shown),
+        ]
     if window.since_year is not None:
-        return [*notes, *_since_notes(window.since_year, windows, shown)]
+        newest = max((dates[0] for dates in windows if dates), default=None)
+        if newest is None:
+            return notes
+        span = quarters_in_span(window.since_year, newest)
+        return [*notes, *_since_notes(str(window.since_year), span, shown)]
     wanted = window.asked_quarters
     if wanted is not None and 0 < shown < wanted:
         notes.append(f"The filings here hold only {shown} of the {wanted} quarters asked for.")
     return notes
 
 
-def _since_notes(year: int, windows: list[tuple[date, ...]], shown: int) -> list[str]:
+def _since_notes(year: str, span: int, shown: int) -> list[str]:
     """A "since" window's span, counted from the newest filed quarter, not from today.
 
     The span is capped as any window is; a quarter is missing only when the
     filings lack one that ended inside the span.
     """
-    newest = max((dates[0] for dates in windows if dates), default=None)
-    if newest is None:
-        return []
-    span = quarters_in_span(year, newest)
     notes: list[str] = []
     if span > MAX_SINCE_QUARTERS:
         notes.append(

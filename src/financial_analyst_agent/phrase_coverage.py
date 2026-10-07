@@ -277,6 +277,10 @@ WINDOW_PHRASES: tuple[tuple[str, str, int | None], ...] = (
     ("since 2024", "last_n_quarters", None),
     ("since the start of 2024", "last_n_quarters", None),
     ("since the beginning of 2024", "last_n_quarters", None),
+    # A fiscal year: every quarter of each company's own fiscal 2025 and after.
+    ("since fiscal 2025", "last_n_quarters", None),
+    ("since the start of fiscal 2025", "last_n_quarters", None),
+    ("since FY2025", "last_n_quarters", None),
     ("for the most recent quarter", "latest_quarter", None),
     ("for the latest quarter", "latest_quarter", None),
     ("in Q2 2025", "named", None),

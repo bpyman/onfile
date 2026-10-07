@@ -102,11 +102,14 @@ from financial_analyst_agent.request_wording import (
 )
 from financial_analyst_agent.services.filing_selector import FISCAL_WEEK_TOLERANCE
 from financial_analyst_agent.services.fiscal_periods import (
+    FiscalPeriod,
     adjacent_quarters,
     calendar_quarter,
     dates_for,
     one_year_earlier,
+    quarters_in_fiscal_span,
     quarters_since,
+    quarters_since_fiscal_year,
 )
 from financial_analyst_agent.turn import (
     compare_task,
@@ -184,10 +187,15 @@ def materialize_period_dates(spec: AnalysisSpec, runtime: Runtime) -> AnalysisSp
     periods = spec.periods
     since = periods.since_year
     cap = periods.count or 1
-    listing = partial(_window_dates, runtime.facts.list_quarterly_report_dates, since=since)
+    listing: Callable[..., _Listed]
+    if since is not None and periods.since_fiscal:
+        listing = partial(_fiscal_window_dates, runtime.facts.fiscal_periods, since=since)
+    else:
+        listing = partial(_window_dates, runtime.facts.list_quarterly_report_dates, since=since)
+    spans: list[int] = []
     listed_first = False
     if not periods.report_dates:
-        dates = listing(first.handle, limit=cap)
+        dates, span = listing(first.handle, limit=cap)
         if not dates:
             return spec
         # A "since" window asks for whatever the filings hold since that
@@ -200,6 +208,7 @@ def materialize_period_dates(spec: AnalysisSpec, runtime: Runtime) -> AnalysisSp
         periods = periods.model_copy(
             update={"count": len(dates), "report_dates": dates, "asked": asked}
         )
+        spans.extend([] if span is None else [span])
         listed_first = True
     known = dict(periods.company_report_dates)
     if listed_first and spec.companies:
@@ -212,18 +221,32 @@ def materialize_period_dates(spec: AnalysisSpec, runtime: Runtime) -> AnalysisSp
         lambda company: _or_none(partial(listing, company.handle, limit=count)),
         pending,
     )
-    for company, company_dates in zip(pending, listed, strict=True):
+    for company, company_listed in zip(pending, listed, strict=True):
+        if company_listed is None:
+            continue
+        company_dates, span = company_listed
         if company_dates:
             known[company.key] = company_dates
-    periods = periods.model_copy(update={"company_report_dates": tuple(known.items())})
+        spans.extend([] if span is None else [span])
+    periods = periods.model_copy(
+        update={
+            "company_report_dates": tuple(known.items()),
+            "asked": _span_asked(periods, spans, [periods.report_dates, *known.values()]),
+        }
+    )
     if periods == spec.periods:
         return spec
     return spec.model_copy(update={"periods": periods})
 
 
+# A company's quarter ends for a window, newest first, and the quarters its
+# span holds when the listing counted them (a fiscal year's span).
+_Listed = tuple[tuple[date, ...], int | None]
+
+
 def _window_dates(
     list_dates: Callable[..., Sequence[date]], handle: str, *, limit: int, since: int | None
-) -> tuple[date, ...]:
+) -> _Listed:
     """A company's quarter ends for a window, newest first.
 
     For a "since" window, the listed quarters that ended on or after 1 January
@@ -232,8 +255,39 @@ def _window_dates(
     """
     dates = tuple(list_dates(handle, limit=limit))
     if since is None or not dates:
-        return dates
-    return quarters_since(since, dates) or dates[:1]
+        return dates, None
+    return quarters_since(since, dates) or dates[:1], None
+
+
+def _fiscal_window_dates(
+    list_periods: Callable[[str], Sequence[FiscalPeriod]], handle: str, *, limit: int, since: int
+) -> _Listed:
+    """A company's quarter ends since the start of its own fiscal ``since``, newest first.
+
+    Read where its fiscal periods are listed, as a named fiscal year is: Apple's
+    fiscal 2025 opens with the quarter ended December 2024, Microsoft's with
+    September 2024. The span is counted on the company's labels, so the answer
+    can say how many quarters the filings lack. A year ahead of the filings
+    shows the latest quarter, as a calendar year does.
+    """
+    periods = tuple(list_periods(handle))
+    if not periods:
+        return (), None
+    dates = quarters_since_fiscal_year(since, periods)[:limit]
+    if not dates:
+        return (max(period.end for period in periods),), None
+    return dates, quarters_in_fiscal_span(since, periods)
+
+
+def _span_asked(
+    periods: PeriodSelection, spans: list[int], windows: list[tuple[date, ...]]
+) -> int | None:
+    """The quarters a fiscal span asks for, when the filings show fewer; else as it was."""
+    shown = max((len(dates) for dates in windows), default=0)
+    longest = max(spans, default=0)
+    if longest <= shown:
+        return periods.asked
+    return max(periods.asked or 0, longest)
 
 
 def _or_none[T](read: Callable[[], T]) -> T | None:

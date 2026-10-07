@@ -190,6 +190,28 @@ def test_since_a_year_shows_every_quarter_available(runtime) -> None:  # type: i
     assert not any("hold only" in banner for banner in answer.banners)
 
 
+def test_since_a_fiscal_year_counts_from_each_companys_own_fiscal_year(runtime) -> None:  # type: ignore[no-untyped-def]
+    # README's window row (probe-round-3-gaps ticket 06): Apple's fiscal 2025
+    # opened with the quarter ended December 2024, Microsoft's with September 2024.
+    apple = replay(runtime, "Apple revenue since the start of fiscal 2025")
+    (answer,) = apple.answers
+    assert column_of(answer, "Quarter ended")[-1] == "Dec 28, 2024"
+    assert len(answer.table.rows) == 7  # type: ignore[union-attr]
+    assert "Since fiscal 2025" in apple.chips
+    assert not any("couldn't read" in banner or "hold only" in banner for banner in answer.banners)
+
+    microsoft = replay(runtime, "Microsoft revenue since FY2025")
+    (answer,) = microsoft.answers
+    assert column_of(answer, "Quarter ended")[-1] == "Sep 30, 2024"
+    assert len(answer.table.rows) == 8  # type: ignore[union-attr]
+    assert "Since fiscal 2025" in microsoft.chips
+
+    # The calendar year reads as before.
+    calendar = replay(runtime, "Apple revenue since 2025")
+    assert column_of(calendar.answers[0], "Quarter ended")[-1] == "Mar 29, 2025"
+    assert "Since 2025" in calendar.chips
+
+
 def test_since_a_year_counts_the_quarters_filed_not_the_calendar(runtime) -> None:  # type: ignore[no-untyped-def]
     replayed = replay(runtime, "Apple revenue since 2024")
     (answer,) = replayed.answers
