@@ -12,4 +12,17 @@ The group comes from the question's words (ADR 0010: one reading), so combine ti
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped 7 October 2026. `request_from_proposal` (graph/turn_graph.py): a rank or
+rank_and_lookup proposal whose group the snapshot does not know (the ranking's
+`knows_industry`), for words that name no group (`ranked_group(message)` is
+`WHOLE_MARKET`), ranks every company. `which companies are worth the most?` with a fake
+planner proposing `industry='all US public companies'` or `'companies'` ranks every company
+by market value (`'companies'` already did); `top 10 companies in AI` with a planner
+proposing `industry='AI'` is still refused; `top 5 banks by revenue` with `'Banks -
+Diversified'` is unchanged. Tests: four in `tests/test_held_out_5_findings.py`.
+compare_answers: 0 of 375 conversations differ (the recorded demo uses the rules planner,
+which names no invented group; the three questions are already compared).

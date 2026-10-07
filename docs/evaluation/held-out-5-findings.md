@@ -177,3 +177,9 @@ as the rules planner does (`ranked_group`), so a group the snapshot does not kno
 ("top 10 companies in AI", "top 10 AI companies by revenue") is refused as an
 unknown industry whichever planner proposed the ranking; only words that name no
 group rank every company (held-out-5-findings ticket 11).
+Re-checked with the real LLM planner (7 October 2026), `h5_rk_worth` was proposed
+with a group, `industry='all US public companies'`, and refused as an unknown
+industry. A group the snapshot does not know, for words that name none, is the
+planner's paraphrase of every company, so it ranks every company; one the words
+do name ("top 10 companies in AI") is still refused, and a known group ("Banks -
+Diversified") is used (held-out-5-findings ticket 12).

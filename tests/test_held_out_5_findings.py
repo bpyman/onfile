@@ -654,3 +654,36 @@ def test_a_ranking_that_names_no_group_ranks_every_company_whichever_planner(
 
         assert turn.result.model_dump()["refusal"] is None
         assert turn.result.tool_traces[0].args["industry"] == "companies"
+
+
+@pytest.mark.parametrize("group", ["all US public companies", "companies"])
+def test_a_planners_group_for_words_that_name_none_ranks_every_company(
+    group: str, runtime: Runtime
+) -> None:
+    """A group the snapshot does not know, from words that name no group, is the
+    planner's paraphrase of every company (ticket 12)."""
+    planner = _ProposedPlan(WorkflowPlan(intent=Intent.RANK, industry=group))
+
+    turn = _turn("which companies are worth the most?", planner, runtime)
+
+    assert turn.result.model_dump()["refusal"] is None
+    assert turn.result.tool_traces[0].args["industry"] == "companies"
+
+
+def test_a_planners_unknown_group_the_words_name_is_still_refused(runtime: Runtime) -> None:
+    planner = _ProposedPlan(WorkflowPlan(intent=Intent.RANK, industry="AI"))
+
+    turn = _turn("top 10 companies in AI", planner, runtime)
+
+    assert turn.result.model_dump()["refusal"]["code"] == "unknown_industry"
+
+
+def test_a_planners_known_group_is_used(runtime: Runtime) -> None:
+    planner = _ProposedPlan(WorkflowPlan(intent=Intent.RANK, industry="Banks - Diversified"))
+    rules = _turn("top 5 banks by revenue", runtime.completer, runtime)
+
+    turn = _turn("top 5 banks by revenue", planner, runtime)
+
+    assert turn.result.model_dump()["refusal"] is None
+    assert turn.result.tool_traces[0].args["industry"] == "Banks - Diversified"
+    assert rules.result.model_dump()["refusal"] is None

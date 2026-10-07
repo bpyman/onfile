@@ -28,6 +28,7 @@ in ``clarify``, which decides whether it answers the held question.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Literal
 
@@ -89,6 +90,7 @@ from financial_analyst_agent.turn import (
     explain_answer,
     exploratory_research_answer,
 )
+from financial_analyst_agent.universe import WHOLE_MARKET
 
 Node = Literal[
     "interpret",
@@ -168,6 +170,12 @@ def _figure_asked(message: str, deps: TurnDeps, *, change: bool = False) -> Work
     return WorkflowPlan(intent=Intent.LOOKUP, metric=resolved.metric)
 
 
+def _known_group(industry: str, deps: TurnDeps) -> bool:
+    """Whether the snapshot ranks ``industry``; a ranking that cannot say knows it."""
+    knows: Callable[[str], bool] | None = getattr(deps.runtime.ranking, "knows_industry", None)
+    return knows is None or knows(industry)
+
+
 def request_from_proposal(
     proposal: WorkflowPlan | SpecPatch, message: str, deps: TurnDeps
 ) -> AnalystRequest:
@@ -204,6 +212,16 @@ def request_from_proposal(
         # planner leaves it out, so one the snapshot does not know is refused;
         # only words that name no group rank every company.
         proposal = proposal.model_copy(update={"industry": ranked_group(message)})
+    elif (
+        isinstance(proposal, WorkflowPlan)
+        and proposal.intent in (Intent.RANK, Intent.RANK_AND_LOOKUP)
+        and not _known_group(proposal.industry or "", deps)
+        and ranked_group(message) == WHOLE_MARKET
+    ):
+        # "which companies are worth the most?" proposed as "all US public
+        # companies": a group the snapshot does not know, for words that name
+        # none, is the planner's paraphrase of every company, not the analyst's.
+        proposal = proposal.model_copy(update={"industry": WHOLE_MARKET})
     if is_structured_proposal(proposal):
         # A planner's window stands only where the words ask about time.
         window = read_window(message)

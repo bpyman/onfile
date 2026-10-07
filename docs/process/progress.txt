@@ -2587,3 +2587,23 @@ Blockers / next:
 - None. All 2,324 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 375
   conversations differ from HEAD`. Every ticket in held-out-5-findings is resolved.
 - Phrase coverage and the README's count are still not regenerated (from ticket 10).
+
+2026-10-07
+
+Task completed: `docs/process/tickets/held-out-5-findings/issues/12-a-planners-invented-group.md`
+
+Key decisions:
+- `request_from_proposal` (graph/turn_graph.py): a ranking proposal whose group the
+  snapshot does not know, for words that name no group (`ranked_group` is
+  `WHOLE_MARKET`), gets `WHOLE_MARKET`. Known groups and unknown groups the words name
+  are left as proposed. A ranking port with no `knows_industry` leaves the group alone.
+
+Files changed:
+- `src/financial_analyst_agent/graph/turn_graph.py`
+- `tests/test_held_out_5_findings.py` (+4 tests)
+- `README.md`, `docs/evaluation/held-out-5-findings.md`, the ticket,
+  `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,328 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 375
+  conversations differ from HEAD`. Every ticket in held-out-5-findings is resolved.
