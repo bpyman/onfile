@@ -373,6 +373,23 @@ def test_a_comparison_with_one_company_left_on_screen_is_a_lookup(runtime: Runti
     assert two.intent is Intent.COMPARE
 
 
+def test_a_fund_beside_a_company_is_left_out_with_a_note(runtime: Runtime) -> None:
+    # README: a fund beside a company is left out with a note. The fund has no
+    # row, the note says it is a fund, and a fund asked alone is still refused.
+    answer = run_turn("SPY and Apple revenue", runtime)
+    three = run_turn("SPY, Apple and Microsoft revenue", runtime)
+    alone = run_turn("SPY revenue", runtime)
+
+    assert answer.intent is Intent.LOOKUP
+    assert [row.ticker for row in answer.table_rows] == ["AAPL"]
+    assert answer.banners == [
+        "SPY (SPDR S&P 500 ETF Trust) is a fund, not an operating company, so it is left out."
+    ]
+    assert three.intent is Intent.COMPARE
+    assert [row.ticker for row in three.table_rows] == ["AAPL", "MSFT"]
+    assert alone.renderer is RendererKind.REFUSE
+
+
 def _table_shown(answer: Presentation) -> tuple[list[str], list[list[str]]]:
     assert answer.table is not None, answer.message
     return answer.table.headers, answer.table.rows

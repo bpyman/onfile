@@ -2127,3 +2127,47 @@ Blockers / next:
 - None. All 2,165 Python tests pass; ruff and mypy pass; compare_answers reports `2 of 264 conversations differ from HEAD`,
   the two conversations added for this ticket, each 5 quarters with year-over-year change before
   and 4 now. Tickets 01-07 in probe-round-3-gaps are all resolved.
+
+## 2026-10-07 — probe-round-3-gaps 08 A fund beside a company is left out, with a note saying so
+
+Task completed: `docs/process/tickets/probe-round-3-gaps/issues/08-a-fund-beside-a-company-is-left-out.md`
+
+Key decisions:
+- The fix is in the shared resolution layer both planners pass through (ADR 0010, 0011):
+  `drop_funds` in `graph/spec_turn.py` runs after `resolve_spec`, beside `drop_annual_filers`.
+  A named company is a fund when its CIK is on the ineligible list or its SEC title names an
+  instrument (`sec_identity_is_operating`, the live runtime), or, with no CIK (the recorded
+  runtime cannot identify SPY), when its ticker is on the ineligible list
+  (`INELIGIBLE_ISSUER_NAMES` in `universe.py`, ticker → SEC name). A fund asked alone is kept,
+  so `SPY revenue` is refused as before ("Company not found" recorded, "not an operating
+  company" live).
+- The dropped (ticker, SEC name) pairs ride on `CompiledAnalysis.funds`; `annotate_analysis`
+  puts `fund_note` first: "SPY (SPDR S&P 500 ETF Trust) is a fund, not an operating company,
+  so it is left out." Two or more read "are funds, not operating companies, so they are left
+  out." SEC's shouted name is set in prose by `_name_in_prose`: a word of up to three letters,
+  or four with no vowel (ETF, SPDR), is an acronym and keeps its case.
+- The rules planner's `_ticker_notes` no longer says "Showing SPDR S&P 500 ETF TRUST for 'SPY'"
+  for an ineligible ticker, since the turn says the fund is left out. The LLM planner never
+  produced that note.
+- Once the fund is dropped, Apple alone is a lookup by `_one_company_left` (ticket 03) and is
+  shown as a lookup is: a fact card rather than a two-row table. A later turn that keeps Apple
+  (`last 4 quarters`) does not repeat the note; `remove SPY` is harmless.
+- ADR 0002's rule ("a named company that fails the rule is a typed miss; other compare rows
+  stay") now says that is for a fund asked alone; beside an operating company it is left out
+  with a note. CONTEXT.md's "Ineligible issuer" entry says the same.
+
+Files changed:
+- `src/financial_analyst_agent/graph/spec_turn.py` (+`drop_funds`), `graph/state.py`
+  (+`funds`), `answer_notes.py` (+`fund_note`, `_name_in_prose`), `universe.py`
+  (+`INELIGIBLE_ISSUER_NAMES`), `rules_planner.py`
+- `tests/unit/test_filers_rankings_and_narrowing.py` (+4 tests),
+  `tests/test_recorded_regressions.py` (+1 recorded-runtime test),
+  `tests/unit/test_planner_rules.py` (+1)
+- `docs/adr/0002-lookup-membership.md`, `CONTEXT.md`, `scripts/compare_answers.py`
+  (+2 conversations), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,170 Python tests pass; ruff and mypy pass; compare_answers reports `3 of 266
+  conversations differ from HEAD`, all intended: `SPY and Apple revenue` (two rows and the
+  "Showing" note before; Apple's lookup with the fund note now) and the two conversations
+  added for this ticket. Ticket 09 in probe-round-3-gaps remains.

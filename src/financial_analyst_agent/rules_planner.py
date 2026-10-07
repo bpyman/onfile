@@ -52,6 +52,7 @@ from financial_analyst_agent.services.metric_catalog import (
 )
 from financial_analyst_agent.universe import (
     DEFAULT_SNAPSHOT_PATH,
+    INELIGIBLE_ISSUER_NAMES,
     former_names,
     ineligible_issuers,
     load_universe_snapshot,
@@ -841,7 +842,8 @@ def _ticker_notes(index: IssuerIndex, mentions: list[CompanyMention]) -> list[st
     )
     for mention in mentions:
         name = short_name(index.display_name(mention.query)) or mention.query
-        if mention.bare_ticker and named:
+        if mention.bare_ticker and named and mention.query not in INELIGIBLE_ISSUER_NAMES:
+            # A fund's ticker ("SPY") is not shown: the turn says it is left out.
             notes.append(f"Showing {name} for “{mention.typed}”.")
         if mention.also_typed:
             typed = " and ".join(

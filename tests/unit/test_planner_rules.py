@@ -71,6 +71,14 @@ def test_misspelt_company_is_corrected_and_said() -> None:
     assert plan.notes == ("Showing Microsoft for “microsft”.",)
 
 
+def test_a_fund_ticker_beside_a_name_is_not_said_to_be_shown() -> None:
+    # The turn leaves the fund out with its own note (ADR 0002); "Showing SPDR
+    # S&P 500 ETF TRUST for SPY" would read as if it were on screen.
+    plan = _live().complete("SPY and Apple revenue")
+
+    assert plan.notes == ()
+
+
 @pytest.mark.parametrize(
     "question",
     [

@@ -97,6 +97,33 @@ def annual_filer_note(names: list[str]) -> str:
     )
 
 
+def fund_note(funds: list[tuple[str, str]]) -> str:
+    """Say a fund named beside a company is left out: "SPY (SPDR S&P 500 ETF Trust) is a fund"."""
+    listed = joined([f"{ticker} ({_name_in_prose(name)})" for ticker, name in funds])
+    if len(funds) == 1:
+        return f"{listed} is a fund, not an operating company, so it is left out."
+    return f"{listed} are funds, not operating companies, so they are left out."
+
+
+def _name_in_prose(name: str) -> str:
+    """ "SPDR S&P 500 ETF TRUST" → "SPDR S&P 500 ETF Trust"; a mixed-case name as it is.
+
+    SEC shouts a name. A word of up to three letters (ETF, BDC), or of four with
+    no vowel (SPDR), is an acronym and keeps its case; every other word is
+    capitalised.
+    """
+    words = name.split()
+    if not all(word.isupper() for word in words if word.isalpha()):
+        return name
+
+    def acronym(word: str) -> bool:
+        return len(word) <= 3 or (len(word) == 4 and not set(word) & set("AEIOU"))
+
+    return " ".join(
+        word if not word.isalpha() or acronym(word) else word.capitalize() for word in words
+    )
+
+
 def metric_reading_notes(message: str, spec: AnalysisSpec) -> list[str]:
     """Say which metric a loose phrase was read as: "profit margin" is net margin."""
     if "net_margin" in spec.metrics and _BARE_PROFIT_MARGIN.search(message):

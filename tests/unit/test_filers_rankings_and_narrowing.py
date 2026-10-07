@@ -11,6 +11,7 @@ from typing import Any
 from financial_analyst_agent.answer_notes import (
     FISCAL_Q4_GAP_BANNER,
     annual_filer_note,
+    fund_note,
     period_notes,
 )
 from financial_analyst_agent.contracts import TableRow
@@ -22,7 +23,11 @@ from financial_analyst_agent.graph.analysis_spec import (
     SpecPatch,
     compile_tasks,
 )
-from financial_analyst_agent.graph.spec_turn import drop_annual_filers, materialize_period_dates
+from financial_analyst_agent.graph.spec_turn import (
+    drop_annual_filers,
+    drop_funds,
+    materialize_period_dates,
+)
 from financial_analyst_agent.presentation import long_quarter_banner
 from financial_analyst_agent.ranking import SnapshotRanking
 from financial_analyst_agent.request_wording import read_window, refine_patch_from_message
@@ -118,6 +123,44 @@ def test_annual_filers_are_left_out_with_a_reason() -> None:
     assert annual_filer_note(dropped) == (
         "Novo Nordisk files annual reports with the SEC (Form 20-F or 40-F) rather than "
         "quarterly 10-Qs, so there are no quarterly figures to show."
+    )
+
+
+def test_a_fund_beside_a_company_is_left_out_with_a_reason() -> None:
+    # README: a fund beside a company is left out with a note. SPY is on the
+    # ineligible list (ADR 0001); the recorded runtime knows it by ticker only.
+    spy = ResolvedCompany(cik="", name="SPY", ticker="", query="SPY")
+    spec = _window(spy, _company("AAPL", "Apple Inc."))
+
+    kept, dropped = drop_funds(spec)
+
+    assert [company.query for company in kept.companies] == ["AAPL"]
+    assert dropped == [("SPY", "SPDR S&P 500 ETF TRUST")]
+    assert fund_note(dropped) == (
+        "SPY (SPDR S&P 500 ETF Trust) is a fund, not an operating company, so it is left out."
+    )
+
+
+def test_a_fund_sec_identified_is_left_out_by_its_cik() -> None:
+    spy = ResolvedCompany(
+        cik="0000884394", name="SPDR S&P 500 ETF TRUST", ticker="SPY", query="SPY"
+    )
+    kept, dropped = drop_funds(_window(_company("AAPL", "Apple Inc."), spy))
+
+    assert [company.query for company in kept.companies] == ["AAPL"]
+    assert dropped == [("SPY", "SPDR S&P 500 ETF TRUST")]
+
+
+def test_a_fund_asked_alone_is_kept_for_the_refusal() -> None:
+    spec = _window(ResolvedCompany(cik="", name="SPY", ticker="", query="SPY"))
+
+    assert drop_funds(spec) == (spec, [])
+
+
+def test_two_funds_are_left_out_together() -> None:
+    assert fund_note([("SPY", "SPDR S&P 500 ETF TRUST"), ("ARCC", "ARES CAPITAL CORP")]) == (
+        "SPY (SPDR S&P 500 ETF Trust) and ARCC (Ares Capital Corp) are funds, not operating "
+        "companies, so they are left out."
     )
 
 

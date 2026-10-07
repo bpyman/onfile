@@ -21,7 +21,7 @@ The ordinary equity listing of an operating company, not a preferred, unit, warr
 _Avoid_: security, ticker, listing (unqualified)
 
 **Ineligible issuer**:
-An operating-company lookalike identified by CIK after security type and industry are not enough to tell it apart. It is not a snapshot member and cannot be looked up or compared.
+An operating-company lookalike identified by CIK after security type and industry are not enough to tell it apart. It is not a snapshot member and cannot be looked up or compared: asked alone it is refused, and named beside an operating company it is left out with a note saying it is a fund.
 _Avoid_: blocklist entry, banned ticker
 
 **Quarterly fact**:

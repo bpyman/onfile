@@ -115,6 +115,13 @@ def ineligible_issuers(path: Path = _INELIGIBLE_ISSUERS_PATH) -> tuple[tuple[str
     )
 
 
+# The SEC name of each ineligible issuer by ticker, for a note that names a fund
+# the recorded runtime cannot identify ("SPY").
+INELIGIBLE_ISSUER_NAMES: dict[str, str] = {
+    ticker.upper(): name for ticker, name in ineligible_issuers()
+}
+
+
 class UniverseCompany(BaseModel):
     cik: str = Field(min_length=10, max_length=10, pattern=r"^\d{10}$")
     name: str

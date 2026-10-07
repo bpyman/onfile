@@ -65,6 +65,8 @@ EXTRA = [
     ["Acme Widgets revenue"],
     ["Apple and Acme Widgets revenue"],
     ["SPY and Apple revenue"],
+    ["SPY, Apple and Microsoft revenue"],
+    ["Apple revenue", "add SPY"],
     ["Apple cash"],
     ["Apple revenue", "what about Microsoft", "and Tesla"],
     ["Top 5 banks by net income", "add Apple"],

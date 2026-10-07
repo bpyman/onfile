@@ -24,6 +24,7 @@ from financial_analyst_agent.answer_notes import (
     already_present_notes,
     annual_filer_note,
     capped_ranking_notes,
+    fund_note,
     metric_reading_notes,
     period_notes,
     short_ranking_notes,
@@ -116,6 +117,10 @@ from financial_analyst_agent.turn import (
     lookup_task,
     rank_and_lookup_task,
     rank_task,
+)
+from financial_analyst_agent.universe import (
+    INELIGIBLE_ISSUER_NAMES,
+    sec_identity_is_operating,
 )
 
 ProgressCallback = Callable[[int, int], None]
@@ -400,6 +405,33 @@ def drop_annual_filers(spec: AnalysisSpec, runtime: Runtime) -> tuple[AnalysisSp
         else:
             dropped.append(short_name(company.name if company.cik else check[1]) or company.query)
     if not dropped:
+        return spec, []
+    return spec.model_copy(update={"companies": tuple(kept)}), dropped
+
+
+def drop_funds(spec: AnalysisSpec) -> tuple[AnalysisSpec, list[tuple[str, str]]]:
+    """Leave out a fund named beside a company, as (ticker, SEC name).
+
+    "SPY and Apple revenue" is Apple's revenue with a note: a fund, BDC or other
+    listing the snapshot marks as not an operating company (ADR 0001's ineligible
+    issuers, or an SEC title naming an instrument) has no 10-Q figures. The
+    recorded runtime knows SPY by ticker alone; the live one by its CIK. A fund
+    asked on its own is kept, so the lookup refuses it as it did.
+    """
+    kept: list[ResolvedCompany] = []
+    dropped: list[tuple[str, str]] = []
+    for company in spec.companies:
+        ticker = (company.ticker or company.query).upper()
+        listed = INELIGIBLE_ISSUER_NAMES.get(ticker)
+        if company.cik:
+            fund = not sec_identity_is_operating(company.cik, company.name)
+        else:
+            fund = listed is not None
+        if fund:
+            dropped.append((ticker, company.name if company.cik else listed or company.name))
+        else:
+            kept.append(company)
+    if not dropped or not kept:
         return spec, []
     return spec.model_copy(update={"companies": tuple(kept)}), dropped
 
@@ -1057,6 +1089,7 @@ def resolve_request(
     if request.comparison is not None:
         spec = _with_comparison(spec, request.comparison)
 
+    spec, funds = drop_funds(spec)
     spec, annual_filers = drop_annual_filers(spec, runtime)
     if annual_filers and not spec.companies and spec.constituents is None:
         return answered(
@@ -1137,6 +1170,7 @@ def resolve_request(
             prior_spec=current_spec,
             notes=request.notes,
             annual_filers=tuple(annual_filers),
+            funds=tuple(funds),
             unrecorded=request.unrecorded,
         ),
     )
@@ -1250,6 +1284,7 @@ def annotate_analysis(
     patch = compiled.patch
     # Planner notes first: a corrected company name explains the whole answer.
     notes = [
+        *([fund_note(list(compiled.funds))] if compiled.funds else []),
         *([annual_filer_note(list(compiled.annual_filers))] if compiled.annual_filers else []),
         *already_present_notes(patch, compiled.prior_spec, spec),
         *metric_reading_notes(compiled.wording, spec),
