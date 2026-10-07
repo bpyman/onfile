@@ -1857,3 +1857,35 @@ Files changed:
 Blockers / next:
 - None. All 2,074 Python tests pass; ruff and mypy pass; compare_answers reports
   `0 of 247 conversations differ from HEAD`. review-69-90 is complete: no tickets remain.
+
+## 2026-10-07 — probe-round-3-gaps 01 "The last year and a half" is 6 quarters
+
+Task completed: `docs/process/tickets/probe-round-3-gaps/issues/01-a-year-and-a-half.md`
+
+Key decisions:
+- The window grammar (`period_window.py`) gains two half-year spans, each tried with a recency
+  word, a preposition, or bare: count-first (`two and a half years`, `2 and a half years`,
+  `2.5 years`) and unit-first (`a year and a half`, `the last year and a half`). A match has
+  `years` (left out or `a` for one) and `half`; the reading is whole years times 4 plus 2. The
+  half patterns come first so a tie on where a match starts reads the half.
+- Digits after a decimal point are never a count of their own (`_DIGITS` refuses a digit after
+  `.` or another digit), so `2.5 years` can no longer read as five years, and `1.25 years` is left
+  unread rather than read by its last digits. `a year and a half ago` names a point in time.
+- The "last year: four quarters shown one by one" banner is skipped when the window counted its
+  own quarters, so `the last year and a half` does not also claim to be the last year.
+- README window row and ADR 0010's grammar paragraph say the half-years rule.
+
+Files changed:
+- `src/financial_analyst_agent/period_window.py`, `src/financial_analyst_agent/answer_notes.py`,
+  `src/financial_analyst_agent/phrase_coverage.py` (+6 window phrases)
+- `tests/unit/test_period_window.py` (+7 window forms, +2 no-window forms),
+  `tests/unit/test_window_copy.py` (+1 test)
+- `README.md`, `docs/adr/0010-one-reading-of-names-and-windows.md`, `scripts/compare_answers.py`
+  (+`Danaher net income the last year and a half`, +`Apple revenue over the past 2.5 years`), the
+  ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,089 Python tests pass; ruff and mypy pass; compare_answers reports
+  `2 of 249 conversations differ from HEAD`, both the new cases: Danaher shows 6 quarters and loses
+  the last-year banner (4 before), Apple asks 10 quarters (20 before). Ticket 02 in
+  probe-round-3-gaps remains.

@@ -43,6 +43,14 @@ from financial_analyst_agent.rules_planner import issuer_index
         ("a couple of years", 8),
         ("6 quarters", 6),
         ("six quarters", 6),
+        # A whole number of years and a half: that many years and two quarters more.
+        ("the last year and a half", 6),
+        ("a year and a half", 6),
+        ("one and a half years", 6),
+        ("two and a half years", 10),
+        ("1.5 years", 6),
+        ("the past 2.5 years", 10),
+        ("over the last 2 and a half years", 10),
     ],
 )
 def test_a_window_reads_as_quarters(wording: str, quarters: int) -> None:
@@ -60,6 +68,9 @@ def test_a_window_reads_as_quarters(wording: str, quarters: int) -> None:
         "the past year",
         "three months ended June 2026",
         "2 quarters ago",
+        "a year and a half ago",
+        # A decimal that is not a half is left unread, not read by its last digit.
+        "1.25 years",
         "top 5 banks",
         "Q3 2025",
         "fiscal 2025",

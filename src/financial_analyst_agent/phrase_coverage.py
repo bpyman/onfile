@@ -258,6 +258,13 @@ WINDOW_PHRASES: tuple[tuple[str, str, int | None], ...] = (
     ("over the past 12 months", "last_n_quarters", 4),
     ("over the last 18 months", "last_n_quarters", 6),
     ("over the last six months", "last_n_quarters", 2),
+    # A whole number of years and a half: that many years and two quarters more.
+    ("over the last year and a half", "last_n_quarters", 6),
+    ("a year and a half", "last_n_quarters", 6),
+    ("one and a half years", "last_n_quarters", 6),
+    ("two and a half years", "last_n_quarters", 10),
+    ("1.5 years", "last_n_quarters", 6),
+    ("over the past 2.5 years", "last_n_quarters", 10),
     ("for the last few quarters", "last_n_quarters", 4),
     ("over several quarters", "last_n_quarters", 4),
     ("over the last couple of quarters", "last_n_quarters", 2),

@@ -215,6 +215,8 @@ def period_notes(
         notes.append(TRAILING_YEAR_BANNER)
     elif (
         spec.periods.kind == "last_n_quarters"
+        # "the last year and a half" counts its own quarters; "last year" is four.
+        and not window.counted_window
         and YEAR_OF_QUARTERS.search(message)
         and not YOY.search(message)
     ):

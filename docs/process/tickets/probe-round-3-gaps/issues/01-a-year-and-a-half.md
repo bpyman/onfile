@@ -6,4 +6,8 @@
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped 7 October 2026. The window grammar in `period_window.py` reads a whole number of years and a half as that many years and two quarters more, with the count before the unit (`two and a half years`, `2 and a half years`, `2.5 years`, `one and a half years`) or after it (`a year and a half`, `the last year and a half`), after a recency word, a preposition, or bare. Digits after a decimal point are not a count of their own, so `2.5 years` no longer reads as five years and `1.25 years` is left unread; `a year and a half ago` names a point in time, not a window. The "last year: four quarters" banner is skipped when the window counted its own quarters. Phrase coverage holds the six forms with their counts (6, 6, 6, 10, 6, 10); the README window row and ADR 0010 say the rule. `compare_answers.py` reports 2 of 249 conversations differ, both new: `Danaher net income the last year and a half` shows 6 quarters (4 before, with the last-year banner), and `Apple revenue over the past 2.5 years` asks 10 quarters (20 before).

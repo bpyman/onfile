@@ -6,7 +6,11 @@ from datetime import date
 from decimal import Decimal
 from inspect import signature
 
-from financial_analyst_agent.answer_notes import FISCAL_Q4_GAP_BANNER, period_notes
+from financial_analyst_agent.answer_notes import (
+    FISCAL_Q4_GAP_BANNER,
+    YEAR_OF_QUARTERS_BANNER,
+    period_notes,
+)
 from financial_analyst_agent.contracts import (
     ComponentProvenance,
     Intent,
@@ -155,6 +159,30 @@ def test_period_notes_flag_named_periods_and_fiscal_q4_gaps() -> None:
     message = "What was Microsoft revenue for the quarter ended April 2026?"
     named = period_notes(message, AnalysisSpec(), window=read_window(message))
     assert named and "April 2026" in named[0] and "latest quarter" in named[0]
+
+
+def test_a_year_and_a_half_is_six_quarters_and_not_the_last_year() -> None:
+    """"The last year and a half" is a counted window; the last-year banner is for four."""
+    ends = (
+        date(2026, 6, 30),
+        date(2026, 3, 31),
+        date(2025, 12, 31),
+        date(2025, 9, 30),
+        date(2025, 6, 30),
+        date(2025, 3, 31),
+    )
+    six = AnalysisSpec(
+        periods=PeriodSelection(kind="last_n_quarters", count=6, report_dates=ends)
+    )
+    four = AnalysisSpec(
+        periods=PeriodSelection(kind="last_n_quarters", count=4, report_dates=ends[:4])
+    )
+
+    message = "Danaher net income the last year and a half"
+    assert read_window(message).asked_quarters == 6
+    assert period_notes(message, six, window=read_window(message)) == []
+    message = "Danaher net income over the past year"
+    assert period_notes(message, four, window=read_window(message)) == [YEAR_OF_QUARTERS_BANNER]
 
 
 def test_request_wording_records_every_window_reading_used_by_notes() -> None:
