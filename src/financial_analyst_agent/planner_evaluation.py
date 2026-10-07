@@ -13,7 +13,8 @@ session, and nobody changing a planner reads them before they are run.
 Each case is scored twice. As labelled: the labels as committed, the score
 to compare across sets. After adjudication: a case file's ``adjudications``
 replace label fields that disagree with a product rule committed before the
-cases were written, each with that rule and why. Every case run's observation
+cases were written, each with that rule, the file and commit that hold it, and
+why (``check_rule_history`` asks git that it does). Every case run's observation
 is kept in ``planner-comparison.json``, so ``--from-json`` scores a paid run
 again after an adjudication without running a planner.
 
@@ -36,7 +37,9 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import re
 import statistics
+import subprocess
 import time
 import uuid
 from collections.abc import Callable, Sequence
@@ -108,9 +111,16 @@ class Adjudication:
 
     case_id: str
     expect: dict[str, Any]
-    # The product rule, committed before the cases were written, that decides it.
+    # The product rule that decides it, quoted as ``rule_file`` has it at ``rule_commit``.
     rule: str
     why: str
+    rule_file: str
+    rule_commit: str
+    # The commit that added the case: ``rule_commit`` must come before it.
+    cases_commit: str
+
+
+_COMMIT = re.compile(r"[0-9a-f]{40}")
 
 
 @dataclass(frozen=True)
@@ -209,19 +219,91 @@ def load_cases(*paths: Path) -> list[PlannerCase]:
 
 
 def load_adjudications(files: Sequence[dict[str, Any]]) -> list[Adjudication]:
-    """Every case file's ``adjudications``, each naming its rule and why."""
-    found = [
-        Adjudication(
-            case_id=raw["id"], expect=dict(raw["expect"]), rule=raw["rule"], why=raw["why"]
-        )
-        for data in files
-        for raw in data.get("adjudications", ())
-    ]
+    """Every case file's ``adjudications``, each naming its rule, where it is committed and why.
+
+    A case file with adjudications names the full commit that added its cases
+    (``cases_commit``); each adjudication names the file and the full commit that
+    hold its rule (``rule_file``, ``rule_commit``). ``check_rule_history`` checks
+    against git that the rule came first and is quoted as committed.
+    """
+    found: list[Adjudication] = []
+    for data in files:
+        entries = data.get("adjudications", ())
+        if not entries:
+            continue
+        cases_commit = data.get("cases_commit")
+        if not isinstance(cases_commit, str) or not _COMMIT.fullmatch(cases_commit):
+            raise ValueError(
+                "a case file with adjudications names the full commit that added its cases "
+                "(cases_commit)"
+            )
+        for raw in entries:
+            rule_file = raw.get("rule_file")
+            rule_commit = raw.get("rule_commit")
+            if not isinstance(rule_file, str) or not rule_file.strip():
+                raise ValueError("an adjudication names the file that holds its rule (rule_file)")
+            if not isinstance(rule_commit, str) or not _COMMIT.fullmatch(rule_commit):
+                raise ValueError(
+                    "an adjudication names the full commit that holds its rule (rule_commit)"
+                )
+            found.append(
+                Adjudication(
+                    case_id=raw["id"],
+                    expect=dict(raw["expect"]),
+                    rule=raw["rule"],
+                    why=raw["why"],
+                    rule_file=rule_file,
+                    rule_commit=rule_commit,
+                    cases_commit=cases_commit,
+                )
+            )
     if any(not (item.expect and item.rule.strip() and item.why.strip()) for item in found):
         raise ValueError("an adjudication needs the fields it replaces, a rule and why")
     if len({item.case_id for item in found}) != len(found):
         raise ValueError("a case is adjudicated once")
     return found
+
+
+def check_rule_history(adjudications: Sequence[Adjudication], repo: Path) -> list[str]:
+    """The adjudications whose rule is not committed before their cases, or not as quoted.
+
+    Asks the git history at ``repo``: each ``rule_commit`` must be an ancestor of
+    its ``cases_commit``, and ``rule`` must appear verbatim in ``rule_file`` at
+    ``rule_commit``. Returns one line a problem; empty when every rule predates
+    its cases. A shallow clone may lack the commits, so callers check for one first.
+    """
+    problems: list[str] = []
+    for item in adjudications:
+        if item.rule_commit == item.cases_commit:
+            problems.append(
+                f"{item.case_id}: rule commit {item.rule_commit} is the cases commit, "
+                "not before it"
+            )
+        else:
+            ancestry = _git(
+                repo, "merge-base", "--is-ancestor", item.rule_commit, item.cases_commit
+            )
+            if ancestry.returncode != 0:
+                detail = ancestry.stderr.decode("utf-8", "replace").strip()
+                problems.append(
+                    f"{item.case_id}: rule commit {item.rule_commit} is not before cases "
+                    f"commit {item.cases_commit}" + (f" ({detail})" if detail else "")
+                )
+        shown = _git(repo, "show", f"{item.rule_commit}:{item.rule_file}")
+        if shown.returncode != 0:
+            problems.append(
+                f"{item.case_id}: {item.rule_file} is not at commit {item.rule_commit}"
+            )
+        elif item.rule not in shown.stdout.decode("utf-8", "replace"):
+            problems.append(
+                f"{item.case_id}: the rule is not quoted as {item.rule_file} has it at "
+                f"commit {item.rule_commit}"
+            )
+    return problems
+
+
+def _git(repo: Path, *args: str) -> subprocess.CompletedProcess[bytes]:
+    return subprocess.run(["git", "-C", str(repo), *args], capture_output=True, check=False)
 
 
 def observe(turn: ConversationTurn) -> Observation:
@@ -671,6 +753,8 @@ def adjudication_rows(cases: Sequence[PlannerCase]) -> list[dict[str, Any]]:
             "was": {name: case.expect.get(name) for name in item.expect},
             "now": item.expect,
             "rule": item.rule,
+            "rule_file": item.rule_file,
+            "rule_commit": item.rule_commit,
             "why": item.why,
         }
         for case in cases
@@ -756,8 +840,12 @@ PROTOCOL = (
     "disagrees with it, because a rule was decided after the run, or because every planner "
     "failed it: a shared defect is a failure. Adjudications live in the case file's "
     "`adjudications`, beside the label they replace, and a report lists each one under "
-    "Adjudicated labels. Each case run's observation is saved, so an adjudication "
-    "made after a paid run is scored with `--from-json` without running a planner again.",
+    "Adjudicated labels. Each adjudication names the file and the full commit that hold its "
+    "rule, and a case file with adjudications names the commit that added its cases; a unit "
+    "test checks, in a full clone, that the rule's commit comes before the cases' and that "
+    "the rule is quoted as that commit has it. Each case run's observation is saved, so an "
+    "adjudication made after a paid run is scored with `--from-json` without running a "
+    "planner again.",
     "",
     "Two limits. The cases were written by a Claude model, and the rules planner was "
     "written with Claude-based coding agents, so shared habits of phrasing may favour the "
@@ -927,7 +1015,8 @@ def render_markdown(report: dict[str, Any]) -> str:
             lines.append(
                 f"| `{row['id']}` | {split_labels[row['split']]} | "
                 f"`{json.dumps(row['was'])}` | `{json.dumps(row['now'])}` | "
-                f"{row['rule']} | {row['why']} |"
+                f"`{row['rule_file']}` at `{row['rule_commit'][:7]}`: {row['rule']} | "
+                f"{row['why']} |"
             )
         lines.append("")
     lines.extend(PROTOCOL)

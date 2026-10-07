@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+import json
+import shutil
+import subprocess
 import uuid
+from dataclasses import replace
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
@@ -11,6 +16,7 @@ import pytest
 from financial_analyst_agent.conversation import run_conversation_turn
 from financial_analyst_agent.planner import OpenAIStructuredCompleter, Plan
 from financial_analyst_agent.planner_evaluation import (
+    CASE_PATHS,
     Adjudication,
     BudgetExceeded,
     CaseRun,
@@ -20,6 +26,7 @@ from financial_analyst_agent.planner_evaluation import (
     PlannerCase,
     Prices,
     Usage,
+    check_rule_history,
     estimate,
     load_adjudications,
     load_cases,
@@ -259,10 +266,18 @@ _GROWTH = PlannerCase(
     ("How fast is Nvidia's revenue growing?",),
     {"tickers": ["NVDA"], "periods": {"kind": "latest_quarter"}},
 )
+_RULE_COMMIT = "a" * 40
+_CASES_COMMIT = "b" * 40
 _GROWTH_ADJUDICATED = PlannerCase(
     *(_GROWTH.case_id, _GROWTH.split, _GROWTH.category, _GROWTH.turns, _GROWTH.expect),
     adjudication=Adjudication(
-        "growth", {"periods": {"kind": "last_n_quarters"}}, "README: charts growth", "a chart"
+        case_id="growth",
+        expect={"periods": {"kind": "last_n_quarters"}},
+        rule="charts the growth rates",
+        why="a chart",
+        rule_file="README.md",
+        rule_commit=_RULE_COMMIT,
+        cases_commit=_CASES_COMMIT,
     ),
 )
 _FIVE_QUARTERS = _seen(tickers=frozenset({"NVDA"}), periods=("last_n_quarters", 5))
@@ -280,13 +295,122 @@ def test_the_committed_adjudications_replace_a_field_and_keep_the_label() -> Non
 
 
 def test_an_adjudication_needs_its_rule_and_reason_and_a_case_once() -> None:
-    entry = {"id": "x", "expect": {"outcome": "answer"}, "rule": "README", "why": "because"}
+    entry = {
+        "id": "x",
+        "expect": {"outcome": "answer"},
+        "rule": "README",
+        "rule_file": "README.md",
+        "rule_commit": _RULE_COMMIT,
+        "why": "because",
+    }
+    file = {"cases_commit": _CASES_COMMIT, "adjudications": [entry]}
 
-    assert load_adjudications([{"adjudications": [entry]}])[0].rule == "README"
+    (loaded,) = load_adjudications([file])
+    assert loaded.rule == "README"
+    assert (loaded.rule_file, loaded.rule_commit) == ("README.md", _RULE_COMMIT)
+    assert loaded.cases_commit == _CASES_COMMIT
     with pytest.raises(ValueError):
-        load_adjudications([{"adjudications": [{**entry, "rule": " "}]}])
+        load_adjudications([{**file, "adjudications": [{**entry, "rule": " "}]}])
     with pytest.raises(ValueError):
-        load_adjudications([{"adjudications": [entry, entry]}])
+        load_adjudications([{**file, "adjudications": [entry, entry]}])
+
+
+def test_an_adjudication_names_the_commits_that_hold_its_rule_and_its_cases() -> None:
+    entry = {
+        "id": "x",
+        "expect": {"outcome": "answer"},
+        "rule": "README",
+        "rule_file": "README.md",
+        "rule_commit": _RULE_COMMIT,
+        "why": "because",
+    }
+
+    # A case file with adjudications names the commit that added its cases, in full.
+    with pytest.raises(ValueError, match="cases_commit"):
+        load_adjudications([{"adjudications": [entry]}])
+    with pytest.raises(ValueError, match="cases_commit"):
+        load_adjudications([{"cases_commit": "bc237f0", "adjudications": [entry]}])
+    # One without adjudications need not.
+    assert load_adjudications([{"adjudications": []}, {"cases": []}]) == []
+    # Each adjudication names the file and the full commit that hold its rule.
+    file = {"cases_commit": _CASES_COMMIT}
+    for broken in (
+        {**entry, "rule_commit": "54a0e22"},
+        {**entry, "rule_commit": "54A0E22" + "0" * 33},
+        {**entry, "rule_file": " "},
+        {key: value for key, value in entry.items() if key != "rule_file"},
+        {key: value for key, value in entry.items() if key != "rule_commit"},
+    ):
+        with pytest.raises(ValueError, match="rule_file|rule_commit"):
+            load_adjudications([{**file, "adjudications": [broken]}])
+
+
+def _git(repo: Path, *args: str) -> str:
+    result = subprocess.run(
+        ["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *args],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+    return result.stdout.strip()
+
+
+def _commit(repo: Path, path: str, text: str) -> str:
+    (repo / path).write_text(text, encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", f"change {path}")
+    return _git(repo, "rev-parse", "HEAD")
+
+
+def test_a_rule_committed_after_its_cases_or_not_as_quoted_is_a_problem(tmp_path: Path) -> None:
+    if shutil.which("git") is None:
+        pytest.skip("git is not installed")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git(repo, "init", "-q")
+    rule_commit = _commit(repo, "README.md", "`Compare X and Y growth` charts the growth rates\n")
+    cases_commit = _commit(repo, "cases.json", "{}\n")
+    assert _GROWTH_ADJUDICATED.adjudication is not None
+    good = replace(
+        _GROWTH_ADJUDICATED.adjudication, rule_commit=rule_commit, cases_commit=cases_commit
+    )
+
+    assert check_rule_history([good], repo) == []
+
+    after = replace(good, rule_commit=cases_commit, cases_commit=rule_commit)
+    (problem,) = check_rule_history([after], repo)
+    assert "growth" in problem and cases_commit in problem and "before" in problem
+
+    same = replace(good, cases_commit=rule_commit)
+    assert len(check_rule_history([same], repo)) == 1
+
+    misquoted = replace(good, rule="charts growth")
+    (problem,) = check_rule_history([misquoted], repo)
+    assert "README.md" in problem and rule_commit in problem
+
+    elsewhere = replace(good, rule_file="CONTEXT.md")
+    (problem,) = check_rule_history([elsewhere], repo)
+    assert "CONTEXT.md" in problem
+
+
+def test_the_committed_adjudications_cite_rules_committed_before_their_cases() -> None:
+    if shutil.which("git") is None:
+        pytest.skip("git is not installed")
+    repo = Path(__file__).resolve().parents[2]
+    if _git(repo, "rev-parse", "--is-shallow-repository") == "true":
+        pytest.skip("a shallow checkout lacks the history this checks; run it in a full clone")
+    files = [
+        json.loads((repo / path).read_text(encoding="utf-8"))
+        for path in CASE_PATHS
+        if (repo / path).exists()
+    ]
+
+    adjudications = load_adjudications(files)
+
+    assert {item.case_id for item in adjudications} >= {"h4_growth_nvda_how_fast"}
+    assert check_rule_history(adjudications, repo) == []
 
 
 def test_a_case_is_scored_as_labelled_and_after_adjudication() -> None:
@@ -355,4 +479,5 @@ def test_the_report_shows_both_scores_and_lists_the_adjudications() -> None:
     assert "After adjudication" in markdown
     assert "| Held out | 1 | 0% | 0.0% | — | 100% (1 adjudicated) |" in markdown
     assert "## Adjudicated labels" in markdown
+    assert f"`README.md` at `{_RULE_COMMIT[:7]}`: charts the growth rates" in markdown
     assert "passes after adjudication" in markdown

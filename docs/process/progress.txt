@@ -1797,3 +1797,34 @@ Blockers / next:
   `1 of 247 conversations differ from HEAD`: the new `Apple revenue 18 months` case, latest quarter
   before and 6 quarters now, as intended. `docs/evaluation/phrase-coverage.md` not regenerated.
   Tickets 05-06 in review-69-90 remain.
+
+## 2026-10-06 — review-69-90 05 An adjudication proves its rule predates the cases
+
+Task completed: `docs/process/tickets/review-69-90/issues/05-adjudications-cite-a-commit-before-the-cases.md`
+
+Key decisions:
+- `Adjudication` gains `rule_file`, `rule_commit` and `cases_commit`; `load_adjudications` requires
+  full 40-hex commits (a short SHA is refused) and the file, and a `cases_commit` only on a case file
+  that has adjudications.
+- `rule` is the quote verbatim as the file has it at the commit, so `check_rule_history` can find it
+  with `git show`; the location moved out of the prose into `rule_file` and `rule_commit`. The
+  set-4 adjudications quote the README's "charts the growth rates" row at `54a0e22`, cases `bc237f0`.
+- `check_rule_history` requires a strict ancestor (`git merge-base --is-ancestor`); the same commit
+  for rule and cases is a problem. It returns problems rather than raising, so a test can read them.
+- The committed-history test skips when git is absent or the checkout is shallow; the negative
+  cases run in a throwaway repository, so they never depend on this repository's history.
+- The report renders the rule as `` `README.md` at `54a0e22`: … ``; the Protocol says the fields
+  and the check, in code and in `planner-comparison.md` by hand (the saved 5 October run holds no
+  observations, so `--from-json` lists no adjudication rows and rewrites both report files unchanged).
+
+Files changed:
+- `src/financial_analyst_agent/planner_evaluation.py`
+- `tests/unit/test_planner_evaluation.py` (+3 tests, 2 adjusted)
+- `docs/evaluation/planner-cases-held-out-4.json`, `docs/evaluation/planner-comparison.md` (Protocol
+  paragraph only), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,072 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 247 conversations differ from HEAD`. `--from-json` ignores `--no-write` and writes the
+  report files (unchanged here); not a rule, so not recorded for review. Ticket 06 in review-69-90
+  remains.

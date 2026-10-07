@@ -11,4 +11,15 @@
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped 6 October 2026.
+
+- `Adjudication` (`planner_evaluation.py`) carries `rule_file`, `rule_commit` and `cases_commit`. `load_adjudications` requires a full lower-case 40-hex `cases_commit` on any case file that has adjudications (a file without them needs none), and on each adjudication a non-empty `rule_file` and a full 40-hex `rule_commit`; a short SHA such as `54a0e22` is refused.
+- `rule` is now the rule quoted verbatim as `rule_file` has it at `rule_commit`, so the quote can be checked rather than paraphrased. The set-4 adjudications read `` `Compare Microsoft and Apple revenue growth` charts the growth rates `` with `rule_file` `README.md`, `rule_commit` `54a0e227e28d44334144a82d9af18725295cb5cf`, and `cases_commit` `bc237f0a4b568bbcca72dd609351edaea250549c`.
+- `check_rule_history(adjudications, repo)` asks git whether each `rule_commit` is a strict ancestor of its `cases_commit` (the same commit is not before) and whether `rule` appears in `rule_file` at `rule_commit`; it returns one line a problem.
+- Tests: a throwaway git repository with a rule commit then a cases commit passes; the same adjudication with the commits swapped, with the same commit for both, with the rule misquoted, or with the rule in another file is a problem. The committed adjudications are checked against this repository's history, and the test skips with a reason when git is missing or `git rev-parse --is-shallow-repository` says the checkout is shallow (CI's default checkout fetches one commit).
+- The report's Adjudicated labels table shows the rule as `` `README.md` at `54a0e22`: … ``; the Protocol paragraph (code and `planner-comparison.md`) says the fields and the check. `--from-json` renders the saved report unchanged.
+- 2,072 tests pass; ruff and mypy pass; compare_answers reports 0 of 247 conversations differ.
