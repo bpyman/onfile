@@ -406,6 +406,9 @@ def resolve_industry(industry: str, groups: SnapshotGroups) -> str | None:
     return None
 
 
+# The industry a ranking with none named ranks: every snapshot member.
+WHOLE_MARKET = "companies"
+
 # Words that name no industry at all ("top 10 companies", "largest US stocks",
 # "biggest public companies"): rank the whole snapshot. Compared after
 # ``_normalize_group``, which drops "companies" and singularizes ("us" -> "u").

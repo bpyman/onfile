@@ -11,9 +11,10 @@ from decimal import Decimal
 
 import pytest
 
+from financial_analyst_agent.answer_notes import segment_notes
 from financial_analyst_agent.contracts import Intent, TableRow
 from financial_analyst_agent.domain.errors import CompanyNotFoundError
-from financial_analyst_agent.graph.analysis_spec import NamedPeriodSpec, SpecPatch
+from financial_analyst_agent.graph.analysis_spec import AnalysisSpec, NamedPeriodSpec, SpecPatch
 from financial_analyst_agent.graph.spec_turn import plan_to_spec_patch
 from financial_analyst_agent.presentation import overview_headline
 from financial_analyst_agent.ranking import SnapshotRanking
@@ -486,7 +487,10 @@ def test_initials_do_not_split_a_question() -> None:
 
 
 def test_a_segment_note_keeps_the_analysts_spelling() -> None:
-    plan = _live().complete("Amazon Web Services revenue")
+    question = "Amazon Web Services revenue"
+    plan = _live().complete(question)
 
     assert plan.metric == "revenue"
-    assert any("“Amazon Web Services”" in note for note in plan.notes)
+    # The note is the shared reading's, whichever planner planned.
+    (note,) = segment_notes(question, AnalysisSpec(metrics=("revenue",)))
+    assert "“Amazon Web Services”" in note

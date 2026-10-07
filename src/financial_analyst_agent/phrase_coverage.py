@@ -116,6 +116,23 @@ def _sequential(seen: Observation, turn: ConversationTurn) -> bool:
     )
 
 
+def _both_changes(seen: Observation, turn: ConversationTurn) -> bool:
+    """Every quarter shown has its year-over-year change, and all but the oldest
+    their change on the quarter before."""
+    rows = turn.result.table_rows
+    levels = sorted(
+        row.end_date
+        for row in rows
+        if row.comparison is None and row.value is not None and row.end_date is not None
+    )
+    sequential = {row.end_date for row in rows if row.comparison == "sequential"}
+    return (
+        seen.outcome in ("answer", "no_data")
+        and _each_quarter_changed(turn, "year_over_year")
+        and set(levels[1:]) <= sequential
+    )
+
+
 def _each_quarter_changed(turn: ConversationTurn, comparison: str) -> bool:
     """Every quarter shown has its change: no row stands only as another's base."""
     rows = turn.result.table_rows
@@ -345,6 +362,15 @@ YEAR_OVER_YEAR_QUESTIONS = (
     "How fast is Apple's revenue growing?",
     "Is Apple's revenue up from a year earlier?",
 )
+# Growth with no metric is revenue growth (README), whichever planner reads it
+# (held-out-5-findings ticket 06): five quarters, each with its change.
+GROWTH_NO_METRIC_QUESTIONS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("How fast is Broadcom growing?", ("AVGO",)),
+    ("Is Apple growing?", ("AAPL",)),
+    ("How has Nvidia grown?", ("NVDA",)),
+    ("How quickly is Microsoft growing?", ("MSFT",)),
+    ("Broadcom growth", ("AVGO",)),
+)
 # A named fiscal year is four quarters, each with its change from its own comparative.
 NAMED_CHANGE_QUESTIONS = ("Apple R&D for fiscal 2025 year over year",)
 SEQUENTIAL_QUESTIONS = (
@@ -352,6 +378,17 @@ SEQUENTIAL_QUESTIONS = (
     "Apple revenue QoQ",
     "Apple revenue sequentially",
     "Apple revenue versus the previous quarter",
+)
+# Naming both bases shows both changes, wherever the bases sit in the question
+# (held-out-5-findings ticket 01): each quarter's year-over-year change from
+# its own comparative, and its change on the quarter before.
+BOTH_BASES_QUESTIONS = (
+    "Sequentially or versus last year, Goldman net interest income",
+    "Year over year and quarter over quarter, Apple revenue",
+    "Goldman net interest income, sequentially or versus last year",
+    "Apple revenue quarter over quarter and year over year",
+    "Did Cisco's revenue grow sequentially or versus last year?",
+    "Apple revenue QoQ and YoY",
 )
 NO_BASE_QUESTIONS = (
     "Why did Apple revenue drop?",
@@ -402,6 +439,29 @@ IDIOM_QUESTIONS: tuple[tuple[str, tuple[str, ...], str], ...] = (
     ("Merck and Pfizer net margin, apples with apples", ("MRK", "PFE"), "net_margin"),
     ("Merck vs Pfizer net margin, apples and oranges", ("MRK", "PFE"), "net_margin"),
     ("the building blocks of Microsoft and Oracle revenue", ("MSFT", "ORCL"), "revenue"),
+)
+# An everyday-word name used as the word names no company (held-out-5-findings
+# ticket 02): "intel" as information, "micron" as a unit, "the apple of", "an
+# oracle for". A company named beside the word stays.
+WORD_USE_QUESTIONS: tuple[tuple[str, tuple[str, ...], str], ...] = (
+    ("Palantir operating income, intel aside", ("PLTR",), "operating_income"),
+    ("any intel on Nvidia revenue?", ("NVDA",), "revenue"),
+    ("Broadcom gross margin to the micron", ("AVGO",), "gross_margin"),
+    ("NVIDIA revenue to the nearest micron", ("NVDA",), "revenue"),
+    ("On revenue, AbbVie is the apple of the drug group", ("ABBV",), "revenue"),
+    ("Cisco cash, an oracle for the equipment group", ("CSCO",), "cash"),
+    ("Intel and Palantir operating income", ("INTC", "PLTR"), "operating_income"),
+)
+# A segment one company reports names it when no company is named
+# (held-out-5-findings ticket 03): the company-wide figure, with the segment note.
+SEGMENT_QUESTIONS: tuple[tuple[str, tuple[str, ...], str], ...] = (
+    ("iPhone sales", ("AAPL",), "revenue"),
+    ("iPad revenue", ("AAPL",), "revenue"),
+    ("What were Mac sales last quarter?", ("AAPL",), "revenue"),
+    ("Azure revenue", ("MSFT",), "revenue"),
+    ("Xbox sales", ("MSFT",), "revenue"),
+    ("YouTube revenue", ("GOOG",), "revenue"),
+    ("Google Cloud operating income", ("GOOG",), "operating_income"),
 )
 # Asking how a company is doing, in any of its words, is the overview: revenue,
 # net income and three margins. "Performance" and "rundown" name no metric.
@@ -454,6 +514,13 @@ EXPLANATION_QUESTIONS = (
     "What does diluted EPS mean?",
     "What is EPS?",
     "How might AI change banking?",
+    # What could happen is an explanation even about a named company's figure
+    # (held-out-5-findings ticket 10): one case for each speculative wording.
+    "How might AI change Apple's revenue?",
+    "How could tariffs affect Nvidia's gross margin?",
+    "How would a recession affect JPMorgan's net income?",
+    "What if Apple's revenue fell 10%?",
+    "What would happen to Tesla's gross margin if prices drop?",
 )
 # Everyday group names rank their industry, and a group "by" a metric is a ranking
 # without "top". The recorded snapshot's members of each group, by ticker.
@@ -475,6 +542,14 @@ RANKING_QUESTIONS: tuple[tuple[str, frozenset[str], str, bool | None], ...] = (
     ("Top 5 banks by revenue, smallest first", _BIG_BANKS, "revenue", True),
     ("Top 5 banks by revenue ascending", _BIG_BANKS, "revenue", True),
     ("Top 5 banks by revenue, largest first", _BIG_BANKS, "revenue", False),
+    # A leading count or window does not hide the ranking (held-out-5-findings ticket 04).
+    ("5 banks by net income", _BIG_BANKS, "net_income", None),
+    ("3 chipmakers by revenue", _SEMIS, "revenue", None),
+    ("the 3 biggest drugmakers by revenue", _DRUGMAKERS, "revenue", None),
+    ("Over the past year, the top 3 drugmakers by gross margin", _DRUGMAKERS, "gross_margin", None),
+    ("This quarter, top 5 banks by net income", _BIG_BANKS, "net_income", None),
+    ("Last quarter, chipmakers by revenue", _SEMIS, "revenue", None),
+    ("Over the last 4 quarters, 5 banks by revenue", _BIG_BANKS, "revenue", None),
 )
 
 
@@ -798,6 +873,17 @@ def cases() -> list[PhraseCase]:
                 _year_over_year,
             )
         )
+    growth: tuple[str, int | None] = ("last_n_quarters", 5)
+    for question, tickers in GROWTH_NO_METRIC_QUESTIONS:
+        found.append(
+            PhraseCase(
+                f"growth:{question}",
+                "Growth with no metric",
+                (question,),
+                _expected(tickers, ("revenue",), growth, "year_over_year"),
+                _reads(frozenset(tickers), frozenset({"revenue"}), growth, "year_over_year"),
+            )
+        )
     for question in SEQUENTIAL_QUESTIONS:
         found.append(
             PhraseCase(
@@ -817,6 +903,16 @@ def cases() -> list[PhraseCase]:
                 "each quarter shown with its year-over-year change",
                 lambda seen, turn: seen.outcome in ("answer", "no_data")
                 and _each_quarter_changed(turn, "year_over_year"),
+            )
+        )
+    for question in BOTH_BASES_QUESTIONS:
+        found.append(
+            PhraseCase(
+                f"both_bases:{question}",
+                "Both bases",
+                (question,),
+                "each quarter with both changes",
+                _both_changes,
             )
         )
     for question in NO_BASE_QUESTIONS:
@@ -850,6 +946,28 @@ def cases() -> list[PhraseCase]:
             PhraseCase(
                 f"idiom:{question}",
                 "Idioms beside a company",
+                (question,),
+                _expected(tickers, (metric,), period, None),
+                _reads(frozenset(tickers), frozenset({metric}), period, None),
+            )
+        )
+    for question, tickers, metric in WORD_USE_QUESTIONS:
+        period = ("latest_quarter", None)
+        found.append(
+            PhraseCase(
+                f"word use:{question}",
+                "Everyday-word names used as the word",
+                (question,),
+                _expected(tickers, (metric,), period, None),
+                _reads(frozenset(tickers), frozenset({metric}), period, None),
+            )
+        )
+    for question, tickers, metric in SEGMENT_QUESTIONS:
+        period = ("latest_quarter", None)
+        found.append(
+            PhraseCase(
+                f"segment:{question}",
+                "A segment names its company",
                 (question,),
                 _expected(tickers, (metric,), period, None),
                 _reads(frozenset(tickers), frozenset({metric}), period, None),

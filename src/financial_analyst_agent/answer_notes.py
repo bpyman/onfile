@@ -41,7 +41,11 @@ from financial_analyst_agent.services.fiscal_periods import (
     adjacent_quarters,
     quarters_in_span,
 )
-from financial_analyst_agent.services.metric_catalog import METRIC_DISPLAY
+from financial_analyst_agent.services.metric_catalog import (
+    METRIC_DISPLAY,
+    segment_note,
+    segment_term,
+)
 
 YEAR_OF_QUARTERS_BANNER = (
     "The last year: these are the four latest quarters, shown one by one rather "
@@ -213,6 +217,18 @@ def metric_reading_notes(message: str, spec: AnalysisSpec) -> list[str]:
     return []
 
 
+def segment_notes(message: str, spec: AnalysisSpec) -> list[str]:
+    """Say a segment's figure is the company-wide one, whichever planner read it.
+
+    "iPhone sales" shows Apple's revenue: filings' structured data reports
+    totals. A ranking ranks companies, not segments, so it says nothing.
+    """
+    term = segment_term(message)
+    if term is None or not spec.metrics or spec.constituents is not None:
+        return []
+    return [segment_note(term)]
+
+
 def short_ranking_notes(spec: AnalysisSpec) -> list[str]:
     """Say so when an industry has fewer snapshot members than the ranking asked for."""
     ranked = spec.constituents
@@ -306,9 +322,13 @@ def _named_period_notes(spec: AnalysisSpec) -> list[str]:
 
 
 def period_notes(
-    message: str, spec: AnalysisSpec, *, window: WindowReading
+    message: str, spec: AnalysisSpec, *, window: WindowReading, ranked_window: bool = False
 ) -> list[str]:
-    """Say plainly when the window shown is not the one the analyst asked for."""
+    """Say plainly when the window shown is not the one the analyst asked for.
+
+    A ranking records its latest quarter; ``ranked_window`` says a window or a
+    named period was asked for it all the same.
+    """
     notes: list[str] = []
     shown_window = (
         f"the last {spec.periods.shown} quarters"
@@ -348,15 +368,14 @@ def period_notes(
             f"Year-to-date totals aren't supported yet, so this shows {shown_window}. "
             "Try “last 4 quarters”."
         )
-    if spec.periods.kind == "named":
-        notes.extend(_named_period_notes(spec))
-        if spec.constituents is not None:
+    if spec.constituents is not None:
+        # compile_tasks does not expand ranked lists over a period window; say so.
+        if ranked_window:
             notes.append(RANKED_LATEST_QUARTER_BANNER)
         return notes
-    if spec.constituents is not None and spec.periods.kind == "last_n_quarters":
-        # compile_tasks does not expand ranked lists over a period window; say so
-        # instead of showing a "Last N quarters" chip over one quarter of data.
-        notes.append(RANKED_LATEST_QUARTER_BANNER)
+    if spec.periods.kind == "named":
+        notes.extend(_named_period_notes(spec))
+        return notes
     windows = [spec.periods.report_dates]
     if spec.periods.kind == "last_n_quarters" and spec.companies:
         groups = calendar_groups(spec)

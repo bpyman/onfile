@@ -2299,3 +2299,311 @@ Blockers / next:
   concept the catalog does not read needs live data; if so, reading it would make its EBITDA
   computable. Tickets 01-11 in probe-round-3-gaps are all resolved.
 
+2026-10-07
+
+Task completed: `docs/process/tickets/held-out-5-findings/issues/01-both-change-bases-leading.md`
+
+Key decisions:
+- The ticket's premise was wrong and is recorded in rules-to-review: where the bases sit made no
+  difference. Naming both bases was read as a quarter-over-quarter view, which adds the
+  year-over-year change only where the year-earlier quarter is on screen; the recording holds
+  four Goldman quarters, so none was, while Cisco's five quarters gave its newest one row.
+- Naming both bases (`names_both_bases` in `request_wording.py`, wherever they sit; not when one
+  is asked `instead of`, `rather than` or `not` the other) adds a new `sequential` operation
+  beside `year_over_year`. The merge then keeps the sequential change on and takes each quarter's
+  year-over-year change from its own comparative (ADR 0009). Follow-ups: both bases after a
+  window keep the quarters as `sequential instead` does; `year over year instead` and
+  `sequential instead` each drop the other; `remove year over year` drops all three.
+- The rules planner no longer reads "Sequentially" or "QoQ and YoY" beside a list joiner as an
+  unfound name, so the cascade keeps its plan for the held-out wording.
+- Set 5 is development data from here on (case file's about, findings doc, `HeldOutSet(5,
+  findings=True)`); no label was changed.
+
+Files changed:
+- `src/financial_analyst_agent/request_wording.py`, `graph/spec_turn.py`,
+  `graph/analysis_spec.py`, `planner.py`, `rules_planner.py`, `phrase_coverage.py` (+6
+  `BOTH_BASES_QUESTIONS`), `planner_evaluation.py`
+- `tests/test_held_out_5_findings.py` (new), `tests/unit/test_planner_wording.py` (+8 tests, one
+  expectation gains `sequential`)
+- `README.md`, `CONTEXT.md`, `docs/adr/0010-one-reading-of-names-and-windows.md`,
+  `docs/evaluation/held-out-5-findings.md`, `docs/evaluation/planner-cases-held-out-5.json`
+  (about only), `docs/process/rules-to-review.md`, `scripts/compare_answers.py` (+3
+  conversations), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All Python tests pass; ruff and mypy pass; compare_answers reports `3 of 344
+  conversations differ from HEAD`, the three conversations added for this ticket. Tickets 02-09
+  in held-out-5-findings remain.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/held-out-5-findings/issues/02-ordinary-word-idioms-name-no-company.md`
+
+Key decisions:
+- The issuer index reads some uses of an everyday-word name as the word, whatever the case
+  (`_WORD_USES`): `intel aside`, `some|any|more|no intel`, `to the (nearest) micron`, `nearest|a
+  micron`, `the apple of`, `an oracle for|of`. `find` skips those words except in a planner's
+  company field. "micron" is not in the everyday-word list at all, so before this every "micron"
+  was Micron.
+- The shared step for both planners: `word_uses` (issuer_index) and `_without_word_uses`
+  (request_wording), first in `refine_patch_from_message`, drop a proposed company named by such a
+  word (or by an `apples to apples` idiom) unless the index finds it in the question as well.
+- One LLM run of `h5_ow_apple_idiom` proposed drugmaker peers, not Apple; left as is and recorded
+  in rules-to-review.
+
+Files changed:
+- `src/financial_analyst_agent/issuer_index.py`, `request_wording.py`, `phrase_coverage.py` (+7
+  `WORD_USE_QUESTIONS`)
+- `tests/test_held_out_5_findings.py` (+5 rules cases, +4 LLM plans, +1 test),
+  `tests/unit/test_planner_wording.py` (+12 cases)
+- `README.md`, `CONTEXT.md`, `docs/adr/0010-one-reading-of-names-and-windows.md`,
+  `docs/evaluation/held-out-5-findings.md`, `docs/process/rules-to-review.md`,
+  `scripts/compare_answers.py` (+4 conversations), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,249 Python tests pass; ruff and mypy pass; compare_answers reports `3 of 348
+  conversations differ from HEAD`, the three intel/micron conversations added here, each now the
+  named company alone. README's phrase-coverage count (518) was already behind before this ticket
+  and is left for the next regeneration. Tickets 03-09 in held-out-5-findings remain.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/held-out-5-findings/issues/03-a-segment-names-its-company.md`
+
+Key decisions:
+- `segment_companies` (services/metric_catalog.py) maps a segment only one company reports to
+  that company. The rules planner names it when a question names no company (so the cascade keeps
+  the plan), and `_with_segment_companies` in `refine_patch_from_message` adds it, on a first turn,
+  to any patch with no company and no ranking, so both planners agree.
+- The segment note left the rules planner's plan (a plan note would send it to the LLM planner)
+  for the shared answer notes (`segment_notes` in answer_notes.py), placed right after planner
+  notes. A ranking gets no segment note, as before.
+- Follow-ups keep the company on screen; only a first turn takes the segment's company.
+
+Files changed:
+- `src/financial_analyst_agent/services/metric_catalog.py`, `rules_planner.py`,
+  `request_wording.py`, `answer_notes.py`, `graph/spec_turn.py`, `phrase_coverage.py` (+7
+  `SEGMENT_QUESTIONS`)
+- `tests/test_held_out_5_findings.py` (+1 rules case, +1 LLM plan, +4 tests),
+  `tests/unit/test_planner_understanding.py` (segment note read from the shared notes)
+- `README.md`, `CONTEXT.md` (Segment), `docs/adr/0010-one-reading-of-names-and-windows.md`,
+  `docs/evaluation/held-out-5-findings.md`, `scripts/compare_answers.py` (+4 conversations), the
+  ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,262 Python tests pass; ruff and mypy pass; compare_answers reports `3 of 352
+  conversations differ from HEAD`, all added here ("iPhone sales", "Azure revenue", and "what
+  about iPhone sales?" after Apple revenue gaining the note). README's phrase-coverage count (518)
+  is still behind and left for the next regeneration. Tickets 04-09 in held-out-5-findings remain.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/held-out-5-findings/issues/04-rankings-with-a-leading-count-or-window.md`
+
+Key decisions:
+- The rules planner reads a ranking from `_without_preamble(normalized)`: a clause before the
+  first comma that names no measure and has no rank word is dropped when the rest is a ranking.
+  Only the ranking reading uses it; a question naming a company keeps its words.
+- A count leading a group `by` a metric (`_GROUP_BY_METRIC`, `_LEADING_COUNT` in `_limit`) is
+  the ranking's length; a count of quarters, years or months is not.
+- The window stays in the question for the shared reading, so the ranking shows each company's
+  latest quarter with the ranking note.
+
+Files changed:
+- `src/financial_analyst_agent/rules_planner.py`, `phrase_coverage.py` (+7 `RANKING_QUESTIONS`)
+- `tests/test_held_out_5_findings.py` (+1 rules case, +5 tests)
+- `README.md`, `docs/adr/0010-one-reading-of-names-and-windows.md`,
+  `docs/evaluation/held-out-5-findings.md`, `scripts/compare_answers.py` (+4 conversations), the
+  ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. compare_answers reports `3 of 356 conversations differ from HEAD`, the three refused
+  rankings added here, each now ranked. Ticket 05: a windowed ranking also shows the window's
+  banner ("the four latest quarters, shown one by one") beside the ranking note, from the
+  recorded window it replaces. README's phrase-coverage count (518) is still behind. Tickets
+  05-09 in held-out-5-findings remain.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/held-out-5-findings/issues/05-a-rankings-period-is-the-latest-quarter.md`
+
+Key decisions:
+- `resolve_spec` gives a ranked analysis `PeriodSelection()` (latest quarter). `ranked_window_asked`
+  (analysis_spec.py) reads the draft; `CompiledAnalysis.ranked_window_asked` takes it to
+  `period_notes`, which, for a ranking, adds only the ranked-latest-quarter note when asked.
+- `validate_spec` asks no window of a ranking's `across_periods`: a growth ranking's change is each
+  company's latest quarter against its comparative (ADR 0009), and its rows are unchanged.
+- Ranking -> companies (`add Apple`): a plain ranking keeps the latest quarter; one carrying a
+  change gets growth's five-quarter window (`_GROWTH_QUARTERS`), as before.
+
+Files changed:
+- `src/financial_analyst_agent/graph/analysis_spec.py`, `graph/state.py`, `graph/spec_turn.py`,
+  `answer_notes.py`
+- `tests/test_held_out_5_findings.py` (h5_rk_drugs_gm on every field for both planners, +6 tests)
+- `README.md`, `docs/adr/0010-one-reading-of-names-and-windows.md`,
+  `docs/evaluation/held-out-5-findings.md`, `scripts/compare_answers.py` (+2 conversations), the
+  ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All Python tests pass; ruff and mypy pass; compare_answers reports `3 of 358
+  conversations differ from HEAD`, all intended (h3_chips_window's recorded period, the windowed
+  drugmakers ranking's banners, and "add Pfizer" after it). Also committed this run: ticket 04's
+  finished but uncommitted work. Tickets 06-09 in held-out-5-findings remain.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/held-out-5-findings/issues/06-how-fast-is-x-growing-stays-with-the-rules-planner.md`
+
+Key decisions:
+- The rules planner plans revenue when a named company's question implies it (`implied_metrics`
+  is `("revenue",)`: growth with no metric), beside the overview case, so the cascade keeps it.
+- `bind_metrics_from_message` (request_wording.py) keeps a planner's catalog metrics when the
+  wording implies all of them; before, any slug not named in words was refused, which refused
+  revenue for "How fast is Broadcom growing?" whichever planner proposed it.
+
+Files changed:
+- `src/financial_analyst_agent/rules_planner.py`, `request_wording.py`, `phrase_coverage.py` (+5
+  `GROWTH_NO_METRIC_QUESTIONS`)
+- `tests/test_held_out_5_findings.py` (+1 LLM plan, +2 tests)
+- `README.md`, `docs/adr/0010-one-reading-of-names-and-windows.md`,
+  `docs/evaluation/held-out-5-findings.md`, `scripts/compare_answers.py` (+2 conversations), the
+  ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,287 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 360
+  conversations differ from HEAD`. Tickets 07-09 in held-out-5-findings remain.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/held-out-5-findings/issues/07-a-named-companys-why-is-its-figure.md`
+
+Key decisions:
+- `_figure_asked` (graph/turn_graph.py, replacing `_figure_with_no_company`): an `explain`
+  proposal whose question names a catalog metric and a recorded company is that company's lookup
+  (several companies: a comparison); with no company, it is a lookup only without the
+  explanation wording, as before. The why note comes from the words, whichever planner.
+- A company and no metric stays an explanation.
+
+Files changed:
+- `src/financial_analyst_agent/graph/turn_graph.py`
+- `tests/test_held_out_5_findings.py` (+2 LLM plans, +4 tests)
+- `README.md`, `docs/evaluation/held-out-5-findings.md`, `docs/process/rules-to-review.md`,
+  `scripts/compare_answers.py` (+4 conversations), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. compare_answers reports `1 of 364 conversations differ from HEAD`: "How might AI change
+  Apple's revenue?" is now Apple's revenue, not an explanation, as the ticket's rule says; recorded for
+  review. compare_answers crashes printing a diff on a cp1252 console (set PYTHONIOENCODING=utf-8).
+  Tickets 08-09 in held-out-5-findings remain.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/held-out-5-findings/issues/08-a-change-with-no-base-asks-whichever-planner.md`
+
+Key decisions:
+- `asks_change_without_base` (request_wording.py): a change asked with no base, and no news
+  asked for by name (`news`, `headlines`).
+- `request_from_proposal` (graph/turn_graph.py) types any qualitative proposal for such a
+  question with `_figure_asked(change=True)`: the named company's lookup, which asks against
+  what; with no company, the lookup that asks which company, even with explanation wording.
+  General explanations that mention a change but no figure asked ("Why does gross margin
+  decline when costs rise?") are not read as a change with no base and are unchanged.
+
+Files changed:
+- `src/financial_analyst_agent/request_wording.py`, `graph/turn_graph.py`
+- `tests/test_held_out_5_findings.py` (+2 LLM plans of news, +6 tests)
+- `README.md`, `docs/evaluation/held-out-5-findings.md`, `scripts/compare_answers.py` (+2
+  conversations), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,304 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 366
+  conversations differ from HEAD`. Ticket 09 in held-out-5-findings remains.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/held-out-5-findings/issues/09-a-ranking-with-no-group-whichever-planner.md`
+
+Key decisions:
+- The LLM planner proposed `rank` with no industry for `which companies are worth the most?`.
+  `_lifted_plan` (graph/spec_turn.py) gives a ranking plan with no industry `WHOLE_MARKET`
+  (now in universe.py), so every company is ranked, as the rules planner does.
+- `test_run_turn_rank.py`'s refusal of a ranking with no industry now expects every company;
+  recorded in rules-to-review.
+
+Files changed:
+- `src/financial_analyst_agent/graph/spec_turn.py`, `universe.py`, `rules_planner.py`
+- `tests/test_held_out_5_findings.py` (+1 LLM plan), `tests/test_run_turn_rank.py`
+- `docs/evaluation/held-out-5-findings.md`, `docs/process/rules-to-review.md`,
+  `scripts/compare_answers.py` (+2 conversations), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,305 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 368
+  conversations differ from HEAD`. Every ticket in held-out-5-findings is resolved.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/held-out-5-findings/issues/10-a-speculative-question-is-an-explanation.md`
+
+Key decisions:
+- `asks_speculatively` (request_wording.py), included in `asks_for_explanation`: `how
+  might/could/would`, `what if`, `what would happen`; not when the subject is a pronoun
+  (a request to the analyst or a follow-up) or the question compares.
+- `request_from_proposal`: a structured proposal for a speculative question is an
+  explanation, company named or not; a speculative explanation is never re-typed as a
+  figure. The rules planner proposes an explanation for it too.
+
+Files changed:
+- `src/financial_analyst_agent/request_wording.py`, `graph/turn_graph.py`,
+  `rules_planner.py`, `phrase_coverage.py` (+5 general questions)
+- `tests/unit/test_planner_wording.py`, `tests/test_held_out_5_findings.py`
+- `README.md`, `docs/evaluation/held-out-5-findings.md`, `scripts/compare_answers.py`
+  (+4 conversations), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,321 Python tests pass; ruff and mypy pass; compare_answers reports 4 of 372
+  conversations differ, each intended (named in the ticket's Answer), including held-out-4's
+  `h4_other_explain_ai_drug_discovery`, now an explanation as its case expects.
+- Phrase coverage (555 of 555 on a local run) and the README's count are not regenerated.
+- Ticket 11 in held-out-5-findings remains.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/held-out-5-findings/issues/11-an-unknown-group-is-refused-whichever-planner.md`
+
+Key decisions:
+- `ranked_group` (rules_planner.py) reads a ranking's group as the rules planner's plan does
+  (`_group_named`, shared with `_plan`); `WHOLE_MARKET` when the words name none.
+- `request_from_proposal` (graph/turn_graph.py) gives a ranking proposal with no industry
+  that group, so an unknown one ("top 10 companies in AI") is refused whichever planner left
+  it out. `_lifted_plan`'s whole-market default is kept for callers with no message.
+
+Files changed:
+- `src/financial_analyst_agent/rules_planner.py`, `graph/turn_graph.py`
+- `tests/test_held_out_5_findings.py` (+3 tests)
+- `README.md`, `docs/evaluation/held-out-5-findings.md`, `scripts/compare_answers.py` (+3
+  conversations), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,324 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 375
+  conversations differ from HEAD`. Every ticket in held-out-5-findings is resolved.
+- Phrase coverage and the README's count are still not regenerated (from ticket 10).
+
+2026-10-07
+
+Task completed: `docs/process/tickets/held-out-5-findings/issues/12-a-planners-invented-group.md`
+
+Key decisions:
+- `request_from_proposal` (graph/turn_graph.py): a ranking proposal whose group the
+  snapshot does not know, for words that name no group (`ranked_group` is
+  `WHOLE_MARKET`), gets `WHOLE_MARKET`. Known groups and unknown groups the words name
+  are left as proposed. A ranking port with no `knows_industry` leaves the group alone.
+
+Files changed:
+- `src/financial_analyst_agent/graph/turn_graph.py`
+- `tests/test_held_out_5_findings.py` (+4 tests)
+- `README.md`, `docs/evaluation/held-out-5-findings.md`, the ticket,
+  `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,328 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 375
+  conversations differ from HEAD`. Every ticket in held-out-5-findings is resolved.

@@ -585,6 +585,29 @@ def segment_term(question: str) -> str | None:
     return match.group(0) if match is not None else None
 
 
+# A segment only one company reports names it: "iPhone sales" are Apple's.
+_SEGMENT_COMPANIES: tuple[tuple[re.Pattern[str], str], ...] = tuple(
+    (re.compile(rf"\b(?:{words})\b", re.IGNORECASE), company)
+    for words, company in (
+        (r"iphones?|ipads?|macs?", "Apple"),
+        (r"aws|amazon web services", "Amazon"),
+        (r"azure|xbox", "Microsoft"),
+        (r"google cloud|youtube", "Alphabet"),
+        (r"instagram|whatsapp", "Meta"),
+    )
+)
+
+
+def segment_companies(question: str) -> tuple[str, ...]:
+    """The companies a question's segments name, in the order it names them."""
+    found = [
+        (match.start(), company)
+        for pattern, company in _SEGMENT_COMPANIES
+        if (match := pattern.search(question)) is not None
+    ]
+    return tuple(company for _, company in sorted(found))
+
+
 def segment_note(term: str) -> str:
     return (
         f"Filings' structured data reports company-wide totals, not segments or "

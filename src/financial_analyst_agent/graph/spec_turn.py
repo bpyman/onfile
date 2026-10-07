@@ -28,6 +28,7 @@ from financial_analyst_agent.answer_notes import (
     metric_reading_notes,
     missing_component_notes,
     period_notes,
+    segment_notes,
     short_ranking_notes,
 )
 from financial_analyst_agent.contracts import (
@@ -82,6 +83,7 @@ from financial_analyst_agent.graph.analysis_spec import (
     calendar_groups,
     compile_tasks,
     emptied_by,
+    ranked_window_asked,
     resolve_spec,
     validate_spec,
 )
@@ -121,6 +123,7 @@ from financial_analyst_agent.turn import (
 )
 from financial_analyst_agent.universe import (
     INELIGIBLE_ISSUER_NAMES,
+    WHOLE_MARKET,
     sec_identity_is_operating,
 )
 
@@ -162,7 +165,10 @@ def _lifted_plan(plan: WorkflowPlan) -> SpecPatch:
         )
     if intent not in (Intent.RANK, Intent.RANK_AND_LOOKUP):
         raise ValueError(f"cannot lift intent to spec patch: {intent!r}")
-    ranked = RankedRequest(industry=plan.industry or "", limit=plan.limit or DEFAULT_RANK_LIMIT)
+    # "which companies are worth the most?": a ranking with no group ranks every
+    # company, whichever planner left the group out (README, a ranking with no group).
+    industry = plan.industry if plan.industry and plan.industry.strip() else WHOLE_MARKET
+    ranked = RankedRequest(industry=industry, limit=plan.limit or DEFAULT_RANK_LIMIT)
     if intent is Intent.RANK:
         return SpecPatch(mode="replace", ranked_request=ranked)
     return SpecPatch(
@@ -703,11 +709,15 @@ def _yoy_prior(row: TableRow, ordered: list[TableRow]) -> TableRow | None:
 
 
 def across_period_change_rows(
-    levels: list[TableRow], *, sequential: bool = True
+    levels: list[TableRow], *, sequential: bool = True, year_over_year: bool = False
 ) -> list[TableRow]:
     """Sequential and year-over-year change from period-aligned level cells.
 
     ``sequential`` is off when the analyst asked for year-over-year change only.
+    ``year_over_year`` is on when year over year was asked for, alone or beside
+    the sequential change ("sequentially or versus last year"): each quarter's
+    change then starts from its own filing's comparative (ADR 0009), not only
+    from a year-earlier quarter that happens to be on screen.
     """
     by_key: dict[tuple[str, str], list[TableRow]] = {}
     for row in levels:
@@ -734,7 +744,9 @@ def across_period_change_rows(
                     )
                 )
         for row in ordered:
-            prior = _year_earlier_level(row, ordered, comparatives_only=not sequential)
+            prior = _year_earlier_level(
+                row, ordered, comparatives_only=year_over_year or not sequential
+            )
             if prior is not None:
                 changes.append(_change_row(row, prior, comparison="year_over_year"))
     return changes
@@ -746,6 +758,7 @@ def merge_task_results(
     *,
     across_periods: bool = False,
     sequential: bool = True,
+    year_over_year: bool = False,
 ) -> TurnResult:
     """Assemble independent cell results into one analysis table."""
     if len(results) == 1 and not across_periods:
@@ -773,7 +786,9 @@ def merge_task_results(
                 return result
 
     if across_periods:
-        rows = list(rows) + across_period_change_rows(rows, sequential=sequential)
+        rows = list(rows) + across_period_change_rows(
+            rows, sequential=sequential, year_over_year=year_over_year
+        )
 
     intent = results[0].intent
     if any(task.kind == "compare" for task in tasks):
@@ -1173,6 +1188,7 @@ def resolve_request(
             annual_filers=tuple(annual_filers),
             funds=tuple(funds),
             unrecorded=request.unrecorded,
+            ranked_window_asked=ranked_window_asked(draft),
         ),
     )
 
@@ -1184,7 +1200,10 @@ def merge_analysis(compiled: CompiledAnalysis, results: list[TurnResult]) -> Tur
         compiled.tasks,
         results,
         across_periods="across_periods" in spec.operations,
-        sequential="year_over_year" not in spec.operations,
+        # Year over year alone turns the sequential change off; asked for beside
+        # it ("sequentially or versus last year"), both changes are shown.
+        sequential="year_over_year" not in spec.operations or "sequential" in spec.operations,
+        year_over_year="year_over_year" in spec.operations,
     )
     merged = _one_company_left(_without_base_quarters(merged, spec))
     if len(spec.companies) == 1 and spec.constituents is None:
@@ -1290,15 +1309,22 @@ def annotate_analysis(
         *missing_component_notes(merged.table_rows),
         *already_present_notes(patch, compiled.prior_spec, spec),
         *metric_reading_notes(compiled.wording, spec),
-        *period_notes(compiled.wording, spec, window=compiled.window),
+        *period_notes(
+            compiled.wording,
+            spec,
+            window=compiled.window,
+            ranked_window=compiled.ranked_window_asked,
+        ),
         *short_ranking_notes(spec),
         *capped_ranking_notes(patch),
     ]
-    banners = list(dict.fromkeys([*compiled.notes, *merged.banners, *notes]))
+    # A segment's note explains the whole answer, as a planner's does.
+    leading = [*compiled.notes, *segment_notes(compiled.wording, spec)]
+    banners = list(dict.fromkeys([*leading, *merged.banners, *notes]))
     snapshot_banner_index = merged.snapshot_banner_index
     if merged.snapshot_as_of is not None:
         before_snapshot = merged.banners[: merged.snapshot_banner_index]
-        snapshot_banner_index = len(dict.fromkeys([*compiled.notes, *before_snapshot]))
+        snapshot_banner_index = len(dict.fromkeys([*leading, *before_snapshot]))
     if banners != merged.banners or snapshot_banner_index != merged.snapshot_banner_index:
         merged = merged.model_copy(
             update={

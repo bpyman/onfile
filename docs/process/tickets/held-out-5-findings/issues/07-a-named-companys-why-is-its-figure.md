@@ -8,4 +8,26 @@ Cases: both above, with a fake LLM planner proposing `explain`.
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped 7 October 2026. The shared typing (`_figure_asked`, `graph/turn_graph.py`, replacing
+`_figure_with_no_company`) re-types an `explain` proposal whose question names a catalog metric:
+with one recorded company named (the turn's issuer index), as that company's lookup; with
+several, their comparison; with none, as before, a lookup asking which company only where none
+of the explanation wording is there. The why note comes from the words (`answer_notes`), so
+"Why is Goldman's revenue so volatile?" has it whichever planner planned, and "How does Apple's
+buyback affect its EPS?" does not. A question naming a company and no metric ("How might AI
+change Goldman Sachs's business?") stays an explanation.
+
+- Tests (`tests/test_held_out_5_findings.py`): `h5_co_buyback` and `h5_co_volatile` with a fake
+  LLM planner proposing `explain`, on every field; three named-company questions with the rules
+  planner and an `explain` proposal; the why note and its absence; two questions that stay
+  explanations.
+- compare_answers: `1 of 364 conversations differ` (+4 added). "How might AI change Apple's
+  revenue?" was an explanation (refused on the recorded runtime, which replays one essay) and is now
+  Apple's revenue, as the rule asks; recorded
+  in `docs/process/rules-to-review.md`. "Why is Goldman's revenue so volatile?", "How does
+  Apple's buyback affect its EPS?" and "How might AI change Goldman Sachs's business?" do not
+  differ: the rules planner already answered the first two as figures.

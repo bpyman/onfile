@@ -39,6 +39,7 @@ from financial_analyst_agent.request_wording import (
     OVERVIEW_METRICS,
     OVERVIEW_PLAN,
     asks_for_explanation,
+    asks_speculatively,
     asks_to_swap,
     implied_metrics,
     parse_named_periods,
@@ -47,12 +48,14 @@ from financial_analyst_agent.request_wording import (
 from financial_analyst_agent.services.metric_catalog import (
     metric_phrases,
     resolve_metric_phrase,
-    segment_note,
+    resolve_metric_phrases,
+    segment_companies,
     segment_term,
 )
 from financial_analyst_agent.universe import (
     DEFAULT_SNAPSHOT_PATH,
     INELIGIBLE_ISSUER_NAMES,
+    WHOLE_MARKET,
     former_names,
     ineligible_issuers,
     load_universe_snapshot,
@@ -126,8 +129,6 @@ _ISSUER_PHRASES: tuple[tuple[str, str], ...] = (
     ("pfe", "PFE"),
     ("danaher", "DHR"),
 )
-# The industry a ranking with none named ranks: every snapshot member.
-WHOLE_MARKET = "companies"
 RECORDED_FILING_OLDER = "0000950170-25-061046"
 RECORDED_FILING_NEWER = "0001193125-26-191507"
 
@@ -358,6 +359,10 @@ _GROUP_COUNT_WORD = re.compile(
 _GROUP_COUNT = re.compile(
     rf"\b{_GROUP_COUNTED_BY}\s+(\d+)\b(?!\s+(?:quarters?|years?|months?))"
 )
+# "5 banks by net income": a count leading the group, not a number of quarters.
+_LEADING_COUNT = re.compile(
+    r"^((?:the|show|show me|list)\s+)?(\d+)\s+(?!(?:quarters?|years?|months?)\b)"
+)
 # Words before an industry that say how a ranking is cut, not which group it is.
 _GROUP_LEAD = re.compile(
     r"^(?:(?:the|top|\d+|biggest|largest|leading|most valuable|best)\s+)+", re.IGNORECASE
@@ -449,7 +454,7 @@ def _limit(normalized: str) -> int:
     match = _LIMIT_WORDS.search(normalized)
     if match is not None:
         return int(match.group(1) or match.group(2))
-    counted = _GROUP_COUNT.search(normalized)
+    counted = _GROUP_COUNT.search(normalized) or _LEADING_COUNT.match(normalized)
     if counted is not None:
         return int(counted.group(2))
     return DEFAULT_RANK_LIMIT
@@ -543,6 +548,32 @@ def _ranked_industry(normalized: str) -> str:
     return label or _industry_from_query(normalized)
 
 
+def _group_named(ranking: str, which: re.Match[str] | None, group_by: str | None) -> str:
+    """The group a ranking names, from "which bank has the most", "banks by" or "top 5 banks"."""
+    if which is not None:
+        group = which.group("group")
+        industry = group if which.group("noun") else _plural_group(group)
+    elif group_by is not None:
+        industry = group_by
+    else:
+        industry = _ranked_industry(ranking)
+    industry = _clean_group(industry)
+    return _INDUSTRY_WORDS.get(industry, industry)
+
+
+def ranked_group(query: str) -> str:
+    """The group a ranking's words name, read as this planner reads them.
+
+    ``WHOLE_MARKET`` when they name none ("which companies are worth the most?");
+    otherwise the words, known to the snapshot or not ("top 10 companies in AI").
+    """
+    query, _ = _whole_counts(_count_words_as_digits(expand_groups(plain_text(query))))
+    ranking = _without_preamble(query.strip().casefold())
+    rank_words = _RANK_WORDS.search(ranking) is not None
+    group_by = _group_by_metric(ranking) if not rank_words else None
+    return _group_named(ranking, _WHICH_HIGHEST.search(ranking), group_by)
+
+
 def _mention_note(index: IssuerIndex, mention: CompanyMention) -> str:
     name = short_name(index.display_name(mention.query)) or mention.query
     return f"Showing {name} for “{mention.typed}”."
@@ -608,9 +639,13 @@ class DemoCompleter:
                     update={"company": companies[0], "other_companies": tuple(companies[1:])}
                 )
             return plan.model_copy(update={"notes": tuple(notes)})
-        if "disrupt" in normalized or re.search(
-            r"\bhow (?:can|could|will|might|would) ai\b", normalized
+        if (
+            "disrupt" in normalized
+            or re.search(r"\bhow (?:can|could|will|might|would) ai\b", normalized)
+            or asks_speculatively(query)
         ):
+            # "How could tariffs affect Nvidia's gross margin?": what could happen,
+            # even about a named company's figure (the shared words decide).
             return WorkflowPlan(intent=Intent.EXPLAIN, topic=query)
         if not companies and asks_for_explanation(query):
             # "Explain how a share buyback affects EPS": a general question that
@@ -639,34 +674,29 @@ class DemoCompleter:
     ) -> WorkflowPlan:
         """The closed plan a question asks for, before notes on what it leaves out."""
         companies = [mention.query for mention in mentions]
-        which = _WHICH_HIGHEST.search(normalized) if not companies else None
-        rank_words = _RANK_WORDS.search(normalized) is not None
-        group_by = _group_by_metric(normalized) if not companies and not rank_words else None
+        # "Over the past year, the top 3 drugmakers by …": the ranking follows the
+        # preamble, and the window is read from the whole question.
+        ranking = _without_preamble(normalized) if not companies else normalized
+        which = _WHICH_HIGHEST.search(ranking) if not companies else None
+        rank_words = _RANK_WORDS.search(ranking) is not None
+        group_by = _group_by_metric(ranking) if not companies and not rank_words else None
         ranked = rank_words or which is not None or group_by is not None
-        if ranked and _ranks_with(normalized, companies):
-            if which is not None:
-                group = which.group("group")
-                industry = group if which.group("noun") else _plural_group(group)
-            elif group_by is not None:
-                industry = group_by
-            else:
-                industry = _ranked_industry(normalized)
-            industry = _clean_group(industry)
-            industry = _INDUSTRY_WORDS.get(industry, industry)
-            limit = _limit(normalized)
+        if ranked and _ranks_with(ranking, companies):
+            industry = _group_named(ranking, which, group_by)
+            limit = _limit(ranking)
             notes = (
                 (_left_out_of_ranking(self.index, mentions[0], industry, limit),)
                 if mentions
                 else ()
             )
-            phrase = resolve_metric_phrase(normalized)
+            phrase = resolve_metric_phrase(ranking)
             if metric not in ALLOWED_METRICS and phrase.kind == "ambiguous" and phrase.candidates:
                 # "highest income": still a ranked lookup ordered by the metric; the
                 # spec asks which metric before any provider call.
                 metric = phrase.candidates[0]
             if metric in ALLOWED_METRICS:
                 ordered = metric != "market_cap" and (
-                    which is not None or bool(_ORDER_WORDING.search(normalized))
+                    which is not None or bool(_ORDER_WORDING.search(ranking))
                 )
                 return WorkflowPlan(
                     intent=Intent.RANK_AND_LOOKUP,
@@ -678,8 +708,10 @@ class DemoCompleter:
                     notes=notes,
                 )
             return WorkflowPlan(intent=Intent.RANK, industry=industry, limit=limit, notes=notes)
+        if not companies:
+            # "iPhone sales": a segment one company reports names it.
+            companies = list(segment_companies(query))
         segment = segment_term(query)
-        segment_notes = (segment_note(segment),) if segment and metric in ALLOWED_METRICS else ()
         if len(companies) == 1 and _PEERS.search(normalized):
             # "Compare Nvidia to its peers": the conversation adds the peers.
             return WorkflowPlan(
@@ -693,10 +725,14 @@ class DemoCompleter:
         if metric == "unknown" and companies and unknown_wording:
             # "Apple happiness index": name the word rather than show an overview.
             metric = segment or _unknown_term(query, mentions) or metric
-        if metric == "unknown" and companies and implied_metrics(query) == OVERVIEW_METRICS:
+        implied = implied_metrics(query) if metric == "unknown" and companies else ()
+        if implied == OVERVIEW_METRICS:
             # "How is Apple doing?" asks for the overview: plan it, so the cascade keeps
             # the plan rather than ask the LLM planner for the same (ADR 0012).
             metric = OVERVIEW_PLAN
+        elif implied == ("revenue",):
+            # "How fast is Broadcom growing?": growth with no metric is revenue.
+            metric = "revenue"
         # "Meta margin Q2 2026 vs Q2 2025" compares periods of one company.
         compare_words = re.search(r"\b(?:compare|vs|versus)\b", normalized) and not (
             len(companies) == 1 and len(parse_named_periods(normalized)) >= 2
@@ -708,14 +744,11 @@ class DemoCompleter:
                 intent=Intent.COMPARE,
                 companies=tuple(companies),
                 metric=metric,
-                notes=segment_notes,
                 # "Rank Apple, Microsoft and Nvidia by revenue" orders the companies.
                 order_by_metric=_RANK_NAMED.search(normalized) is not None,
             )
         company = companies[0] if companies else _lookup_company(normalized)
-        return WorkflowPlan(
-            intent=Intent.LOOKUP, company=company, metric=metric, notes=segment_notes
-        )
+        return WorkflowPlan(intent=Intent.LOOKUP, company=company, metric=metric)
 
     def _unanswered_notes(
         self, query: str, normalized: str, plan: WorkflowPlan, mentions: list[CompanyMention]
@@ -777,10 +810,31 @@ def _question_parts(query: str) -> list[str]:
 
 
 _RANK_NAMED = re.compile(r"\b(?:rank|ranked|sort|sorted|order|ordered)\b")
+_LEADING_CLAUSE = re.compile(r"^(?P<lead>[^,]+),\s*(?P<rest>.+)$")
+
+
+def _without_preamble(normalized: str) -> str:
+    """A ranking after a leading clause, alone: "this quarter, top 5 banks by …".
+
+    The clause before the first comma is dropped when it names no measure and
+    ranks nothing itself, and what follows it is a ranking.
+    """
+    match = _LEADING_CLAUSE.match(normalized)
+    if match is None:
+        return normalized
+    lead, rest = match.group("lead"), match.group("rest")
+    if _RANK_WORDS.search(lead) or resolve_metric_phrases(lead):
+        return normalized
+    if _RANK_WORDS.search(rest) or _group_by_metric(rest) is not None:
+        return rest
+    return normalized
+
+
 # "chipmakers by free cash flow": a group and "by" a metric, with no "top", is a
 # ranking of the README's default length.
 _GROUP_BY_METRIC = re.compile(
-    r"^(?:(?:the|show|show me|list)\s+)?(?P<group>[a-z&][a-z&\- ]*?)"
+    r"^(?:(?:the|show|show me|list)\s+)?(?:\d+\s+(?!(?:quarters?|years?|months?)\b))?"
+    r"(?P<group>[a-z&][a-z&\- ]*?)"
     r"(?:\s+(?:companies|stocks|firms|names))?\s+by\s+(?P<rest>.+)$"
 )
 _GROUP_BY_METRIC_MAX_WORDS = 3
@@ -875,6 +929,7 @@ def _unfound_names(query: str, mentions: list[CompanyMention]) -> list[str]:
         if all(
             word in _METRIC_WORDS
             or word in _QUESTION_WORDS
+            or word in _CHANGE_WORDS
             or re.fullmatch(r"[qh]\d|fy\d*|\d+|cy\d*", word)
             for word in words
         ):
@@ -882,6 +937,15 @@ def _unfound_names(query: str, mentions: list[CompanyMention]) -> list[str]:
         if name not in found:
             found.append(name)
     return found
+
+
+# The words of a change ("Sequentially or versus last year", "QoQ and YoY"):
+# beside a list joiner they are not a name the planner failed to find.
+_CHANGE_WORDS = frozenset(
+    """
+    sequential sequentially qoq yoy y/y growth grew growing grown trend trending over on
+    """.split()  # noqa: SIM905
+)
 
 
 # Words a short question uses around a company and a figure, none a metric:

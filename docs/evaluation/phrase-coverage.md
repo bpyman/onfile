@@ -1,6 +1,6 @@
 # Phrase coverage
 
-Generated `2026-10-07T07:02:15.505556+00:00` on the recorded runtime with the rules planner. 518 everyday phrasings of a metric, a window, a change or a follow-up, each asked as a whole question and judged by the README's [How a question is read](../../README.md#how-a-question-is-read). No network and no model. **518 of 518 (100%) are read right**; the live app's cascade would send 14 to the LLM planner.
+Generated `2026-10-07T23:47:01.264190+00:00` on the recorded runtime with the rules planner. 555 everyday phrasings of a metric, a window, a change or a follow-up, each asked as a whole question and judged by the README's [How a question is read](../../README.md#how-a-question-is-read). No network and no model. **555 of 555 (100%) are read right**; the live app's cascade would send 14 to the LLM planner.
 
 | Group | Phrasings | Read right |
 | --- | ---: | ---: |
@@ -8,15 +8,19 @@ Generated `2026-10-07T07:02:15.505556+00:00` on the recorded runtime with the ru
 | Ambiguous metric words | 7 | 7 (100%) |
 | Windows | 41 | 41 (100%) |
 | Year over year | 11 | 11 (100%) |
+| Growth with no metric | 5 | 5 (100%) |
 | Quarter over quarter | 4 | 4 (100%) |
 | A named period with a change | 1 | 1 (100%) |
+| Both bases | 6 | 6 (100%) |
 | Changes with no base | 10 | 10 (100%) |
 | A change over a window | 13 | 13 (100%) |
 | Idioms beside a company | 6 | 6 (100%) |
+| Everyday-word names used as the word | 7 | 7 (100%) |
+| A segment names its company | 7 | 7 (100%) |
 | Overviews | 10 | 10 (100%) |
 | Unknown measures | 19 | 19 (100%) |
-| General questions | 16 | 16 (100%) |
-| Rankings | 14 | 14 (100%) |
+| General questions | 21 | 21 (100%) |
+| Rankings | 21 | 21 (100%) |
 | Follow-ups | 19 | 19 (100%) |
 | Change switches | 6 | 6 (100%) |
 | Combinations | 98 | 98 (100%) |

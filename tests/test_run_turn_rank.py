@@ -151,9 +151,11 @@ class _MissingIndustryCompleter:
 
 
 @pytest.mark.parametrize("intent", [Intent.RANK, Intent.RANK_AND_LOOKUP])
-def test_run_turn_refuses_missing_ranking_industry_from_injected_completer(
+def test_run_turn_ranks_every_company_when_the_planner_names_no_industry(
     intent: Intent,
 ) -> None:
+    # README, a ranking with no group: every company in the snapshot,
+    # whichever planner left the group out.
     runtime = replace(_snapshot_rank_runtime(), completer=_MissingIndustryCompleter(intent))
     query = (
         "rank companies by net income"
@@ -164,12 +166,8 @@ def test_run_turn_refuses_missing_ranking_industry_from_injected_completer(
     result = run_turn(query, runtime)
 
     assert result.intent is intent
-    assert result.renderer is RendererKind.REFUSE
-    assert result.tool_traces == []
-    assert result.message is not None
-    assert "unknown industry" in result.message.casefold()
-    for industry in ALLOWED_INDUSTRIES:
-        assert industry in result.message.casefold()
+    assert result.renderer is not RendererKind.REFUSE
+    assert result.tool_traces[0].args == {"industry": "companies", "limit": 10}
 
 
 def test_run_turn_refuses_unknown_ai_industry_with_allowed_names() -> None:

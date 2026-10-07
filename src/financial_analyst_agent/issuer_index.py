@@ -452,6 +452,8 @@ class IssuerIndex:
             for position, shape in enumerate(typed_shapes or ())
             if shape.before.endswith("$")
         }
+        # "intel aside", "to the micron": the word, not the company.
+        used = set() if company_slot else _word_use_positions(normalized)
         # One-word everyday names, judged once every other name is known.
         tentative: list[tuple[int, str, CompanyMention]] = []
         # Names several companies share: kept only where read as a company.
@@ -474,7 +476,7 @@ class IssuerIndex:
                 if any(taken[start : start + size]):
                     continue
                 phrase = " ".join(words[start : start + size])
-                if size == 1 and start in dollar:
+                if size == 1 and (start in dollar or start in used):
                     continue
                 shared = size == 1 and phrase not in self.phrases and phrase in self.shared
                 if shared:
@@ -859,6 +861,43 @@ _IDIOMS = re.compile(
     r"|oranges (?:to|with|for|and) (?:oranges|apples)"
     r"|(?:building|stumbling|road) blocks)\b"
 )
+# An everyday-word name used as the word, in a normalized question: "intel" as
+# information ("intel aside", "some intel on"), "micron" as a unit ("to the
+# micron", "a micron"), "the apple of", "an oracle for" (ADR 0010).
+_WORD_USES = re.compile(
+    r"\b(?:(?P<intel>intel) aside|(?:some|any|more|no) (?P<info>intel)"
+    r"|to the (?:nearest )?(?P<unit>micron)|(?:nearest|a) (?P<measure>micron)"
+    r"|the (?P<apple>apple) of|an (?P<oracle>oracle) (?:for|of))\b"
+)
+
+
+def word_uses(question: str) -> tuple[str, ...]:
+    """The everyday-word names ``question`` uses as the word, apples to apples included.
+
+    "Palantir operating income, intel aside" uses "intel"; a company named
+    beside the word ("Intel and Palantir") is named all the same.
+    """
+    normalized = normalize(question)
+    used = [
+        word
+        for match in _WORD_USES.finditer(normalized)
+        for word in match.groupdict().values()
+        if word is not None
+    ]
+    used += [word for idiom in _IDIOMS.findall(normalized) for word in idiom.split()]
+    return tuple(dict.fromkeys(used))
+
+
+def _word_use_positions(normalized: str) -> set[int]:
+    """Which words of a normalized question are an everyday-word name used as the word."""
+    return {
+        normalized[: match.start(name)].count(" ")
+        for match in _WORD_USES.finditer(normalized)
+        for name, word in match.groupdict().items()
+        if word is not None
+    }
+
+
 # Words before an everyday word that make it the word, not the company:
 # "its target", "the gap", "any intel", "price target".
 _WORD_BEFORE = frozenset(

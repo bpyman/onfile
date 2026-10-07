@@ -85,7 +85,7 @@ class HeldOutSet:
         return EVALUATION_DIR / f"held-out-{self.number}-overlap.json"
 
 
-HELD_OUT_SETS = (HeldOutSet(4, findings=True), HeldOutSet(5))
+HELD_OUT_SETS = (HeldOutSet(4, findings=True), HeldOutSet(5, findings=True))
 
 
 def current_held_out() -> HeldOutSet:

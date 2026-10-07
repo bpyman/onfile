@@ -64,6 +64,20 @@ label says the latest quarter, as the brief's rule does. But the analysis
 records the window asked for (4 quarters), and the evaluation reads the period
 from the analysis. The label and the screen agree; the record does not.
 
+## Fixed since the run
+
+`h5_gr_gs_both` showed the sequential change only because a quarter-over-quarter
+view adds the year-over-year change only where the year-earlier quarter is on
+screen, and the recording holds four Goldman quarters, so none was. Where the
+bases sat made no difference: "Goldman net interest income, sequentially or
+versus last year" failed the same way, and "Sequentially or versus last year,
+Cisco revenue" passed, on the one year-over-year row its five quarters allow.
+Naming both bases now carries a `sequential` operation beside `year_over_year`,
+so every quarter shown has both changes, year over year from its own
+comparative (held-out-5-findings ticket 01). The rules planner also no longer
+reads "Sequentially" or "QoQ and YoY" as names it could not find, so the
+cascade keeps its plan. Set 5 is development data from here on.
+
 ## What follows
 
 - The planners do not differ significantly on 160 cases. The cascade is the most
@@ -79,3 +93,93 @@ from the analysis. The label and the screen agree; the record does not.
   much the app is tuned to wording it has already seen.
 - Fixing any of these makes set 5 development data, so the next comparison needs
   a sixth held-out set.
+
+`h5_ow_intel_word`, `h5_ow_micron_measure` and `h5_ow_micron_unit` added the
+company an everyday word names: the index read "intel" in `intel aside` as
+Intel, and "micron" is not an everyday word in 10-Q text, so `to the micron`
+was always Micron. The issuer index now reads some uses of such a word as the
+word (`intel aside`, `any intel`, `to the micron`, `a micron`, `the apple of`,
+`an oracle for`), and the shared reading both planners pass through drops a
+company proposed from one unless the question names it as well, so the LLM
+planner's Apple in `h5_ow_apple_idiom` and Oracle in `h5_ow_oracle_word` go
+too (held-out-5-findings ticket 02). One LLM run of `h5_ow_apple_idiom` added
+three drugmakers for "the drug group"; those come from no everyday word, and
+this rule leaves them.
+
+`h5_mw_iphone` was refused by the rules planner for naming no company. A
+segment only one company reports now names it when the question names none
+(`iPhone`, `iPad`, `Mac` to Apple; `AWS` to Amazon; `Azure`, `Xbox` to
+Microsoft; `Google Cloud`, `YouTube` to Alphabet; `Instagram`, `WhatsApp` to
+Meta), in the rules planner's plan and in the shared reading, so the cascade
+keeps the rules plan and an LLM plan with no company gets the same company. The
+segment note moved from the rules planner's plan to the answer's shared notes,
+so it shows whichever planner planned (held-out-5-findings ticket 03).
+
+`h5_rk_banks_ni` and `h5_rk_drugs_gm` were refused by the rules planner: a
+count before a group `by` a metric ("5 banks by net income") was not read as a
+group, and a leading window ("Over the past year, the top 3 drugmakers by …")
+was read as the group's name. The rules planner now reads a ranking whatever
+comes first: a leading count is its length, and a clause before the first comma
+that names no measure and ranks nothing is set aside for the ranking (the window
+is still read from the whole question). Both are ranked by the rules planner,
+so the cascade keeps its plan. `h5_rk_drugs_gm`'s recorded period is ticket 05's
+(held-out-5-findings ticket 04).
+
+`h5_rk_drugs_gm`'s period: a ranking now records the latest quarter it shows,
+whichever planner planned it. The window asked for is said only in the
+ranking's note, so the "four latest quarters" banner no longer sits beside a
+ranking that shows one, and "add Pfizer" after it compares the latest quarter.
+A ranking's growth needs no window: each company's latest quarter is set
+against the comparative its filing reports (held-out-5-findings ticket 05).
+
+`h5_gr_fast_avgo` was read right by the rules planner, but its plan named no
+metric, so the cascade sent it on, and the LLM planner's run that refused
+proposed revenue: the shared reading refused a catalog metric the question
+does not name in words, even one its words imply. The rules planner now
+proposes what the shared reading implies (revenue, for growth with no metric),
+so the cascade keeps its plan, and the shared reading keeps a planner's metric
+when the wording implies it ("How fast is Broadcom growing?" as revenue), so a
+plan of revenue is answered whichever planner made it. A metric the wording
+does not imply is still refused (held-out-5-findings ticket 06).
+
+`h5_co_buyback` and `h5_co_volatile` were read by the LLM planner as general
+explanations, and the shared typing re-typed an explanation as a lookup only
+when no company was named. It now re-types one whose question names a recorded
+company and a catalog metric as that company's figure, with the why note where
+the question asks why, so "How does Apple's buyback affect its EPS?" is Apple's
+diluted EPS and "Why is Goldman's revenue so volatile?" Goldman's revenue
+whichever planner reads them. A company and no metric ("How might AI change
+Goldman Sachs's business?") stays an explanation (held-out-5-findings ticket 07).
+A question about what could happen ("How might AI change Apple's revenue?",
+"How could tariffs affect Nvidia's gross margin?") is an explanation even when it
+names a company and a catalog metric, whichever planner reads it and whichever
+intent it proposed; the shared reading (`asks_speculatively`) decides, and the
+rules planner reads it too. Held-out-4's `h4_other_explain_ai_drug_discovery`
+("How might generative AI change drug discovery?") is now the explanation its
+case expects (held-out-5-findings ticket 10).
+
+`h5_cl_drop` and `h5_cl_fall` were read by the LLM planner as news on one run of
+three, and the shared typing kept any news proposal as news. It now types a
+question that asks about a change but not against what as the figure it names,
+whatever intent the planner proposed, so "Why did NVIDIA's revenue drop?" and
+"What caused Pfizer's earnings to fall?" ask year over year or sequential
+whichever planner reads them, and "Why did revenue drop?" asks which company. A
+question that asks for news by name ("What's the news on why NVIDIA's revenue
+dropped?") stays news (held-out-5-findings ticket 08).
+
+`h5_rk_worth` was proposed by the LLM planner as a ranking with no industry,
+which the shared resolution refused as an unknown industry. A ranking with no
+group now ranks every company in the snapshot by market value, whichever
+planner left the group out, as the rules planner's does (held-out-5-findings
+ticket 09).
+When a planner leaves the group out, the shared typing reads the question for one
+as the rules planner does (`ranked_group`), so a group the snapshot does not know
+("top 10 companies in AI", "top 10 AI companies by revenue") is refused as an
+unknown industry whichever planner proposed the ranking; only words that name no
+group rank every company (held-out-5-findings ticket 11).
+Re-checked with the real LLM planner (7 October 2026), `h5_rk_worth` was proposed
+with a group, `industry='all US public companies'`, and refused as an unknown
+industry. A group the snapshot does not know, for words that name none, is the
+planner's paraphrase of every company, so it ranks every company; one the words
+do name ("top 10 companies in AI") is still refused, and a known group ("Banks -
+Diversified") is used (held-out-5-findings ticket 12).

@@ -29,12 +29,13 @@ from financial_analyst_agent.graph.analysis_spec import (
     SpecPatch,
 )
 from financial_analyst_agent.guide import short_name
-from financial_analyst_agent.issuer_index import CompanyNames
+from financial_analyst_agent.issuer_index import CompanyNames, word_uses
 from financial_analyst_agent.observability import log_event
 from financial_analyst_agent.period_window import SINCE_YEAR, asked_window
 from financial_analyst_agent.services.metric_catalog import (
     metric_phrases,
     resolve_metric_phrase,
+    segment_companies,
     without_trailing_year_words,
 )
 
@@ -359,6 +360,25 @@ _EXPLANATION = re.compile(
 _WHAT_IS = re.compile(r"^\W*what(?:['’]s| is| are) (?P<measure>.+?)[\s?.!]*$", re.IGNORECASE)
 
 
+# "How might AI change Apple's revenue?", "What if rates rise?": what could happen,
+# which no filed figure answers, even when a company and a metric are named
+# (README, general question). A request to the analyst ("How would you rank
+# banks?"), a follow-up ("How would that look sequentially?", "What if we look
+# at Microsoft?") and a comparison ("How would Apple's revenue compare ...") are not.
+_SPECULATIVE = re.compile(
+    r"\bhow (?:might|could|would) (?!(?:i|we|you|one|it|that|this|these|those|they)\b)"
+    r"(?!.*\bcompare\b)"
+    r"|\bwhat if (?!(?:i|we|you)\b)|\bwhat would happen\b",
+    re.IGNORECASE,
+)
+
+
+def asks_speculatively(message: str) -> bool:
+    """Whether the words ask what could happen: an explanation, marked as the
+    model's, even about a named company's figure, whichever planner reads it."""
+    return _SPECULATIVE.search(message) is not None
+
+
 def asks_for_explanation(message: str) -> bool:
     """Whether the words ask how something works rather than for a figure.
 
@@ -368,7 +388,7 @@ def asks_for_explanation(message: str) -> bool:
     EPS?" asks for a figure and names no company: it asks which company. The
     wording tells them apart, not the absence of a company alone.
     """
-    if _EXPLANATION.search(message) is not None:
+    if _EXPLANATION.search(message) is not None or asks_speculatively(message):
         return True
     asked = _WHAT_IS.match(message)
     return asked is not None and asked.group("measure").casefold() in metric_phrases()
@@ -561,9 +581,13 @@ def bind_metrics_from_message(
     # read as the overview its words ("performance") or its length would imply.
     implied = (
         implied_metrics(message, short=not unknown_word)
-        if _names_companies(patch) and not guessed and resolved.term is None
+        if _names_companies(patch) and resolved.term is None
         else ()
     )
+    if not set(guessed) <= set(implied):
+        # A slug the wording does not imply is the planner's alone. One it does
+        # ("How fast is Broadcom growing?" as revenue) is the wording's reading.
+        implied = ()
     if not implied and _names_companies(patch) and OVERVIEW_PLAN in patch.add_metrics:
         implied = OVERVIEW_METRICS
     if implied:
@@ -593,6 +617,50 @@ def _companies_named_in(companies: tuple[str, ...], text: str) -> tuple[str, ...
     return tuple(
         company for company in companies if f" {normalize_words(company)} " in words
     )
+
+
+def _without_word_uses(
+    patch: SpecPatch, message: str, index: CompanyNames | None
+) -> SpecPatch:
+    """A company proposed from an everyday word used as the word is dropped.
+
+    "Palantir operating income, intel aside" is Palantir's, whichever planner
+    added Intel; "Intel and Palantir operating income" names both (ADR 0010).
+    """
+    used = word_uses(message)
+    if index is None or not used or not patch.add_companies:
+        return patch
+    word_companies = {
+        query
+        for word in used
+        for query in (index.named(word), index.named(word.removesuffix("s")))
+        if query is not None
+    }
+    named = {mention.query for mention in index.find(message)}
+    kept = tuple(
+        company
+        for company in patch.add_companies
+        if (query := index.named(company)) is None
+        or query not in word_companies
+        or query in named
+    )
+    if kept == patch.add_companies:
+        return patch
+    return patch.model_copy(update={"add_companies": kept})
+
+
+def _with_segment_companies(patch: SpecPatch, message: str) -> SpecPatch:
+    """A question that names no company names the one its segment belongs to.
+
+    "iPhone sales" is Apple's revenue, whichever planner proposed no company;
+    "Microsoft iPhone sales" names Microsoft, and a ranking names a group.
+    """
+    if patch.add_companies or patch.ranked_request is not None:
+        return patch
+    companies = segment_companies(message)
+    if not companies:
+        return patch
+    return patch.model_copy(update={"add_companies": companies})
 
 
 def _company_tokens(text: str) -> tuple[str, ...]:
@@ -719,6 +787,37 @@ def comparison_asked(message: str) -> ComparisonBase | Literal["unclear"] | None
     return "unclear"
 
 
+# "news", "headlines": news asked for by name.
+_NEWS_BY_NAME = re.compile(r"\bnews\b|\bheadlines?\b", re.IGNORECASE)
+
+
+def asks_change_without_base(message: str) -> bool:
+    """Whether the words ask about a change but not against what, and not for news.
+
+    "Why did NVIDIA's revenue drop?" is asked against what (README, a change with
+    no base), whichever intent a planner proposed; "What's the news on why
+    NVIDIA's revenue dropped?" asks for news by name.
+    """
+    return comparison_asked(message) == "unclear" and _NEWS_BY_NAME.search(message) is None
+
+
+# "quarter over quarter instead of year over year": one base named to rule the
+# other out, not both asked for.
+_ONE_NOT_THE_OTHER = re.compile(r"\b(?:instead of|rather than|not)\b", re.IGNORECASE)
+
+
+def names_both_bases(message: str) -> bool:
+    """Whether the wording names both comparison bases ("sequentially or versus
+    last year", "quarter over quarter and year over year"), wherever they sit in
+    the question: both changes are shown (README's changes row).
+    """
+    return (
+        _SEQUENTIAL.search(message) is not None
+        and EXPLICIT_YOY.search(message) is not None
+        and _ONE_NOT_THE_OTHER.search(message) is None
+    )
+
+
 def _asks_change(message: str) -> bool:
     """A change asked about in words that name no base ("how much did revenue change?").
 
@@ -781,6 +880,9 @@ def bind_periods_from_message(
     yoy = YOY.search(message) is not None or _asks_change(message)
     # "quarter over quarter" is a window of sequential changes.
     sequential = _SEQUENTIAL.search(message) is not None
+    # "sequentially or versus last year": both changes, each quarter's year over
+    # year from its own comparative beside its change on the quarter before.
+    both = names_both_bases(message)
     if asked is None and (yoy or sequential) and _YEAR_BASE.search(message) is not None:
         # "How did EBITDA change over the past year?": a change over a year named
         # with no count is over that year's four quarters, as "growth over the
@@ -798,6 +900,8 @@ def bind_periods_from_message(
             operations = (*operations, "across_periods")
         if comparison_asked(message) == "year_over_year" and "year_over_year" not in operations:
             operations = (*operations, "year_over_year")
+        if both:
+            operations = _with_operations(operations, "year_over_year", "sequential")
         return patch.model_copy(
             update={
                 "set_periods": PeriodSelection(
@@ -826,6 +930,8 @@ def bind_periods_from_message(
             operations = (*operations, "across_periods")
         if comparison_asked(message) == "year_over_year" and "year_over_year" not in operations:
             operations = (*operations, "year_over_year")
+        if both:
+            operations = _with_operations(operations, "year_over_year", "sequential")
         return patch.model_copy(
             update={
                 "set_periods": PeriodSelection(
@@ -840,11 +946,7 @@ def bind_periods_from_message(
             return patch.model_copy(
                 update={
                     "set_periods": PeriodSelection(),
-                    "remove_operations": (
-                        *patch.remove_operations,
-                        "across_periods",
-                        "year_over_year",
-                    ),
+                    "remove_operations": (*patch.remove_operations, *_CHANGE_OPERATIONS),
                 }
             )
         return patch
@@ -856,6 +958,8 @@ def bind_periods_from_message(
     explicit_yoy = comparison_asked(message) == "year_over_year"
     if explicit_yoy and "year_over_year" not in operations:
         operations = (*operations, "year_over_year")
+    if both:
+        operations = _with_operations(operations, "year_over_year", "sequential")
     if asked is None and patch.set_periods is not None:
         return patch.model_copy(update={"add_operations": operations})
     count = asked if asked is not None else 5
@@ -889,12 +993,17 @@ def bind_periods_from_message(
     )
 
 
+def _with_operations(operations: tuple[str, ...], *names: str) -> tuple[str, ...]:
+    """The operations with each name appended once."""
+    return tuple(dict.fromkeys([*operations, *names]))
+
+
 def _extend(patch: SpecPatch, **fields: Any) -> SpecPatch:
     """The patch as an edit of the current analysis rather than a new ranking."""
     return patch.model_copy(update={"mode": "extend", "ranked_request": None, **fields})
 
 
-_CHANGE_OPERATIONS = ("across_periods", "year_over_year")
+_CHANGE_OPERATIONS = ("across_periods", "year_over_year", "sequential")
 
 # "lowest first", "smallest first", "ascending": the same companies, ordered from the
 # lowest value of the metric. "Largest first" and "descending" turn it back.
@@ -1036,9 +1145,10 @@ def refine_patch_from_message(
     which companies the words name.
     """
     window = window or read_window(message)
+    patch = _without_word_uses(patch, message, index)
     patch = bind_periods_from_message(patch, message, window=window)
     if current_spec is None:
-        return patch
+        return _with_segment_companies(patch, message)
     return _keep_window_for_change(
         _refine_against(patch, message, current_spec, index), message, current_spec, window
     )
@@ -1072,27 +1182,43 @@ def _keep_window_for_change(
         or parse_named_periods(message)
     ):
         return patch
+    if names_both_bases(message):
+        # "Sequentially or versus last year": both changes on the quarters shown.
+        return _switch_to_sequential(patch, on_screen, both=True)
     if base == "sequential":
         return _switch_to_sequential(patch, on_screen)
+    # Year over year alone: a sequential change asked beside it goes.
+    removed = tuple(dict.fromkeys([*patch.remove_operations, "sequential"]))
     if on_screen.company_base_dates is not None:
         # The quarters before a quarter-over-quarter change's named ones are no
         # longer a base.
         return patch.model_copy(
-            update={"set_periods": on_screen.model_copy(update={"company_base_dates": None})}
+            update={
+                "set_periods": on_screen.model_copy(update={"company_base_dates": None}),
+                "remove_operations": removed,
+            }
         )
-    return patch.model_copy(update={"set_periods": None})
+    return patch.model_copy(update={"set_periods": None, "remove_operations": removed})
 
 
-def _switch_to_sequential(patch: SpecPatch, on_screen: PeriodSelection) -> SpecPatch:
+def _switch_to_sequential(
+    patch: SpecPatch, on_screen: PeriodSelection, *, both: bool = False
+) -> SpecPatch:
     """The quarters on screen, each with its change on the quarter before.
 
-    The year-over-year change goes. A counted window reads one quarter more than
-    it shows, the oldest quarter's base; a named period reads the quarter before
-    each named quarter the same way; a "since" window keeps its quarters as
-    listed, so its oldest shows no change.
+    The year-over-year change goes, unless ``both`` were named ("sequentially or
+    versus last year"), when it stays beside. A counted window reads one quarter
+    more than it shows, the oldest quarter's base; a named period reads the
+    quarter before each named quarter the same way; a "since" window keeps its
+    quarters as listed, so its oldest shows no change.
     """
-    added = tuple(op for op in patch.add_operations if op != "year_over_year")
-    removed = tuple(dict.fromkeys([*patch.remove_operations, "year_over_year"]))
+    if both:
+        added = _with_operations(patch.add_operations, "year_over_year", "sequential")
+        removed = patch.remove_operations
+    else:
+        bases = ("year_over_year", "sequential")
+        added = tuple(op for op in patch.add_operations if op not in bases)
+        removed = tuple(dict.fromkeys([*patch.remove_operations, *bases]))
     periods: PeriodSelection | None
     if on_screen.kind == "named":
         # Listed afresh, so each named quarter's base is listed with it.

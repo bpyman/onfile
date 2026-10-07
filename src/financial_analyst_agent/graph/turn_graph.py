@@ -28,6 +28,7 @@ in ``clarify``, which decides whether it answers the held question.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Literal
 
@@ -76,16 +77,20 @@ from financial_analyst_agent.guide import (
 from financial_analyst_agent.issuer_index import CompanyNames
 from financial_analyst_agent.observability import call_provider, log_event
 from financial_analyst_agent.request_wording import (
+    asks_change_without_base,
     asks_for_explanation,
+    asks_speculatively,
     planner_window,
     read_window,
 )
+from financial_analyst_agent.rules_planner import ranked_group
 from financial_analyst_agent.services.metric_catalog import resolve_metric_phrase
 from financial_analyst_agent.turn import (
     current_events_answer,
     explain_answer,
     exploratory_research_answer,
 )
+from financial_analyst_agent.universe import WHOLE_MARKET
 
 Node = Literal[
     "interpret",
@@ -137,24 +142,38 @@ def _names_a_company(proposal: WorkflowPlan | SpecPatch) -> bool:
     return bool(company or proposal.companies)
 
 
-def _figure_with_no_company(message: str, deps: TurnDeps) -> WorkflowPlan | None:
-    """The lookup "What's the EPS?" asks for, when a planner read it as an explanation.
+def _figure_asked(message: str, deps: TurnDeps, *, change: bool = False) -> WorkflowPlan | None:
+    """The lookup a figures question asks for, when a planner read it as an explanation.
 
-    It names a catalog metric, names no company and has none of the explanation
-    wording: a figures question with no company, which asks which company
-    (README, general question). "What is EPS?" and "How might AI change
-    banking?" stay explanations: the one asks what the measure is, the other
-    names no catalog metric.
+    It names a catalog metric. With a recorded company named, it is that company's
+    figure, however it is worded: "Why is Goldman's revenue so volatile?" (README,
+    the why row; the why note comes from the words). With none, it asks which
+    company only where none of the explanation wording is there: "What's the EPS?"
+    (README, general question). "What is EPS?", "How might AI change banking?" and
+    "How might AI change Goldman Sachs's business?" stay explanations: the first
+    asks what the measure is, the others name no catalog metric. A change asked
+    with no base (``change``) is a figure with or without that wording: "Why did
+    revenue drop?" asks which company, as it does from the rules planner.
     """
-    if asks_for_explanation(message):
-        return None
     resolved = resolve_metric_phrase(message)
     if resolved.kind == "unknown":
         return None
     index = names_index(deps.runtime)
-    if index is not None and index.find(message):
+    mentions = index.find(message) if index is not None else []
+    companies = tuple(dict.fromkeys(mention.query for mention in mentions))
+    if len(companies) == 1:
+        return WorkflowPlan(intent=Intent.LOOKUP, company=companies[0], metric=resolved.metric)
+    if companies:
+        return WorkflowPlan(intent=Intent.COMPARE, companies=companies, metric=resolved.metric)
+    if asks_for_explanation(message) and not change:
         return None
     return WorkflowPlan(intent=Intent.LOOKUP, metric=resolved.metric)
+
+
+def _known_group(industry: str, deps: TurnDeps) -> bool:
+    """Whether the snapshot ranks ``industry``; a ranking that cannot say knows it."""
+    knows: Callable[[str], bool] | None = getattr(deps.runtime.ranking, "knows_industry", None)
+    return knows is None or knows(industry)
 
 
 def request_from_proposal(
@@ -163,15 +182,20 @@ def request_from_proposal(
     """Type the planner's proposal: one of the closed request kinds, or an error."""
     if isinstance(proposal, WorkflowPlan) and is_filing_change_proposal(proposal):
         return bind_filing_change(proposal, message)
-    if isinstance(proposal, WorkflowPlan) and proposal.intent is Intent.EXPLAIN:
-        proposal = _figure_with_no_company(message, deps) or proposal
-    if (
-        is_structured_proposal(proposal)
-        and not _names_a_company(proposal)
-        and asks_for_explanation(message)
+    speculative = asks_speculatively(message)
+    if isinstance(proposal, WorkflowPlan) and is_qualitative_proposal(proposal) and not speculative:
+        # "Why did NVIDIA's revenue drop?" asks against what, whichever intent a
+        # planner proposed, unless it asks for news by name.
+        change = asks_change_without_base(message)
+        if change or proposal.intent is Intent.EXPLAIN:
+            proposal = _figure_asked(message, deps, change=change) or proposal
+    if is_structured_proposal(proposal) and (
+        speculative or (not _names_a_company(proposal) and asks_for_explanation(message))
     ):
         # "Explain how a share buyback affects EPS": a general question that names
         # a metric, whichever planner read it as a figure with no company.
+        # "How might AI change Apple's revenue?": what could happen, even with a
+        # company named; the latest figure answers none of it.
         return QualitativeRequest(intent=Intent.EXPLAIN, topic=message)
     if isinstance(proposal, WorkflowPlan) and is_qualitative_proposal(proposal):
         topic = proposal.topic
@@ -179,6 +203,25 @@ def request_from_proposal(
         return QualitativeRequest.model_validate(
             {"intent": proposal.intent, "topic": topic if topic and topic.strip() else message}
         )
+    if (
+        isinstance(proposal, WorkflowPlan)
+        and proposal.intent in (Intent.RANK, Intent.RANK_AND_LOOKUP)
+        and not (proposal.industry and proposal.industry.strip())
+    ):
+        # "top 10 companies in AI": a group the words name is read from them when a
+        # planner leaves it out, so one the snapshot does not know is refused;
+        # only words that name no group rank every company.
+        proposal = proposal.model_copy(update={"industry": ranked_group(message)})
+    elif (
+        isinstance(proposal, WorkflowPlan)
+        and proposal.intent in (Intent.RANK, Intent.RANK_AND_LOOKUP)
+        and not _known_group(proposal.industry or "", deps)
+        and ranked_group(message) == WHOLE_MARKET
+    ):
+        # "which companies are worth the most?" proposed as "all US public
+        # companies": a group the snapshot does not know, for words that name
+        # none, is the planner's paraphrase of every company, not the analyst's.
+        proposal = proposal.model_copy(update={"industry": WHOLE_MARKET})
     if is_structured_proposal(proposal):
         # A planner's window stands only where the words ask about time.
         window = read_window(message)
