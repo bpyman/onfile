@@ -483,6 +483,53 @@ FOLLOW_UPS: tuple[tuple[str, str, Check, str], ...] = (
 )
 
 
+
+def _switched_to(comparison: str, count: int) -> Check:
+    """The quarters on screen, each with the change switched to, and only that one asked."""
+
+    def check(seen: Observation, turn: ConversationTurn) -> bool:
+        spec = turn.analysis_spec
+        return (
+            seen.outcome in ("answer", "no_data")
+            and seen.periods == ("last_n_quarters", count)
+            and spec is not None
+            and ("year_over_year" in spec.operations) == (comparison == "year_over_year")
+            and _each_quarter_changed(turn, comparison)
+        )
+
+    return check
+
+
+# After a year-over-year view, "sequential instead" switches the change and keeps
+# the quarters on screen; "year over year instead" switches back the same way.
+_YOY_VIEW = "Apple revenue over the last 6 quarters year over year"
+_QOQ_VIEW = "Apple revenue over the last 6 quarters quarter over quarter"
+CHANGE_SWITCHES: tuple[tuple[tuple[str, ...], Check, str], ...] = (
+    (
+        ("Apple revenue over the last 6 quarters", "as growth", "sequential instead"),
+        _switched_to("sequential", 6),
+        "6 quarters, sequential",
+    ),
+    ((_YOY_VIEW, "sequential instead"), _switched_to("sequential", 6), "6 quarters, sequential"),
+    (
+        (_YOY_VIEW, "quarter over quarter instead"),
+        _switched_to("sequential", 6),
+        "6 quarters, sequential",
+    ),
+    ((_YOY_VIEW, "make it sequential"), _switched_to("sequential", 6), "6 quarters, sequential"),
+    (
+        (_QOQ_VIEW, "year over year instead"),
+        _switched_to("year_over_year", 6),
+        "6 quarters, year over year",
+    ),
+    (
+        (_QOQ_VIEW, "make it year over year"),
+        _switched_to("year_over_year", 6),
+        "6 quarters, year over year",
+    ),
+)
+
+
 # The combinations. Each dimension's values are read right alone (above); here
 # every pair of values from two dimensions is asked together at least once.
 COMBINED_COMPANIES: tuple[tuple[str, tuple[str, ...]], ...] = (
@@ -783,6 +830,10 @@ def cases() -> list[PhraseCase]:
                 expected,
                 check,
             )
+        )
+    for turns, check, expected in CHANGE_SWITCHES:
+        found.append(
+            PhraseCase(f"switch:{' | '.join(turns)}", "Change switches", turns, expected, check)
         )
     return [*found, *_combined_cases(), *_combined_follow_up_cases()]
 

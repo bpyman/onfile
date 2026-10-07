@@ -1025,28 +1025,33 @@ def refine_patch_from_message(
 def _keep_window_for_change(
     patch: SpecPatch, message: str, current_spec: AnalysisSpec, window: WindowReading
 ) -> SpecPatch:
-    """ "Show that year over year" keeps the quarters on screen.
+    """ "Show that year over year" and "sequential instead" keep the quarters on screen.
 
     With no window named, year over year shows 8 quarters and growth 5: the 8
     were four quarters with the year before each, the 5 four with the year-earlier
     base of the newest. Each quarter's base is now the comparative its own filing
     reports (ADR 0009), so a window the analyst already has needs no extra rows,
     nor does a named period, read as on a window. A sequential change reads the
-    quarter before the oldest one shown as its base, without showing it.
+    quarter before the oldest one shown as its base, without showing it: after a
+    year-over-year view, "sequential instead" switches the change to that one
+    and keeps the quarters, as "year over year instead" switches back (ADR 0010).
     """
     on_screen = current_spec.periods
+    base = comparison_asked(message)
     if (
         patch.mode != "extend"
         or patch.set_periods is None
         or on_screen.kind == "latest_quarter"
-        or (on_screen.kind == "last_n_quarters" and (on_screen.count or 1) <= 1)
-        or comparison_asked(message) != "year_over_year"
+        or (on_screen.kind == "last_n_quarters" and (on_screen.shown or 1) <= 1)
+        or base not in ("year_over_year", "sequential")
         or window.counted_window
         or window.trailing_year
         or _names_a_span(message)
         or parse_named_periods(message)
     ):
         return patch
+    if base == "sequential":
+        return _switch_to_sequential(patch, on_screen)
     if on_screen.company_base_dates is not None:
         # The quarters before a quarter-over-quarter change's named ones are no
         # longer a base.
@@ -1054,6 +1059,31 @@ def _keep_window_for_change(
             update={"set_periods": on_screen.model_copy(update={"company_base_dates": None})}
         )
     return patch.model_copy(update={"set_periods": None})
+
+
+def _switch_to_sequential(patch: SpecPatch, on_screen: PeriodSelection) -> SpecPatch:
+    """The quarters on screen, each with its change on the quarter before.
+
+    The year-over-year change goes. A counted window reads one quarter more than
+    it shows, the oldest quarter's base; a named period reads the quarter before
+    each named quarter the same way; a "since" window keeps its quarters as
+    listed, so its oldest shows no change.
+    """
+    added = tuple(op for op in patch.add_operations if op != "year_over_year")
+    removed = tuple(dict.fromkeys([*patch.remove_operations, "year_over_year"]))
+    periods: PeriodSelection | None
+    if on_screen.kind == "named":
+        # Listed afresh, so each named quarter's base is listed with it.
+        periods = PeriodSelection(kind="named", named=on_screen.named, company_base_dates=())
+    elif on_screen.asked is not None or on_screen.since_year is not None:
+        # Already read with its base, or every quarter since a year: unchanged.
+        periods = None
+    else:
+        shown = on_screen.count or 1
+        periods = PeriodSelection(kind="last_n_quarters", count=shown + 1, asked=shown)
+    return patch.model_copy(
+        update={"set_periods": periods, "add_operations": added, "remove_operations": removed}
+    )
 
 
 def _refine_against(

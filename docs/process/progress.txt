@@ -2001,3 +2001,49 @@ Blockers / next:
   which company before and ranking now. Noted, not fixed: `lowest first` as a first turn with
   nothing on screen refuses with "Unknown metric 'unknown'", as any order-only message did
   before. Tickets 05-07 in probe-round-3-gaps remain.
+
+## 2026-10-07 — probe-round-3-gaps 05 "Sequential instead" switches the change and keeps the quarters
+
+Task completed: `docs/process/tickets/probe-round-3-gaps/issues/05-sequential-instead.md`
+
+Key decisions:
+- The fix is in the shared reading of follow-up words (`_keep_window_for_change` in
+  `request_wording.py`), which both planners pass through (ADR 0010, 0011). It kept the window
+  on screen only for a year-over-year follow-up; a sequential one fell through to the default
+  five quarters with the year-over-year operation still set. Now `sequential instead`, `quarter
+  over quarter instead` and `make it sequential` with no window of their own read the quarters
+  on screen plus the one before the oldest, as the base read but not shown (`count = shown + 1`,
+  `asked = shown`), and take `year_over_year` out (`_switch_to_sequential`).
+- A named period on screen is listed afresh with `company_base_dates=()`, so each named
+  quarter's base is listed with it, as the direct question does; a "since" window, or one
+  already read with its base, keeps its periods as they are.
+- The switched answer is the view the direct quarter-over-quarter question gives, column for
+  column, so it still shows a "YoY change" column beside "QoQ change" where the year-earlier
+  quarter is on screen. The ticket's "no year-over-year" is read as the operation and chip, and
+  the point is recorded in `docs/process/rules-to-review.md` for a person to decide.
+- `year over year instead` and `make it year over year` after a sequential view already kept
+  the quarters (the base quarter stays read, and the merge leaves it out); tests now pin it.
+- `show that quarter over quarter` after four quarters used to widen the window to five shown;
+  it now shows the four with the fifth read as the base. The unit test's expectation predated
+  the README's rule and was updated.
+- ADR 0010's "Growth is year over year" paragraph names the switch; the README already did.
+
+Files changed:
+- `src/financial_analyst_agent/request_wording.py`, `phrase_coverage.py` (+6 `CHANGE_SWITCHES`
+  cases under "Change switches", none sent to the model)
+- `tests/unit/test_planner_wording.py` (+3 tests, one expectation updated),
+  `tests/test_recorded_regressions.py` (+2 tests comparing the switched view with the direct
+  question's)
+- `docs/adr/0010-one-reading-of-names-and-windows.md`, `docs/process/rules-to-review.md`,
+  `scripts/compare_answers.py` (+`Apple revenue over the last 6 quarters | as growth |
+  sequential instead`, +`Apple revenue over the last 6 quarters quarter over quarter | year over
+  year instead`), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,147 Python tests pass; ruff and mypy pass; compare_answers reports
+  `1 of 259 conversations differ from HEAD`, the ticket's conversation: 5 quarters with
+  year-over-year change before, 6 quarters with sequential change now. The reverse conversation
+  does not differ. Noted, not fixed: `Apple revenue since 2025 year over year` reads "2025" as
+  a count ("asks for 40 rather than 8100") where `Apple revenue since 2025` reads the year.
+  Tickets 06-07 in probe-round-3-gaps remain.
+

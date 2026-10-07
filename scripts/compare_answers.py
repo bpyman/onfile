@@ -51,6 +51,8 @@ EXTRA = [
     ["Apple and Microsoft revenue fiscal 2025"],
     ["Apple and Microsoft revenue calendar Q2 2026"],
     ["Apple revenue growth last 4 quarters"],
+    ["Apple revenue over the last 6 quarters", "as growth", "sequential instead"],
+    ["Apple revenue over the last 6 quarters quarter over quarter", "year over year instead"],
     ["Apple revenue since 2024"],
     ["Apple revenue since 2015"],
     ["Apple revenue", "add Tesla", "last 4 quarters"],

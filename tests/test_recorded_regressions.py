@@ -13,6 +13,7 @@ from decimal import Decimal
 import pytest
 
 from financial_analyst_agent.contracts import Intent, RendererKind, Runtime
+from financial_analyst_agent.presentation import Presentation
 from financial_analyst_agent.runtime import recorded_runtime
 from financial_analyst_agent.turn import run_turn
 from helpers import FakeFacts
@@ -370,6 +371,48 @@ def test_a_comparison_with_one_company_left_on_screen_is_a_lookup(runtime: Runti
     assert one_left.intent is Intent.LOOKUP
     assert {row.ticker for row in one_left.table_rows if row.value is not None} == {"AAPL"}
     assert two.intent is Intent.COMPARE
+
+
+def _table_shown(answer: Presentation) -> tuple[list[str], list[list[str]]]:
+    assert answer.table is not None, answer.message
+    return answer.table.headers, answer.table.rows
+
+
+def test_sequential_instead_switches_the_change_and_keeps_the_quarters(
+    runtime: Runtime,
+) -> None:
+    # README's quarter-over-quarter row (probe-round-3-gaps ticket 05): the switch
+    # ends on the view the direct question gives, with the same six quarters.
+    from conversation_replay import replay
+
+    switched = replay(
+        runtime, "Apple revenue over the last 6 quarters", "as growth", "sequential instead"
+    )
+    direct = replay(runtime, "Apple revenue over the last 6 quarters quarter over quarter")
+
+    headers, rows = _table_shown(switched.answers[-1])
+    assert len(rows) == 6
+    assert "QoQ change" in headers
+    assert (headers, rows) == _table_shown(direct.answers[-1])
+    assert switched.chips == direct.chips == ("AAPL", "Revenue", "Last 6 quarters")
+
+
+def test_year_over_year_instead_switches_back_and_keeps_the_quarters(runtime: Runtime) -> None:
+    from conversation_replay import replay
+
+    switched = replay(
+        runtime,
+        "Apple revenue over the last 6 quarters quarter over quarter",
+        "year over year instead",
+    )
+    direct = replay(runtime, "Apple revenue over the last 6 quarters year over year")
+
+    headers, rows = _table_shown(switched.answers[-1])
+    assert len(rows) == 6
+    assert "QoQ change" not in headers
+    assert (headers, rows) == _table_shown(direct.answers[-1])
+    assert switched.chips == direct.chips
+    assert switched.chips == ("AAPL", "Revenue", "Last 6 quarters", "Year over year")
 
 
 def test_a_missing_fact_keeps_a_comparison() -> None:

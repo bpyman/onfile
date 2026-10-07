@@ -403,23 +403,27 @@ def test_a_year_over_year_follow_up_keeps_the_window_on_screen(message: str, sho
 
 
 @pytest.mark.parametrize(
-    ("message", "count"),
+    ("message", "periods"),
     [
         # A window the follow-up names is the window.
-        ("show that year over year for the last 3 quarters", 3),
-        # A sequential change needs the quarter before the oldest one shown.
-        ("show that quarter over quarter", 5),
+        ("show that year over year for the last 3 quarters", _window(3)),
+        # A sequential change reads the quarter before the oldest one shown as
+        # its base, and still shows the four on screen.
+        (
+            "show that quarter over quarter",
+            PeriodSelection(kind="last_n_quarters", count=5, asked=4),
+        ),
     ],
 )
 def test_a_change_follow_up_that_needs_or_names_quarters_sets_them(
-    message: str, count: int
+    message: str, periods: PeriodSelection
 ) -> None:
     spec, index = _spec("AMGN", "GILD", metrics=("revenue",))
     spec = spec.model_copy(update={"periods": _window(4)})
 
     patch = refine_patch_from_message(SpecPatch(mode="extend"), message, spec, index=index)
 
-    assert apply_patch(spec, patch).periods == _window(count)
+    assert apply_patch(spec, patch).periods == periods
 
 
 @pytest.mark.parametrize("message", ["show that year over year", "as growth", "yoy please"])
@@ -470,6 +474,63 @@ def test_year_over_year_after_the_latest_quarter_shows_two_years() -> None:
     )
 
     assert apply_patch(spec, patch).periods == _window(8)
+
+
+@pytest.mark.parametrize(
+    "message", ["sequential instead", "quarter over quarter instead", "make it sequential"]
+)
+def test_a_sequential_follow_up_switches_the_change_and_keeps_the_window(message: str) -> None:
+    # README's quarter-over-quarter row (probe-round-3-gaps ticket 05): after a
+    # year-over-year view, the change switches and the quarters on screen stay.
+    spec, index = _spec("AAPL", metrics=("revenue",))
+    spec = spec.model_copy(
+        update={"periods": _window(6), "operations": ("across_periods", "year_over_year")}
+    )
+
+    patch = refine_patch_from_message(SpecPatch(mode="extend"), message, spec, index=index)
+    draft = apply_patch(spec, patch)
+
+    # The quarter before the oldest one shown is read as its base, not shown.
+    assert draft.periods == PeriodSelection(kind="last_n_quarters", count=7, asked=6)
+    assert draft.operations == ("across_periods",)
+
+
+def test_a_sequential_follow_up_keeps_a_named_period() -> None:
+    spec, index = _spec("AAPL", metrics=("revenue",))
+    named = (NamedPeriodSpec(year=2025),)
+    spec = spec.model_copy(
+        update={
+            "periods": PeriodSelection(kind="named", named=named),
+            "operations": ("across_periods", "year_over_year"),
+        }
+    )
+
+    patch = refine_patch_from_message(
+        SpecPatch(mode="extend"), "sequential instead", spec, index=index
+    )
+    draft = apply_patch(spec, patch)
+
+    assert draft.periods == PeriodSelection(kind="named", named=named, company_base_dates=())
+    assert draft.operations == ("across_periods",)
+
+
+@pytest.mark.parametrize("message", ["year over year instead", "make it year over year"])
+def test_year_over_year_instead_after_a_sequential_window_keeps_the_quarters(
+    message: str,
+) -> None:
+    spec, index = _spec("AAPL", metrics=("revenue",))
+    spec = spec.model_copy(
+        update={
+            "periods": PeriodSelection(kind="last_n_quarters", count=7, asked=6),
+            "operations": ("across_periods",),
+        }
+    )
+
+    patch = refine_patch_from_message(SpecPatch(mode="extend"), message, spec, index=index)
+    draft = apply_patch(spec, patch)
+
+    assert draft.periods.shown == 6
+    assert "year_over_year" in draft.operations
 
 
 @pytest.mark.parametrize(
