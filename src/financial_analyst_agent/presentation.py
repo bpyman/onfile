@@ -804,6 +804,9 @@ def _period_chip(spec: AnalysisSpec) -> tuple[str, bool]:
         # A ranking shows each company's latest quarter whatever period was named.
         return "Latest quarter", False
     periods = spec.periods
+    if periods.kind == "last_n_quarters" and periods.since_year is not None:
+        # Every filed quarter since that January: the count is the filings', not asked.
+        return f"Since {periods.since_year}", True
     if periods.kind == "last_n_quarters":
         return ("Last quarter" if periods.shown == 1 else f"Last {periods.shown} quarters"), True
     if periods.kind == "named":

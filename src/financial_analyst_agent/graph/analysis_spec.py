@@ -44,10 +44,14 @@ class PeriodSelection(BaseModel):
     first company's (Walmart's April quarter beside Microsoft's March one).
     ``named`` periods are fiscal quarters or years the analyst named; each
     company's own filings say which quarter ends they cover (ADR 0007).
+    ``since_year`` makes a ``last_n_quarters`` window "since 2024": every filed
+    quarter that ended on or after 1 January of that year, chosen where the
+    company's report dates are listed; until then ``count`` is the window cap.
     """
 
     kind: Literal["latest_quarter", "last_n_quarters", "named"] = "latest_quarter"
     count: int | None = None
+    since_year: int | None = None
     report_dates: tuple[date, ...] = ()
     company_report_dates: tuple[tuple[str, tuple[date, ...]], ...] = ()
     named: tuple[NamedPeriodSpec, ...] = ()

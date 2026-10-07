@@ -89,6 +89,87 @@ def test_each_fiscal_calendar_asks_for_its_own_quarters() -> None:
     )
 
 
+# Quarter ends back to 2023: a "since 2024" window keeps those on or after 1 January 2024.
+_AAPL_SINCE = (
+    date(2026, 6, 27),
+    date(2026, 3, 28),
+    date(2025, 12, 27),
+    date(2025, 9, 27),
+    date(2025, 6, 28),
+    date(2025, 3, 29),
+    date(2024, 12, 28),
+    date(2024, 9, 28),
+    date(2024, 6, 29),
+    date(2024, 3, 30),
+    date(2023, 12, 30),
+    date(2023, 9, 30),
+)
+# Walmart's year ends in January: its quarter ended 31 January 2024 is since 2024.
+_WMT_SINCE = (
+    date(2026, 4, 30),
+    date(2026, 1, 31),
+    date(2025, 10, 31),
+    date(2025, 7, 31),
+    date(2025, 4, 30),
+    date(2025, 1, 31),
+    date(2024, 10, 31),
+    date(2024, 7, 31),
+    date(2024, 4, 30),
+    date(2024, 1, 31),
+    date(2023, 10, 31),
+)
+
+
+class _LongListing(FakeFacts):
+    def __init__(self) -> None:
+        self.limits: list[int] = []
+
+    def list_quarterly_report_dates(self, company: str, *, limit: int) -> tuple[date, ...]:
+        self.limits.append(limit)
+        return {"Apple": _AAPL_SINCE, "Walmart": _WMT_SINCE}[company][:limit]
+
+
+def _since(year: int, *queries: str) -> AnalysisSpec:
+    return AnalysisSpec(
+        companies=tuple(_company(query) for query in queries),
+        metrics=("revenue",),
+        periods=PeriodSelection(kind="last_n_quarters", count=40, since_year=year),
+    )
+
+
+def test_a_since_window_is_every_quarter_ended_on_or_after_that_january() -> None:
+    runtime = _Runtime()
+    runtime.facts = _LongListing()
+
+    spec = materialize_period_dates(_since(2024, "Apple"), runtime)  # type: ignore[arg-type]
+
+    # The cap is the listing's limit; the window is the quarters since 1 January 2024.
+    assert runtime.facts.limits == [40]
+    assert spec.periods.report_dates == _AAPL_SINCE[:10]
+    assert (spec.periods.count, spec.periods.since_year) == (10, 2024)
+    assert spec.periods.asked is None
+
+
+def test_each_company_keeps_its_own_quarters_since_that_january() -> None:
+    runtime = _Runtime()
+    runtime.facts = _LongListing()
+
+    spec = materialize_period_dates(_since(2024, "Apple", "Walmart"), runtime)  # type: ignore[arg-type]
+
+    own = dict(spec.periods.company_report_dates)
+    assert own["Walmart"] == _WMT_SINCE[:10]
+    assert own["Walmart"][-1] == date(2024, 1, 31)
+
+
+def test_a_since_window_with_no_quarter_yet_shows_the_latest() -> None:
+    runtime = _Runtime()
+    runtime.facts = _LongListing()
+
+    spec = materialize_period_dates(_since(2027, "Apple"), runtime)  # type: ignore[arg-type]
+
+    assert spec.periods.report_dates == _AAPL_SINCE[:1]
+
+
 def test_adding_a_company_lists_only_that_company() -> None:
     runtime = _Runtime()
     spec = materialize_period_dates(_window("Microsoft"), runtime)  # type: ignore[arg-type]

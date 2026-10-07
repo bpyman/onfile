@@ -35,3 +35,10 @@ Each entry: date, ticket, where, the rule, why it looks wrong, what the agent di
 - **Why it looks wrong:** `the past decade` shows 40 quarters (a phrase-coverage case), so a plain window does go to 40, but `revenue since 2000` shows 20 and tells the analyst a window shows at most 20. One of the two numbers is wrong, and the README and the answer's note say different things to the same analyst.
 - **What you did:** left both as they are. This ticket only widens which "since" wordings are read as a window; the cap is untouched and `test_window_copy.py` still expects 20.
 - **Decided (2026-10-06):** the README is right. A "since" window is capped at 40 quarters, as every window is (`MAX_SINCE_QUARTERS = MAX_QUARTERS_ASKED`), and its note says 40.
+
+## 2026-10-06 — review-69-90 01: the acceptance expects no missing-quarter note for `since 2024`
+
+- **Where:** `docs/process/tickets/review-69-90/issues/01-a-since-window-counts-from-the-latest-quarter.md`, What to build ("it holds every quarter since 2024") and Acceptance ("shows every recorded quarter since January 2024 and no 'only N of M' note").
+- **The rule:** on the recorded runtime, `Apple revenue since 2024` should show no "only N of M" note, because the recording holds every quarter since 2024.
+- **Why it looks wrong:** the recording's oldest Apple quarter ended 29 June 2024. Ten quarters ended between 1 January 2024 and the latest filed quarter (27 June 2026); the recording holds nine, and the quarter ended 30 March 2024 is inside the span. The ticket's own rule ("a window note says a quarter is missing only when the filings lack one inside the span") then calls for a note, and silence would tell the analyst that Apple's first quarter of 2024 ended in June.
+- **What you did:** followed the rule over the example. The answer says "The filings here hold only 9 of the 10 quarters since 2024" (counted from the filings, so it no longer drifts with the calendar); `since 2025`, where the recording holds every quarter, shows no note. The recorded-runtime test pins the 9-of-10 note rather than its absence.

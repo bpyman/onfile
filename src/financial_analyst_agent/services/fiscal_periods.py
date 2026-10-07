@@ -9,6 +9,7 @@ quarters (ADR 0007).
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Iterable
 from dataclasses import dataclass, replace
 from datetime import date, timedelta
 from decimal import Decimal
@@ -438,6 +439,30 @@ def _derivation_part(fact: FinancialFact) -> DerivationPart:
 # 90 to 92 days. Anything outside this band pairs non-adjacent quarters.
 # Up to 17 weeks: some 52/53-week retailers (Costco) run a 16- or 17-week fourth quarter.
 _ADJACENT_QUARTER_GAP = (timedelta(days=84), timedelta(days=126))
+
+
+def quarters_since(year: int, dates: Iterable[date]) -> tuple[date, ...]:
+    """The quarter ends on or after 1 January of ``year``, newest first.
+
+    A "since 2024" window is every filed quarter that ended since that calendar
+    year began, on each company's own calendar: Walmart's quarter to 31 January
+    2024 is one of them.
+    """
+    first = date(year, 1, 1)
+    return tuple(sorted((end for end in dates if end >= first), reverse=True))
+
+
+def quarters_in_span(year: int, newest: date) -> int:
+    """How many quarter ends lie from 1 January of ``year`` to ``newest``, inclusive.
+
+    Counted on the grid of quarters ending at ``newest``, so it is what a company
+    whose filings reach back that far would show; zero when ``newest`` is before
+    the year began.
+    """
+    days = (newest - date(year, 1, 1)).days
+    if days < 0:
+        return 0
+    return int(days // _QUARTER_DAYS) + 1
 
 
 def adjacent_quarters(newer: date, older: date) -> bool:

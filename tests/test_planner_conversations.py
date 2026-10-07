@@ -401,7 +401,12 @@ def test_remove_one_metric_and_add_another(runtime) -> None:  # type: ignore[no-
 
 def test_since_a_year_says_the_cap(runtime) -> None:  # type: ignore[no-untyped-def]
     (answer,) = ask(runtime, "Apple revenue since 2015")
-    assert any("since 2015" in banner for banner in answer.banners)
+    # Q1 2015 to the latest filed quarter (June 2026) is 46 quarters, counted
+    # from the filings rather than from today, so the note does not drift.
+    assert any(
+        "Quarters since 2015 number 46; a window shows at most 40" in banner
+        for banner in answer.banners
+    )
 
 
 def test_last_100_quarters_says_what_was_asked(runtime) -> None:  # type: ignore[no-untyped-def]

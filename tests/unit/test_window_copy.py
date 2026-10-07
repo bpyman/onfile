@@ -168,9 +168,10 @@ def test_request_wording_records_every_window_reading_used_by_notes() -> None:
     assert approximate.interpretation_notes
     assert read_window("Apple TTM revenue").trailing_year
     since = read_window("Apple revenue since 2000")
-    # A "since" window is capped as any window is, at 40 quarters.
-    assert (since.since_year, since.asked_quarters) == (2000, 40)
-    assert since.since_capped_from is not None
+    # A "since" window names its year; how many quarters that is waits for the
+    # companies' report dates, so the reading counts none.
+    assert (since.since_year, since.asked_quarters) == (2000, None)
+    assert not hasattr(since, "since_capped_from")
     assert (
         read_window("Apple revenue for the quarter ended April 2026").unread_named_period
         == "April 2026"
@@ -218,3 +219,72 @@ def test_industry_names_are_not_repeated_in_another_case() -> None:
 
     folded = [name.casefold() for name in names]
     assert len(folded) == len(set(folded))
+
+
+def test_a_since_window_carries_its_year_to_the_spec_capped_at_forty() -> None:
+    from financial_analyst_agent.graph.analysis_spec import MAX_QUARTERS_ASKED, SpecPatch
+    from financial_analyst_agent.request_wording import bind_periods_from_message
+
+    patch = bind_periods_from_message(SpecPatch(mode="replace"), "Apple revenue since 2000")
+
+    periods = patch.set_periods
+    assert periods is not None
+    # The window is every filed quarter since 1 January 2000, at most 40 of them:
+    # the cap is the listing's limit, and the quarters are chosen where the
+    # company's report dates are known.
+    assert (periods.kind, periods.since_year, periods.count) == (
+        "last_n_quarters",
+        2000,
+        MAX_QUARTERS_ASKED,
+    )
+    assert periods.report_dates == ()
+
+
+def _since_spec(year: int, dates: tuple[date, ...]) -> AnalysisSpec:
+    return AnalysisSpec(
+        periods=PeriodSelection(
+            kind="last_n_quarters", count=len(dates), since_year=year, report_dates=dates
+        )
+    )
+
+
+_NINE_FROM_JUNE_2024 = (
+    date(2026, 6, 27),
+    date(2026, 3, 28),
+    date(2025, 12, 27),
+    date(2025, 9, 27),
+    date(2025, 6, 28),
+    date(2025, 3, 29),
+    date(2024, 12, 28),
+    date(2024, 9, 28),
+    date(2024, 6, 29),
+)
+
+
+def test_a_since_window_note_counts_the_span_from_the_newest_filed_quarter() -> None:
+    message = "Apple revenue since 2024"
+    window = read_window(message)
+
+    # Ten quarters ended between 1 January 2024 and 27 June 2026; the filings
+    # hold nine of them, whatever today's date is.
+    short = period_notes(message, _since_spec(2024, _NINE_FROM_JUNE_2024), window=window)
+    assert "The filings here hold only 9 of the 10 quarters since 2024." in short
+    assert not any("asked for" in note for note in short)
+
+    whole = (*_NINE_FROM_JUNE_2024, date(2024, 3, 30))
+    full = period_notes(message, _since_spec(2024, whole), window=window)
+    assert not any("hold only" in note for note in full)
+
+
+def test_a_since_window_over_the_cap_says_so_from_the_filed_quarters() -> None:
+    message = "Apple revenue since 2015"
+    notes = period_notes(
+        message, _since_spec(2015, _NINE_FROM_JUNE_2024), window=read_window(message)
+    )
+
+    # Q1 2015 to Q2 2026 is 46 quarters; the window shows at most 40.
+    assert (
+        "Quarters since 2015 number 46; a window shows at most 40, so this asks for the "
+        "latest 40." in notes
+    )
+    assert "The filings here hold only 9 of the 40 quarters since 2015." in notes

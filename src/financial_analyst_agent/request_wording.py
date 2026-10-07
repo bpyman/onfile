@@ -397,8 +397,9 @@ class WindowReading(BaseModel):
     counted_window: bool = False
     interpretation_notes: tuple[str, ...] = ()
     trailing_year: bool = False
+    # "since 2024": the quarters are every filed quarter since that 1 January,
+    # chosen where the companies' report dates are known, so no count is read.
     since_year: int | None = None
-    since_capped_from: int | None = None
     unread_named_period: str | None = None
     sub_quarter: bool = False
 
@@ -749,12 +750,6 @@ def _names_a_span(message: str) -> bool:
     )
 
 
-def since_quarters(since: re.Match[str]) -> int:
-    """Quarters from the start of the year "since 2020" names to today."""
-    today = date.today()
-    return max(1, (today.year - int(since.group("y"))) * 4 + (today.month + 2) // 3)
-
-
 def bind_periods_from_message(
     patch: SpecPatch, message: str, *, window: WindowReading | None = None
 ) -> SpecPatch:
@@ -781,9 +776,17 @@ def bind_periods_from_message(
     sequential = _SEQUENTIAL.search(message) is not None
     named = parse_named_periods(message)
     if not named and asked is None and not yoy and window.since_year is not None:
-        count = window.asked_quarters or 1
+        # Every filed quarter since that 1 January, at most the window cap: the
+        # quarters are chosen where the report dates are listed, as a named
+        # period's are, not counted from today.
         return patch.model_copy(
-            update={"set_periods": PeriodSelection(kind="last_n_quarters", count=count)}
+            update={
+                "set_periods": PeriodSelection(
+                    kind="last_n_quarters",
+                    count=MAX_SINCE_QUARTERS,
+                    since_year=window.since_year,
+                )
+            }
         )
     if not named and asked is None and not yoy and (
         window.trailing_year or YEAR_OF_QUARTERS.search(message)
@@ -1226,7 +1229,6 @@ def read_window(message: str) -> WindowReading:
     message = window_words(message)
     window = asked_window(message)
     since = SINCE_YEAR.search(message) if window is None else None
-    since_count = since_quarters(since) if since is not None else None
     specific = SPECIFIC_PERIOD.search(message)
     unread = (
         specific.group(0)
@@ -1234,22 +1236,11 @@ def read_window(message: str) -> WindowReading:
         else None
     )
     return WindowReading(
-        asked_quarters=(
-            window.quarters
-            if window is not None
-            else min(since_count, MAX_SINCE_QUARTERS)
-            if since_count is not None
-            else None
-        ),
+        asked_quarters=window.quarters if window is not None else None,
         counted_window=window is not None,
         interpretation_notes=tuple(window.notes()) if window is not None else (),
         trailing_year=TRAILING_YEAR.search(message) is not None,
         since_year=int(since.group("y")) if since is not None else None,
-        since_capped_from=(
-            since_count
-            if since_count is not None and since_count > MAX_SINCE_QUARTERS
-            else None
-        ),
         unread_named_period=unread,
         sub_quarter=SUB_QUARTER.search(message) is not None,
     )

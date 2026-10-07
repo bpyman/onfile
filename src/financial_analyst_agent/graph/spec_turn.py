@@ -10,7 +10,7 @@ notes. The analyst's wording is read by ``request_wording``; the notes' text is
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from concurrent.futures import TimeoutError as FuturesTimeout
 from contextvars import copy_context
@@ -102,6 +102,7 @@ from financial_analyst_agent.services.fiscal_periods import (
     calendar_quarter,
     dates_for,
     one_year_earlier,
+    quarters_since,
 )
 from financial_analyst_agent.turn import (
     compare_task,
@@ -171,20 +172,26 @@ def materialize_period_dates(spec: AnalysisSpec, runtime: Runtime) -> AnalysisSp
         return _materialize_named_periods(spec, runtime)
     if spec.periods.kind != "last_n_quarters":
         return spec
-    listing = runtime.facts.list_quarterly_report_dates
     first = spec.companies[0] if spec.companies else None
     if first is None and spec.constituents is not None and spec.constituents.members:
         first = spec.constituents.members[0]
     if first is None:
         return spec
     periods = spec.periods
+    since = periods.since_year
+    cap = periods.count or 1
+    listing = partial(_window_dates, runtime.facts.list_quarterly_report_dates, since=since)
     listed_first = False
     if not periods.report_dates:
-        dates = listing(first.handle, limit=periods.count or 1)
+        dates = listing(first.handle, limit=cap)
         if not dates:
             return spec
+        # A "since" window asks for whatever the filings hold since that
+        # January, so only a counted window can hold fewer than asked.
         asked = periods.asked or (
-            periods.count if periods.count and len(dates) < periods.count else None
+            periods.count
+            if since is None and periods.count and len(dates) < periods.count
+            else None
         )
         periods = periods.model_copy(
             update={"count": len(dates), "report_dates": dates, "asked": asked}
@@ -193,7 +200,9 @@ def materialize_period_dates(spec: AnalysisSpec, runtime: Runtime) -> AnalysisSp
     known = dict(periods.company_report_dates)
     if listed_first and spec.companies:
         known[first.key] = periods.report_dates
-    count = periods.count or 1
+    # Each company on its own calendar: a "since" window lists up to the cap and
+    # keeps that company's quarters since the January; a counted one lists the count.
+    count = cap if since is not None else periods.count or 1
     pending = _not_yet_listed(spec.companies, known)
     listed = map_in_order(
         lambda company: _or_none(partial(listing, company.handle, limit=count)),
@@ -206,6 +215,21 @@ def materialize_period_dates(spec: AnalysisSpec, runtime: Runtime) -> AnalysisSp
     if periods == spec.periods:
         return spec
     return spec.model_copy(update={"periods": periods})
+
+
+def _window_dates(
+    list_dates: Callable[..., Sequence[date]], handle: str, *, limit: int, since: int | None
+) -> tuple[date, ...]:
+    """A company's quarter ends for a window, newest first.
+
+    For a "since" window, the listed quarters that ended on or after 1 January
+    of that year; when none has (the year is ahead of the filings), the latest
+    quarter, so the answer shows a figure rather than nothing.
+    """
+    dates = tuple(list_dates(handle, limit=limit))
+    if since is None or not dates:
+        return dates
+    return quarters_since(since, dates) or dates[:1]
 
 
 def _or_none[T](read: Callable[[], T]) -> T | None:

@@ -1675,3 +1675,41 @@ Blockers / next:
   An `explain` proposal for a question that names a company and a metric (`Apple EPS`) keeps the
   planner's reading, as the ticket scopes the rule to questions naming no company. Ticket 09 was
   the last open ticket in brief-5-probe-gaps.
+
+## 2026-10-06 — review-69-90 01 A "since" window counts the quarters filed, not the calendar
+
+Task completed: `docs/process/tickets/review-69-90/issues/01-a-since-window-counts-from-the-latest-quarter.md`
+
+Key decisions:
+- `PeriodSelection` gains `since_year`: a `last_n_quarters` window that is every filed quarter
+  ended on or after 1 January of that year, with `count` as the 40-quarter cap until the dates are
+  listed. `read_window` no longer counts a `since` window from `date.today()` (`since_quarters`
+  and `since_capped_from` removed); `bind_periods_from_message` sets the cap and the year.
+- `materialize_period_dates` lists up to the cap per company and keeps each company's quarters
+  since that January on its own calendar (`quarters_since`); none yet → the latest quarter.
+  `asked` stays unset for a `since` window.
+- The window note counts the span from the newest filed quarter (`quarters_in_span`), so the cap
+  note says 46 for `since 2015` and the missing-quarter note says "only 9 of the 10 quarters since
+  2024", only when the filings lack a quarter inside the span. The period chip reads "Since 2024".
+- The ticket's acceptance expected no note for `Apple revenue since 2024`, but the recording lacks
+  the quarter ended 30 March 2024, which is inside the span: followed the ticket's rule over its
+  example and recorded it in `docs/process/rules-to-review.md`.
+- `compare_answers.py` gains `Apple revenue since 2024` and `Apple revenue since 2015` so a `since`
+  window is compared; its docstring's example of date-reading wording is now "two years ago".
+
+Files changed:
+- `src/financial_analyst_agent/{request_wording.py,answer_notes.py,presentation.py,
+  graph/analysis_spec.py,graph/spec_turn.py,services/fiscal_periods.py}`
+- `tests/unit/test_window_copy.py` (reading, binding, notes), `tests/unit/
+  test_calendars_clarification_and_formatting.py` (trim per company, no quarter yet),
+  `tests/test_says_what_it_cannot_do.py` (recorded answer, chip, two dates),
+  `tests/test_planner_conversations.py` (cap note says 46)
+- `README.md`, `CONTEXT.md`, `scripts/compare_answers.py`, `docs/process/rules-to-review.md`,
+  the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,057 Python tests pass; ruff and mypy pass; compare_answers reports
+  `2 of 246 conversations differ from HEAD`: the two new `since` cases, each as intended.
+  A `since` window with year over year or quarter over quarter still falls through to the
+  change's own window (5 or 8 quarters), as before this ticket. Tickets 02-06 in review-69-90
+  remain.
