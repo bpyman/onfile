@@ -153,7 +153,7 @@ def test_a_watch_that_has_stopped_polling_vouches_for_nothing() -> None:
 
 def test_a_poll_pages_back_until_it_reaches_the_last_one() -> None:
     feed, clock = _Feed(), _Clock(NOW)
-    old = [(f"{index:010d}", "10-Q", NOW - DAY - index) for index in range(1, 50)]
+    old = [(f"{index:010d}", "10-Q", NOW - 2 * DAY - index) for index in range(1, 50)]
     feed.filings["10-Q"] = old
     watch = _watch(feed, clock)
     watch.poll()
@@ -179,12 +179,16 @@ def test_a_gap_the_pages_cannot_close_moves_the_coverage_forward() -> None:
 
     flood = [(f"{index:010d}", "10-Q", NOW + 1000 + index) for index in range(10 * PAGE_SIZE)]
     feed.filings["10-Q"] = flood
-    clock.now = NOW + 20_000
+    clock.now = NOW + 2 * DAY
     watch.poll()
 
     oldest_read = NOW + 1000 + 10 * PAGE_SIZE - 5 * PAGE_SIZE
     assert watch.lifetime("0000000999", oldest_read - 1) == DEFAULT_SECONDS
-    assert watch.lifetime("0000099999", oldest_read + 1) == VOUCHED_SECONDS
+    # Just after the coverage moved, the unseen gap before it may hold a filing: 15 minutes,
+    # even for the company whose older filing the watch did see.
+    assert watch.lifetime("0000099999", oldest_read + 1) == AFTER_FILING_SECONDS
+    assert watch.lifetime("0000000001", oldest_read + 1) == AFTER_FILING_SECONDS
+    assert watch.lifetime("0000099999", oldest_read + DAY + 1) == VOUCHED_SECONDS
 
 
 def test_no_interval_starts_no_watch() -> None:
@@ -314,7 +318,7 @@ def test_a_later_poll_that_does_not_reach_the_last_one_moves_the_coverage() -> N
     watch.poll()
 
     assert watch.lifetime("0000000099", NOW + DAY) == DEFAULT_SECONDS
-    assert watch.lifetime("0000000099", NOW + 2 * DAY + 30) == VOUCHED_SECONDS
+    assert watch.lifetime("0000000099", NOW + 2 * DAY + 30) == AFTER_FILING_SECONDS
 
 
 def test_an_empty_later_page_vouches_only_from_now() -> None:
@@ -327,3 +331,34 @@ def test_an_empty_later_page_vouches_only_from_now() -> None:
     watch.poll()
 
     assert watch.lifetime("0000000099", NOW + 300) == DEFAULT_SECONDS
+
+
+def test_a_file_written_just_after_coverage_began_refreshes_often_for_a_day() -> None:
+    feed, clock = _Feed(), _Clock(NOW)
+    feed.filings["10-Q"] = [("0000000001", "10-Q", NOW - 3600)]
+    watch = _watch(feed, clock)
+    watch.poll()
+
+    # An hour after coverage began, with no filing seen: the day before it is unseen.
+    assert watch.lifetime("0000000099", NOW) == AFTER_FILING_SECONDS
+    clock.now = NOW + 2 * DAY
+    watch.poll()
+    # Two days after coverage began: any filing in that day would have been seen.
+    assert watch.lifetime("0000000099", NOW + 2 * DAY - 3600) == VOUCHED_SECONDS
+
+
+def test_a_company_fetched_just_after_coverage_began_is_warmed_once_more_after_the_day() -> None:
+    feed, clock = _Feed(), _Clock(NOW)
+    feed.filings["10-Q"] = [("0000000001", "10-Q", NOW - 3600)]
+    watch = _watch(feed, clock)
+    watch.poll()
+    written = NOW  # an hour after coverage began, with no filing seen
+
+    clock.now = NOW + 3600
+    watch.poll()
+    assert watch.lifetime("0000000099", written) == AFTER_FILING_SECONDS
+    # Past its 15 minutes, but a fetch now would be as short-lived: left to its visitors.
+    assert watch.needs_warming("0000000099", written) is False
+    clock.now = NOW + DAY
+    watch.poll()
+    assert watch.needs_warming("0000000099", written) is True

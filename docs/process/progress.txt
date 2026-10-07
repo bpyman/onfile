@@ -1713,3 +1713,30 @@ Blockers / next:
   A `since` window with year over year or quarter over quarter still falls through to the
   change's own window (5 or 8 quarters), as before this ticket. Tickets 02-06 in review-69-90
   remain.
+
+## 2026-10-06 — review-69-90 02 A file written just after the filing watch began is not vouched for a week
+
+Task completed: `docs/process/tickets/review-69-90/issues/02-a-file-written-just-after-coverage-began.md`
+
+Key decisions:
+- `FilingWatch.lifetime` gives a file written less than a day after coverage began the 15
+  minutes (`AFTER_FILING_SECONDS`), after the stale and filed-within-a-day rules: the day
+  before coverage is unseen, so a filing there cannot be ruled out. Applies whether or not an
+  older filing by the company is on record (a gap that moves coverage may hide a newer one).
+- `needs_warming` warms a 15-minute file once more when a file fetched now would get the
+  week (`lifetime(cik, now) == VOUCHED_SECONDS`), so the warm-up fetches such a company once
+  after the day, not every 15 minutes.
+- Three existing watch tests wrote files within a day of coverage with no filing on record
+  and expected the week; each now writes a day later or expects the 15 minutes.
+- ADR 0013 states the rule and its consequence after a start on a busy feed; `docs/deploy.md`
+  says so in the `SEC_FILING_WATCH_SECONDS` row.
+
+Files changed:
+- `src/financial_analyst_agent/providers/sec/filing_watch.py`
+- `tests/unit/providers/test_filing_watch.py` (+2 tests, 3 adjusted)
+- `docs/adr/0013-cached-sec-data-lasts-until-the-company-files.md`, `docs/deploy.md`,
+  the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,059 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 246 conversations differ from HEAD`. Tickets 03-06 in review-69-90 remain.

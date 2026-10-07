@@ -8,4 +8,33 @@ A file written less than a day after `covered_from`, for a company with no filin
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped 2026-10-06. `FilingWatch.lifetime` gives a file written less than a day after the
+watch's coverage began `AFTER_FILING_SECONDS` (15 minutes), after the stale and
+filed-within-a-day rules and before the week: the day before coverage began is unseen, so a
+filing there, and its absence from SEC's structured data, cannot be ruled out. A file written
+a day or more after coverage began, with no filing since, is vouched for the week as before.
+
+- The rule applies whether or not the watch saw an older filing by the company. After a gap
+  moves coverage forward, a company whose filing the watch saw before the gap may have filed
+  again in the gap, so the same reasoning holds; the ticket scoped it to companies with no
+  filing on record, and that case is covered by it.
+- `needs_warming` warms a 15-minute file once more when a file fetched now would be vouched
+  for the week (`lifetime(cik, now) == VOUCHED_SECONDS`), so the warm-up fetches such a
+  company once when the day since coverage began (or since its filing) is over, rather than
+  every 15 minutes. Before this, a 15-minute file with no filing on record was warmed again
+  at once.
+- Three existing watch tests wrote files less than a day after coverage began with no filing
+  on record and expected the week; each now writes a day later or expects the 15 minutes,
+  keeping what it checked (paging back keeps coverage; a gap moves it).
+- ADR 0013 gains the lifetime rule and a consequence (a busy feed's first poll reaches back
+  hours, so the first day's files are refreshed by visitors); `docs/deploy.md`'s
+  `SEC_FILING_WATCH_SECONDS` row says so.
+
+Tests: `tests/unit/providers/test_filing_watch.py` (a file written an hour after coverage
+began lasts 15 minutes; two days after, the week; such a company is warmed once more after
+the day). 2,059 tests pass; ruff and mypy pass; compare_answers reports
+`0 of 246 conversations differ from HEAD` (the recorded runtime has no watch).
