@@ -109,4 +109,7 @@ After the run, set 5 is development data like every set before it.
 
 ## Changes to this plan
 
-None yet.
+- After the run (7 October 2026), the report gained a line showing the held-out
+  scores by group (familiar and novel). The figures were computed by the
+  evaluation code committed before the cases; only their rendering was missing,
+  and no planner was run again (`--from-json`). Results had been seen.

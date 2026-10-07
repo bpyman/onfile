@@ -1048,6 +1048,16 @@ def render_markdown(report: dict[str, Any]) -> str:
                 )
         fields = planner["splits"]["all"]["fields"]
         lines.append("")
+        groups = planner.get("held_out_groups") or {}
+        if groups:
+            lines.append(
+                "Held out, by group: "
+                + ", ".join(
+                    f"{label} {row['accuracy']:.0%} ({row['cases']} cases)"
+                    for label, row in groups.items()
+                )
+                + "."
+            )
         lines.append(
             "Field accuracy: "
             + ", ".join(f"{field_name} {value:.0%}" for field_name, value in fields.items())
