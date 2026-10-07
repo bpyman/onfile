@@ -1,7 +1,13 @@
 {
   "about": "Held-out planner cases written and labelled by Grok 4.7 from this brief, the README section How a question is read, CONTEXT.md, and ADRs 0004, 0007 and 0008, without reading planners, other case files, or source. Conversations use the recorded companies and closed-catalog metric names. Defaults for a missing period, a since-window, a trailing-year figure, and a change follow the README table; follow-ups are labelled on the last turn; a ranking that shows a metric is rank_and_lookup with tickers_include set to the largest company in the group by market value; a market-value ranking omits intent and metric; clarify and refuse cases carry outcome only; filing changes, news and explanations carry intent only; overviews carry outcome, ticker and period only. A segment is labelled as the company-wide metric.",
   "writer": "Grok 4.7",
-  "label_changes": [],
+  "label_changes": [
+    {
+      "id": "h5_gr_gs_both",
+      "change": "periods {\"kind\": \"last_n_quarters\", \"count\": 8} -> left out",
+      "why": "Settled before the run (plan step 5), by the project owner. A blind second labeller (Claude, from the frozen brief alone, in an isolated folder) agreed with the writer's labels on every field of 159 of the 160 conversations; on this one it left the period out. The README as frozen (3dee0c7) says naming both bases shows both changes, but not how many quarters: quarter over quarter with no period is 5 and year over year 8, and nothing says which wins. The brief says a field the rules leave open is left out."
+    }
+  ],
   "adjudications": [],
   "cases": [
     {
@@ -1571,7 +1577,6 @@
         "intent": "lookup",
         "tickers": ["GS"],
         "metrics": ["net_interest_income"],
-        "periods": {"kind": "last_n_quarters", "count": 8},
         "operations_include": ["sequential", "year_over_year"]
       }
     },
