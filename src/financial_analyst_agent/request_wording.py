@@ -29,7 +29,7 @@ from financial_analyst_agent.graph.analysis_spec import (
     SpecPatch,
 )
 from financial_analyst_agent.guide import short_name
-from financial_analyst_agent.issuer_index import CompanyNames
+from financial_analyst_agent.issuer_index import CompanyNames, word_uses
 from financial_analyst_agent.observability import log_event
 from financial_analyst_agent.period_window import SINCE_YEAR, asked_window
 from financial_analyst_agent.services.metric_catalog import (
@@ -595,6 +595,36 @@ def _companies_named_in(companies: tuple[str, ...], text: str) -> tuple[str, ...
     )
 
 
+def _without_word_uses(
+    patch: SpecPatch, message: str, index: CompanyNames | None
+) -> SpecPatch:
+    """A company proposed from an everyday word used as the word is dropped.
+
+    "Palantir operating income, intel aside" is Palantir's, whichever planner
+    added Intel; "Intel and Palantir operating income" names both (ADR 0010).
+    """
+    used = word_uses(message)
+    if index is None or not used or not patch.add_companies:
+        return patch
+    word_companies = {
+        query
+        for word in used
+        for query in (index.named(word), index.named(word.removesuffix("s")))
+        if query is not None
+    }
+    named = {mention.query for mention in index.find(message)}
+    kept = tuple(
+        company
+        for company in patch.add_companies
+        if (query := index.named(company)) is None
+        or query not in word_companies
+        or query in named
+    )
+    if kept == patch.add_companies:
+        return patch
+    return patch.model_copy(update={"add_companies": kept})
+
+
 def _company_tokens(text: str) -> tuple[str, ...]:
     text = _EDIT_FILLER.sub(" ", text)
     parts = re.split(r"\s+and\s+|,\s*", text, flags=re.IGNORECASE)
@@ -1063,6 +1093,7 @@ def refine_patch_from_message(
     which companies the words name.
     """
     window = window or read_window(message)
+    patch = _without_word_uses(patch, message, index)
     patch = bind_periods_from_message(patch, message, window=window)
     if current_spec is None:
         return patch

@@ -338,6 +338,7 @@ What a question leaves out has a default, so the same words always get the same 
 **Companies**
 
 - A company's other names (`Chase`, `Wells`, `BofA`, `$GOOGL`) are that company, and `Google and Alphabet` is one company. A fund beside a company (`SPY and Apple revenue`) is left out with a note; one company left on screen is a lookup.
+- A company name that is also a word names the company only where the question uses it as one, whichever planner read it: `intel aside`, `any intel on`, `to the micron`, `a micron`, `the apple of`, `an oracle for` and `apples to apples` name no company, while `Intel and Palantir operating income` names both.
 - A figure with no company (`What's the EPS?`, `What was net income this quarter?`) asks which company, whichever planner read it; a word of the metric phrase (`net`, `free`) is never the company.
 
 **Overviews and rankings**

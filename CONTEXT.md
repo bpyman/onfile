@@ -65,7 +65,7 @@ A company name two or more snapshot members answer to ("Lincoln"). The analyst i
 _Avoid_: ambiguous company (in prose), alias collision
 
 **Everyday-word name**:
-A company name that 10-Q filings write in lower case mid-sentence as an ordinary word ("Target", "Block"). It names the company only where a question uses it as one (ADR 0010).
+A company name that 10-Q filings write in lower case mid-sentence as an ordinary word ("Target", "Block"). It names the company only where a question uses it as one (ADR 0010): not "intel aside", "to the micron", "the apple of" or "an oracle for", whichever planner proposed the company.
 _Avoid_: common-word company, stopword name
 
 **Comparison base**:

@@ -431,6 +431,18 @@ IDIOM_QUESTIONS: tuple[tuple[str, tuple[str, ...], str], ...] = (
     ("Merck vs Pfizer net margin, apples and oranges", ("MRK", "PFE"), "net_margin"),
     ("the building blocks of Microsoft and Oracle revenue", ("MSFT", "ORCL"), "revenue"),
 )
+# An everyday-word name used as the word names no company (held-out-5-findings
+# ticket 02): "intel" as information, "micron" as a unit, "the apple of", "an
+# oracle for". A company named beside the word stays.
+WORD_USE_QUESTIONS: tuple[tuple[str, tuple[str, ...], str], ...] = (
+    ("Palantir operating income, intel aside", ("PLTR",), "operating_income"),
+    ("any intel on Nvidia revenue?", ("NVDA",), "revenue"),
+    ("Broadcom gross margin to the micron", ("AVGO",), "gross_margin"),
+    ("NVIDIA revenue to the nearest micron", ("NVDA",), "revenue"),
+    ("On revenue, AbbVie is the apple of the drug group", ("ABBV",), "revenue"),
+    ("Cisco cash, an oracle for the equipment group", ("CSCO",), "cash"),
+    ("Intel and Palantir operating income", ("INTC", "PLTR"), "operating_income"),
+)
 # Asking how a company is doing, in any of its words, is the overview: revenue,
 # net income and three margins. "Performance" and "rundown" name no metric.
 OVERVIEW_QUESTIONS: tuple[tuple[str, tuple[str, ...], tuple[str, int | None]], ...] = (
@@ -888,6 +900,17 @@ def cases() -> list[PhraseCase]:
             PhraseCase(
                 f"idiom:{question}",
                 "Idioms beside a company",
+                (question,),
+                _expected(tickers, (metric,), period, None),
+                _reads(frozenset(tickers), frozenset({metric}), period, None),
+            )
+        )
+    for question, tickers, metric in WORD_USE_QUESTIONS:
+        period = ("latest_quarter", None)
+        found.append(
+            PhraseCase(
+                f"word use:{question}",
+                "Everyday-word names used as the word",
                 (question,),
                 _expected(tickers, (metric,), period, None),
                 _reads(frozenset(tickers), frozenset({metric}), period, None),

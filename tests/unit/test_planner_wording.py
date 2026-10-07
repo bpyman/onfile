@@ -140,6 +140,31 @@ def test_a_word_inside_an_idiom_is_not_a_misspelt_name(question: str) -> None:
 
 
 @pytest.mark.parametrize(
+    ("question", "named"),
+    [
+        ("Palantir operating income, intel aside", ["PLTR"]),
+        ("some intel on Nvidia revenue", ["NVDA"]),
+        ("any intel on Nvidia revenue?", ["NVDA"]),
+        ("Broadcom gross margin to the micron", ["AVGO"]),
+        ("NVIDIA revenue to the nearest micron", ["NVDA"]),
+        ("Nvidia revenue, off by a micron", ["NVDA"]),
+        ("On revenue, AbbVie is the apple of the drug group", ["ABBV"]),
+        ("Cisco cash, an oracle for the equipment group", ["CSCO"]),
+        ("AbbVie revenue, an oracle of the drug group", ["ABBV"]),
+        # A company named beside the word stays (held-out-5-findings ticket 02).
+        ("Intel and Palantir operating income", ["INTC", "PLTR"]),
+        ("Micron and Broadcom gross margin, to the micron", ["MU", "AVGO"]),
+        ("Apple revenue, the apple of the group", ["Apple"]),
+    ],
+)
+def test_an_everyday_word_name_used_as_the_word_names_no_company(
+    question: str, named: list[str]
+) -> None:
+    """ "intel" as information, "micron" as a unit, "the apple of", "an oracle for"."""
+    assert [mention.query for mention in issuer_index().find(question)] == named
+
+
+@pytest.mark.parametrize(
     ("question", "company"),
     [
         # A change word beside a list joiner is not a name the planner failed to

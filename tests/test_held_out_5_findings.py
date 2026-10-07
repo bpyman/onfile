@@ -9,6 +9,7 @@ observation shows it proposed, so no test calls OpenAI.
 from __future__ import annotations
 
 import uuid
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -44,10 +45,23 @@ class _ProposedPlan:
 
 
 # What the LLM planner proposed on the run of 7 October 2026, read from the
-# comparison's observation: Goldman's net interest income over five quarters.
+# comparison's observation: Goldman's net interest income over five quarters,
+# and a company beside each everyday word used as the word.
 _LLM_PLANS = {
     "h5_gr_gs_both": WorkflowPlan(
         intent=Intent.LOOKUP, company="Goldman", metric="net_interest_income", recent_quarters=5
+    ),
+    "h5_ow_intel_word": WorkflowPlan(
+        intent=Intent.COMPARE, companies=("Palantir", "Intel"), metric="operating_income"
+    ),
+    "h5_ow_micron_measure": WorkflowPlan(
+        intent=Intent.COMPARE, companies=("Broadcom", "Micron"), metric="gross_margin"
+    ),
+    "h5_ow_apple_idiom": WorkflowPlan(
+        intent=Intent.COMPARE, companies=("AbbVie", "Apple"), metric="revenue"
+    ),
+    "h5_ow_oracle_word": WorkflowPlan(
+        intent=Intent.COMPARE, companies=("Cisco", "Oracle"), metric="cash"
     ),
 }
 
@@ -57,6 +71,12 @@ _LLM_PLANS = {
     [
         # Naming both bases shows both changes, with the bases leading the question.
         "h5_gr_gs_both",
+        # An everyday-word name used as the word names no company (ticket 02).
+        "h5_ow_intel_word",
+        "h5_ow_micron_measure",
+        "h5_ow_micron_unit",
+        "h5_ow_apple_idiom",
+        "h5_ow_oracle_word",
     ],
 )
 def test_a_fixed_held_out_case_passes_with_the_rules_planner(
@@ -122,3 +142,29 @@ def test_naming_both_bases_as_a_follow_up_keeps_the_quarters_on_screen(runtime: 
     assert len(levels) == 6
     assert year_over_year == levels
     assert sequential == levels
+
+
+@pytest.mark.parametrize(
+    ("question", "companies", "metric", "kept"),
+    [
+        ("Intel and Palantir operating income", ("Intel", "Palantir"), "operating_income",
+         {"INTC", "PLTR"}),
+        ("Micron and Broadcom gross margin, to the micron", ("Micron", "Broadcom"),
+         "gross_margin", {"MU", "AVGO"}),
+    ],
+)
+def test_a_company_named_beside_the_word_stays(
+    question: str, companies: tuple[str, ...], metric: str, kept: set[str], runtime: Runtime
+) -> None:
+    """Only a company the question names through the word alone is dropped."""
+    for planner in (runtime.completer, _ProposedPlan(
+        WorkflowPlan(intent=Intent.COMPARE, companies=companies, metric=metric)
+    )):
+        turn = run_conversation_turn(
+            f"held-out-5-{uuid.uuid4()}",
+            question,
+            replace(runtime, completer=planner),
+            store=EphemeralThreadStore(),
+        )
+
+        assert {row.ticker for row in turn.result.table_rows} == kept

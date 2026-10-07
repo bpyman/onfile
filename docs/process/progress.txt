@@ -2334,3 +2334,34 @@ Blockers / next:
 - None. All Python tests pass; ruff and mypy pass; compare_answers reports `3 of 344
   conversations differ from HEAD`, the three conversations added for this ticket. Tickets 02-09
   in held-out-5-findings remain.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/held-out-5-findings/issues/02-ordinary-word-idioms-name-no-company.md`
+
+Key decisions:
+- The issuer index reads some uses of an everyday-word name as the word, whatever the case
+  (`_WORD_USES`): `intel aside`, `some|any|more|no intel`, `to the (nearest) micron`, `nearest|a
+  micron`, `the apple of`, `an oracle for|of`. `find` skips those words except in a planner's
+  company field. "micron" is not in the everyday-word list at all, so before this every "micron"
+  was Micron.
+- The shared step for both planners: `word_uses` (issuer_index) and `_without_word_uses`
+  (request_wording), first in `refine_patch_from_message`, drop a proposed company named by such a
+  word (or by an `apples to apples` idiom) unless the index finds it in the question as well.
+- One LLM run of `h5_ow_apple_idiom` proposed drugmaker peers, not Apple; left as is and recorded
+  in rules-to-review.
+
+Files changed:
+- `src/financial_analyst_agent/issuer_index.py`, `request_wording.py`, `phrase_coverage.py` (+7
+  `WORD_USE_QUESTIONS`)
+- `tests/test_held_out_5_findings.py` (+5 rules cases, +4 LLM plans, +1 test),
+  `tests/unit/test_planner_wording.py` (+12 cases)
+- `README.md`, `CONTEXT.md`, `docs/adr/0010-one-reading-of-names-and-windows.md`,
+  `docs/evaluation/held-out-5-findings.md`, `docs/process/rules-to-review.md`,
+  `scripts/compare_answers.py` (+4 conversations), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,249 Python tests pass; ruff and mypy pass; compare_answers reports `3 of 348
+  conversations differ from HEAD`, the three intel/micron conversations added here, each now the
+  named company alone. README's phrase-coverage count (518) was already behind before this ticket
+  and is left for the next regeneration. Tickets 03-09 in held-out-5-findings remain.

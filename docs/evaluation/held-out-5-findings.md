@@ -93,3 +93,15 @@ cascade keeps its plan. Set 5 is development data from here on.
   much the app is tuned to wording it has already seen.
 - Fixing any of these makes set 5 development data, so the next comparison needs
   a sixth held-out set.
+
+`h5_ow_intel_word`, `h5_ow_micron_measure` and `h5_ow_micron_unit` added the
+company an everyday word names: the index read "intel" in `intel aside` as
+Intel, and "micron" is not an everyday word in 10-Q text, so `to the micron`
+was always Micron. The issuer index now reads some uses of such a word as the
+word (`intel aside`, `any intel`, `to the micron`, `a micron`, `the apple of`,
+`an oracle for`), and the shared reading both planners pass through drops a
+company proposed from one unless the question names it as well, so the LLM
+planner's Apple in `h5_ow_apple_idiom` and Oracle in `h5_ow_oracle_word` go
+too (held-out-5-findings ticket 02). One LLM run of `h5_ow_apple_idiom` added
+three drugmakers for "the drug group"; those come from no everyday word, and
+this rule leaves them.
