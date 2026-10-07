@@ -777,6 +777,11 @@ def bind_periods_from_message(
     yoy = YOY.search(message) is not None or _asks_change_without_base(message)
     # "quarter over quarter" is a window of sequential changes.
     sequential = _SEQUENTIAL.search(message) is not None
+    if asked is None and (yoy or sequential) and _YEAR_BASE.search(message) is not None:
+        # "How did EBITDA change over the past year?": a change over a year named
+        # with no count is over that year's four quarters, as "growth over the
+        # last 4 quarters" is, not the growth default (README's growth row).
+        asked = 4
     named = parse_named_periods(message)
     if not named and asked is None and not yoy and window.since_year is not None:
         # Every filed quarter since that 1 January, at most the window cap: the

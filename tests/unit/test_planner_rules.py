@@ -171,7 +171,9 @@ def test_growth_wording_asks_for_year_over_year() -> None:
         SpecPatch(mode="replace"), "How has Tesla's revenue changed over the last year?"
     )
 
-    assert patch.set_periods is not None and patch.set_periods.count == 5
+    # A change over "the last year" is over that year's four quarters (README's
+    # growth row, probe-round-3-gaps ticket 07), not the five of growth with no period.
+    assert patch.set_periods is not None and patch.set_periods.count == 4
     assert "across_periods" in patch.add_operations
     # Growth means year over year unless the analyst says sequential (ADR 0010).
     assert "year_over_year" in patch.add_operations

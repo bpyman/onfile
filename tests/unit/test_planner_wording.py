@@ -222,6 +222,27 @@ def test_over_the_past_year_is_the_years_quarters_not_growth() -> None:
 
 
 @pytest.mark.parametrize(
+    ("message", "count"),
+    [
+        ("How did AMD's EBITDA change over the past year?", 4),
+        ("How has Tesla's revenue changed over the last year?", 4),
+        ("How did AMD's EBITDA change in the last 12 months?", 4),
+        ("How did AMD's EBITDA grow over the last 2 years?", 8),
+        ("AMD EBITDA growth over the last 4 quarters", 4),
+    ],
+)
+def test_a_change_over_a_named_window_is_year_over_year_over_that_window(
+    message: str, count: int
+) -> None:
+    """README's growth row: "change over the past year" is 4 quarters, each year over year."""
+    patch = bind_periods_from_message(SpecPatch(mode="replace"), message)
+
+    assert patch.set_periods == PeriodSelection(kind="last_n_quarters", count=count)
+    assert "across_periods" in patch.add_operations
+    assert "year_over_year" in patch.add_operations
+
+
+@pytest.mark.parametrize(
     ("message", "base"),
     [
         ("Apple revenue growth", "year_over_year"),

@@ -302,6 +302,25 @@ def test_a_change_shows_its_percentage(runtime) -> None:  # type: ignore[no-unty
     assert yoy and all("%" in value for value in yoy)
 
 
+def test_a_change_over_the_past_year_is_year_over_year_over_four_quarters(runtime) -> None:  # type: ignore[no-untyped-def]
+    # README's growth row (probe-round-3-gaps ticket 07): a change over a named
+    # window is year over year over that window, not the growth default of 5.
+    shown = replay(runtime, "How did AMD's EBITDA change over the past year?")
+    (answer,) = shown.answers
+    assert answer.table is not None
+    assert len(answer.table.rows) == 4
+    assert "Last 4 quarters" in shown.chips and "Year over year" in shown.chips
+    # With figures the recording holds, each of the four quarters shows its change.
+    (apple,) = ask(runtime, "How did Apple's revenue change over the past year?")
+    assert len(column_of(apple, "Quarter ended")) == 4
+    assert all("%" in change for change in column_of(apple, "YoY change"))
+
+
+def test_a_change_with_no_window_still_asks_against_what(runtime) -> None:  # type: ignore[no-untyped-def]
+    (asked,) = ask(runtime, "How did AMD's EBITDA change?")
+    assert asked.clarify_prompt == "Compared with what?"
+
+
 def test_which_grew_faster_leads_with_the_answer(runtime) -> None:  # type: ignore[no-untyped-def]
     (answer,) = ask(runtime, "Which grew faster, Apple or Microsoft?")
     assert answer.headline is not None

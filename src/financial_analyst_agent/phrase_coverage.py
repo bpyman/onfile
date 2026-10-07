@@ -160,6 +160,22 @@ def _reads(
     return check
 
 
+def _year_over_year_window(tickers: frozenset[str], metric: str, count: int) -> Check:
+    """The window asked for, with the year-over-year operation, whether or not the
+    recording holds the figure (AMD's EBITDA it does not)."""
+
+    def check(seen: Observation, _turn: ConversationTurn) -> bool:
+        return (
+            seen.outcome in ("answer", "no_data")
+            and seen.tickers == tickers
+            and seen.metrics == frozenset({metric})
+            and seen.periods == ("last_n_quarters", count)
+            and "year_over_year" in seen.operations
+        )
+
+    return check
+
+
 def _companies(*tickers: str, metrics: tuple[str, ...] = ("revenue",), count: int = 4) -> Check:
     def check(seen: Observation, _turn: ConversationTurn) -> bool:
         return (
@@ -322,12 +338,22 @@ SEQUENTIAL_QUESTIONS = (
 NO_BASE_QUESTIONS = (
     "Why did Apple revenue drop?",
     "How much did Apple's revenue change?",
+    "How did AMD's EBITDA change?",
     "What drove the change in Apple's revenue?",
     "Why did Apple's revenue go up?",
     "What caused Apple's revenue to fall?",
     "What caused Pfizer's earnings to fall?",
     "What's behind the drop in Apple's revenue?",
     "What led to the decline in Apple's revenue?",
+)
+# A change over a named window is year over year over that window (README's
+# growth row): a year named with no count is its four quarters, each with its
+# change, not the growth default of five.
+WINDOW_CHANGE_QUESTIONS: tuple[tuple[str, tuple[str, ...], str, int], ...] = (
+    ("How did AMD's EBITDA change over the past year?", ("AMD",), "ebitda", 4),
+    ("How did Apple's revenue change over the past year?", ("AAPL",), "revenue", 4),
+    ("How has Tesla's revenue changed over the last year?", ("TSLA",), "revenue", 4),
+    ("How did Apple's revenue grow over the last 2 years?", ("AAPL",), "revenue", 8),
 )
 # An idiom that contains a company's everyday-word name ("apples to apples",
 # "building blocks") names no company: only the real companies are read.
@@ -762,6 +788,16 @@ def cases() -> list[PhraseCase]:
     for question in NO_BASE_QUESTIONS:
         found.append(
             PhraseCase(f"no_base:{question}", "Changes with no base", (question,), "asks", _asks)
+        )
+    for question, tickers, metric, count in WINDOW_CHANGE_QUESTIONS:
+        found.append(
+            PhraseCase(
+                f"window_change:{question}",
+                "A change over a window",
+                (question,),
+                _expected(tickers, (metric,), ("last_n_quarters", count), "year_over_year"),
+                _year_over_year_window(frozenset(tickers), metric, count),
+            )
         )
     for question, tickers, metric in IDIOM_QUESTIONS:
         period = ("latest_quarter", None)

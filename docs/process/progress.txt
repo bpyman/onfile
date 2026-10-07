@@ -2091,3 +2091,39 @@ Blockers / next:
   FY2025` (8 quarters from Sep 2024; before: the same banner over 6) and `Apple and Microsoft
   revenue since fiscal 2025` (each on its own calendar). Ticket 07 in probe-round-3-gaps remains.
 
+## 2026-10-07 — probe-round-3-gaps 07 A change over a named window is year over year over that window
+
+Task completed: `docs/process/tickets/probe-round-3-gaps/issues/07-a-change-over-a-window.md`
+
+Key decisions:
+- The fix is in the shared reading of periods (`bind_periods_from_message` in
+  `request_wording.py`), which both planners pass through (ADR 0010, 0011). "Over the past
+  year" is not a counted window in the grammar (no count), so with no change it was read as a
+  year of quarters (4) but beside a change word it fell through to the growth default of 5.
+  Now a change (`yoy` or `sequential`) beside `_YEAR_BASE` ("over/in/during/across the
+  last/past year" or "twelve months") with no counted window reads `asked = 4`, and the rest of
+  the binder runs as for `growth over the last 4 quarters`. A model planner's proposed window
+  no longer stands for it either, since `asked` is set.
+- `How has Tesla's revenue changed over the last year?` moves from 5 to 4 quarters; its unit
+  test in `test_planner_rules.py` predated the README's rule and was updated. A sequential
+  change over the past year shows 4 with the base read, not shown (`count=5, asked=4`).
+- Phrase coverage: `WINDOW_CHANGE_QUESTIONS` (4 cases, checked by window and the year-over-year
+  operation so AMD's missing EBITDA still passes) and `How did AMD's EBITDA change?` in
+  `NO_BASE_QUESTIONS`; none sent to the model. ADR 0010's growth paragraph names the rule; the
+  README already did.
+- Recorded in `docs/process/rules-to-review.md`: `How much did Intel's revenue change over the
+  last year?` still shows the four quarters with no change column (the year-over-year pattern
+  reads "how did ... change" but not "how much did ... change"), pinned by a test; left for a
+  person.
+
+Files changed:
+- `src/financial_analyst_agent/request_wording.py`, `phrase_coverage.py`
+- `tests/unit/test_planner_wording.py` (+1 test with 5 cases), `tests/unit/test_planner_rules.py`
+  (one expectation updated), `tests/test_says_what_it_cannot_do.py` (+2 recorded-runtime tests)
+- `docs/adr/0010-one-reading-of-names-and-windows.md`, `docs/process/rules-to-review.md`,
+  `scripts/compare_answers.py` (+2 conversations), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,165 Python tests pass; ruff and mypy pass; compare_answers reports `2 of 264 conversations differ from HEAD`,
+  the two conversations added for this ticket, each 5 quarters with year-over-year change before
+  and 4 now. Tickets 01-07 in probe-round-3-gaps are all resolved.
