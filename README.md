@@ -42,7 +42,7 @@ The planner proposes; code owns every number.
 | Ask about | For example |
 |---|---|
 | Quarterly figures | revenue, net income, operating and gross margin, EPS, R&D, cash flow, cash, shareholders' and total equity, dividends; for banks, net interest and noninterest income |
-| Derived figures | EBITDA, return on equity, P/E, trailing-year net income, R&D and SG&A as a share of revenue, share price ([ADR 0008](docs/adr/0008-balance-sheet-trailing-year-and-market-figures.md)) |
+| Derived figures | EBITDA, return on equity, P/E, trailing-year net income, R&D and SG&A as a share of revenue, share price ([ADR 0008](docs/adr/0008-balance-sheet-trailing-year-and-market-figures.md)). A derived figure whose part a company's filings do not report as a standalone quarter is missing, with a note naming the part: AMD's EBITDA, since its filings report depreciation only for the year. |
 | Comparisons and trends | `Compare Eli Lilly and Pfizer revenue over the last eight quarters` |
 | Growth and overviews | `Compare Microsoft and Apple revenue growth` charts the growth rates; `How is Nvidia doing?` answers in a sentence with recent quarters |
 | Rankings | `Top 10 technology companies by net margin`, over a dated snapshot of about 5,200 US operating companies |

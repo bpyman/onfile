@@ -2257,3 +2257,45 @@ Blockers / next:
   revenue change since 2023?` (the quarters alone before; each with its change now). `Apple
   revenue since 2025` then `year over year` does not differ. Tickets 01-10 in
   probe-round-3-gaps are all resolved.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/probe-round-3-gaps/issues/11-a-derived-figures-year-over-year-change.md`
+
+Key decisions:
+- The finding, from the recorded facts: no comparative is missing; EBITDA itself is, for every
+  quarter, so both questions showed four "Missing fact" rows with no note (ticket 07's Answer
+  said so for AMD). The cassette holds for AMD no cash-flow D&A line and `Depreciation` only for
+  the fiscal year, so the depreciation-plus-amortization fallback has no quarter either; for
+  Merck no `OperatingIncomeLoss` at all and `AmortizationOfIntangibleAssets` only for the year.
+  The ticket's premise is recorded in rules-to-review (probe-round-3-gaps 11).
+- The ticket's second branch: where the filings do not hold what the figure needs, the row says
+  why. `compare_metrics` (`turn.py`) reads a formula's remaining components after one is
+  missing and records the missing ones on the row (`TableRow.missing_components`; the reason
+  stays `missing_fact`). `missing_component_notes` (`answer_notes.py`), wired into
+  `annotate_analysis`, says which part was not found: "Advanced Micro Devices' EBITDA is
+  missing: no standalone quarterly depreciation and amortization was found in its filings,
+  which EBITDA needs." Companies lacking the same parts share one note; a company with the
+  figure for other quarters names the quarters it lacks; a newest quarter SEC's structured data
+  lacks, which the newer-filing banner explains, gets no second note. The note says what was
+  not found, not what the company reports: a quarter can be beyond what is on file.
+- Apple's EBITDA is unchanged. README's derived-figures row and ADR 0008 say the rule.
+
+Files changed:
+- `src/financial_analyst_agent/turn.py`, `answer_notes.py`, `contracts.py`, `graph/spec_turn.py`
+- `tests/unit/test_market_and_balance_sheet_figures.py` (+3),
+  `tests/unit/test_filers_rankings_and_narrowing.py` (+6), `tests/test_new_figures.py` (+1)
+- `README.md`, `docs/adr/0008-balance-sheet-trailing-year-and-market-figures.md`,
+  `docs/process/rules-to-review.md`, `scripts/compare_answers.py` (+1 conversation), the
+  ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,203 Python tests pass; ruff and mypy pass; compare_answers reports `8 of
+  275 conversations differ from HEAD`, each gaining the note where a derived figure's part was
+  not found and nothing else: `h2_msft_most_recent_twelve`, `h2_tmo_abt_full_names`,
+  `h2_what_about_period`, `h3_abt_gm_previous_seven`, `h3_switch_metric`, `ho_orcl_overview`,
+  `How did AMD's EBITDA change over the past year?` and the conversation added here, `Merck
+  EBITDA over the last 4 quarters year over year`. Whether AMD tags its cash-flow D&A under a
+  concept the catalog does not read needs live data; if so, reading it would make its EBITDA
+  computable. Tickets 01-11 in probe-round-3-gaps are all resolved.
+

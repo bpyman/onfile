@@ -52,6 +52,7 @@ EXTRA = [
     ["Apple and Microsoft revenue calendar Q2 2026"],
     ["Apple revenue growth last 4 quarters"],
     ["How did AMD's EBITDA change over the past year?"],
+    ["Merck EBITDA over the last 4 quarters year over year"],
     ["How did Apple's revenue change over the past year?"],
     ["How much did Intel's revenue change over the last year?"],
     ["Over the past 10 quarters, how has Thermo Fisher's revenue moved?"],
