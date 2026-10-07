@@ -64,8 +64,9 @@ an analyst would naturally ask much as an example does, ask it that way.
 - An answer is a table of figures: one company (a lookup), several companies (a
   comparison), or a ranking of an industry or sector.
 - It does not give investment advice, predict, or answer outside its scope.
-- Figures it does not have (a metric outside the catalog, a period before
-  2015 or in the future) are refused or asked about, never guessed. A segment
+- Figures it does not have (a metric outside the catalog, a named period
+  before 2015 or in the future) are refused or asked about, never guessed. A
+  `since` window answers whatever year it names, at most 40 quarters. A segment
   (iPhone, AWS, Google Cloud) shows the company-wide figure with a note, as the
   README says: label it as an answer with the company-wide metric.
 - The recording holds each company's 10-Qs and 10-Ks from about mid-2024 to
@@ -126,15 +127,17 @@ shown and whatever the first turn asked.
 ### Periods, as labels
 
 - Label the period of every answer, the latest quarter included; a ranking's
-  is the latest quarter.
+  is the latest quarter. A figure that is not a quarter's (a balance-sheet
+  amount, market cap, price, P/E, a trailing-year figure) asked with no window
+  is the latest quarter too.
 - The latest quarter: `{"kind": "latest_quarter"}`.
 - A window of recent quarters: `{"kind": "last_n_quarters", "count": N}`, with N
   as the README's table counts it. For a window `since` a year, leave the count
   out: it depends on the recording's latest quarter.
 - A named fiscal or calendar quarter or year: `{"kind": "named"}`; leave the
-  count out.
+  count out. The label records only the kind, not which period.
 - A trailing-year figure (`TTM net income`): label the metric `net_income_ttm`
-  and leave the period out. A figure with no trailing-year form (`TTM
+  and the period the latest quarter. A figure with no trailing-year form (`TTM
   revenue`) is its latest 4 quarters: `last_n_quarters`, count 4.
 - A period in the future, or before 2015, is refused.
 
@@ -149,16 +152,17 @@ A year-over-year change, growth included, is labelled
 A ranking that shows a metric, whether ordered by it (`by`) or by market value
 (`and their`), has intent `rank_and_lookup` and that metric. For a ranking by
 market value alone (market cap, "largest", "worth the most") leave the intent
-and metric out. Label `tickers_include` with the one company that must be in
-the answer, the largest by market value in that group, never the full list.
+and metric out. Never label the intent `rank`. Label `tickers_include` with the one company that must be in
+the answer, the largest by market value in that group, never the full list. A ranking with no group ranks every recorded company:
+its largest is NVIDIA.
 
 ### Other kinds of question
 
 - "What changed in X's latest 10-Q?" compares two filings: intent
   `filing_change`. Label the intent only: whether it answers depends on which
   filing documents the recording holds.
-- An overview ("How is X doing?"): label `outcome` and the ticker; leave the
-  intent, metrics and period out.
+- An overview ("How is X doing?"): label `outcome`, the ticker and the period
+  (the latest quarter, or the window named); leave the intent and metrics out.
 - News ("latest news about X") is intent `news_and_explain`; a general
   explanation ("how might AI change banking?") is intent `explain`. Label the
   intent only: the recording replays only the news it holds.
@@ -195,7 +199,10 @@ the answer, the largest by market value in that group, never the full list.
 
 Every case has `outcome`, except the filing-change, news and explanation
 cases, which label the intent only. Include another field only when the rules
-fix it: a clarify or refuse case usually labels `outcome` alone; use `tickers`
+fix it: a clarify or refuse case labels `outcome` alone. Give each clarify or
+refusal case one reason to ask or refuse, and do not write a case whose outcome
+the rules leave open. Lists (`tickers`, `metrics`) compare as sets: order does
+not matter; use `tickers`
 or `tickers_include`, not both; label `intent` when the rules name it (one
 company is `lookup`, several named companies are `compare`). Ids are unique.
 
