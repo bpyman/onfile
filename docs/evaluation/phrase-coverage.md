@@ -1,21 +1,24 @@
 # Phrase coverage
 
-Generated `2026-10-07T01:46:07.679396+00:00` on the recorded runtime with the rules planner. 471 everyday phrasings of a metric, a window, a change or a follow-up, each asked as a whole question and judged by the README's [How a question is read](../../README.md#how-a-question-is-read). No network and no model. **471 of 471 (100%) are read right**; the live app's cascade would send 11 to the LLM planner.
+Generated `2026-10-07T06:41:19.419228+00:00` on the recorded runtime with the rules planner. 518 everyday phrasings of a metric, a window, a change or a follow-up, each asked as a whole question and judged by the README's [How a question is read](../../README.md#how-a-question-is-read). No network and no model. **518 of 518 (100%) are read right**; the live app's cascade would send 14 to the LLM planner.
 
 | Group | Phrasings | Read right |
 | --- | ---: | ---: |
 | Metrics | 208 | 208 (100%) |
 | Ambiguous metric words | 7 | 7 (100%) |
-| Windows | 32 | 32 (100%) |
+| Windows | 41 | 41 (100%) |
 | Year over year | 11 | 11 (100%) |
 | Quarter over quarter | 4 | 4 (100%) |
 | A named period with a change | 1 | 1 (100%) |
-| Changes with no base | 8 | 8 (100%) |
+| Changes with no base | 10 | 10 (100%) |
+| A change over a window | 13 | 13 (100%) |
 | Idioms beside a company | 6 | 6 (100%) |
 | Overviews | 10 | 10 (100%) |
 | Unknown measures | 19 | 19 (100%) |
-| General questions | 13 | 13 (100%) |
+| General questions | 16 | 16 (100%) |
+| Rankings | 14 | 14 (100%) |
 | Follow-ups | 19 | 19 (100%) |
+| Change switches | 6 | 6 (100%) |
 | Combinations | 98 | 98 (100%) |
 | Follow-up combinations | 35 | 35 (100%) |
 
@@ -42,5 +45,8 @@ The live app plans with the cascade (ADR 0012): the rules planner, and the LLM p
 | `What is the EPS?` | no company | yes |
 | `What's the revenue?` | no company | yes |
 | `What was the revenue last quarter?` | no company | yes |
+| `What was net income this quarter?` | no company | yes |
+| `Net margin last quarter?` | no company | yes |
+| `What was net interest income?` | no company | yes |
 
 `SENT_TO_MODEL` in `phrase_coverage.py` lists them with the reason each is expected, and the test fails when the list and the cascade disagree.
