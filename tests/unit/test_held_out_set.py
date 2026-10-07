@@ -133,3 +133,29 @@ def test_two_labellings_are_compared_field_by_field(tmp_path: Path) -> None:
     assert agreement["disagreements"][0]["fields"] == {
         "outcome": {"first": "clarify", "second": "answer"}
     }
+
+
+def test_the_report_shows_the_held_out_groups(two_sets: tuple[Path, Path]) -> None:
+    from financial_analyst_agent.planner_evaluation import Usage, render_markdown, summarize
+
+    cases = [case for case in load_cases(*two_sets) if case.split == "held_out"]
+    seen = Observation(
+        "answer", "lookup", frozenset({"AAPL"}), frozenset(), ("latest_quarter", None), frozenset()
+    )
+    results = [scored_run(case, 0, seen) for case in cases]
+    report = {
+        "generated_at": "now",
+        "case_count": 2,
+        "scorecard_count": 0,
+        "dev_count": 0,
+        "held_out_count": 2,
+        "held_out_set": 5,
+        "planners": {
+            "rules": {"label": "Rules planner", **summarize(cases, results, Usage(), None)}
+        },
+    }
+
+    markdown = render_markdown(report)
+
+    assert "Held out, by group: written by claude 100% (1 cases)" in markdown
+    assert "familiar 100% (1 cases), novel 100% (1 cases)" in markdown

@@ -1,0 +1,333 @@
+{
+  "held_out_set": 5,
+  "threshold": 0.8,
+  "cases": 160,
+  "earlier": 833,
+  "probe_files": [
+    "C:\\Users\\the_w\\AppData\\Local\\Temp\\claude\\C--Users-the-w-AI-financial-analyst-agent\\5ad2ba00-248b-43a0-a58e-a3058a56a216\\scratchpad\\probe3-claude\\probes.json"
+  ],
+  "familiar": [
+    {
+      "id": "h5_mw_topline",
+      "question": "What's NVIDIA's top line?",
+      "nearest": "coverage metric:top line:question",
+      "nearest_question": "What was Apple's top line?",
+      "similarity": 0.8
+    },
+    {
+      "id": "h5_mw_sales",
+      "question": "AbbVie sales",
+      "nearest": "coverage metric:sales:terse",
+      "nearest_question": "apple sales",
+      "similarity": 1.0
+    },
+    {
+      "id": "h5_mw_bottom",
+      "question": "Microsoft's bottom line",
+      "nearest": "coverage metric:bottom line:terse",
+      "nearest_question": "apple bottom line",
+      "similarity": 1.0
+    },
+    {
+      "id": "h5_mw_cogs",
+      "question": "Micron cogs",
+      "nearest": "coverage metric:COGS:terse",
+      "nearest_question": "apple COGS",
+      "similarity": 1.0
+    },
+    {
+      "id": "h5_mw_divyield_beside",
+      "question": "Apple revenue and dividend yield",
+      "nearest": "probe p5r3_fable_unknown_beside_known",
+      "nearest_question": "Pfizer dividend yield and revenue",
+      "similarity": 1.0
+    },
+    {
+      "id": "h5_mw_sga",
+      "question": "Cisco SG&A",
+      "nearest": "coverage metric:SG&A:terse",
+      "nearest_question": "apple SG&A",
+      "similarity": 1.0
+    },
+    {
+      "id": "h5_mw_margins",
+      "question": "Pfizer margins",
+      "nearest": "probe p5r3_fable_abbvie_margins",
+      "nearest_question": "abbvie margins",
+      "similarity": 1.0
+    },
+    {
+      "id": "h5_mw_sga_pct",
+      "question": "SG&A as a percentage of sales for Amgen",
+      "nearest": "coverage metric:SG&A as a percentage of sales:terse",
+      "nearest_question": "apple SG&A as a percentage of sales",
+      "similarity": 0.88
+    },
+    {
+      "id": "h5_mw_rd_pct",
+      "question": "R&D as a percentage of revenue, Gilead",
+      "nearest": "coverage metric:R&D as a percentage of revenue:terse",
+      "nearest_question": "apple R&D as a percentage of revenue",
+      "similarity": 1.0
+    },
+    {
+      "id": "h5_per_six_quarters",
+      "question": "six quarters of Apple revenue",
+      "nearest": "coverage window:6 quarters",
+      "nearest_question": "Apple revenue 6 quarters",
+      "similarity": 0.8
+    },
+    {
+      "id": "h5_per_fifteen_months",
+      "question": "Micron revenue, 15 months",
+      "nearest": "coverage window:18 months",
+      "nearest_question": "Apple revenue 18 months",
+      "similarity": 1.0
+    },
+    {
+      "id": "h5_per_since_2024",
+      "question": "AMD revenue since 2024",
+      "nearest": "coverage window:since 2024",
+      "nearest_question": "Apple revenue since 2024",
+      "similarity": 1.0
+    },
+    {
+      "id": "h5_per_since_fiscal",
+      "question": "AbbVie revenue since the start of fiscal 2025",
+      "nearest": "coverage window:since the start of fiscal 2025",
+      "nearest_question": "Apple revenue since the start of fiscal 2025",
+      "similarity": 1.0
+    },
+    {
+      "id": "h5_per_last_twelve_ni",
+      "question": "last twelve months net income for Palantir",
+      "nearest": "coverage metric:last twelve months net income:terse",
+      "nearest_question": "apple last twelve months net income",
+      "similarity": 0.86
+    },
+    {
+      "id": "h5_per_ltm_ni",
+      "question": "LTM net income for Broadcom",
+      "nearest": "coverage metric:LTM net income:terse",
+      "nearest_question": "apple LTM net income",
+      "similarity": 0.8
+    },
+    {
+      "id": "h5_per_ni_over_twelve",
+      "question": "Gilead net income over the last twelve months",
+      "nearest": "coverage window:pfizer net income over the last twelve months",
+      "nearest_question": "pfizer net income over the last twelve months",
+      "similarity": 1.0
+    },
+    {
+      "id": "h5_co_bofa",
+      "question": "bofa revenue",
+      "nearest": "coverage metric:revenue:terse",
+      "nearest_question": "apple revenue",
+      "similarity": 1.0
+    },
+    {
+      "id": "h5_co_unh_ocf",
+      "question": "UnitedHealth's operating cash flow",
+      "nearest": "coverage metric:operating cash flow:terse",
+      "nearest_question": "apple operating cash flow",
+      "similarity": 1.0
+    },
+    {
+      "id": "h5_fu_avgo_add",
+      "question": "NVIDIA operating margin over the last 4 quarters → add Broadcom",
+      "nearest": "case follow_up_metric_and_company",
+      "nearest_question": "Microsoft revenue over the last four quarters → add Apple → now add operating margin",
+      "similarity": 0.8
+    },
+    {
+      "id": "h5_fu_make_8",
+      "question": "Apple's revenue → make it the last 8 quarters",
+      "nearest": "case h4_fu_cisco_window_eight",
+      "nearest_question": "CSCO revenue last 4 quarters → make it the last 8 quarters",
+      "similarity": 1.0
+    },
+    {
+      "id": "h5_ow_apple",
+      "question": "apple revenue",
+      "nearest": "coverage metric:revenue:terse",
+      "nearest_question": "apple revenue",
+      "similarity": 1.0
+    },
+    {
+      "id": "h5_ow_oracle",
+      "question": "oracle free cash flow",
+      "nearest": "coverage metric:free cash flow:terse",
+      "nearest_question": "apple free cash flow",
+      "similarity": 1.0
+    },
+    {
+      "id": "h5_rk_banks_ni",
+      "question": "5 banks by net income",
+      "nearest": "case h4_rank_banks_net_income",
+      "nearest_question": "top 3 banks by net income?",
+      "similarity": 0.83
+    },
+    {
+      "id": "h5_gr_fast_csco",
+      "question": "How fast is Cisco's revenue growing?",
+      "nearest": "case h4_growth_nvda_how_fast",
+      "nearest_question": "How fast is Nvidia's revenue growing?",
+      "similarity": 1.0
+    },
+    {
+      "id": "h5_gr_fast_avgo",
+      "question": "How fast is Broadcom growing?",
+      "nearest": "probe p5r3_fable_how_fast_growing_no_metric",
+      "nearest_question": "how fast is Broadcom growing",
+      "similarity": 1.0
+    },
+    {
+      "id": "h5_gr_nvda_yoy",
+      "question": "NVIDIA revenue year over year",
+      "nearest": "case growth_chart",
+      "nearest_question": "Microsoft revenue year over year",
+      "similarity": 1.0
+    },
+    {
+      "id": "h5_gr_gild_2q",
+      "question": "Gilead revenue over the last 2 quarters, quarter over quarter",
+      "nearest": "case window_four_quarters",
+      "nearest_question": "Microsoft revenue over the last four quarters",
+      "similarity": 0.86
+    },
+    {
+      "id": "h5_gr_amgn_ebitda",
+      "question": "How did Amgen's EBITDA change over the past year?",
+      "nearest": "coverage window_change:How did AMD's EBITDA change over the past year?",
+      "nearest_question": "How did AMD's EBITDA change over the past year?",
+      "similarity": 1.0
+    },
+    {
+      "id": "h5_gr_orcl_10",
+      "question": "Over the past 10 quarters, how has Oracle revenue moved?",
+      "nearest": "case h3_tmo_rev_past_ten",
+      "nearest_question": "Over the past 10 quarters, how has Thermo Fisher's revenue moved?",
+      "similarity": 0.9
+    },
+    {
+      "id": "h5_gr_jnj_since",
+      "question": "Johnson & Johnson revenue since 2025, year over year",
+      "nearest": "coverage since_change:Apple revenue since 2025 year over year",
+      "nearest_question": "Apple revenue since 2025 year over year",
+      "similarity": 0.86
+    },
+    {
+      "id": "h5_cl_margin",
+      "question": "Broadcom margin",
+      "nearest": "case h4_clarify_pfizer_margin",
+      "nearest_question": "Pfizer margin?",
+      "similarity": 1.0
+    },
+    {
+      "id": "h5_cl_drop",
+      "question": "Why did NVIDIA's revenue drop?",
+      "nearest": "coverage no_base:Why did Apple revenue drop?",
+      "nearest_question": "Why did Apple revenue drop?",
+      "similarity": 1.0
+    },
+    {
+      "id": "h5_cl_change",
+      "question": "How much did Merck's revenue change?",
+      "nearest": "case h4_clarify_intel_change_no_base",
+      "nearest_question": "How much did Intel's revenue change?",
+      "similarity": 1.0
+    },
+    {
+      "id": "h5_cl_fall",
+      "question": "What caused Pfizer's earnings to fall?",
+      "nearest": "coverage no_base:What caused Pfizer's earnings to fall?",
+      "nearest_question": "What caused Pfizer's earnings to fall?",
+      "similarity": 1.0
+    },
+    {
+      "id": "h5_rf_advice",
+      "question": "Should I buy Lilly?",
+      "nearest": "case advice_declined",
+      "nearest_question": "Should I buy Nvidia stock?",
+      "similarity": 0.8
+    },
+    {
+      "id": "h5_rf_spy",
+      "question": "SPY revenue",
+      "nearest": "case fund_is_not_a_company",
+      "nearest_question": "SPY revenue",
+      "similarity": 1.0
+    },
+    {
+      "id": "h5_rf_2030",
+      "question": "Apple revenue in 2030",
+      "nearest": "coverage window:in Q2 2025",
+      "nearest_question": "Apple revenue in Q2 2025",
+      "similarity": 0.8
+    },
+    {
+      "id": "h5_rf_2012",
+      "question": "Pfizer revenue in fiscal 2012",
+      "nearest": "coverage window:in fiscal 2025",
+      "nearest_question": "Apple revenue in fiscal 2025",
+      "similarity": 1.0
+    },
+    {
+      "id": "h5_rf_stock_perf",
+      "question": "Apple stock performance",
+      "nearest": "coverage unknown:Apple's stock performance",
+      "nearest_question": "Apple's stock performance",
+      "similarity": 1.0
+    },
+    {
+      "id": "h5_ot_nvda_10q",
+      "question": "What changed in NVIDIA's latest 10-Q?",
+      "nearest": "case filing_change_latest",
+      "nearest_question": "What changed in Microsoft's latest 10-Q?",
+      "similarity": 1.0
+    },
+    {
+      "id": "h5_ot_mrk_annual",
+      "question": "what's new in Merck's annual report",
+      "nearest": "probe p5r3_fable_whats_new_annual_report",
+      "nearest_question": "what's new in Apple's annual report",
+      "similarity": 1.0
+    },
+    {
+      "id": "h5_ot_what_eps",
+      "question": "What is EPS?",
+      "nearest": "coverage general:What is EPS?",
+      "nearest_question": "What is EPS?",
+      "similarity": 1.0
+    },
+    {
+      "id": "h5_ot_buyback",
+      "question": "How does a buyback affect EPS?",
+      "nearest": "coverage general:How does a buyback affect EPS?",
+      "nearest_question": "How does a buyback affect EPS?",
+      "similarity": 1.0
+    },
+    {
+      "id": "h5_ot_ai_banking",
+      "question": "How might AI change banking?",
+      "nearest": "coverage general:How might AI change banking?",
+      "nearest_question": "How might AI change banking?",
+      "similarity": 1.0
+    },
+    {
+      "id": "h5_ot_wfc_doing",
+      "question": "How is Wells Fargo doing?",
+      "nearest": "case overview_with_trends",
+      "nearest_question": "How is Nvidia doing?",
+      "similarity": 0.8
+    },
+    {
+      "id": "h5_ot_dhr_perf",
+      "question": "Danaher's performance over the last 4 quarters",
+      "nearest": "coverage overview:Apple's performance over the last 4 quarters",
+      "nearest_question": "Apple's performance over the last 4 quarters",
+      "similarity": 1.0
+    }
+  ]
+}
