@@ -8,4 +8,17 @@ Cases: both above, with a fake LLM planner proposing `news_and_explain`.
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped 7 October 2026. `asks_change_without_base` (request_wording.py) is true where
+`comparison_asked` is "unclear" and the words do not name `news` or `headlines`. In
+`request_from_proposal` (graph/turn_graph.py), any qualitative proposal (news, explanation,
+exploratory research) for such a question is typed by `_figure_asked` as the figure it names:
+a named company's lookup, which then asks year over year or sequential; with no company, the
+lookup that asks which company, as the rules planner does. Tests: h5_cl_drop and h5_cl_fall
+with a fake LLM planner proposing `news_and_explain`, three named-company changes and the
+no-company one under both planners, and two news-by-name questions that stay news.
+compare_answers: 0 of 366 conversations differ (the recorded demo uses the rules planner,
+which already asked); two conversations added.

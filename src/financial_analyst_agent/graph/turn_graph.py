@@ -76,6 +76,7 @@ from financial_analyst_agent.guide import (
 from financial_analyst_agent.issuer_index import CompanyNames
 from financial_analyst_agent.observability import call_provider, log_event
 from financial_analyst_agent.request_wording import (
+    asks_change_without_base,
     asks_for_explanation,
     planner_window,
     read_window,
@@ -137,7 +138,7 @@ def _names_a_company(proposal: WorkflowPlan | SpecPatch) -> bool:
     return bool(company or proposal.companies)
 
 
-def _figure_asked(message: str, deps: TurnDeps) -> WorkflowPlan | None:
+def _figure_asked(message: str, deps: TurnDeps, *, change: bool = False) -> WorkflowPlan | None:
     """The lookup a figures question asks for, when a planner read it as an explanation.
 
     It names a catalog metric. With a recorded company named, it is that company's
@@ -146,7 +147,9 @@ def _figure_asked(message: str, deps: TurnDeps) -> WorkflowPlan | None:
     company only where none of the explanation wording is there: "What's the EPS?"
     (README, general question). "What is EPS?", "How might AI change banking?" and
     "How might AI change Goldman Sachs's business?" stay explanations: the first
-    asks what the measure is, the others name no catalog metric.
+    asks what the measure is, the others name no catalog metric. A change asked
+    with no base (``change``) is a figure with or without that wording: "Why did
+    revenue drop?" asks which company, as it does from the rules planner.
     """
     resolved = resolve_metric_phrase(message)
     if resolved.kind == "unknown":
@@ -158,7 +161,7 @@ def _figure_asked(message: str, deps: TurnDeps) -> WorkflowPlan | None:
         return WorkflowPlan(intent=Intent.LOOKUP, company=companies[0], metric=resolved.metric)
     if companies:
         return WorkflowPlan(intent=Intent.COMPARE, companies=companies, metric=resolved.metric)
-    if asks_for_explanation(message):
+    if asks_for_explanation(message) and not change:
         return None
     return WorkflowPlan(intent=Intent.LOOKUP, metric=resolved.metric)
 
@@ -169,8 +172,12 @@ def request_from_proposal(
     """Type the planner's proposal: one of the closed request kinds, or an error."""
     if isinstance(proposal, WorkflowPlan) and is_filing_change_proposal(proposal):
         return bind_filing_change(proposal, message)
-    if isinstance(proposal, WorkflowPlan) and proposal.intent is Intent.EXPLAIN:
-        proposal = _figure_asked(message, deps) or proposal
+    if isinstance(proposal, WorkflowPlan) and is_qualitative_proposal(proposal):
+        # "Why did NVIDIA's revenue drop?" asks against what, whichever intent a
+        # planner proposed, unless it asks for news by name.
+        change = asks_change_without_base(message)
+        if change or proposal.intent is Intent.EXPLAIN:
+            proposal = _figure_asked(message, deps, change=change) or proposal
     if (
         is_structured_proposal(proposal)
         and not _names_a_company(proposal)

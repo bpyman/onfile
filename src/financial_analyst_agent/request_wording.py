@@ -768,6 +768,20 @@ def comparison_asked(message: str) -> ComparisonBase | Literal["unclear"] | None
     return "unclear"
 
 
+# "news", "headlines": news asked for by name.
+_NEWS_BY_NAME = re.compile(r"news|headlines?", re.IGNORECASE)
+
+
+def asks_change_without_base(message: str) -> bool:
+    """Whether the words ask about a change but not against what, and not for news.
+
+    "Why did NVIDIA's revenue drop?" is asked against what (README, a change with
+    no base), whichever intent a planner proposed; "What's the news on why
+    NVIDIA's revenue dropped?" asks for news by name.
+    """
+    return comparison_asked(message) == "unclear" and _NEWS_BY_NAME.search(message) is None
+
+
 # "quarter over quarter instead of year over year": one base named to rule the
 # other out, not both asked for.
 _ONE_NOT_THE_OTHER = re.compile(r"\b(?:instead of|rather than|not)\b", re.IGNORECASE)

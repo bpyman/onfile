@@ -150,3 +150,12 @@ the question asks why, so "How does Apple's buyback affect its EPS?" is Apple's
 diluted EPS and "Why is Goldman's revenue so volatile?" Goldman's revenue
 whichever planner reads them. A company and no metric ("How might AI change
 Goldman Sachs's business?") stays an explanation (held-out-5-findings ticket 07).
+
+`h5_cl_drop` and `h5_cl_fall` were read by the LLM planner as news on one run of
+three, and the shared typing kept any news proposal as news. It now types a
+question that asks about a change but not against what as the figure it names,
+whatever intent the planner proposed, so "Why did NVIDIA's revenue drop?" and
+"What caused Pfizer's earnings to fall?" ask year over year or sequential
+whichever planner reads them, and "Why did revenue drop?" asks which company. A
+question that asks for news by name ("What's the news on why NVIDIA's revenue
+dropped?") stays news (held-out-5-findings ticket 08).

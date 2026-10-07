@@ -89,6 +89,13 @@ _LLM_PLANS = {
     "h5_co_volatile": WorkflowPlan(
         intent=Intent.EXPLAIN, topic="Why is Goldman's revenue so volatile?"
     ),
+    # News, on one run of three, though the question asks about a change.
+    "h5_cl_drop": WorkflowPlan(
+        intent=Intent.NEWS_AND_EXPLAIN, topic="Why did NVIDIA's revenue drop?"
+    ),
+    "h5_cl_fall": WorkflowPlan(
+        intent=Intent.NEWS_AND_EXPLAIN, topic="What caused Pfizer's earnings to fall?"
+    ),
 }
 
 
@@ -539,3 +546,48 @@ def test_a_question_naming_no_company_figure_stays_an_explanation(
 
     assert turn.result.intent is Intent.EXPLAIN
     assert not turn.result.table_rows
+
+
+_NEWS = WorkflowPlan(intent=Intent.NEWS_AND_EXPLAIN)
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Why did NVIDIA's revenue drop?",
+        "What caused Pfizer's earnings to fall?",
+        "What drove the change in Oracle's free cash flow?",
+    ],
+)
+def test_a_change_with_no_base_asks_against_what_whichever_planner(
+    question: str, runtime: Runtime
+) -> None:
+    """A change that names no base is asked about (README, a change with no base),
+    even when a planner reads the question as news."""
+    for planner in (runtime.completer, _ProposedPlan(_NEWS)):
+        turn = _turn(question, planner, runtime)
+
+        assert turn.result.clarify_kind == "ambiguous_comparison"
+
+
+def test_a_change_with_no_base_and_no_company_asks_which_company_whichever_planner(
+    runtime: Runtime,
+) -> None:
+    rules = _turn("Why did revenue drop?", runtime.completer, runtime)
+    news = _turn("Why did revenue drop?", _ProposedPlan(_NEWS), runtime)
+
+    assert news.result.intent is rules.result.intent is Intent.LOOKUP
+    assert news.result.message == rules.result.message
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "What's the news on why NVIDIA's revenue dropped?",
+        "Headlines on why Pfizer's earnings fell",
+    ],
+)
+def test_a_change_asked_as_news_by_name_stays_news(question: str, runtime: Runtime) -> None:
+    turn = _turn(question, _ProposedPlan(_NEWS), runtime)
+
+    assert turn.result.intent is Intent.NEWS_AND_EXPLAIN

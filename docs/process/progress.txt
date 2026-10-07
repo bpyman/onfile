@@ -2495,3 +2495,26 @@ Blockers / next:
   Apple's revenue?" is now Apple's revenue, not an explanation, as the ticket's rule says; recorded for
   review. compare_answers crashes printing a diff on a cp1252 console (set PYTHONIOENCODING=utf-8).
   Tickets 08-09 in held-out-5-findings remain.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/held-out-5-findings/issues/08-a-change-with-no-base-asks-whichever-planner.md`
+
+Key decisions:
+- `asks_change_without_base` (request_wording.py): a change asked with no base, and no news
+  asked for by name (`news`, `headlines`).
+- `request_from_proposal` (graph/turn_graph.py) types any qualitative proposal for such a
+  question with `_figure_asked(change=True)`: the named company's lookup, which asks against
+  what; with no company, the lookup that asks which company, even with explanation wording.
+  General explanations that mention a change but no figure asked ("Why does gross margin
+  decline when costs rise?") are not read as a change with no base and are unchanged.
+
+Files changed:
+- `src/financial_analyst_agent/request_wording.py`, `graph/turn_graph.py`
+- `tests/test_held_out_5_findings.py` (+2 LLM plans of news, +6 tests)
+- `README.md`, `docs/evaluation/held-out-5-findings.md`, `scripts/compare_answers.py` (+2
+  conversations), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,304 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 366
+  conversations differ from HEAD`. Ticket 09 in held-out-5-findings remains.
