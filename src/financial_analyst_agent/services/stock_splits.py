@@ -137,7 +137,10 @@ def series_agrees(splits: tuple[StockSplit, ...], records: list[FactRecord]) -> 
 
     Each filing's figure for a quarter, divided by the splits after it was filed,
     must agree to within half a cent with the same quarter from a filing on
-    another basis. This is the guard against a misread ratio or date.
+    another basis. This is the guard against a misread ratio or date. It guards
+    only where a later filing restates a quarter: a quarter reported on one basis
+    alone (most quarters more than a year before the split) has nothing to
+    disagree with and is adjusted by the reported ratio alone, as intended.
     """
     by_period: dict[tuple[str, date | None, date], list[tuple[Decimal, Decimal]]] = {}
     for record in records:

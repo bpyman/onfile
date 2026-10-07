@@ -1675,3 +1675,185 @@ Blockers / next:
   An `explain` proposal for a question that names a company and a metric (`Apple EPS`) keeps the
   planner's reading, as the ticket scopes the rule to questions naming no company. Ticket 09 was
   the last open ticket in brief-5-probe-gaps.
+
+## 2026-10-06 — review-69-90 01 A "since" window counts the quarters filed, not the calendar
+
+Task completed: `docs/process/tickets/review-69-90/issues/01-a-since-window-counts-from-the-latest-quarter.md`
+
+Key decisions:
+- `PeriodSelection` gains `since_year`: a `last_n_quarters` window that is every filed quarter
+  ended on or after 1 January of that year, with `count` as the 40-quarter cap until the dates are
+  listed. `read_window` no longer counts a `since` window from `date.today()` (`since_quarters`
+  and `since_capped_from` removed); `bind_periods_from_message` sets the cap and the year.
+- `materialize_period_dates` lists up to the cap per company and keeps each company's quarters
+  since that January on its own calendar (`quarters_since`); none yet → the latest quarter.
+  `asked` stays unset for a `since` window.
+- The window note counts the span from the newest filed quarter (`quarters_in_span`), so the cap
+  note says 46 for `since 2015` and the missing-quarter note says "only 9 of the 10 quarters since
+  2024", only when the filings lack a quarter inside the span. The period chip reads "Since 2024".
+- The ticket's acceptance expected no note for `Apple revenue since 2024`, but the recording lacks
+  the quarter ended 30 March 2024, which is inside the span: followed the ticket's rule over its
+  example and recorded it in `docs/process/rules-to-review.md`.
+- `compare_answers.py` gains `Apple revenue since 2024` and `Apple revenue since 2015` so a `since`
+  window is compared; its docstring's example of date-reading wording is now "two years ago".
+
+Files changed:
+- `src/financial_analyst_agent/{request_wording.py,answer_notes.py,presentation.py,
+  graph/analysis_spec.py,graph/spec_turn.py,services/fiscal_periods.py}`
+- `tests/unit/test_window_copy.py` (reading, binding, notes), `tests/unit/
+  test_calendars_clarification_and_formatting.py` (trim per company, no quarter yet),
+  `tests/test_says_what_it_cannot_do.py` (recorded answer, chip, two dates),
+  `tests/test_planner_conversations.py` (cap note says 46)
+- `README.md`, `CONTEXT.md`, `scripts/compare_answers.py`, `docs/process/rules-to-review.md`,
+  the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,057 Python tests pass; ruff and mypy pass; compare_answers reports
+  `2 of 246 conversations differ from HEAD`: the two new `since` cases, each as intended.
+  A `since` window with year over year or quarter over quarter still falls through to the
+  change's own window (5 or 8 quarters), as before this ticket. Tickets 02-06 in review-69-90
+  remain.
+
+## 2026-10-06 — review-69-90 02 A file written just after the filing watch began is not vouched for a week
+
+Task completed: `docs/process/tickets/review-69-90/issues/02-a-file-written-just-after-coverage-began.md`
+
+Key decisions:
+- `FilingWatch.lifetime` gives a file written less than a day after coverage began the 15
+  minutes (`AFTER_FILING_SECONDS`), after the stale and filed-within-a-day rules: the day
+  before coverage is unseen, so a filing there cannot be ruled out. Applies whether or not an
+  older filing by the company is on record (a gap that moves coverage may hide a newer one).
+- `needs_warming` warms a 15-minute file once more when a file fetched now would get the
+  week (`lifetime(cik, now) == VOUCHED_SECONDS`), so the warm-up fetches such a company once
+  after the day, not every 15 minutes.
+- Three existing watch tests wrote files within a day of coverage with no filing on record
+  and expected the week; each now writes a day later or expects the 15 minutes.
+- ADR 0013 states the rule and its consequence after a start on a busy feed; `docs/deploy.md`
+  says so in the `SEC_FILING_WATCH_SECONDS` row.
+
+Files changed:
+- `src/financial_analyst_agent/providers/sec/filing_watch.py`
+- `tests/unit/providers/test_filing_watch.py` (+2 tests, 3 adjusted)
+- `docs/adr/0013-cached-sec-data-lasts-until-the-company-files.md`, `docs/deploy.md`,
+  the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,059 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 246 conversations differ from HEAD`. Tickets 03-06 in review-69-90 remain.
+
+## 2026-10-06 — review-69-90 03 ADR 0009 and the split ticket say what the code does
+
+Task completed: `docs/process/tickets/review-69-90/issues/03-adr-0009-and-ticket-04-say-what-the-code-does.md`
+
+Key decisions:
+- ADR 0009's Decision states the revised sequential rule (the quarter before the oldest is read
+  as the base and not shown; the window shows the quarters asked for) and names the rule it
+  replaces, rather than leaving the withdrawn sentence beside the revision note.
+- combination-gaps ticket 04's acceptance reads $0.598 to four places, marked revised on review.
+- ADR 0009's per-share revision note and `series_agrees`'s docstring say the cross-check guards
+  only where a later filing restates a quarter; a quarter reported on one basis alone is
+  adjusted by the reported ratio alone, as intended.
+- The binder's `count = 5` comment and the extend step's docstring still describe the base
+  quarter as shown; the branch never changes a sequential window. Recorded in
+  `docs/process/rules-to-review.md`; code left unchanged (documentation-only ticket).
+
+Files changed:
+- `docs/adr/0009-year-over-year-reads-the-comparative.md`
+- `docs/process/tickets/combination-gaps/issues/04-per-share-figures-across-a-split-on-the-latest-basis.md`
+- `src/financial_analyst_agent/services/stock_splits.py` (docstring only)
+- `docs/process/rules-to-review.md`, the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,059 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 246 conversations differ from HEAD`. Tickets 04-06 in review-69-90 remain.
+
+## 2026-10-06 — review-69-90 04 "18 months" and "a couple of years" are windows without "last" or "past"
+
+Task completed: `docs/process/tickets/review-69-90/issues/04-a-window-without-a-recency-word.md`
+
+Key decisions:
+- `_WINDOW_PATTERNS` in `period_window.py` gains a bare `count unit` pattern (no recency word or
+  preposition), so `Apple revenue 18 months` is 6 quarters, `2 years` and `a couple of years` 8,
+  `6 quarters` 6. The earliest match wins, so a worded window keeps its recency word as `said`.
+- No new exclusions were needed: the unit's lookaheads already keep `3 months ended June` and
+  `2 quarters ago` as named quarters; `fiscal 2025` has no unit word; `12-month` in `trailing
+  12-month revenue` has no space, so it stays the trailing year and shows the latest 4 quarters.
+- Phrase coverage: `18 months` and `6 quarters` in `WINDOW_PHRASES`; `apple revenue 2 years`,
+  `MSFT net income a couple of years` and `Apple trailing 12-month revenue` (unchanged, 4) in
+  `WINDOW_QUESTIONS`. The rules planner is sure of each, so none goes to the LLM planner.
+- README window row and ADR 0010's grammar paragraph say the recency word is optional after the
+  metric and name the counts that are not windows. `compare_answers.py` gains
+  `Apple revenue 18 months`.
+
+Files changed:
+- `src/financial_analyst_agent/period_window.py`, `src/financial_analyst_agent/phrase_coverage.py`
+- `tests/unit/test_period_window.py` (+5 bare forms, +2 no-window forms, +1 trailing test,
+  +2 binding cases)
+- `README.md`, `docs/adr/0010-one-reading-of-names-and-windows.md`, `scripts/compare_answers.py`,
+  the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,069 Python tests pass; ruff and mypy pass; compare_answers reports
+  `1 of 247 conversations differ from HEAD`: the new `Apple revenue 18 months` case, latest quarter
+  before and 6 quarters now, as intended. `docs/evaluation/phrase-coverage.md` not regenerated.
+  Tickets 05-06 in review-69-90 remain.
+
+## 2026-10-06 — review-69-90 05 An adjudication proves its rule predates the cases
+
+Task completed: `docs/process/tickets/review-69-90/issues/05-adjudications-cite-a-commit-before-the-cases.md`
+
+Key decisions:
+- `Adjudication` gains `rule_file`, `rule_commit` and `cases_commit`; `load_adjudications` requires
+  full 40-hex commits (a short SHA is refused) and the file, and a `cases_commit` only on a case file
+  that has adjudications.
+- `rule` is the quote verbatim as the file has it at the commit, so `check_rule_history` can find it
+  with `git show`; the location moved out of the prose into `rule_file` and `rule_commit`. The
+  set-4 adjudications quote the README's "charts the growth rates" row at `54a0e22`, cases `bc237f0`.
+- `check_rule_history` requires a strict ancestor (`git merge-base --is-ancestor`); the same commit
+  for rule and cases is a problem. It returns problems rather than raising, so a test can read them.
+- The committed-history test skips when git is absent or the checkout is shallow; the negative
+  cases run in a throwaway repository, so they never depend on this repository's history.
+- The report renders the rule as `` `README.md` at `54a0e22`: … ``; the Protocol says the fields
+  and the check, in code and in `planner-comparison.md` by hand (the saved 5 October run holds no
+  observations, so `--from-json` lists no adjudication rows and rewrites both report files unchanged).
+
+Files changed:
+- `src/financial_analyst_agent/planner_evaluation.py`
+- `tests/unit/test_planner_evaluation.py` (+3 tests, 2 adjusted)
+- `docs/evaluation/planner-cases-held-out-4.json`, `docs/evaluation/planner-comparison.md` (Protocol
+  paragraph only), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,072 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 247 conversations differ from HEAD`. `--from-json` ignores `--no-write` and writes the
+  report files (unchanged here); not a rule, so not recorded for review. Ticket 06 in review-69-90
+  remains.
+
+## 2026-10-06 — review-69-90 06 The warm-up waits for visitors before each request
+
+Task completed: `docs/process/tickets/review-69-90/issues/06-the-warm-up-waits-before-each-request.md`
+
+Key decisions:
+- `FactsWarmer` takes `requests`, a sequence of per-file fetches, in place of one `warm(cik)`,
+  so the sweep owns every wait: it asks `idle()` before each request, waiting as it did before
+  each company and returning when `stop` is set. The lookup knows nothing of the scheduling.
+- `SecFactLookup.warm` is split into `warm_submissions` and `warm_facts`; the runtime builds a
+  lookup a request, so nothing it keeps outlives the warming.
+- The pause between companies is `len(requests) / rate`; `_REQUESTS_A_COMPANY` is gone.
+- A request that fails leaves the company's later requests unmade, logged, and left to a
+  visitor's turn, as before. The wait before a request is made even when the file is cached and
+  no request follows; the check is cheap and the warmer cannot know in advance.
+- ADR 0014's "never goes ahead of a visitor" bullet and the `SEC_WARM_REQUESTS_PER_SECOND` row in
+  `docs/deploy.md` say the wait is before each request.
+
+Files changed:
+- `src/financial_analyst_agent/facts_warmer.py`, `src/financial_analyst_agent/sec_facts.py`,
+  `src/financial_analyst_agent/runtime.py`
+- `tests/unit/test_facts_warmer.py` (+2 tests, helper adjusted),
+  `tests/unit/providers/test_parsed_facts_cache.py` (one call renamed)
+- `docs/adr/0014-a-warm-set-of-company-digests.md`, `docs/deploy.md`, the ticket,
+  `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,074 Python tests pass; ruff and mypy pass; compare_answers reports
+  `0 of 247 conversations differ from HEAD`. review-69-90 is complete: no tickets remain.

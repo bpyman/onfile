@@ -659,9 +659,12 @@ class SecFactLookup:
             _PARSED_FACTS.put(stamp, parsed)
         return parsed
 
-    def warm(self, cik: str) -> None:
-        """Bring a company's first submissions page and facts digest onto disk, as a turn would."""
+    def warm_submissions(self, cik: str) -> None:
+        """Bring a company's first submissions page onto disk, as a turn would."""
         self._cached_submissions(cik)
+
+    def warm_facts(self, cik: str) -> None:
+        """Bring a company's facts digest onto disk, as a turn would."""
         self._cached_company_facts(cik)
 
     def get_financials(

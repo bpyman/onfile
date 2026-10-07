@@ -15,7 +15,7 @@ What a lookup keeps of a facts file is small. The catalog's concepts, with the t
   - when its week is up.
 
   A company that filed within a day is left to its visitors, whose questions refresh it every 15 minutes while SEC's structured data catches up. Otherwise the warm-up would fetch it 96 times a day.
-- **The warm-up never goes ahead of a visitor.** It keeps to its own share of the request rate (`SEC_WARM_REQUESTS_PER_SECOND`, 2 by default), within the shared limiter. It waits whenever a request is queued for a slot or SEC has asked for a pause. A company it cannot fetch is logged and left to the first turn that asks.
+- **The warm-up never goes ahead of a visitor.** It keeps to its own share of the request rate (`SEC_WARM_REQUESTS_PER_SECOND`, 2 by default), within the shared limiter. Before each of its requests (a company takes two) it waits while a request is queued for a slot or SEC has asked for a pause, so a visitor who queues between a company's two requests is not behind the second. A company it cannot fetch is logged and left to the first turn that asks.
 
 ## Consequences
 

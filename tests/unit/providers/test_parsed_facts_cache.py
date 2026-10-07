@@ -173,7 +173,7 @@ def test_a_newer_copy_of_a_file_replaces_the_older_one() -> None:
 def test_background_work_keeps_nothing_in_the_visitors_memory(tmp_path: Path) -> None:
     source = _source(tmp_path)
 
-    SecFactLookup(client=source, background=True).warm(_cik("WMT"))
+    SecFactLookup(client=source, background=True).warm_facts(_cik("WMT"))
 
     digest = source.read_facts_digest(_cik("WMT"))
     assert digest is not None

@@ -37,6 +37,12 @@ from financial_analyst_agent.rules_planner import issuer_index
         ("the last decade", 40),
         ("for the previous decade", 40),
         ("over the past one decade", 40),
+        # A count and a unit with no recency word, after the metric.
+        ("18 months", 6),
+        ("2 years", 8),
+        ("a couple of years", 8),
+        ("6 quarters", 6),
+        ("six quarters", 6),
     ],
 )
 def test_a_window_reads_as_quarters(wording: str, quarters: int) -> None:
@@ -56,10 +62,16 @@ def test_a_window_reads_as_quarters(wording: str, quarters: int) -> None:
         "2 quarters ago",
         "top 5 banks",
         "Q3 2025",
+        "fiscal 2025",
+        "FY2024",
     ],
 )
 def test_wording_with_no_count_of_periods_is_no_window(wording: str) -> None:
     assert asked_window(f"Apple revenue {wording}") is None
+
+
+def test_a_trailing_twelve_month_figure_is_not_a_window_of_months() -> None:
+    assert asked_window("Apple trailing 12-month revenue") is None
 
 
 @pytest.mark.parametrize(
@@ -109,6 +121,8 @@ def test_decades_past_the_cap_say_so() -> None:
         ("show me Nvidia net income over the past 4 quarters", 4),
         ("Compare Pfizer and Merck revenue over the past six quarters", 6),
         ("what about over the past two years?", 8),
+        ("Apple revenue 18 months", 6),
+        ("MSFT net income a couple of years", 8),
     ],
 )
 def test_the_turn_binds_the_window_it_reads(message: str, count: int) -> None:

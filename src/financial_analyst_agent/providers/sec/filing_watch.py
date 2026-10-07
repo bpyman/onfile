@@ -5,7 +5,8 @@ lists its latest filings as an Atom feed; asked for ``10-Q`` it lists 10-Qs and
 10-Q/As, and for ``10-K`` 10-Ks and 10-K/As, newest first. The watch reads both
 every few minutes, pages back until it overlaps its last poll, and remembers
 when each company last filed. It also knows from when it has seen every
-filing, so a file written before that is not vouched for.
+filing, so a file written before that is not vouched for, and one written in
+the day after it only briefly: the day before coverage began is unseen.
 """
 
 from __future__ import annotations
@@ -154,6 +155,10 @@ class FilingWatch:
         if filed is not None and written - filed < AFTER_FILING_WINDOW_SECONDS:
             # Fetched within a day of a filing: SEC's structured data may still lack it.
             return AFTER_FILING_SECONDS
+        if written - covered_from < AFTER_FILING_WINDOW_SECONDS:
+            # Fetched within a day of coverage beginning: the day before it is unseen,
+            # so a filing there cannot be ruled out, nor its absence from the data.
+            return AFTER_FILING_SECONDS
         return VOUCHED_SECONDS
 
     def needs_warming(self, cik: str, written: float | None) -> bool:
@@ -172,10 +177,9 @@ class FilingWatch:
         if now - written < lifetime:
             return False
         if lifetime == AFTER_FILING_SECONDS:
-            # Fetched within a day of its filing: warm it once more when the day is over.
-            with self._lock:
-                filed = self._last_filed.get(cik)
-            return filed is None or now - filed >= AFTER_FILING_WINDOW_SECONDS
+            # Fetched within a day of its filing, or of coverage beginning: warm it once
+            # more when the day is over, so a file fetched now is vouched for the week.
+            return self.lifetime(cik, now) == VOUCHED_SECONDS
         return True
 
     def run(self, stop: threading.Event) -> None:

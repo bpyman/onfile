@@ -8,6 +8,8 @@ undo, advice, and changes with no base.
 
 from __future__ import annotations
 
+from datetime import date
+
 import pytest
 
 from conversation_replay import ask, column_of, replay, tickers_of
@@ -127,6 +129,41 @@ def test_since_a_year_shows_every_quarter_available(runtime) -> None:  # type: i
     (answer,) = ask(runtime, "Apple revenue since 2025")
     assert answer.table is not None
     assert len(answer.table.rows) >= 5
+    # The recording holds every quarter since 2025, so no quarter is missing.
+    assert not any("hold only" in banner for banner in answer.banners)
+
+
+def test_since_a_year_counts_the_quarters_filed_not_the_calendar(runtime) -> None:  # type: ignore[no-untyped-def]
+    replayed = replay(runtime, "Apple revenue since 2024")
+    (answer,) = replayed.answers
+
+    # Every recorded quarter since January 2024: nine, from June 2024. Ten
+    # quarters ended between 1 January 2024 and the latest filed quarter, so the
+    # note says one is missing, not three counted from today's calendar.
+    assert column_of(answer, "Quarter ended")[-1] == "Jun 29, 2024"
+    assert len(answer.table.rows) == 9  # type: ignore[union-attr]
+    assert any("only 9 of the 10 quarters since 2024" in banner for banner in answer.banners)
+    assert not any("12" in banner for banner in answer.banners)
+    assert "Since 2024" in replayed.chips
+
+
+@pytest.mark.parametrize("today", [date(2026, 10, 6), date(2027, 4, 1)])
+def test_since_a_year_reads_the_same_whatever_today_is(runtime, monkeypatch, today) -> None:  # type: ignore[no-untyped-def]
+    from financial_analyst_agent import request_wording
+
+    class _Today(date):
+        @classmethod
+        def today(cls) -> date:  # type: ignore[override]
+            return today
+
+    monkeypatch.setattr(request_wording, "date", _Today)
+
+    (answer,) = ask(runtime, "Apple revenue since 2024")
+
+    # The quarters and the note come from the filings, so a day on the calendar
+    # changes neither: this is the answer the test above pins, on both days.
+    assert column_of(answer, "Quarter ended")[-1] == "Jun 29, 2024"
+    assert any("only 9 of the 10 quarters since 2024" in banner for banner in answer.banners)
 
 
 def test_year_to_date_says_it_is_not_supported(runtime) -> None:  # type: ignore[no-untyped-def]

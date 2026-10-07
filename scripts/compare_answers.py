@@ -9,7 +9,7 @@ the fields that changed.
 
 A change meant to leave the answers alone must show none; one meant to change
 them shows only the conversations it should. The two runs share a day, so
-wording that reads today's date ("since 2023") does not differ between them.
+wording that reads today's date ("two years ago") does not differ between them.
 
 Usage:
     uv run python scripts/compare_answers.py               # working tree vs HEAD
@@ -43,9 +43,12 @@ EXTRA = [
     ["Compare Google and GOOGL revenue"],
     ["Google revenue", "add GOOGL"],
     ["Apple revenue Q1 2025"],
+    ["Apple revenue 18 months"],
     ["Apple and Microsoft revenue fiscal 2025"],
     ["Apple and Microsoft revenue calendar Q2 2026"],
     ["Apple revenue growth last 4 quarters"],
+    ["Apple revenue since 2024"],
+    ["Apple revenue since 2015"],
     ["Apple revenue", "add Tesla", "last 4 quarters"],
     ["Walmart vs Apple revenue"],
     ["Acme Widgets revenue"],

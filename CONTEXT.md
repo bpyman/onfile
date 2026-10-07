@@ -73,7 +73,7 @@ What a change is measured against: the same quarter a year earlier (year over ye
 _Avoid_: delta, period-over-period (unqualified)
 
 **Window**:
-A count of recent quarters the analyst asks for ("past six quarters", "last two years"), read by one grammar whichever planner proposed the analysis (ADR 0010).
+A count of recent quarters the analyst asks for ("past six quarters", "last two years"), read by one grammar whichever planner proposed the analysis (ADR 0010). A "since" window ("since 2024") is every filed quarter that ended on or after 1 January of that year, as each company's filings date them, at most the window cap; it is not a count fixed by today's date.
 _Avoid_: lookback, range
 
 **Conversation thread**:

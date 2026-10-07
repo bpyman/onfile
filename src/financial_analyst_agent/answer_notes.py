@@ -29,6 +29,7 @@ from financial_analyst_agent.request_wording import (
 )
 from financial_analyst_agent.services.fiscal_periods import (
     adjacent_quarters,
+    quarters_in_span,
 )
 
 YEAR_OF_QUARTERS_BANNER = (
@@ -264,14 +265,32 @@ def period_notes(
 def _window_notes(window: WindowReading, windows: list[tuple[date, ...]]) -> list[str]:
     """Say when a window is shorter than asked: capped, or more than the filings hold."""
     notes = list(window.interpretation_notes)
-    wanted = window.asked_quarters
-    if window.since_capped_from is not None:
-        notes.append(
-            f"Quarters since {window.since_year} number {window.since_capped_from}; "
-            f"a window shows at most {MAX_SINCE_QUARTERS}, so this asks for the latest "
-            f"{MAX_SINCE_QUARTERS}."
-        )
     shown = max((len(dates) for dates in windows), default=0)
+    if window.since_year is not None:
+        return [*notes, *_since_notes(window.since_year, windows, shown)]
+    wanted = window.asked_quarters
     if wanted is not None and 0 < shown < wanted:
         notes.append(f"The filings here hold only {shown} of the {wanted} quarters asked for.")
+    return notes
+
+
+def _since_notes(year: int, windows: list[tuple[date, ...]], shown: int) -> list[str]:
+    """A "since" window's span, counted from the newest filed quarter, not from today.
+
+    The span is capped as any window is; a quarter is missing only when the
+    filings lack one that ended inside the span.
+    """
+    newest = max((dates[0] for dates in windows if dates), default=None)
+    if newest is None:
+        return []
+    span = quarters_in_span(year, newest)
+    notes: list[str] = []
+    if span > MAX_SINCE_QUARTERS:
+        notes.append(
+            f"Quarters since {year} number {span}; a window shows at most "
+            f"{MAX_SINCE_QUARTERS}, so this asks for the latest {MAX_SINCE_QUARTERS}."
+        )
+    wanted = min(span, MAX_SINCE_QUARTERS)
+    if 0 < shown < wanted:
+        notes.append(f"The filings here hold only {shown} of the {wanted} quarters since {year}.")
     return notes

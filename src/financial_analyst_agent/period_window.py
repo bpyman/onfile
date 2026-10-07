@@ -4,11 +4,18 @@
 recent twelve quarters", "trailing seven quarters", "the 6 latest quarters",
 "over 8 quarters", "the last couple of quarters", "past three years", "the
 last 18 months": each is a recency word (or a preposition), a count and a
-unit. Counts are digits or words up to ninety-nine, "a couple" (2) or "a
-dozen" (12); "a few" and "several" are read as 4 and said so. "The past
-decade" needs no count: it is one. Years are four quarters each, decades
-forty, months a third of one (rounded up, and said so). A window is capped
-at ``MAX_QUARTERS_ASKED`` quarters, and that is said too.
+unit. The recency word may be left out after the metric: "Apple revenue 18
+months", "6 quarters" and "a couple of years" are the same windows. Counts are
+digits or words up to ninety-nine, "a couple" (2) or "a dozen" (12); "a few"
+and "several" are read as 4 and said so. "The past decade" needs no count: it
+is one. Years are four quarters each, decades forty, months a third of one
+(rounded up, and said so). A window is capped at ``MAX_QUARTERS_ASKED``
+quarters, and that is said too.
+
+A count that names something else is not a window: "3 months ended June"
+names a quarter, "2 quarters ago" names one quarter, and "12-month" in
+"trailing 12-month revenue" is the trailing year (no space between count and
+unit).
 """
 
 from __future__ import annotations
@@ -67,6 +74,9 @@ _WINDOW_PATTERNS = (
     re.compile(rf"\b(?:over|across|for|during|spanning)\s+(?:the\s+)?{_COUNT}\s+{_UNIT}", re.I),
     # "the past decade": one decade, though no count is said.
     re.compile(rf"\b{_RECENT}\s+(?P<unit>decade)(?![\w-])(?!\s+ago\b)", re.I),
+    # "18 months", "6 quarters", "a couple of years": a count and a unit with no
+    # recency word. The earliest match wins, so "last 4 quarters" keeps its "last".
+    re.compile(rf"\b{_COUNT}\s+{_UNIT}", re.I),
 )
 _QUARTERS_PER = {"quarter": 1, "qtr": 1, "q": 1, "year": 4, "yr": 4, "decade": 40}
 
