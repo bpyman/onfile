@@ -115,6 +115,13 @@ def ineligible_issuers(path: Path = _INELIGIBLE_ISSUERS_PATH) -> tuple[tuple[str
     )
 
 
+# The SEC name of each ineligible issuer by ticker, for a note that names a fund
+# the recorded runtime cannot identify ("SPY").
+INELIGIBLE_ISSUER_NAMES: dict[str, str] = {
+    ticker.upper(): name for ticker, name in ineligible_issuers()
+}
+
+
 class UniverseCompany(BaseModel):
     cik: str = Field(min_length=10, max_length=10, pattern=r"^\d{10}$")
     name: str
@@ -280,12 +287,16 @@ def build_universe_snapshot(
 # that prefix ("Banks -" covers "Banks - Regional" and "Banks - Diversified").
 INDUSTRY_GROUP_ALIASES: dict[str, tuple[str, ...]] = {
     "semiconductor": ("Semiconductors",),
+    "semi": ("Semiconductors",),
     "chip": ("Semiconductors",),
     "chipmaker": ("Semiconductors",),
     "chip maker": ("Semiconductors",),
     "software": ("Software -",),
     "bank": ("Banks", "Banks -"),
     "banking": ("Banks", "Banks -"),
+    # "Big banks" and "big pharma" are the money-center banks and the large drugmakers.
+    "big bank": ("Banks - Diversified",),
+    "big pharma": ("Drug Manufacturers - General",),
     "biotech": ("Biotechnology",),
     "pharma": ("Drug Manufacturers -", "Medical - Pharmaceuticals"),
     "pharmaceutical": ("Drug Manufacturers -", "Medical - Pharmaceuticals"),

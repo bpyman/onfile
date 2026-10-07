@@ -13,6 +13,7 @@ New multi-turn behaviour is asserted at ``run_conversation_turn``.
 
 import json
 import re
+from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from typing import Any
@@ -90,6 +91,9 @@ _LOOKUP_FAILURES = (
 # What one company in a comparison or ranking may fail with and still leave
 # the other companies their own rows.
 _COMPANY_FAILURES = (*_LOOKUP_FAILURES, *SOURCE_FAILURES)
+# What one metric may fail with while the company's other metrics are fine: a
+# formula's other components are still read, so the row can name each missing one.
+_FACT_FAILURES = (AmbiguousFactError, UnsupportedQuarterlyFactError)
 ESSAY_UNAVAILABLE_MESSAGE = "The written answer could not be produced just now. Please try again."
 _NUMERIC_TOKEN = re.compile(
     # A number never ends in its list comma ("29, then"), and a one-letter unit
@@ -784,7 +788,7 @@ def reason_for(exc: BaseException) -> str:
 
 
 def _compare_unresolved_row(
-    issuer: str, metric: str, reason: str, report_date: date | None = None
+    issuer: str, metric: str, reason: str, report_date: date | None = None, **kwargs: Any
 ) -> TableRow:
     # A dated cell keeps its quarter, so a window table shows it on that quarter's row.
     return TableRow(
@@ -794,7 +798,15 @@ def _compare_unresolved_row(
         metric=metric,
         reason=reason,
         end_date=report_date,
+        **kwargs,
     )
+
+
+@dataclass(frozen=True)
+class _MissingComponents:
+    """A formula's components the filings lack, each with the error that said so."""
+
+    failures: list[tuple[str, Exception]]
 
 
 def _compare_row(identity: FinancialFact, metric: str, **kwargs: Any) -> TableRow:
@@ -820,14 +832,23 @@ def compare_metrics(
     """
     component_names = _component_metrics(metric)
 
-    def fetch(issuer: str) -> list[FinancialFact] | Exception:
-        try:
-            return [
-                facts.get_financials(issuer, component, report_date=report_date)
-                for component in component_names
-            ]
-        except _COMPANY_FAILURES as exc:
-            return exc
+    def fetch(issuer: str) -> list[FinancialFact] | _MissingComponents | Exception:
+        fetched: list[FinancialFact] = []
+        missing: list[tuple[str, Exception]] = []
+        for component in component_names:
+            try:
+                fetched.append(facts.get_financials(issuer, component, report_date=report_date))
+            except _FACT_FAILURES as exc:
+                # The filings lack this component; the others say whether they
+                # lack more, so the row can name every missing part.
+                if len(component_names) == 1:
+                    return exc
+                missing.append((component, exc))
+            except _COMPANY_FAILURES as exc:
+                return exc
+        if missing:
+            return _MissingComponents(missing)
+        return fetched
 
     rows: list[TableRow] = []
     seen_ciks: set[str] = set()
@@ -836,6 +857,17 @@ def compare_metrics(
             rows.append(
                 _compare_unresolved_row(
                     issuer, metric, reason_for(fetched), report_date=report_date
+                )
+            )
+            continue
+        if isinstance(fetched, _MissingComponents):
+            rows.append(
+                _compare_unresolved_row(
+                    issuer,
+                    metric,
+                    reason_for(fetched.failures[0][1]),
+                    report_date=report_date,
+                    missing_components=[name for name, _exc in fetched.failures],
                 )
             )
             continue

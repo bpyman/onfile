@@ -11,6 +11,8 @@ from typing import Any
 from financial_analyst_agent.answer_notes import (
     FISCAL_Q4_GAP_BANNER,
     annual_filer_note,
+    fund_note,
+    missing_component_notes,
     period_notes,
 )
 from financial_analyst_agent.contracts import TableRow
@@ -22,7 +24,11 @@ from financial_analyst_agent.graph.analysis_spec import (
     SpecPatch,
     compile_tasks,
 )
-from financial_analyst_agent.graph.spec_turn import drop_annual_filers, materialize_period_dates
+from financial_analyst_agent.graph.spec_turn import (
+    drop_annual_filers,
+    drop_funds,
+    materialize_period_dates,
+)
 from financial_analyst_agent.presentation import long_quarter_banner
 from financial_analyst_agent.ranking import SnapshotRanking
 from financial_analyst_agent.request_wording import read_window, refine_patch_from_message
@@ -121,6 +127,44 @@ def test_annual_filers_are_left_out_with_a_reason() -> None:
     )
 
 
+def test_a_fund_beside_a_company_is_left_out_with_a_reason() -> None:
+    # README: a fund beside a company is left out with a note. SPY is on the
+    # ineligible list (ADR 0001); the recorded runtime knows it by ticker only.
+    spy = ResolvedCompany(cik="", name="SPY", ticker="", query="SPY")
+    spec = _window(spy, _company("AAPL", "Apple Inc."))
+
+    kept, dropped = drop_funds(spec)
+
+    assert [company.query for company in kept.companies] == ["AAPL"]
+    assert dropped == [("SPY", "SPDR S&P 500 ETF TRUST")]
+    assert fund_note(dropped) == (
+        "SPY (SPDR S&P 500 ETF Trust) is a fund, not an operating company, so it is left out."
+    )
+
+
+def test_a_fund_sec_identified_is_left_out_by_its_cik() -> None:
+    spy = ResolvedCompany(
+        cik="0000884394", name="SPDR S&P 500 ETF TRUST", ticker="SPY", query="SPY"
+    )
+    kept, dropped = drop_funds(_window(_company("AAPL", "Apple Inc."), spy))
+
+    assert [company.query for company in kept.companies] == ["AAPL"]
+    assert dropped == [("SPY", "SPDR S&P 500 ETF TRUST")]
+
+
+def test_a_fund_asked_alone_is_kept_for_the_refusal() -> None:
+    spec = _window(ResolvedCompany(cik="", name="SPY", ticker="", query="SPY"))
+
+    assert drop_funds(spec) == (spec, [])
+
+
+def test_two_funds_are_left_out_together() -> None:
+    assert fund_note([("SPY", "SPDR S&P 500 ETF TRUST"), ("ARCC", "ARES CAPITAL CORP")]) == (
+        "SPY (SPDR S&P 500 ETF Trust) and ARCC (Ares Capital Corp) are funds, not operating "
+        "companies, so they are left out."
+    )
+
+
 def test_a_facts_port_without_the_check_keeps_every_company() -> None:
     spec = _window(_company("NVO"))
 
@@ -188,3 +232,121 @@ def test_a_paragraph_that_only_moved_a_year_is_not_a_change() -> None:
             "Microsoft Cloud revenue increased 29% to $54.5 billion.",
         )
     ]
+
+
+_CIKS = {"AMD": "0000002488", "INTC": "0000050863", "MRK": "0000310158", "AAPL": "0000320193"}
+
+
+def _missing_row(
+    company: str, ticker: str, end: date, missing: list[str], metric: str = "ebitda"
+) -> TableRow:
+    return TableRow(
+        company_name=company,
+        ticker=ticker,
+        cik=_CIKS[ticker],
+        metric=metric,
+        reason="missing_fact",
+        end_date=end,
+        missing_components=missing,
+    )
+
+
+def test_a_formula_missing_a_component_says_which_in_a_note() -> None:
+    # probe-round-3-gaps ticket 11: AMD's filings report depreciation only for the
+    # fiscal year, so no quarter has EBITDA and no change; the answer says why.
+    rows = [
+        _missing_row("Advanced Micro Devices, Inc.", "AMD", end, ["depreciation_amortization"])
+        for end in (date(2026, 6, 27), date(2026, 3, 28), date(2025, 12, 27), date(2025, 9, 27))
+    ]
+
+    assert missing_component_notes(rows) == [
+        "Advanced Micro Devices' EBITDA is missing: no standalone quarterly depreciation "
+        "and amortization was found in its filings, which EBITDA needs."
+    ]
+
+
+def test_a_formula_missing_two_components_names_both() -> None:
+    rows = [
+        _missing_row(
+            "Merck & Co., Inc.",
+            "MRK",
+            date(2026, 6, 30),
+            ["operating_income", "depreciation_amortization"],
+        )
+    ]
+
+    assert missing_component_notes(rows) == [
+        "Merck's EBITDA is missing: no standalone quarterly operating income or "
+        "depreciation and amortization was found in its filings, which EBITDA needs."
+    ]
+
+
+def test_a_formula_missing_in_some_quarters_names_them() -> None:
+    shown = TableRow(
+        company_name="Advanced Micro Devices, Inc.",
+        ticker="AMD",
+        cik=_CIKS["AMD"],
+        metric="ebitda",
+        value="1000",
+        end_date=date(2026, 6, 27),
+    )
+    rows = [
+        shown,
+        _missing_row(
+            "Advanced Micro Devices, Inc.", "AMD", date(2026, 3, 28), ["depreciation_amortization"]
+        ),
+        _missing_row(
+            "Advanced Micro Devices, Inc.", "AMD", date(2025, 12, 27), ["depreciation_amortization"]
+        ),
+    ]
+
+    assert missing_component_notes(rows) == [
+        "Advanced Micro Devices' EBITDA is missing for Mar 28, 2026 and Dec 27, 2025: no "
+        "standalone quarterly depreciation and amortization was found for those quarters, "
+        "which EBITDA needs."
+    ]
+
+
+def test_a_plain_missing_fact_gets_no_component_note() -> None:
+    row = _missing_row("Apple Inc.", "AAPL", date(2026, 6, 27), [], "revenue")
+
+    assert missing_component_notes([row]) == []
+
+
+def test_companies_missing_the_same_component_share_one_note() -> None:
+    rows = [
+        _missing_row(
+            "Advanced Micro Devices, Inc.", "AMD", date(2026, 6, 27), ["depreciation_amortization"]
+        ),
+        _missing_row("Intel Corporation", "INTC", date(2026, 6, 27), ["depreciation_amortization"]),
+    ]
+
+    assert missing_component_notes(rows) == [
+        "EBITDA is missing for Advanced Micro Devices and Intel: no standalone quarterly "
+        "depreciation and amortization was found in their filings, which EBITDA needs."
+    ]
+
+
+def test_a_newest_quarter_sec_lacks_is_explained_once() -> None:
+    # SEC's structured data lacks Abbott's newest 10-Q; the newer-filing banner
+    # already says so, and a note about the formula's parts would contradict it.
+    shown = TableRow(
+        company_name="Abbott Laboratories",
+        ticker="ABT",
+        cik="0000001800",
+        metric="gross_margin",
+        value="0.56",
+        end_date=date(2026, 3, 31),
+        newer_filing_end=date(2026, 6, 30),
+    )
+    pending = TableRow(
+        company_name="Abbott Laboratories",
+        ticker="ABT",
+        cik="0000001800",
+        metric="gross_margin",
+        reason="missing_fact",
+        end_date=date(2026, 6, 30),
+        missing_components=["gross_profit", "revenue"],
+    )
+
+    assert missing_component_notes([pending, shown]) == []

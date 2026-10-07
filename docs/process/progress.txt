@@ -1857,3 +1857,445 @@ Files changed:
 Blockers / next:
 - None. All 2,074 Python tests pass; ruff and mypy pass; compare_answers reports
   `0 of 247 conversations differ from HEAD`. review-69-90 is complete: no tickets remain.
+
+## 2026-10-07 — probe-round-3-gaps 01 "The last year and a half" is 6 quarters
+
+Task completed: `docs/process/tickets/probe-round-3-gaps/issues/01-a-year-and-a-half.md`
+
+Key decisions:
+- The window grammar (`period_window.py`) gains two half-year spans, each tried with a recency
+  word, a preposition, or bare: count-first (`two and a half years`, `2 and a half years`,
+  `2.5 years`) and unit-first (`a year and a half`, `the last year and a half`). A match has
+  `years` (left out or `a` for one) and `half`; the reading is whole years times 4 plus 2. The
+  half patterns come first so a tie on where a match starts reads the half.
+- Digits after a decimal point are never a count of their own (`_DIGITS` refuses a digit after
+  `.` or another digit), so `2.5 years` can no longer read as five years, and `1.25 years` is left
+  unread rather than read by its last digits. `a year and a half ago` names a point in time.
+- The "last year: four quarters shown one by one" banner is skipped when the window counted its
+  own quarters, so `the last year and a half` does not also claim to be the last year.
+- README window row and ADR 0010's grammar paragraph say the half-years rule.
+
+Files changed:
+- `src/financial_analyst_agent/period_window.py`, `src/financial_analyst_agent/answer_notes.py`,
+  `src/financial_analyst_agent/phrase_coverage.py` (+6 window phrases)
+- `tests/unit/test_period_window.py` (+7 window forms, +2 no-window forms),
+  `tests/unit/test_window_copy.py` (+1 test)
+- `README.md`, `docs/adr/0010-one-reading-of-names-and-windows.md`, `scripts/compare_answers.py`
+  (+`Danaher net income the last year and a half`, +`Apple revenue over the past 2.5 years`), the
+  ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,089 Python tests pass; ruff and mypy pass; compare_answers reports
+  `2 of 249 conversations differ from HEAD`, both the new cases: Danaher shows 6 quarters and loses
+  the last-year banner (4 before), Apple asks 10 quarters (20 before). Ticket 02 in
+  probe-round-3-gaps remains.
+
+## 2026-10-07 — probe-round-3-gaps 02 A figure with no company asks which company
+
+Task completed: `docs/process/tickets/probe-round-3-gaps/issues/02-a-figure-with-no-company-asks-which.md`
+
+Key decisions:
+- The rules planner's lookup fallback (`_issuer_from_lookup_query`) no longer captures lazily up
+  to any metric phrase: it finds the question's opener (`what was`, `what is`, `what's`), then the
+  first metric phrase after it with the catalog's phrases longest-first, and the company is the
+  text between. `net income` is one phrase, so `net` is never a company; `free cash flow` and
+  `net interest income` likewise. Nothing before the phrase means no company, and the turn asks
+  which company before any fetch.
+- A possessive before the phrase (`Apple's`) is still stripped; `_NOT_A_NAME` still drops `the`,
+  `total` and the like. The fix is in the rules planner, as the ticket names it: the LLM planner
+  path already asks which company through `_figure_with_no_company`.
+- Phrase coverage: `What was net income this quarter?`, `Net margin last quarter?` and `What was
+  net interest income?` join `NO_COMPANY_QUESTIONS` (so `SENT_TO_MODEL` too: a no-company lookup
+  leaves the rules planner unsure). `what is gross profit?` stays an explanation by the README's
+  `what is X` rule, so it was not added.
+- README general-question row names the example and says a word of the metric phrase is never
+  the company.
+
+Files changed:
+- `src/financial_analyst_agent/rules_planner.py`, `src/financial_analyst_agent/phrase_coverage.py`
+- `tests/unit/test_planner_rules.py` (+2 tests, one with 3 cases)
+- `README.md`, `scripts/compare_answers.py` (+`What was net income this quarter?`, +`What was net
+  interest income?`), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,093 Python tests pass; ruff and mypy pass; compare_answers reports
+  `2 of 251 conversations differ from HEAD`, both the new cases: each asks which company instead
+  of "I couldn't find a company called “net”". probe-round-3-gaps is complete: no tickets remain.
+
+## 2026-10-07 — probe-round-3-gaps 03 One company left on screen is a lookup
+
+Task completed: `docs/process/tickets/probe-round-3-gaps/issues/03-one-company-left-is-a-lookup.md`
+
+Key decisions:
+- `_one_company_left` in `graph/spec_turn.py`, applied in `merge_analysis` just after the task
+  results are merged, so both planners pass through it. A comparison whose table shows exactly
+  one company is a lookup. A row reading `company_not_found` or `not_operating_company` is a name
+  the answer says it left out, so it is not on screen; a missing fact or an unavailable source
+  keeps the company on screen. None left keeps the comparison asked for.
+- The merge's early return (one task, no across-periods) hands the task's own result back, so the
+  rule had to sit after `merge_task_results`, not inside it.
+- `compare GOOG and GOOGL operating margins` with no index, where the share classes collapse to
+  one Alphabet row only in the facts lookup, is a lookup too: the test's `compare` expectation
+  predates the README's rule and was updated. The follow-up wording tests' fake facts gave every
+  non-Google company Microsoft's CIK, so Google and Apple were one company on screen; the fake now
+  keeps the CIK it is asked by.
+- ADR 0010's "One resolver" paragraph states the rule; the README already did.
+- Recorded for review: the README says a fund beside a company is "left out with a note", but the
+  SPY row stays in the table reading "Company not found" with a note that only names the fund.
+
+Files changed:
+- `src/financial_analyst_agent/graph/spec_turn.py`
+- `tests/test_recorded_regressions.py` (+2 tests), `tests/test_run_turn_compare.py` (one
+  expectation), `tests/unit/test_follow_up_wording.py` (fake facts)
+- `docs/adr/0010-one-reading-of-names-and-windows.md`, `docs/process/rules-to-review.md`,
+  `scripts/compare_answers.py` (+`SPY and Apple revenue`), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,095 Python tests pass; ruff and mypy pass; compare_answers reports
+  `1 of 252 conversations differ from HEAD`, the new case: `SPY and Apple revenue` is a lookup
+  (compare before). Tickets 04-07 in probe-round-3-gaps remain.
+
+## 2026-10-07 — probe-round-3-gaps 04 Everyday group names, and a ranking without "top"
+
+Task completed: `docs/process/tickets/probe-round-3-gaps/issues/04-everyday-group-names-and-rankings-without-top.md`
+
+Key decisions:
+- `semis`, `big pharma` and `big banks` join `INDUSTRY_GROUP_ALIASES` in `universe.py`
+  (Semiconductors; Drug Manufacturers - General; Banks - Diversified). `chipmakers`, `chip
+  companies`, `chip stocks`, `drugmakers` and `drug makers` already resolved. Both planners'
+  rankings resolve through the aliases.
+- The rules planner reads `<group> by <metric>` with no rank word as a ranking of the default
+  length, ordered by the metric, when the group is at most three words that name no metric and
+  what follows `by` is a metric (`_group_by_metric`). `revenue by segment` and `Apple revenue by
+  quarter` stay lookups. Intent is the planner's to pick, so this part is in the rules planner
+  (ADR 0011: a keyless visitor's question it misread).
+- "Lowest first" is an operation, `lowest_first`, not a spec field: a field would have changed
+  every stored spec dump (compare_answers flagged 211 conversations on the first try), while an
+  operation appears only where asked, and chips already map operations. It is read from the
+  words for both planners by `bind_order_from_message` (request_wording), bound in the shared
+  flow after the metrics: `lowest first`, `smallest first`, `ascending`, `from the lowest`, `low
+  to high` add it; `largest first`, `highest first`, `descending` and naming another order (`sort
+  by revenue`) remove it. `add Apple` keeps it.
+- `_order_by_metric` and `_order_companies_by_metric` take `ascending`; a plain ranking with
+  `lowest first` is ordered by market cap from the lowest, with no "Ordered by" banner about a
+  metric. `TurnResult.ordered_lowest_first` carries it to the banner (`, lowest first`) and the
+  chart caption. The chip is `Lowest first`, its × sends `largest first`, and the rules
+  planner's `_follow_up` reads an order phrase alone (`_ORDER_ONLY`) as an extend patch.
+  `_ranked_industry` strips the order words, so `top 5 banks lowest first` ranks banks.
+- The guide's `smallest` rule no longer catches `smallest first`; `bottom 5` stays refused.
+- ADR 0010 gains "A ranking's group and order". The README already described the behaviour.
+
+Files changed:
+- `src/financial_analyst_agent/universe.py`, `rules_planner.py`, `request_wording.py`,
+  `graph/analysis_spec.py` (SUPPORTED_OPERATIONS), `graph/spec_turn.py`, `presentation.py`,
+  `contracts.py` (ordered_lowest_first), `guide.py`, `planner.py` (Operation literal and
+  follow-up prompt), `phrase_coverage.py` (+14 RANKING_QUESTIONS)
+- `tests/test_says_what_it_cannot_do.py` (+8 tests), `tests/unit/test_planner_wording.py` (+4),
+  `tests/unit/test_planner_rules.py` (+1 with 8 cases), `tests/unit/test_analysis_spec.py` (+1)
+- `docs/adr/0010-one-reading-of-names-and-windows.md`, `scripts/compare_answers.py` (+5
+  conversations), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,139 Python tests pass; ruff and mypy pass; compare_answers reports
+  `5 of 257 conversations differ from HEAD`, the five new conversations, each refused or asking
+  which company before and ranking now. Noted, not fixed: `lowest first` as a first turn with
+  nothing on screen refuses with "Unknown metric 'unknown'", as any order-only message did
+  before. Tickets 05-07 in probe-round-3-gaps remain.
+
+## 2026-10-07 — probe-round-3-gaps 05 "Sequential instead" switches the change and keeps the quarters
+
+Task completed: `docs/process/tickets/probe-round-3-gaps/issues/05-sequential-instead.md`
+
+Key decisions:
+- The fix is in the shared reading of follow-up words (`_keep_window_for_change` in
+  `request_wording.py`), which both planners pass through (ADR 0010, 0011). It kept the window
+  on screen only for a year-over-year follow-up; a sequential one fell through to the default
+  five quarters with the year-over-year operation still set. Now `sequential instead`, `quarter
+  over quarter instead` and `make it sequential` with no window of their own read the quarters
+  on screen plus the one before the oldest, as the base read but not shown (`count = shown + 1`,
+  `asked = shown`), and take `year_over_year` out (`_switch_to_sequential`).
+- A named period on screen is listed afresh with `company_base_dates=()`, so each named
+  quarter's base is listed with it, as the direct question does; a "since" window, or one
+  already read with its base, keeps its periods as they are.
+- The switched answer is the view the direct quarter-over-quarter question gives, column for
+  column, so it still shows a "YoY change" column beside "QoQ change" where the year-earlier
+  quarter is on screen. The ticket's "no year-over-year" is read as the operation and chip, and
+  the point is recorded in `docs/process/rules-to-review.md` for a person to decide.
+- `year over year instead` and `make it year over year` after a sequential view already kept
+  the quarters (the base quarter stays read, and the merge leaves it out); tests now pin it.
+- `show that quarter over quarter` after four quarters used to widen the window to five shown;
+  it now shows the four with the fifth read as the base. The unit test's expectation predated
+  the README's rule and was updated.
+- ADR 0010's "Growth is year over year" paragraph names the switch; the README already did.
+
+Files changed:
+- `src/financial_analyst_agent/request_wording.py`, `phrase_coverage.py` (+6 `CHANGE_SWITCHES`
+  cases under "Change switches", none sent to the model)
+- `tests/unit/test_planner_wording.py` (+3 tests, one expectation updated),
+  `tests/test_recorded_regressions.py` (+2 tests comparing the switched view with the direct
+  question's)
+- `docs/adr/0010-one-reading-of-names-and-windows.md`, `docs/process/rules-to-review.md`,
+  `scripts/compare_answers.py` (+`Apple revenue over the last 6 quarters | as growth |
+  sequential instead`, +`Apple revenue over the last 6 quarters quarter over quarter | year over
+  year instead`), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,147 Python tests pass; ruff and mypy pass; compare_answers reports
+  `1 of 259 conversations differ from HEAD`, the ticket's conversation: 5 quarters with
+  year-over-year change before, 6 quarters with sequential change now. The reverse conversation
+  does not differ. Noted, not fixed: `Apple revenue since 2025 year over year` reads "2025" as
+  a count ("asks for 40 rather than 8100") where `Apple revenue since 2025` reads the year.
+  Tickets 06-07 in probe-round-3-gaps remain.
+
+## 2026-10-07 — probe-round-3-gaps 06 "Since the start of fiscal 2025" counts from the fiscal year
+
+Task completed: `docs/process/tickets/probe-round-3-gaps/issues/06-since-the-start-of-a-fiscal-year.md`
+
+Key decisions:
+- The shared reading of windows (`read_window` in `request_wording.py`), which both planners
+  pass through (ADR 0010, 0011), now keeps whether a "since" year was named as a fiscal one:
+  `SINCE_YEAR` captures `fiscal`, `fiscal year` and `FY` as `since_fiscal`, carried by
+  `WindowReading` and bound onto `PeriodSelection.since_fiscal`. "fiscal 2025" inside the
+  "since" match is the window's year, not a named period left unread, so the "couldn't read
+  'fiscal 2025' as a period" banner goes. `since 2025` reads as before.
+- A fiscal "since" window is resolved where each company's fiscal periods are listed, as a
+  named fiscal year's quarters are (`_fiscal_window_dates` in `graph/spec_turn.py` over
+  `runtime.facts.fiscal_periods`): every filed quarter whose declared fiscal year is the one
+  named or later, newest first, capped at the window cap (`quarters_since_fiscal_year`). Apple's
+  fiscal 2025 opens with the quarter ended December 2024, Microsoft's with September 2024. A
+  year ahead of the filings shows the latest quarter, as a calendar year does.
+- The span is counted on the company's own labels (`quarters_in_fiscal_span`: Q1 of that fiscal
+  year to the newest filed quarter) and carried as `asked` only when the filings show fewer, so
+  the window note can say "hold only N of M quarters since fiscal 2015"; a span the filings
+  hold whole leaves `asked` None and says nothing.
+- `since_fiscal` is left out of a spec dump when false (`exclude_if`), so stored and compared
+  specs of calendar windows read as they did. The chip and caption say "Since fiscal 2025".
+- CONTEXT.md's Window entry and ADR 0010's period-grammar paragraph state the rule; the README's
+  window row already did.
+
+Files changed:
+- `src/financial_analyst_agent/request_wording.py`, `graph/analysis_spec.py`,
+  `graph/spec_turn.py`, `services/fiscal_periods.py` (+2 functions), `answer_notes.py`,
+  `presentation.py`, `phrase_coverage.py` (+3 `WINDOW_PHRASES`, none sent to the model)
+- `tests/test_says_what_it_cannot_do.py` (+1 recorded-runtime test),
+  `tests/unit/test_calendars_clarification_and_formatting.py` (+4 tests),
+  `tests/unit/test_window_copy.py` (+3 tests, one with 4 cases)
+- `CONTEXT.md`, `docs/adr/0010-one-reading-of-names-and-windows.md`,
+  `scripts/compare_answers.py` (+3 conversations), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,158 Python tests pass; ruff and mypy pass; compare_answers reports
+  `3 of 262 conversations differ from HEAD`, the three new conversations: `Apple revenue since
+  the start of fiscal 2025` (7 quarters from Dec 2024, "Since fiscal 2025" chip; before: a
+  "couldn't read 'fiscal 2025'" banner over the last 6 quarters), `Microsoft revenue since
+  FY2025` (8 quarters from Sep 2024; before: the same banner over 6) and `Apple and Microsoft
+  revenue since fiscal 2025` (each on its own calendar). Ticket 07 in probe-round-3-gaps remains.
+
+## 2026-10-07 — probe-round-3-gaps 07 A change over a named window is year over year over that window
+
+Task completed: `docs/process/tickets/probe-round-3-gaps/issues/07-a-change-over-a-window.md`
+
+Key decisions:
+- The fix is in the shared reading of periods (`bind_periods_from_message` in
+  `request_wording.py`), which both planners pass through (ADR 0010, 0011). "Over the past
+  year" is not a counted window in the grammar (no count), so with no change it was read as a
+  year of quarters (4) but beside a change word it fell through to the growth default of 5.
+  Now a change (`yoy` or `sequential`) beside `_YEAR_BASE` ("over/in/during/across the
+  last/past year" or "twelve months") with no counted window reads `asked = 4`, and the rest of
+  the binder runs as for `growth over the last 4 quarters`. A model planner's proposed window
+  no longer stands for it either, since `asked` is set.
+- `How has Tesla's revenue changed over the last year?` moves from 5 to 4 quarters; its unit
+  test in `test_planner_rules.py` predated the README's rule and was updated. A sequential
+  change over the past year shows 4 with the base read, not shown (`count=5, asked=4`).
+- Phrase coverage: `WINDOW_CHANGE_QUESTIONS` (4 cases, checked by window and the year-over-year
+  operation so AMD's missing EBITDA still passes) and `How did AMD's EBITDA change?` in
+  `NO_BASE_QUESTIONS`; none sent to the model. ADR 0010's growth paragraph names the rule; the
+  README already did.
+- Recorded in `docs/process/rules-to-review.md`: `How much did Intel's revenue change over the
+  last year?` still shows the four quarters with no change column (the year-over-year pattern
+  reads "how did ... change" but not "how much did ... change"), pinned by a test; left for a
+  person.
+
+Files changed:
+- `src/financial_analyst_agent/request_wording.py`, `phrase_coverage.py`
+- `tests/unit/test_planner_wording.py` (+1 test with 5 cases), `tests/unit/test_planner_rules.py`
+  (one expectation updated), `tests/test_says_what_it_cannot_do.py` (+2 recorded-runtime tests)
+- `docs/adr/0010-one-reading-of-names-and-windows.md`, `docs/process/rules-to-review.md`,
+  `scripts/compare_answers.py` (+2 conversations), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,165 Python tests pass; ruff and mypy pass; compare_answers reports `2 of 264 conversations differ from HEAD`,
+  the two conversations added for this ticket, each 5 quarters with year-over-year change before
+  and 4 now. Tickets 01-07 in probe-round-3-gaps are all resolved.
+
+## 2026-10-07 — probe-round-3-gaps 08 A fund beside a company is left out, with a note saying so
+
+Task completed: `docs/process/tickets/probe-round-3-gaps/issues/08-a-fund-beside-a-company-is-left-out.md`
+
+Key decisions:
+- The fix is in the shared resolution layer both planners pass through (ADR 0010, 0011):
+  `drop_funds` in `graph/spec_turn.py` runs after `resolve_spec`, beside `drop_annual_filers`.
+  A named company is a fund when its CIK is on the ineligible list or its SEC title names an
+  instrument (`sec_identity_is_operating`, the live runtime), or, with no CIK (the recorded
+  runtime cannot identify SPY), when its ticker is on the ineligible list
+  (`INELIGIBLE_ISSUER_NAMES` in `universe.py`, ticker → SEC name). A fund asked alone is kept,
+  so `SPY revenue` is refused as before ("Company not found" recorded, "not an operating
+  company" live).
+- The dropped (ticker, SEC name) pairs ride on `CompiledAnalysis.funds`; `annotate_analysis`
+  puts `fund_note` first: "SPY (SPDR S&P 500 ETF Trust) is a fund, not an operating company,
+  so it is left out." Two or more read "are funds, not operating companies, so they are left
+  out." SEC's shouted name is set in prose by `_name_in_prose`: a word of up to three letters,
+  or four with no vowel (ETF, SPDR), is an acronym and keeps its case.
+- The rules planner's `_ticker_notes` no longer says "Showing SPDR S&P 500 ETF TRUST for 'SPY'"
+  for an ineligible ticker, since the turn says the fund is left out. The LLM planner never
+  produced that note.
+- Once the fund is dropped, Apple alone is a lookup by `_one_company_left` (ticket 03) and is
+  shown as a lookup is: a fact card rather than a two-row table. A later turn that keeps Apple
+  (`last 4 quarters`) does not repeat the note; `remove SPY` is harmless.
+- ADR 0002's rule ("a named company that fails the rule is a typed miss; other compare rows
+  stay") now says that is for a fund asked alone; beside an operating company it is left out
+  with a note. CONTEXT.md's "Ineligible issuer" entry says the same.
+
+Files changed:
+- `src/financial_analyst_agent/graph/spec_turn.py` (+`drop_funds`), `graph/state.py`
+  (+`funds`), `answer_notes.py` (+`fund_note`, `_name_in_prose`), `universe.py`
+  (+`INELIGIBLE_ISSUER_NAMES`), `rules_planner.py`
+- `tests/unit/test_filers_rankings_and_narrowing.py` (+4 tests),
+  `tests/test_recorded_regressions.py` (+1 recorded-runtime test),
+  `tests/unit/test_planner_rules.py` (+1)
+- `docs/adr/0002-lookup-membership.md`, `CONTEXT.md`, `scripts/compare_answers.py`
+  (+2 conversations), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,170 Python tests pass; ruff and mypy pass; compare_answers reports `3 of 266
+  conversations differ from HEAD`, all intended: `SPY and Apple revenue` (two rows and the
+  "Showing" note before; Apple's lookup with the fund note now) and the two conversations
+  added for this ticket. Ticket 09 in probe-round-3-gaps remains.
+
+## 2026-10-07 — probe-round-3-gaps 09 "How much did revenue change over the last year?" is year over year over that window
+
+Task completed: `docs/process/tickets/probe-round-3-gaps/issues/09-how-much-did-it-change-over-a-window.md`
+
+Key decisions:
+- The fix is in `comparison_asked` and `bind_periods_from_message` in `request_wording.py`,
+  which both planners pass through (ADR 0010, 0011). `_names_a_window` (a counted window of
+  two or more quarters, or "over/in the last/past year") replaces `_YEAR_BASE` as the window
+  that makes a change year over year, and `_asks_change` (a change in words that name no base,
+  over such a window or with no span at all) replaces `_asks_change_without_base`. A change in
+  any wording over a named window is year over year over it; with no window it still asks
+  "Compared with what?"; over a "since" window or several named periods the quarters are still
+  the answer, as the ticket's explicit test scope leaves them.
+- `How did Apple's revenue change over the last 2 quarters?` asked "Compared with what?" before
+  (the binder's `count = 5` branch named it); it is now year over year over the two quarters,
+  and the branch's comment names "last quarter" instead.
+- Recorded in `docs/process/rules-to-review.md`: a change over a "since" window
+  (`How much did Intel's revenue change since 2023?`) still shows the quarters alone; making it
+  year over year also needs the window grammar to carry the change, so it is a person's call.
+- README's growth row and ADR 0010's growth paragraph say the rule holds whatever the wording.
+
+Files changed:
+- `src/financial_analyst_agent/request_wording.py`, `phrase_coverage.py` (+4
+  `WINDOW_CHANGE_QUESTIONS` cases, none sent to the model)
+- `tests/unit/test_planner_wording.py` (two expectations changed as the ticket asks, +2
+  comparison cases, +4 binder cases), `tests/test_says_what_it_cannot_do.py` (+1
+  recorded-runtime test)
+- `README.md`, `docs/adr/0010-one-reading-of-names-and-windows.md`,
+  `docs/process/rules-to-review.md`, `scripts/compare_answers.py` (+3 conversations), the
+  ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,178 Python tests pass; ruff and mypy pass; compare_answers reports `4 of 269
+  conversations differ from HEAD`, all intended: the evaluation case `h3_tmo_rev_past_ten`
+  (9 Thermo Fisher quarters with no change column before, each with its year-over-year change
+  now) and the three conversations added for this ticket. Tickets 01-09 in probe-round-3-gaps
+  are all resolved.
+
+## 2026-10-07 — probe-round-3-gaps 10 A change since a year is year over year since it, and "since 2025 year over year" reads a year
+
+Task completed: `docs/process/tickets/probe-round-3-gaps/issues/10-a-change-since-a-year.md`
+
+Key decisions:
+- The misreading is fixed in the window grammar (`asked_window` in `period_window.py`), which
+  both planners pass through (ADR 0010, 0011): `SINCE_YEAR` moved there from
+  `request_wording.py` (which imports it back), and a window match that overlaps a "since
+  <year>" phrase is dropped, so "since 2025 year over year" and "since 2025 quarter over
+  quarter" no longer read 2025 as a count of years or quarters (8100 or 2025 quarters, capped
+  at 40, with a note saying so). `read_window` then reads the since window as it does with no
+  change word; "since fiscal 2025 year over year" keeps its fiscal reading.
+- The rule is in `_names_a_window` and the since branch of `bind_periods_from_message` in
+  `request_wording.py`: a "since" window is a named window, so a change over it in any wording
+  (`How much did Intel's revenue change since 2023?`, `What caused Apple's revenue to fall
+  since 2023?`, `Apple revenue growth since 2024`) is year over year over every filed quarter
+  since the year began, each from its own comparative (ADR 0009). The since branch now carries
+  the change operations instead of requiring no change; `_names_a_span` lost its separate
+  since clause. A sequential change over a since window keeps the quarters as listed, the
+  oldest with no change, as `sequential instead` already did (ticket 05). With no window,
+  `How much did Intel's revenue change?` still asks "Compared with what?".
+- `year over year` asked after `Apple revenue since 2025` already kept the since window; the
+  recorded-runtime test pins that it is the direct question's view, column for column.
+- `test_what_a_change_is_measured_against`: the three since-window expectations the ticket
+  names changed from `None` to `"year_over_year"`, plus `Apple revenue growth since 2024`.
+- Phrase coverage: `SINCE_CHANGE_QUESTIONS` (5 cases under "A change over a window", checked
+  by the spec's since year, the year-over-year operation and every quarter changed) and
+  `How much did Intel's revenue change?` in `NO_BASE_QUESTIONS`; none sent to the model.
+- README's growth row, ADR 0010 (period grammar and growth paragraphs) and CONTEXT.md's
+  Window entry say the rule.
+
+Files changed:
+- `src/financial_analyst_agent/period_window.py`, `request_wording.py`, `phrase_coverage.py`
+- `tests/unit/test_planner_wording.py` (3 expectations changed, +1 case, +3 tests),
+  `tests/test_says_what_it_cannot_do.py` (+1 recorded-runtime test)
+- `README.md`, `CONTEXT.md`, `docs/adr/0010-one-reading-of-names-and-windows.md`,
+  `scripts/compare_answers.py` (+5 conversations), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,193 Python tests pass; ruff and mypy pass; compare_answers reports `4 of 274
+  conversations differ from HEAD`, all conversations added for this ticket: `Apple revenue
+  since 2025 year over year` and `... quarter over quarter` (2025 read as a count before, with
+  the "at most 40" note; the quarters since 2025 with their change now), `Apple revenue growth
+  since 2024` (5 quarters before; every quarter since 2024 now) and `How much did Intel's
+  revenue change since 2023?` (the quarters alone before; each with its change now). `Apple
+  revenue since 2025` then `year over year` does not differ. Tickets 01-10 in
+  probe-round-3-gaps are all resolved.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/probe-round-3-gaps/issues/11-a-derived-figures-year-over-year-change.md`
+
+Key decisions:
+- The finding, from the recorded facts: no comparative is missing; EBITDA itself is, for every
+  quarter, so both questions showed four "Missing fact" rows with no note (ticket 07's Answer
+  said so for AMD). The cassette holds for AMD no cash-flow D&A line and `Depreciation` only for
+  the fiscal year, so the depreciation-plus-amortization fallback has no quarter either; for
+  Merck no `OperatingIncomeLoss` at all and `AmortizationOfIntangibleAssets` only for the year.
+  The ticket's premise is recorded in rules-to-review (probe-round-3-gaps 11).
+- The ticket's second branch: where the filings do not hold what the figure needs, the row says
+  why. `compare_metrics` (`turn.py`) reads a formula's remaining components after one is
+  missing and records the missing ones on the row (`TableRow.missing_components`; the reason
+  stays `missing_fact`). `missing_component_notes` (`answer_notes.py`), wired into
+  `annotate_analysis`, says which part was not found: "Advanced Micro Devices' EBITDA is
+  missing: no standalone quarterly depreciation and amortization was found in its filings,
+  which EBITDA needs." Companies lacking the same parts share one note; a company with the
+  figure for other quarters names the quarters it lacks; a newest quarter SEC's structured data
+  lacks, which the newer-filing banner explains, gets no second note. The note says what was
+  not found, not what the company reports: a quarter can be beyond what is on file.
+- Apple's EBITDA is unchanged. README's derived-figures row and ADR 0008 say the rule.
+
+Files changed:
+- `src/financial_analyst_agent/turn.py`, `answer_notes.py`, `contracts.py`, `graph/spec_turn.py`
+- `tests/unit/test_market_and_balance_sheet_figures.py` (+3),
+  `tests/unit/test_filers_rankings_and_narrowing.py` (+6), `tests/test_new_figures.py` (+1)
+- `README.md`, `docs/adr/0008-balance-sheet-trailing-year-and-market-figures.md`,
+  `docs/process/rules-to-review.md`, `scripts/compare_answers.py` (+1 conversation), the
+  ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,203 Python tests pass; ruff and mypy pass; compare_answers reports `8 of
+  275 conversations differ from HEAD`, each gaining the note where a derived figure's part was
+  not found and nothing else: `h2_msft_most_recent_twelve`, `h2_tmo_abt_full_names`,
+  `h2_what_about_period`, `h3_abt_gm_previous_seven`, `h3_switch_metric`, `ho_orcl_overview`,
+  `How did AMD's EBITDA change over the past year?` and the conversation added here, `Merck
+  EBITDA over the last 4 quarters year over year`. Whether AMD tags its cash-flow D&A under a
+  concept the catalog does not read needs live data; if so, reading it would make its EBITDA
+  computable. Tickets 01-11 in probe-round-3-gaps are all resolved.
+

@@ -44,10 +44,12 @@ class _PeriodFacts(FakeFacts):
         self, company: str, metric: str, *, report_date: date | None = None
     ) -> SimpleNamespace:
         end = report_date or self.Q2
+        google = "Google" in company or "Alphabet" in company
         return SimpleNamespace(
             company_name=company,
-            ticker="GOOG" if "Google" in company or "Alphabet" in company else "MSFT",
-            cik="0001652044" if "Google" in company or "Alphabet" in company else "0000789019",
+            ticker="GOOG" if google else "MSFT",
+            # A company asked for by CIK keeps it: two companies are two on screen.
+            cik=company if company.isdigit() else ("0001652044" if google else "0000789019"),
             metric=metric,
             value=Decimal("100"),
             currency="USD",

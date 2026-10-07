@@ -378,6 +378,9 @@ class TableRow(BaseModel):
     source_url: str | None = None
     components: list[ComponentProvenance] = Field(default_factory=list)
     reason: str | None = None
+    # A formula's components the filings report for no standalone quarter, so the
+    # row has no value (ADR 0008): EBITDA with no depreciation and amortization.
+    missing_components: list[str] = Field(default_factory=list)
     comparison: ComparisonBase | None = None
     # A derived quarter (ADR 0007): how it was computed, and the facts it came from.
     derivation: str | None = None
@@ -469,6 +472,8 @@ class TurnResult(BaseModel):
     guide: bool = False
     # A ranking whose market-cap members are ordered by this metric instead.
     ordered_by: str | None = None
+    # The ordered rows run from the lowest value ("lowest first").
+    ordered_lowest_first: bool = False
     # A few quarters of revenue and net margin beside one company's overview.
     trend_rows: list[TableRow] = Field(default_factory=list)
     # The quarter before a lone fact, for its quarter-over-quarter change.

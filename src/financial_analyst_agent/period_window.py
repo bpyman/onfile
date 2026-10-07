@@ -9,13 +9,17 @@ months", "6 quarters" and "a couple of years" are the same windows. Counts are
 digits or words up to ninety-nine, "a couple" (2) or "a dozen" (12); "a few"
 and "several" are read as 4 and said so. "The past decade" needs no count: it
 is one. Years are four quarters each, decades forty, months a third of one
-(rounded up, and said so). A window is capped at ``MAX_QUARTERS_ASKED``
-quarters, and that is said too.
+(rounded up, and said so). A whole number of years and a half ("a year and a
+half", "one and a half years", "2.5 years", "the past two and a half years") is
+that many years and two quarters more. A window is capped at
+``MAX_QUARTERS_ASKED`` quarters, and that is said too.
 
 A count that names something else is not a window: "3 months ended June"
-names a quarter, "2 quarters ago" names one quarter, and "12-month" in
+names a quarter, "2 quarters ago" names one quarter, "12-month" in
 "trailing 12-month revenue" is the trailing year (no space between count and
-unit).
+unit), and the year of a "since" window ("since 2025 year over year") is a
+year, not 2025 of them. A decimal that is not a half ("1.25 years") is left
+unread, rather than read by its last digits.
 """
 
 from __future__ import annotations
@@ -55,17 +59,38 @@ _VAGUE = frozenset({"few", "a few", "several"})
 _SPOKEN = {"couple": 2, "a couple": 2, "pair": 2, "a pair": 2, "dozen": 12, "a dozen": 12}
 
 _WORD_NUMBER = rf"(?:(?:{'|'.join(_TENS)})(?:[\s-](?:{'|'.join(_ONES[:9])}))?|{'|'.join(_ONES)})"
+# Digits after a decimal point ("2.5", "1.25") are not a count of their own.
+_DIGITS = r"(?<![\d.])\d+"
 _COUNT = (
-    rf"(?P<count>\d+|{_WORD_NUMBER}|(?:a\s+)?(?:couple|pair|dozen)(?:\s+of)?"
+    rf"(?P<count>{_DIGITS}|{_WORD_NUMBER}|(?:a\s+)?(?:couple|pair|dozen)(?:\s+of)?"
     r"|(?:a\s+)?few|several)"
 )
+# "3 months ended June" names a quarter; "2 quarters ago" names one quarter.
+_NOT_A_POINT_IN_TIME = r"(?![\w-])(?!\s+(?:ended|ending|ago|from now|later)\b)"
 _UNIT = (
     r"(?P<unit>(?:fiscal\s+|calendar\s+)?(?:quarters?|qtrs?|qs|years?|yrs?)|months?|decades?)"
-    # "3 months ended June" names a quarter; "2 quarters ago" names one quarter.
-    r"(?![\w-])(?!\s+(?:ended|ending|ago|from now|later)\b)"
+    + _NOT_A_POINT_IN_TIME
+)
+_HALF = r"and\s+(?:a|one)[\s-]half"
+# A whole number of years and a half, with the count before or after the unit.
+# ``half`` marks the form; ``years`` is the whole years, left out or "a" for one.
+_HALF_YEARS = (
+    # "two and a half years", "2 and a half years", "2.5 years"
+    rf"(?P<years>{_DIGITS}|{_WORD_NUMBER})(?P<half>\.5|\s+{_HALF})\s+years?{_NOT_A_POINT_IN_TIME}",
+    # "a year and a half", "the last year and a half", "two years and a half"
+    rf"(?:(?P<years>an?|{_DIGITS}|{_WORD_NUMBER})\s+)?years?\s+(?P<half>{_HALF})"
+    + _NOT_A_POINT_IN_TIME,
 )
 _RECENT = r"(?:last|past|previous|prior|trailing|most\s+recent|recent|latest|preceding)"
 _WINDOW_PATTERNS = (
+    # "the last year and a half", "over the past 2.5 years", "one and a half years":
+    # the half forms come first, so a tie on where a match starts reads the half.
+    *(re.compile(rf"\b{_RECENT}\s+(?:the\s+)?{span}", re.I) for span in _HALF_YEARS),
+    *(
+        re.compile(rf"\b(?:over|across|for|during|spanning)\s+(?:the\s+)?{span}", re.I)
+        for span in _HALF_YEARS
+    ),
+    *(re.compile(rf"\b{span}", re.I) for span in _HALF_YEARS),
     # "last 4 quarters", "the past six quarters", "most recent twelve quarters"
     re.compile(rf"\b{_RECENT}\s+(?:the\s+)?{_COUNT}\s+{_UNIT}", re.I),
     # "the 4 most recent quarters", "6 latest quarters"
@@ -79,6 +104,16 @@ _WINDOW_PATTERNS = (
     re.compile(rf"\b{_COUNT}\s+{_UNIT}", re.I),
 )
 _QUARTERS_PER = {"quarter": 1, "qtr": 1, "q": 1, "year": 4, "yr": 4, "decade": 40}
+
+# "since 2023", "since the start of 2023", "since early 2023": every quarter from
+# the start of that year. "since fiscal 2025", "since FY2025": from the start of
+# each company's own fiscal year. The year is no count: "since 2025 year over
+# year" is the window since 2025 began, with a change on it.
+SINCE_YEAR = re.compile(
+    r"\bsince\s+(?:the\s+(?:start|beginning)\s+of\s+|early\s+(?:in\s+)?)?"
+    r"(?P<fiscal>fy\s*|fiscal\s+(?:year\s+)?)?(?P<y>(?:19|20)\d{2})\b",
+    re.I,
+)
 
 
 @dataclass(frozen=True)
@@ -126,18 +161,32 @@ def _count(raw: str) -> tuple[int, bool]:
 
 def asked_window(message: str) -> AskedWindow | None:
     """The window the message asks for, or None when it names no count of periods."""
-    found = [match for pattern in _WINDOW_PATTERNS if (match := pattern.search(message))]
+    since_years = [since.span() for since in SINCE_YEAR.finditer(message)]
+    found = [
+        match
+        for pattern in _WINDOW_PATTERNS
+        if (match := pattern.search(message)) is not None
+        and not any(match.start() < end and start < match.end() for start, end in since_years)
+    ]
     if not found:
         return None
     match = min(found, key=lambda candidate: candidate.start())
-    said_count = match.groupdict().get("count")
-    count, approximate = _count(said_count) if said_count is not None else (1, False)
-    unit = match.group("unit").casefold().split()[-1].rstrip("s")
-    if unit == "month":
-        quarters = math.ceil(count / 3)
-        approximate = approximate or count % 3 != 0
+    groups = match.groupdict()
+    approximate = False
+    if groups.get("half") is not None:
+        # "two and a half years": the whole years, and two quarters more.
+        years = groups.get("years")
+        whole = 1 if years is None or years.casefold() in ("a", "an") else _count(years)[0]
+        quarters = whole * _QUARTERS_PER["year"] + 2
     else:
-        quarters = count * _QUARTERS_PER[unit]
+        said_count = groups.get("count")
+        count, approximate = _count(said_count) if said_count is not None else (1, False)
+        unit = match.group("unit").casefold().split()[-1].rstrip("s")
+        if unit == "month":
+            quarters = math.ceil(count / 3)
+            approximate = approximate or count % 3 != 0
+        else:
+            quarters = count * _QUARTERS_PER[unit]
     quarters = max(quarters, 1)
     capped = quarters if quarters > MAX_QUARTERS_ASKED else None
     return AskedWindow(

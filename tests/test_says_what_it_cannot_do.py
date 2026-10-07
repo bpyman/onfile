@@ -12,7 +12,7 @@ from datetime import date
 
 import pytest
 
-from conversation_replay import ask, column_of, replay, tickers_of
+from conversation_replay import ask, column_of, last_result, replay, tickers_of
 
 
 # Imported per test, as in test_tester_conversations.
@@ -25,6 +25,8 @@ def runtime():  # type: ignore[no-untyped-def]
 
 PHARMA = {"LLY", "JNJ", "ABBV", "MRK", "PFE", "AMGN", "GILD"}
 TECH = {"AAPL", "MSFT", "NVDA", "AVGO", "MU", "INTC", "ORCL", "AMD", "CSCO", "PLTR", "AMAT"}
+SEMIS = {"NVDA", "AVGO", "MU", "AMD", "INTC", "AMAT"}
+BANKS = {"JPM", "BAC", "WFC"}
 
 
 # Rankings
@@ -61,6 +63,61 @@ def test_smallest_says_rankings_start_from_the_largest(runtime) -> None:  # type
     assert answer.message is not None
     assert answer.message.startswith("Rankings start from the largest companies")
     assert list(answer.suggestions) == ["Top 5 healthcare companies by revenue"]
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Top 5 banks by revenue, lowest first",
+        "Top 5 banks by revenue, smallest first",
+        "Top 5 banks by revenue ascending",
+    ],
+)
+def test_lowest_first_orders_the_same_companies_from_the_lowest(runtime, question: str) -> None:  # type: ignore[no-untyped-def]
+    shown = replay(runtime, question)
+    (answer,) = shown.answers
+    # The members are still the largest banks by market cap, from the lowest revenue.
+    assert column_of(answer, "Ticker") == ["WFC", "BAC", "JPM"]
+    assert "Lowest first" in shown.chips
+
+
+def test_bottom_n_is_still_refused(runtime) -> None:  # type: ignore[no-untyped-def]
+    (answer,) = ask(runtime, "Bottom 5 banks by revenue")
+    assert answer.table is None
+    assert answer.message is not None
+    assert answer.message.startswith("Rankings start from the largest companies")
+
+
+@pytest.mark.parametrize(
+    ("question", "group"),
+    [
+        ("top 5 semis by market cap and revenue", SEMIS),
+        ("chipmakers by free cash flow, lowest first", SEMIS),
+        ("top 5 chip companies by revenue", SEMIS),
+        ("chip stocks by revenue", SEMIS),
+        ("drugmakers by revenue", PHARMA),
+        ("top 5 drug makers by revenue", PHARMA),
+        ("big pharma by revenue", PHARMA),
+        ("big banks by revenue", BANKS),
+        ("top 5 big banks by revenue", BANKS),
+    ],
+)
+def test_everyday_group_names_rank_their_industry(runtime, question: str, group: set[str]) -> None:  # type: ignore[no-untyped-def]
+    (answer,) = ask(runtime, question)
+    assert answer.table is not None and "Rank" in answer.table.headers, answer.message
+    tickers = tickers_of(answer)
+    assert tickers and set(tickers) <= group
+
+
+def test_a_group_by_a_metric_lowest_first_ranks_from_the_lowest(runtime) -> None:  # type: ignore[no-untyped-def]
+    result = last_result(runtime, "chipmakers by free cash flow, lowest first")
+    values = [
+        row.value
+        for row in sorted(result.table_rows, key=lambda row: row.rank or 0)
+        if row.metric == "free_cash_flow" and row.value is not None
+    ]
+    assert len(values) >= 3
+    assert values == sorted(values)
 
 
 def test_a_ranking_names_the_period_it_shows(runtime) -> None:  # type: ignore[no-untyped-def]
@@ -131,6 +188,28 @@ def test_since_a_year_shows_every_quarter_available(runtime) -> None:  # type: i
     assert len(answer.table.rows) >= 5
     # The recording holds every quarter since 2025, so no quarter is missing.
     assert not any("hold only" in banner for banner in answer.banners)
+
+
+def test_since_a_fiscal_year_counts_from_each_companys_own_fiscal_year(runtime) -> None:  # type: ignore[no-untyped-def]
+    # README's window row (probe-round-3-gaps ticket 06): Apple's fiscal 2025
+    # opened with the quarter ended December 2024, Microsoft's with September 2024.
+    apple = replay(runtime, "Apple revenue since the start of fiscal 2025")
+    (answer,) = apple.answers
+    assert column_of(answer, "Quarter ended")[-1] == "Dec 28, 2024"
+    assert len(answer.table.rows) == 7  # type: ignore[union-attr]
+    assert "Since fiscal 2025" in apple.chips
+    assert not any("couldn't read" in banner or "hold only" in banner for banner in answer.banners)
+
+    microsoft = replay(runtime, "Microsoft revenue since FY2025")
+    (answer,) = microsoft.answers
+    assert column_of(answer, "Quarter ended")[-1] == "Sep 30, 2024"
+    assert len(answer.table.rows) == 8  # type: ignore[union-attr]
+    assert "Since fiscal 2025" in microsoft.chips
+
+    # The calendar year reads as before.
+    calendar = replay(runtime, "Apple revenue since 2025")
+    assert column_of(calendar.answers[0], "Quarter ended")[-1] == "Mar 29, 2025"
+    assert "Since 2025" in calendar.chips
 
 
 def test_since_a_year_counts_the_quarters_filed_not_the_calendar(runtime) -> None:  # type: ignore[no-untyped-def]
@@ -223,6 +302,74 @@ def test_a_change_shows_its_percentage(runtime) -> None:  # type: ignore[no-unty
     assert yoy and all("%" in value for value in yoy)
 
 
+def test_a_change_over_the_past_year_is_year_over_year_over_four_quarters(runtime) -> None:  # type: ignore[no-untyped-def]
+    # README's growth row (probe-round-3-gaps ticket 07): a change over a named
+    # window is year over year over that window, not the growth default of 5.
+    shown = replay(runtime, "How did AMD's EBITDA change over the past year?")
+    (answer,) = shown.answers
+    assert answer.table is not None
+    assert len(answer.table.rows) == 4
+    assert "Last 4 quarters" in shown.chips and "Year over year" in shown.chips
+    # With figures the recording holds, each of the four quarters shows its change.
+    (apple,) = ask(runtime, "How did Apple's revenue change over the past year?")
+    assert len(column_of(apple, "Quarter ended")) == 4
+    assert all("%" in change for change in column_of(apple, "YoY change"))
+
+
+def test_a_change_over_a_window_is_year_over_year_whatever_the_wording(runtime) -> None:  # type: ignore[no-untyped-def]
+    # README's growth row (probe-round-3-gaps ticket 09): "how much did ... change"
+    # and "how has ... moved" over a window read as "how did ... change" does.
+    shown = replay(runtime, "How much did Intel's revenue change over the last year?")
+    (intel,) = shown.answers
+    assert len(column_of(intel, "Quarter ended")) == 4
+    assert all("%" in change for change in column_of(intel, "YoY change"))
+    assert "Last 4 quarters" in shown.chips and "Year over year" in shown.chips
+    # The recording holds 9 of Thermo Fisher's 10 quarters; each shows its change.
+    shown = replay(runtime, "Over the past 10 quarters, how has Thermo Fisher's revenue moved?")
+    (thermo,) = shown.answers
+    assert len(column_of(thermo, "Quarter ended")) == 9
+    assert all("%" in change for change in column_of(thermo, "YoY change"))
+    assert "Year over year" in shown.chips
+    # With no window, the same words still ask against what.
+    (asked,) = ask(runtime, "How much did Intel's revenue change?")
+    assert asked.table is None
+    assert asked.clarify_prompt == "Compared with what?"
+
+
+def test_a_change_over_a_since_window_is_year_over_year_over_it(runtime) -> None:  # type: ignore[no-untyped-def]
+    # README's growth row (probe-round-3-gaps ticket 10): a "since" window is a
+    # window, so a change over it is year over year over every quarter since the
+    # year began; and "since 2025 year over year" names the year, not 2025 years.
+    shown = replay(runtime, "Apple revenue since 2025 year over year")
+    (apple,) = shown.answers
+    assert column_of(apple, "Quarter ended")[-1] == "Mar 29, 2025"
+    assert len(column_of(apple, "Quarter ended")) == 6
+    assert all("%" in change for change in column_of(apple, "YoY change"))
+    assert "Since 2025" in shown.chips and "Year over year" in shown.chips
+    assert not any("at most 40" in banner or "hold only" in banner for banner in apple.banners)
+    # The same view "year over year" asked after the window gives.
+    followed = replay(runtime, "Apple revenue since 2025", "year over year")
+    assert followed.answers[-1].table == apple.table
+    assert followed.chips == shown.chips
+    # In change wording that names no base, over its window: the recording holds
+    # 9 of Intel's 14 quarters since 2023, each with its change.
+    shown = replay(runtime, "How much did Intel's revenue change since 2023?")
+    (intel,) = shown.answers
+    assert len(column_of(intel, "Quarter ended")) == 9
+    assert all("%" in change for change in column_of(intel, "YoY change"))
+    assert "Since 2023" in shown.chips and "Year over year" in shown.chips
+    assert any("only 9 of the 14 quarters since 2023" in banner for banner in intel.banners)
+    # With no window, the same words still ask against what.
+    (asked,) = ask(runtime, "How much did Intel's revenue change?")
+    assert asked.table is None
+    assert asked.clarify_prompt == "Compared with what?"
+
+
+def test_a_change_with_no_window_still_asks_against_what(runtime) -> None:  # type: ignore[no-untyped-def]
+    (asked,) = ask(runtime, "How did AMD's EBITDA change?")
+    assert asked.clarify_prompt == "Compared with what?"
+
+
 def test_which_grew_faster_leads_with_the_answer(runtime) -> None:  # type: ignore[no-untyped-def]
     (answer,) = ask(runtime, "Which grew faster, Apple or Microsoft?")
     assert answer.headline is not None
@@ -249,6 +396,28 @@ def test_a_change_from_a_derived_quarter_is_marked(runtime) -> None:  # type: ig
 def test_sort_by_orders_the_table(runtime) -> None:  # type: ignore[no-untyped-def]
     answers = ask(runtime, "Compare Microsoft, Apple and Nvidia revenue", "sort by revenue")
     assert column_of(answers[1], "Ticker") == ["AAPL", "NVDA", "MSFT"]
+
+
+def test_sort_by_lowest_first_orders_named_companies_from_the_lowest(runtime) -> None:  # type: ignore[no-untyped-def]
+    answers = ask(
+        runtime, "Compare Microsoft, Apple and Nvidia revenue", "sort by revenue, lowest first"
+    )
+    assert column_of(answers[1], "Ticker") == ["MSFT", "NVDA", "AAPL"]
+
+
+def test_the_order_direction_is_a_follow_up_and_the_chip_turns_it_back(runtime) -> None:  # type: ignore[no-untyped-def]
+    shown = replay(runtime, "Top 5 banks by revenue", "lowest first", "largest first")
+    assert [column_of(answer, "Ticker") for answer in shown.answers] == [
+        ["JPM", "BAC", "WFC"],
+        ["WFC", "BAC", "JPM"],
+        ["JPM", "BAC", "WFC"],
+    ]
+    assert "Lowest first" not in shown.chips
+
+
+def test_lowest_first_with_no_metric_orders_by_market_cap(runtime) -> None:  # type: ignore[no-untyped-def]
+    (answer,) = ask(runtime, "Top 5 banks lowest first")
+    assert column_of(answer, "Ticker") == ["WFC", "BAC", "JPM"]
 
 
 def test_start_over_clears_the_analysis(runtime) -> None:  # type: ignore[no-untyped-def]

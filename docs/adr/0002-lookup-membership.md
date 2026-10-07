@@ -1,6 +1,6 @@
 # Lookup and compare use membership rules, not freeze presence
 
-Ranking membership is the common share of an operating company, as defined in ADR 0001. Lookup and compare apply that same rule to each named company. Freeze presence is not required: an operating company listed after this freeze can still be looked up. A named company that fails the rule is a typed miss; other compare rows stay. News does not apply the gate.
+Ranking membership is the common share of an operating company, as defined in ADR 0001. Lookup and compare apply that same rule to each named company. Freeze presence is not required: an operating company listed after this freeze can still be looked up. A named company that fails the rule is a typed miss when asked on its own; named beside an operating company (`SPY and Apple revenue`), it is left out of the table with a note saying it is a fund, and the companies left decide the intent. News does not apply the gate.
 
 Ares Capital is excluded because it is a BDC, not an operating company. It is on the ineligible CIK list because Asset Management also contains operators (Ares Management). Absence from the freeze is not the reason.
 

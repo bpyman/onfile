@@ -9,6 +9,7 @@ from typing import Any
 
 from financial_analyst_agent.contracts import Intent, TurnResult
 from financial_analyst_agent.domain.enums import Metric
+from financial_analyst_agent.domain.errors import UnsupportedQuarterlyFactError
 from financial_analyst_agent.domain.models import FinancialFact
 from financial_analyst_agent.presentation import (
     format_metric_value,
@@ -170,3 +171,47 @@ def test_a_derived_gross_profit_names_each_part_by_its_own_metric() -> None:
     row = _table_row_from_fact(gross)
 
     assert [part.metric for part in row.derived_from] == ["revenue", "cost_of_revenue"]
+
+
+class _FactsMissing(_Facts):
+    """A facts port whose filings lack some metrics as standalone quarters."""
+
+    def __init__(self, facts: dict[str, FinancialFact], missing: set[str]) -> None:
+        super().__init__(facts, {})
+        self.missing = missing
+
+    def get_financials(
+        self, company: str, metric: str, *, report_date: date | None = None
+    ) -> FinancialFact:
+        if metric in self.missing:
+            raise UnsupportedQuarterlyFactError(
+                "No directly reported standalone-quarter fact exists for metric",
+                details={"metric": metric, "reason": "no_standalone_quarter"},
+            )
+        return super().get_financials(company, metric, report_date=report_date)
+
+
+def test_a_formula_missing_a_component_names_it() -> None:
+    # probe-round-3-gaps ticket 11: AMD's filings report depreciation only for the
+    # fiscal year, so no quarter has EBITDA; the row says which part is missing.
+    facts = _FactsMissing(
+        {"operating_income": _fact("operating_income", "1990000000", _QUARTER)},
+        {"depreciation_amortization"},
+    )
+    (row,) = compare_metrics(facts, ["Apple"], "ebitda")
+    assert row.value is None and row.reason == "missing_fact"
+    assert row.missing_components == ["depreciation_amortization"]
+
+
+def test_a_formula_missing_every_component_names_each() -> None:
+    # Merck's filings report no operating income line, and amortization only for the year.
+    facts = _FactsMissing({}, {"operating_income", "depreciation_amortization"})
+    (row,) = compare_metrics(facts, ["Merck"], "ebitda")
+    assert row.reason == "missing_fact"
+    assert row.missing_components == ["operating_income", "depreciation_amortization"]
+
+
+def test_a_plain_metric_the_filings_lack_names_no_component() -> None:
+    facts = _FactsMissing({}, {"revenue"})
+    (row,) = compare_metrics(facts, ["Apple"], "revenue")
+    assert row.reason == "missing_fact" and row.missing_components == []

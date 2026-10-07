@@ -12,34 +12,32 @@ says whether any result had been seen.
    each, labelled blind from the draft brief. The app agreed with 26 and then 24
    of them; each round's doubts and disagreements went into the brief, the
    README's "How a question is read", and tickets (`brief-5-probe-gaps`). A third
-   round runs on the brief as it will be frozen, with one probe writer per model
-   that will write cases, each in a folder holding only the files the brief lets
-   it read. It stops the probing if it finds no error in the brief and at most two
-   app gaps; otherwise the brief's unclear parts are rewritten before freezing,
-   not probed again. App gaps the probes find are fixed before the freeze, as in
-   rounds 1 and 2. The probe writers are the same models as the case writers, so
-   each gap fixed is one the set would likely have found: the held-out score is
-   that much kinder than real traffic would be, and the Protocol says how many
-   probe rounds ran and what they changed. The probes are discarded, and none is
-   a case.
+   round runs on the brief as it will be frozen, in two parts, each in a folder
+   holding only the files the brief lets a writer read:
+   - **The brief's clarity:** the case writer (Grok 4.7) writes probes and its
+     doubts about the rules. Only the doubts are read, to make the brief and the
+     README clearer; its probe questions are not scored against the app, so no fix
+     is tuned to the phrasing of the model that writes the set.
+   - **App gaps:** another lab's model (Claude, which wrote rounds 1 and 2) writes
+     probes that are scored against the app, and the gaps they find are fixed
+     before the freeze.
+
+   It stops the probing if it finds no error in the brief and at most two app
+   gaps; otherwise the brief's unclear parts are rewritten before freezing, not
+   probed again. The Protocol records how many probe rounds ran, which model wrote
+   them, and what they changed. The probes are discarded, and none is a case.
 2. **Freeze.** The draft note is removed from
    [`held-out-5-brief.md`](held-out-5-brief.md); that commit is the frozen prompt.
    No planner or reading code changes from the freeze until the run.
-3. **Writers.** The writers and their share of the 150 to 170 cases are set here
-   before the freeze. Each writes from the frozen brief alone, as the brief allows
-   it to read, and puts its model's name in the file's `writer` (or each case's).
-   Writers (decided 6 October 2026): two, writing about half each, 75 to 85
-   conversations with the brief's category counts halved:
-   - **Claude**, through Claude Code (`claude -p`), the family that wrote sets 1
-     to 4;
-   - **Grok 4.7** (`grok-4.7-high`), xAI's, through the Cursor agent CLI: a third
-     lab, neither the one whose model is the LLM planner (OpenAI) nor the one whose
-     models wrote the rules planner and the earlier sets (Anthropic).
-
-   Each runs in its own folder holding only the frozen brief and the files it lets
-   a writer read, so neither can search the repository; the two files are merged
-   into `planner-cases-held-out-5.json` with each case's `writer`. The report
-   scores the set by writer beside the whole (step 12).
+3. **Writer** (decided 6 October 2026): **Grok 4.7** (`grok-4.7-high`), xAI's,
+   through the Cursor agent CLI, writes and labels all 150 to 170 cases from the
+   frozen brief alone, and names itself in the file's `writer`. It is a third
+   lab's model: sets 1 to 4 were written by Claude, whose models also wrote the
+   rules planner, and the LLM planner is OpenAI's, so neither planner shares the
+   writer's habits of phrasing. It runs in a folder holding only the frozen brief
+   and the files the brief lets a writer read, so it cannot search the
+   repository. Set 5 is therefore not written like set 4, which is one more reason
+   the two sets are compared only descriptively (step 10).
 
 ## After the cases, before any planner runs
 
@@ -47,7 +45,8 @@ says whether any result had been seen.
    left to be set by the next step's commit. The engineer checks format and counts
    only.
 5. **Second labeller.** A blind Claude session labels the same questions from the
-   frozen brief alone, without seeing the first labels. `uv run python -m
+   frozen brief alone, in the same kind of isolated folder, without seeing the
+   first labels. `uv run python -m
    financial_analyst_agent.held_out_overlap --labels <cases> <second labels>`
    compares the two field by field. Where they disagree, a person settles the
    label against the README, `CONTEXT.md` and the ADRs as committed at the freeze,
@@ -89,7 +88,6 @@ reading code may change between the freeze and the run.
       before the cases, quoted with its commit and file, checked by
       `check_rule_history`);
     - familiar and novel cases (step 6);
-    - by writer, where more than one wrote the set;
     - field accuracy, agreement across runs, time and cost;
     - the label agreement rate (step 5).
 13. **Findings.** Every case that failed at least one planner is read after the

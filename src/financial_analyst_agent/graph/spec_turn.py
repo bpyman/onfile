@@ -24,15 +24,19 @@ from financial_analyst_agent.answer_notes import (
     already_present_notes,
     annual_filer_note,
     capped_ranking_notes,
+    fund_note,
     metric_reading_notes,
+    missing_component_notes,
     period_notes,
     short_ranking_notes,
 )
 from financial_analyst_agent.contracts import (
     ALLOWED_METRICS,
+    COMPANY_NOT_FOUND,
     DEFAULT_RANK_LIMIT,
     LOOKUP_FAILED,
     MISSING_FACT,
+    NOT_OPERATING_COMPANY,
     QUALITATIVE_INTENTS,
     SNAPSHOT_METRICS,
     SOURCE_UNAVAILABLE,
@@ -90,25 +94,34 @@ from financial_analyst_agent.request_wording import (
     COMPARISON_LABELS,
     FORECAST,
     INVALID_QUARTER,
+    LOWEST_FIRST,
     OVERVIEW_METRICS,
     bind_metrics_from_message,
+    bind_order_from_message,
     comparison_asked,
     read_window,
     refine_patch_from_message,
 )
 from financial_analyst_agent.services.filing_selector import FISCAL_WEEK_TOLERANCE
 from financial_analyst_agent.services.fiscal_periods import (
+    FiscalPeriod,
     adjacent_quarters,
     calendar_quarter,
     dates_for,
     one_year_earlier,
+    quarters_in_fiscal_span,
     quarters_since,
+    quarters_since_fiscal_year,
 )
 from financial_analyst_agent.turn import (
     compare_task,
     lookup_task,
     rank_and_lookup_task,
     rank_task,
+)
+from financial_analyst_agent.universe import (
+    INELIGIBLE_ISSUER_NAMES,
+    sec_identity_is_operating,
 )
 
 ProgressCallback = Callable[[int, int], None]
@@ -180,10 +193,15 @@ def materialize_period_dates(spec: AnalysisSpec, runtime: Runtime) -> AnalysisSp
     periods = spec.periods
     since = periods.since_year
     cap = periods.count or 1
-    listing = partial(_window_dates, runtime.facts.list_quarterly_report_dates, since=since)
+    listing: Callable[..., _Listed]
+    if since is not None and periods.since_fiscal:
+        listing = partial(_fiscal_window_dates, runtime.facts.fiscal_periods, since=since)
+    else:
+        listing = partial(_window_dates, runtime.facts.list_quarterly_report_dates, since=since)
+    spans: list[int] = []
     listed_first = False
     if not periods.report_dates:
-        dates = listing(first.handle, limit=cap)
+        dates, span = listing(first.handle, limit=cap)
         if not dates:
             return spec
         # A "since" window asks for whatever the filings hold since that
@@ -196,6 +214,7 @@ def materialize_period_dates(spec: AnalysisSpec, runtime: Runtime) -> AnalysisSp
         periods = periods.model_copy(
             update={"count": len(dates), "report_dates": dates, "asked": asked}
         )
+        spans.extend([] if span is None else [span])
         listed_first = True
     known = dict(periods.company_report_dates)
     if listed_first and spec.companies:
@@ -208,18 +227,32 @@ def materialize_period_dates(spec: AnalysisSpec, runtime: Runtime) -> AnalysisSp
         lambda company: _or_none(partial(listing, company.handle, limit=count)),
         pending,
     )
-    for company, company_dates in zip(pending, listed, strict=True):
+    for company, company_listed in zip(pending, listed, strict=True):
+        if company_listed is None:
+            continue
+        company_dates, span = company_listed
         if company_dates:
             known[company.key] = company_dates
-    periods = periods.model_copy(update={"company_report_dates": tuple(known.items())})
+        spans.extend([] if span is None else [span])
+    periods = periods.model_copy(
+        update={
+            "company_report_dates": tuple(known.items()),
+            "asked": _span_asked(periods, spans, [periods.report_dates, *known.values()]),
+        }
+    )
     if periods == spec.periods:
         return spec
     return spec.model_copy(update={"periods": periods})
 
 
+# A company's quarter ends for a window, newest first, and the quarters its
+# span holds when the listing counted them (a fiscal year's span).
+_Listed = tuple[tuple[date, ...], int | None]
+
+
 def _window_dates(
     list_dates: Callable[..., Sequence[date]], handle: str, *, limit: int, since: int | None
-) -> tuple[date, ...]:
+) -> _Listed:
     """A company's quarter ends for a window, newest first.
 
     For a "since" window, the listed quarters that ended on or after 1 January
@@ -228,8 +261,39 @@ def _window_dates(
     """
     dates = tuple(list_dates(handle, limit=limit))
     if since is None or not dates:
-        return dates
-    return quarters_since(since, dates) or dates[:1]
+        return dates, None
+    return quarters_since(since, dates) or dates[:1], None
+
+
+def _fiscal_window_dates(
+    list_periods: Callable[[str], Sequence[FiscalPeriod]], handle: str, *, limit: int, since: int
+) -> _Listed:
+    """A company's quarter ends since the start of its own fiscal ``since``, newest first.
+
+    Read where its fiscal periods are listed, as a named fiscal year is: Apple's
+    fiscal 2025 opens with the quarter ended December 2024, Microsoft's with
+    September 2024. The span is counted on the company's labels, so the answer
+    can say how many quarters the filings lack. A year ahead of the filings
+    shows the latest quarter, as a calendar year does.
+    """
+    periods = tuple(list_periods(handle))
+    if not periods:
+        return (), None
+    dates = quarters_since_fiscal_year(since, periods)[:limit]
+    if not dates:
+        return (max(period.end for period in periods),), None
+    return dates, quarters_in_fiscal_span(since, periods)
+
+
+def _span_asked(
+    periods: PeriodSelection, spans: list[int], windows: list[tuple[date, ...]]
+) -> int | None:
+    """The quarters a fiscal span asks for, when the filings show fewer; else as it was."""
+    shown = max((len(dates) for dates in windows), default=0)
+    longest = max(spans, default=0)
+    if longest <= shown:
+        return periods.asked
+    return max(periods.asked or 0, longest)
 
 
 def _or_none[T](read: Callable[[], T]) -> T | None:
@@ -342,6 +406,33 @@ def drop_annual_filers(spec: AnalysisSpec, runtime: Runtime) -> tuple[AnalysisSp
         else:
             dropped.append(short_name(company.name if company.cik else check[1]) or company.query)
     if not dropped:
+        return spec, []
+    return spec.model_copy(update={"companies": tuple(kept)}), dropped
+
+
+def drop_funds(spec: AnalysisSpec) -> tuple[AnalysisSpec, list[tuple[str, str]]]:
+    """Leave out a fund named beside a company, as (ticker, SEC name).
+
+    "SPY and Apple revenue" is Apple's revenue with a note: a fund, BDC or other
+    listing the snapshot marks as not an operating company (ADR 0001's ineligible
+    issuers, or an SEC title naming an instrument) has no 10-Q figures. The
+    recorded runtime knows SPY by ticker alone; the live one by its CIK. A fund
+    asked on its own is kept, so the lookup refuses it as it did.
+    """
+    kept: list[ResolvedCompany] = []
+    dropped: list[tuple[str, str]] = []
+    for company in spec.companies:
+        ticker = (company.ticker or company.query).upper()
+        listed = INELIGIBLE_ISSUER_NAMES.get(ticker)
+        if company.cik:
+            fund = not sec_identity_is_operating(company.cik, company.name)
+        else:
+            fund = listed is not None
+        if fund:
+            dropped.append((ticker, company.name if company.cik else listed or company.name))
+        else:
+            kept.append(company)
+    if not dropped or not kept:
         return spec, []
     return spec.model_copy(update={"companies": tuple(kept)}), dropped
 
@@ -702,11 +793,33 @@ def merge_task_results(
     )
 
 
-def _order_by_metric(result: TurnResult, metric: str) -> TurnResult:
+# A name no company matched, or a fund's, is left out with a note: not on screen.
+_LEFT_OUT = frozenset({COMPANY_NOT_FOUND, NOT_OPERATING_COMPANY})
+
+
+def _one_company_left(merged: TurnResult) -> TurnResult:
+    """A comparison with one company left on screen is a lookup.
+
+    The intent follows the companies on screen (ADR 0010): "SPY and Apple
+    revenue" leaves the fund out with a note, so Apple alone is a lookup, as
+    "Google and Alphabet revenue" already is once the two names collapse to one.
+    """
+    if merged.intent is not Intent.COMPARE or merged.renderer is not RendererKind.TABLE:
+        return merged
+    on_screen = {
+        row.cik or row.company_name for row in merged.table_rows if row.reason not in _LEFT_OUT
+    }
+    if len(on_screen) != 1:
+        return merged
+    return merged.model_copy(update={"intent": Intent.LOOKUP})
+
+
+def _order_by_metric(result: TurnResult, metric: str, *, ascending: bool = False) -> TurnResult:
     """Order a ranking's market-cap members by ``metric``, largest first.
 
     Membership stays the snapshot's top N by market cap: ranking a whole
     industry by a filed metric would mean a lookup per company in it.
+    ``ascending`` ("lowest first") runs the same members from the lowest value.
     """
     latest: dict[str, TableRow] = {}
     for row in result.table_rows:
@@ -719,10 +832,12 @@ def _order_by_metric(result: TurnResult, metric: str) -> TurnResult:
     if not latest or not ranks:
         return result
 
+    sign = Decimal(1) if ascending else Decimal(-1)
+
     def key(cik: str) -> tuple[bool, Decimal, int]:
         row = latest.get(cik)
         value = row.value if row is not None else None
-        return (value is None, -(value or Decimal(0)), ranks[cik] or 0)
+        return (value is None, sign * (value or Decimal(0)), ranks[cik] or 0)
 
     order = {cik: index for index, cik in enumerate(sorted(ranks, key=key), start=1)}
     rows = sorted(
@@ -732,10 +847,19 @@ def _order_by_metric(result: TurnResult, metric: str) -> TurnResult:
         ),
         key=lambda row: (row.rank is None, row.rank or 0),
     )
-    return result.model_copy(update={"table_rows": rows, "ordered_by": metric})
+    return result.model_copy(
+        update={
+            "table_rows": rows,
+            # A plain ranking is by market cap already: only another metric is "ordered by".
+            "ordered_by": metric if metric != "market_cap" else result.ordered_by,
+            "ordered_lowest_first": ascending,
+        }
+    )
 
 
-def _order_companies_by_metric(result: TurnResult, metric: str) -> TurnResult:
+def _order_companies_by_metric(
+    result: TurnResult, metric: str, *, ascending: bool = False
+) -> TurnResult:
     """Order named companies by their latest ``metric``, largest first ("sort by revenue")."""
     latest: dict[str, TableRow] = {}
     for row in result.table_rows:
@@ -748,15 +872,16 @@ def _order_companies_by_metric(result: TurnResult, metric: str) -> TurnResult:
     if not latest:
         return result
     first_seen = list(dict.fromkeys(row.cik or row.company_name for row in result.table_rows))
+    sign = Decimal(1) if ascending else Decimal(-1)
 
     def order(company: str) -> tuple[bool, Decimal, int]:
         row = latest.get(company)
         value = row.value if row is not None else None
-        return (value is None, -(value or Decimal(0)), first_seen.index(company))
+        return (value is None, sign * (value or Decimal(0)), first_seen.index(company))
 
     ranking = {company: index for index, company in enumerate(sorted(first_seen, key=order))}
     rows = sorted(result.table_rows, key=lambda row: ranking[row.cik or row.company_name])
-    return result.model_copy(update={"table_rows": rows})
+    return result.model_copy(update={"table_rows": rows, "ordered_lowest_first": ascending})
 
 
 def _fill_identity(result: TurnResult, spec: AnalysisSpec) -> TurnResult:
@@ -907,6 +1032,7 @@ def resolve_request(
     patch, early = bind_metrics_from_message(patch, message, intent=intent)
     if early is not None:
         return answered(early, current_spec)
+    patch = bind_order_from_message(patch, message)
     emptied = emptied_by(current_spec, patch)
     if emptied is not None:
         return answered(_refusal(intent, EMPTIED_MESSAGES[emptied]), current_spec)
@@ -964,6 +1090,7 @@ def resolve_request(
     if request.comparison is not None:
         spec = _with_comparison(spec, request.comparison)
 
+    spec, funds = drop_funds(spec)
     spec, annual_filers = drop_annual_filers(spec, runtime)
     if annual_filers and not spec.companies and spec.constituents is None:
         return answered(
@@ -1044,6 +1171,7 @@ def resolve_request(
             prior_spec=current_spec,
             notes=request.notes,
             annual_filers=tuple(annual_filers),
+            funds=tuple(funds),
             unrecorded=request.unrecorded,
         ),
     )
@@ -1058,14 +1186,19 @@ def merge_analysis(compiled: CompiledAnalysis, results: list[TurnResult]) -> Tur
         across_periods="across_periods" in spec.operations,
         sequential="year_over_year" not in spec.operations,
     )
-    merged = _without_base_quarters(merged, spec)
+    merged = _one_company_left(_without_base_quarters(merged, spec))
     if len(spec.companies) == 1 and spec.constituents is None:
         merged = _one_company_failure(merged, results)
     merged = _fill_identity(merged, spec)
-    if "order_by_metric" in spec.operations and spec.constituents is not None and spec.metrics:
-        merged = _order_by_metric(merged, _ordering_metric(spec))
-    elif "order_by_metric" in spec.operations and spec.companies and spec.metrics:
-        merged = _order_companies_by_metric(merged, _ordering_metric(spec))
+    # "Lowest first" orders a ranking even when nothing else asked for an order.
+    lowest_first = LOWEST_FIRST in spec.operations
+    ordered = ("order_by_metric" in spec.operations and bool(spec.metrics)) or lowest_first
+    if ordered and spec.constituents is not None:
+        merged = _order_by_metric(merged, _ordering_metric(spec), ascending=lowest_first)
+    elif ordered and spec.companies and spec.metrics:
+        merged = _order_companies_by_metric(
+            merged, _ordering_metric(spec), ascending=lowest_first
+        )
     return merged
 
 
@@ -1152,7 +1285,9 @@ def annotate_analysis(
     patch = compiled.patch
     # Planner notes first: a corrected company name explains the whole answer.
     notes = [
+        *([fund_note(list(compiled.funds))] if compiled.funds else []),
         *([annual_filer_note(list(compiled.annual_filers))] if compiled.annual_filers else []),
+        *missing_component_notes(merged.table_rows),
         *already_present_notes(patch, compiled.prior_spec, spec),
         *metric_reading_notes(compiled.wording, spec),
         *period_notes(compiled.wording, spec, window=compiled.window),
@@ -1234,10 +1369,10 @@ def _one_company_failure(merged: TurnResult, results: list[TurnResult]) -> TurnR
 
 
 def _ordering_metric(spec: AnalysisSpec) -> str:
-    """The metric request wording recorded for ordering, else the first."""
+    """The metric "sort by …" recorded, else the first; a plain ranking's is market cap."""
     if spec.order_by in spec.metrics:
         return str(spec.order_by)
-    return spec.metrics[0]
+    return spec.metrics[0] if spec.metrics else "market_cap"
 
 
 def _with_market_date(spec: AnalysisSpec, runtime: Runtime) -> AnalysisSpec:

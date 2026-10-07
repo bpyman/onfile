@@ -19,6 +19,7 @@ from financial_analyst_agent.graph.clarify import clarification_reply
 from financial_analyst_agent.graph.spec_turn import materialize_period_dates
 from financial_analyst_agent.presentation import format_usd, present_turn
 from financial_analyst_agent.request_wording import read_window
+from financial_analyst_agent.services.fiscal_periods import FiscalPeriod
 from financial_analyst_agent.thread_store import PendingClarification
 from helpers import FakeFacts
 
@@ -168,6 +169,122 @@ def test_a_since_window_with_no_quarter_yet_shows_the_latest() -> None:
     spec = materialize_period_dates(_since(2027, "Apple"), runtime)  # type: ignore[arg-type]
 
     assert spec.periods.report_dates == _AAPL_SINCE[:1]
+
+
+def _fiscal(end: date, year: int, quarter: int) -> FiscalPeriod:
+    return FiscalPeriod(
+        end=end, fiscal_year=year, quarter=quarter, form="10-K" if quarter == 4 else "10-Q"
+    )
+
+
+# Apple's fiscal 2025 opened with the quarter ended December 2024, Microsoft's
+# with the quarter ended September 2024: each on its own calendar.
+_AAPL_FISCAL = (
+    _fiscal(date(2026, 6, 27), 2026, 3),
+    _fiscal(date(2026, 3, 28), 2026, 2),
+    _fiscal(date(2025, 12, 27), 2026, 1),
+    _fiscal(date(2025, 9, 27), 2025, 4),
+    _fiscal(date(2025, 6, 28), 2025, 3),
+    _fiscal(date(2025, 3, 29), 2025, 2),
+    _fiscal(date(2024, 12, 28), 2025, 1),
+    _fiscal(date(2024, 9, 28), 2024, 4),
+    _fiscal(date(2024, 6, 29), 2024, 3),
+)
+_MSFT_FISCAL = (
+    _fiscal(date(2026, 6, 30), 2026, 4),
+    _fiscal(date(2026, 3, 31), 2026, 3),
+    _fiscal(date(2025, 12, 31), 2026, 2),
+    _fiscal(date(2025, 9, 30), 2026, 1),
+    _fiscal(date(2025, 6, 30), 2025, 4),
+    _fiscal(date(2025, 3, 31), 2025, 3),
+    _fiscal(date(2024, 12, 31), 2025, 2),
+    _fiscal(date(2024, 9, 30), 2025, 1),
+    _fiscal(date(2024, 6, 30), 2024, 4),
+)
+# Fifty quarters on Microsoft's calendar, newest first, back to Q3 of fiscal 2014.
+_LONG_FISCAL = tuple(
+    _fiscal(
+        date(2026 - (index + 2) // 4, (6, 3, 12, 9)[index % 4], 30),
+        2026 - index // 4,
+        4 - index % 4,
+    )
+    for index in range(50)
+)
+
+
+class _FiscalListing(FakeFacts):
+    def __init__(self) -> None:
+        self.listed: list[str] = []
+        self.dates_listed: list[str] = []
+
+    def fiscal_periods(self, company: str) -> tuple[FiscalPeriod, ...]:
+        self.listed.append(company)
+        return {"Apple": _AAPL_FISCAL, "Microsoft": _MSFT_FISCAL, "Long": _LONG_FISCAL}[company]
+
+    def list_quarterly_report_dates(self, company: str, *, limit: int) -> tuple[date, ...]:
+        self.dates_listed.append(company)
+        return ()
+
+
+def _since_fiscal(year: int, *queries: str) -> AnalysisSpec:
+    return AnalysisSpec(
+        companies=tuple(_company(query) for query in queries),
+        metrics=("revenue",),
+        periods=PeriodSelection(
+            kind="last_n_quarters", count=40, since_year=year, since_fiscal=True
+        ),
+    )
+
+
+def test_since_a_fiscal_year_counts_from_each_companys_own_fiscal_year() -> None:
+    runtime = _Runtime()
+    runtime.facts = _FiscalListing()  # type: ignore[assignment]
+
+    spec = materialize_period_dates(_since_fiscal(2025, "Apple", "Microsoft"), runtime)  # type: ignore[arg-type]
+
+    # Read where the fiscal periods are listed, as a named fiscal year is
+    # (probe-round-3-gaps ticket 06): Apple's from December 2024, Microsoft's
+    # from September 2024.
+    assert spec.periods.report_dates == tuple(period.end for period in _AAPL_FISCAL[:7])
+    own = dict(spec.periods.company_report_dates)
+    assert own["Microsoft"] == tuple(period.end for period in _MSFT_FISCAL[:8])
+    assert runtime.facts.dates_listed == []  # type: ignore[attr-defined]
+    # The filings hold every quarter of both spans: nothing more was asked for.
+    assert (spec.periods.count, spec.periods.since_fiscal, spec.periods.asked) == (7, True, None)
+
+
+def test_since_a_fiscal_year_the_filings_do_not_reach_carries_the_span_asked() -> None:
+    runtime = _Runtime()
+    runtime.facts = _FiscalListing()  # type: ignore[assignment]
+
+    spec = materialize_period_dates(_since_fiscal(2015, "Apple"), runtime)  # type: ignore[arg-type]
+
+    # Q1 of fiscal 2015 to Q3 of fiscal 2026 is 47 quarters on Apple's own
+    # labels; the filings hold nine, so the note can say how many are missing.
+    assert spec.periods.report_dates == tuple(period.end for period in _AAPL_FISCAL)
+    assert (spec.periods.count, spec.periods.asked) == (9, 47)
+
+
+def test_since_a_fiscal_year_is_capped_at_the_window_cap() -> None:
+    runtime = _Runtime()
+    runtime.facts = _FiscalListing()  # type: ignore[assignment]
+
+    spec = materialize_period_dates(_since_fiscal(2014, "Long"), runtime)  # type: ignore[arg-type]
+
+    # Fifty quarters since Q3 of fiscal 2014 would be held, but the window shows
+    # the latest forty; the span asked is the fifty, from Q1 of that year: 52.
+    assert spec.periods.report_dates == tuple(period.end for period in _LONG_FISCAL[:40])
+    assert (spec.periods.count, spec.periods.asked) == (40, 52)
+
+
+def test_since_a_fiscal_year_ahead_of_the_filings_shows_the_latest() -> None:
+    runtime = _Runtime()
+    runtime.facts = _FiscalListing()  # type: ignore[assignment]
+
+    spec = materialize_period_dates(_since_fiscal(2027, "Apple"), runtime)  # type: ignore[arg-type]
+
+    assert spec.periods.report_dates == (date(2026, 6, 27),)
+    assert spec.periods.asked is None
 
 
 def test_adding_a_company_lists_only_that_company() -> None:

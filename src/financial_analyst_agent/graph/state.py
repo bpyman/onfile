@@ -138,6 +138,8 @@ class CompiledAnalysis(BaseModel):
     prior_spec: AnalysisSpec | None = None
     notes: tuple[str, ...] = ()
     annual_filers: tuple[str, ...] = ()
+    # Funds named beside a company, left out of the table: (ticker, SEC name).
+    funds: tuple[tuple[str, str], ...] = ()
     unrecorded: tuple[str, ...] = ()
 
 

@@ -160,6 +160,40 @@ def _reads(
     return check
 
 
+def _year_over_year_window(tickers: frozenset[str], metric: str, count: int) -> Check:
+    """The window asked for, with the year-over-year operation, whether or not the
+    recording holds the figure (AMD's EBITDA it does not)."""
+
+    def check(seen: Observation, _turn: ConversationTurn) -> bool:
+        return (
+            seen.outcome in ("answer", "no_data")
+            and seen.tickers == tickers
+            and seen.metrics == frozenset({metric})
+            and seen.periods == ("last_n_quarters", count)
+            and "year_over_year" in seen.operations
+        )
+
+    return check
+
+
+def _year_over_year_since(tickers: frozenset[str], metric: str, year: int) -> Check:
+    """Every quarter since the year began, each with its year-over-year change."""
+
+    def check(seen: Observation, turn: ConversationTurn) -> bool:
+        spec = turn.analysis_spec
+        return (
+            seen.outcome in ("answer", "no_data")
+            and seen.tickers == tickers
+            and seen.metrics == frozenset({metric})
+            and spec is not None
+            and spec.periods.since_year == year
+            and "year_over_year" in spec.operations
+            and _each_quarter_changed(turn, "year_over_year")
+        )
+
+    return check
+
+
 def _companies(*tickers: str, metrics: tuple[str, ...] = ("revenue",), count: int = 4) -> Check:
     def check(seen: Observation, _turn: ConversationTurn) -> bool:
         return (
@@ -258,6 +292,13 @@ WINDOW_PHRASES: tuple[tuple[str, str, int | None], ...] = (
     ("over the past 12 months", "last_n_quarters", 4),
     ("over the last 18 months", "last_n_quarters", 6),
     ("over the last six months", "last_n_quarters", 2),
+    # A whole number of years and a half: that many years and two quarters more.
+    ("over the last year and a half", "last_n_quarters", 6),
+    ("a year and a half", "last_n_quarters", 6),
+    ("one and a half years", "last_n_quarters", 6),
+    ("two and a half years", "last_n_quarters", 10),
+    ("1.5 years", "last_n_quarters", 6),
+    ("over the past 2.5 years", "last_n_quarters", 10),
     ("for the last few quarters", "last_n_quarters", 4),
     ("over several quarters", "last_n_quarters", 4),
     ("over the last couple of quarters", "last_n_quarters", 2),
@@ -270,6 +311,10 @@ WINDOW_PHRASES: tuple[tuple[str, str, int | None], ...] = (
     ("since 2024", "last_n_quarters", None),
     ("since the start of 2024", "last_n_quarters", None),
     ("since the beginning of 2024", "last_n_quarters", None),
+    # A fiscal year: every quarter of each company's own fiscal 2025 and after.
+    ("since fiscal 2025", "last_n_quarters", None),
+    ("since the start of fiscal 2025", "last_n_quarters", None),
+    ("since FY2025", "last_n_quarters", None),
     ("for the most recent quarter", "latest_quarter", None),
     ("for the latest quarter", "latest_quarter", None),
     ("in Q2 2025", "named", None),
@@ -311,12 +356,38 @@ SEQUENTIAL_QUESTIONS = (
 NO_BASE_QUESTIONS = (
     "Why did Apple revenue drop?",
     "How much did Apple's revenue change?",
+    "How much did Intel's revenue change?",
+    "How did AMD's EBITDA change?",
     "What drove the change in Apple's revenue?",
     "Why did Apple's revenue go up?",
     "What caused Apple's revenue to fall?",
     "What caused Pfizer's earnings to fall?",
     "What's behind the drop in Apple's revenue?",
     "What led to the decline in Apple's revenue?",
+)
+# A change over a named window is year over year over that window (README's
+# growth row): a year named with no count is its four quarters, each with its
+# change, not the growth default of five.
+WINDOW_CHANGE_QUESTIONS: tuple[tuple[str, tuple[str, ...], str, int], ...] = (
+    ("How did AMD's EBITDA change over the past year?", ("AMD",), "ebitda", 4),
+    ("How did Apple's revenue change over the past year?", ("AAPL",), "revenue", 4),
+    ("How has Tesla's revenue changed over the last year?", ("TSLA",), "revenue", 4),
+    ("How did Apple's revenue grow over the last 2 years?", ("AAPL",), "revenue", 8),
+    # Whatever the change wording (probe-round-3-gaps ticket 09).
+    ("How much did Intel's revenue change over the last year?", ("INTC",), "revenue", 4),
+    ("Over the past 10 quarters, how has Thermo Fisher's revenue moved?", ("TMO",), "revenue", 10),
+    ("How did Apple's revenue change over the last 2 quarters?", ("AAPL",), "revenue", 2),
+    ("How has Apple's revenue grown over the past 6 quarters?", ("AAPL",), "revenue", 6),
+)
+# A "since" window is a window too (probe-round-3-gaps ticket 10): a change over
+# it is year over year over every filed quarter since the year began, and
+# "since 2025 year over year" names the year, not 2025 years.
+SINCE_CHANGE_QUESTIONS: tuple[tuple[str, tuple[str, ...], str, int], ...] = (
+    ("Apple revenue since 2025 year over year", ("AAPL",), "revenue", 2025),
+    ("Apple revenue growth since 2024", ("AAPL",), "revenue", 2024),
+    ("How much did Intel's revenue change since 2023?", ("INTC",), "revenue", 2023),
+    ("What caused Apple's revenue to fall since 2023?", ("AAPL",), "revenue", 2023),
+    ("How has Apple's revenue moved since the start of 2024?", ("AAPL",), "revenue", 2024),
 )
 # An idiom that contains a company's everyday-word name ("apples to apples",
 # "building blocks") names no company: only the real companies are read.
@@ -384,6 +455,49 @@ EXPLANATION_QUESTIONS = (
     "What is EPS?",
     "How might AI change banking?",
 )
+# Everyday group names rank their industry, and a group "by" a metric is a ranking
+# without "top". The recorded snapshot's members of each group, by ticker.
+_SEMIS = frozenset({"NVDA", "AVGO", "MU", "AMD", "INTC", "AMAT"})
+_DRUGMAKERS = frozenset({"LLY", "JNJ", "ABBV", "MRK", "PFE", "AMGN", "GILD"})
+_BIG_BANKS = frozenset({"JPM", "BAC", "WFC"})
+RANKING_QUESTIONS: tuple[tuple[str, frozenset[str], str, bool | None], ...] = (
+    ("top 5 semis by market cap and revenue", _SEMIS, "market_cap", None),
+    ("chipmakers by free cash flow, lowest first", _SEMIS, "free_cash_flow", True),
+    ("top 5 chipmakers by revenue", _SEMIS, "revenue", None),
+    ("top 5 chip companies by revenue", _SEMIS, "revenue", None),
+    ("chip stocks by revenue", _SEMIS, "revenue", None),
+    ("drugmakers by revenue", _DRUGMAKERS, "revenue", None),
+    ("top 5 drug makers by revenue", _DRUGMAKERS, "revenue", None),
+    ("big pharma by revenue", _DRUGMAKERS, "revenue", None),
+    ("big banks by revenue", _BIG_BANKS, "revenue", None),
+    ("top 5 big banks by revenue", _BIG_BANKS, "revenue", None),
+    ("Top 5 banks by revenue, lowest first", _BIG_BANKS, "revenue", True),
+    ("Top 5 banks by revenue, smallest first", _BIG_BANKS, "revenue", True),
+    ("Top 5 banks by revenue ascending", _BIG_BANKS, "revenue", True),
+    ("Top 5 banks by revenue, largest first", _BIG_BANKS, "revenue", False),
+)
+
+
+def _ranks(group: frozenset[str], metric: str, ascending: bool | None) -> Check:
+    """A ranking of the group's members showing ``metric``, ordered as asked."""
+
+    def check(seen: Observation, turn: ConversationTurn) -> bool:
+        if seen.outcome not in ("answer", "no_data") or seen.intent != "rank_and_lookup":
+            return False
+        if not seen.tickers or not seen.tickers <= group or metric not in seen.metrics:
+            return False
+        if ascending is None:
+            return True
+        shown = sorted(
+            (row for row in turn.result.table_rows if row.metric == metric and row.rank),
+            key=lambda row: row.rank or 0,
+        )
+        values = [row.value for row in shown if row.value is not None]
+        return len(values) >= 2 and values == sorted(values, reverse=not ascending)
+
+    return check
+
+
 # A figure with no company asks which company: the absence of a company alone
 # does not make a question general, whichever planner read it.
 NO_COMPANY_QUESTIONS = (
@@ -391,6 +505,10 @@ NO_COMPANY_QUESTIONS = (
     "What is the EPS?",
     "What's the revenue?",
     "What was the revenue last quarter?",
+    # A word of the metric phrase ("net", "free") is never the company.
+    "What was net income this quarter?",
+    "Net margin last quarter?",
+    "What was net interest income?",
 )
 
 _FIRST = "Apple revenue over the last 4 quarters"
@@ -425,6 +543,53 @@ FOLLOW_UPS: tuple[tuple[str, str, Check, str], ...] = (
         "and net income too",
         _companies("AAPL", metrics=("revenue", "net_income")),
         "revenue and net income",
+    ),
+)
+
+
+
+def _switched_to(comparison: str, count: int) -> Check:
+    """The quarters on screen, each with the change switched to, and only that one asked."""
+
+    def check(seen: Observation, turn: ConversationTurn) -> bool:
+        spec = turn.analysis_spec
+        return (
+            seen.outcome in ("answer", "no_data")
+            and seen.periods == ("last_n_quarters", count)
+            and spec is not None
+            and ("year_over_year" in spec.operations) == (comparison == "year_over_year")
+            and _each_quarter_changed(turn, comparison)
+        )
+
+    return check
+
+
+# After a year-over-year view, "sequential instead" switches the change and keeps
+# the quarters on screen; "year over year instead" switches back the same way.
+_YOY_VIEW = "Apple revenue over the last 6 quarters year over year"
+_QOQ_VIEW = "Apple revenue over the last 6 quarters quarter over quarter"
+CHANGE_SWITCHES: tuple[tuple[tuple[str, ...], Check, str], ...] = (
+    (
+        ("Apple revenue over the last 6 quarters", "as growth", "sequential instead"),
+        _switched_to("sequential", 6),
+        "6 quarters, sequential",
+    ),
+    ((_YOY_VIEW, "sequential instead"), _switched_to("sequential", 6), "6 quarters, sequential"),
+    (
+        (_YOY_VIEW, "quarter over quarter instead"),
+        _switched_to("sequential", 6),
+        "6 quarters, sequential",
+    ),
+    ((_YOY_VIEW, "make it sequential"), _switched_to("sequential", 6), "6 quarters, sequential"),
+    (
+        (_QOQ_VIEW, "year over year instead"),
+        _switched_to("year_over_year", 6),
+        "6 quarters, year over year",
+    ),
+    (
+        (_QOQ_VIEW, "make it year over year"),
+        _switched_to("year_over_year", 6),
+        "6 quarters, year over year",
     ),
 )
 
@@ -658,6 +823,27 @@ def cases() -> list[PhraseCase]:
         found.append(
             PhraseCase(f"no_base:{question}", "Changes with no base", (question,), "asks", _asks)
         )
+    for question, tickers, metric, count in WINDOW_CHANGE_QUESTIONS:
+        found.append(
+            PhraseCase(
+                f"window_change:{question}",
+                "A change over a window",
+                (question,),
+                _expected(tickers, (metric,), ("last_n_quarters", count), "year_over_year"),
+                _year_over_year_window(frozenset(tickers), metric, count),
+            )
+        )
+    for question, tickers, metric, year in SINCE_CHANGE_QUESTIONS:
+        found.append(
+            PhraseCase(
+                f"since_change:{question}",
+                "A change over a window",
+                (question,),
+                _expected(tickers, (metric,), ("last_n_quarters", None), "year_over_year")
+                + f" since {year}",
+                _year_over_year_since(frozenset(tickers), metric, year),
+            )
+        )
     for question, tickers, metric in IDIOM_QUESTIONS:
         period = ("latest_quarter", None)
         found.append(
@@ -709,6 +895,17 @@ def cases() -> list[PhraseCase]:
                 _asks_which_company,
             )
         )
+    for question, group, metric, ascending in RANKING_QUESTIONS:
+        order = {None: "", True: ", lowest first", False: ", largest first"}[ascending]
+        found.append(
+            PhraseCase(
+                f"ranking:{question}",
+                "Rankings",
+                (question,),
+                f"ranks the group by {metric}{order}",
+                _ranks(group, metric, ascending),
+            )
+        )
     for first, follow, check, expected in FOLLOW_UPS:
         found.append(
             PhraseCase(
@@ -718,6 +915,10 @@ def cases() -> list[PhraseCase]:
                 expected,
                 check,
             )
+        )
+    for turns, check, expected in CHANGE_SWITCHES:
+        found.append(
+            PhraseCase(f"switch:{' | '.join(turns)}", "Change switches", turns, expected, check)
         )
     return [*found, *_combined_cases(), *_combined_follow_up_cases()]
 

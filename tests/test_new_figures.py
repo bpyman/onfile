@@ -161,3 +161,34 @@ def test_a_market_figure_for_a_company_the_snapshot_lacks_says_so(runtime) -> No
 
     assert answer.table is not None
     assert answer.table.rows[1][:3] == ("Tesla, Inc.", "TSLA", "Not in the market snapshot")
+
+
+def test_a_derived_figure_missing_a_part_says_which(runtime) -> None:  # type: ignore[no-untyped-def]
+    # probe-round-3-gaps ticket 11: no comparative is missing; the figure is. AMD's
+    # filings report depreciation only for the fiscal year and Merck's report no
+    # operating income line and amortization only for the year, so neither has a
+    # quarterly EBITDA, and so no change in it. Each row reads "Missing fact" and a
+    # note names the part; Apple's EBITDA shows each quarter's change as before.
+    (amd,) = ask(runtime, "AMD EBITDA over the last 4 quarters year over year")
+    assert column_of(amd, "Reason") == ["Missing fact"] * 4
+    assert amd.banners == (
+        "Advanced Micro Devices' EBITDA is missing: no standalone quarterly depreciation "
+        "and amortization was found in its filings, which EBITDA needs.",
+    )
+    (merck,) = ask(runtime, "Merck EBITDA over the last 4 quarters year over year")
+    assert column_of(merck, "Reason") == ["Missing fact"] * 4
+    assert merck.banners == (
+        "Merck's EBITDA is missing: no standalone quarterly operating income or "
+        "depreciation and amortization was found in its filings, which EBITDA needs.",
+    )
+    (apple,) = ask(runtime, "Apple EBITDA over the last 4 quarters year over year")
+    assert column_of(apple, "YoY change") == [
+        "+$7.98 B (+25.7%)",
+        "+$7.07 B (+21.9%)",
+        "+$8.15 B (+17.8%)",
+        "+$3.05 B (+9.4%)",
+    ]
+    assert not any("missing" in banner for banner in apple.banners)
+    # A lone lookup says so too, above its "Missing fact" cell.
+    (alone,) = ask(runtime, "AMD EBITDA")
+    assert alone.banners == amd.banners

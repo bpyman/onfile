@@ -21,7 +21,7 @@ The ordinary equity listing of an operating company, not a preferred, unit, warr
 _Avoid_: security, ticker, listing (unqualified)
 
 **Ineligible issuer**:
-An operating-company lookalike identified by CIK after security type and industry are not enough to tell it apart. It is not a snapshot member and cannot be looked up or compared.
+An operating-company lookalike identified by CIK after security type and industry are not enough to tell it apart. It is not a snapshot member and cannot be looked up or compared: asked alone it is refused, and named beside an operating company it is left out with a note saying it is a fund.
 _Avoid_: blocklist entry, banned ticker
 
 **Quarterly fact**:
@@ -73,7 +73,7 @@ What a change is measured against: the same quarter a year earlier (year over ye
 _Avoid_: delta, period-over-period (unqualified)
 
 **Window**:
-A count of recent quarters the analyst asks for ("past six quarters", "last two years"), read by one grammar whichever planner proposed the analysis (ADR 0010). A "since" window ("since 2024") is every filed quarter that ended on or after 1 January of that year, as each company's filings date them, at most the window cap; it is not a count fixed by today's date.
+A count of recent quarters the analyst asks for ("past six quarters", "last two years"), read by one grammar whichever planner proposed the analysis (ADR 0010). A "since" window ("since 2024") is every filed quarter that ended on or after 1 January of that year, as each company's filings date them, at most the window cap; it is not a count fixed by today's date. Named as a fiscal year ("since fiscal 2025", "since FY2025"), it is every quarter of each company's own fiscal year and after, read where its fiscal periods are listed, as a named period is. A change asked over a "since" window is year over year over it, as over any window.
 _Avoid_: lookback, range
 
 **Conversation thread**:

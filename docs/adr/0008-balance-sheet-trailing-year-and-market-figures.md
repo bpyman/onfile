@@ -31,6 +31,8 @@ A derived trailing year is marked † like any derived quarter, and all three fa
 
 "Dividends" alone asks which of the two dividend figures is meant, as "margin" does.
 
+A formula whose component a company's filings do not report as a standalone quarter has no value, and the answer names the missing part (*revised 7 October 2026*, probe-round-3-gaps ticket 11): AMD reports depreciation only for the fiscal year and no cash-flow D&A line this reads, so its EBITDA is missing, and with it any change in it; Merck reports no operating income line. The cell reads "Missing fact" and a note says which part the filings lack, so a missing figure, and a missing change, never go without a word. Every component is read even after one is missing, so the note names each.
+
 **Market figures come from the snapshot.** The snapshot holds one market cap and one price, both taken at its `as_of`. So P/E is given only for each company's latest trailing year. A past period's cell says "Latest period only" rather than dividing today's market cap by old earnings. A trailing-year loss gives "Not meaningful (loss)", not a negative P/E. The snapshot build now records FMP's price beside market cap. Snapshots built before that leave it out, and the price cell then says the fact is missing.
 
 ## Considered options

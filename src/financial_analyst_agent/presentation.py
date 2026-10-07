@@ -792,7 +792,7 @@ _KEEP_LAST = {
 }
 # A window or a named period goes back to the latest quarter, as a person would ask.
 _LATEST_QUARTER_EDIT = "latest quarter"
-_REMOVE_OPERATION = {"Year over year": "remove year over year"}
+_REMOVE_OPERATION = {"Year over year": "remove year over year", "Lowest first": "largest first"}
 
 
 def _period_chip(spec: AnalysisSpec) -> tuple[str, bool]:
@@ -805,8 +805,10 @@ def _period_chip(spec: AnalysisSpec) -> tuple[str, bool]:
         return "Latest quarter", False
     periods = spec.periods
     if periods.kind == "last_n_quarters" and periods.since_year is not None:
-        # Every filed quarter since that January: the count is the filings', not asked.
-        return f"Since {periods.since_year}", True
+        # Every filed quarter since that January, or since each company's own
+        # fiscal year: the count is the filings', not asked.
+        year = f"fiscal {periods.since_year}" if periods.since_fiscal else str(periods.since_year)
+        return f"Since {year}", True
     if periods.kind == "last_n_quarters":
         return ("Last quarter" if periods.shown == 1 else f"Last {periods.shown} quarters"), True
     if periods.kind == "named":
@@ -921,7 +923,7 @@ def chip_quick_actions(spec: AnalysisSpec) -> dict[str, tuple[QuickAction, ...]]
 # Only operations the other chips do not already show: several companies are
 # "across companies", a window is "across periods", and a ranking's banner
 # says what it is ordered by.
-_OPERATION_CHIPS = {"year_over_year": "Year over year"}
+_OPERATION_CHIPS = {"year_over_year": "Year over year", "lowest_first": "Lowest first"}
 
 
 def _fiscal_week_buckets(ends: set[date]) -> dict[date, date]:
@@ -1030,12 +1032,14 @@ def _chart_spec(
                 metric=metric,
                 mixed_periods=mixed_periods,
                 ordered_by=result.ordered_by,
+                lowest_first=result.ordered_lowest_first,
             ),
             resorted_caption=_bar_caption(
                 ranked=rank_cross_section,
                 metric=metric,
                 mixed_periods=mixed_periods,
                 ordered_by=result.ordered_by,
+                lowest_first=result.ordered_lowest_first,
                 resorted=True,
             ),
             horizontal=rank_cross_section,
@@ -1225,17 +1229,19 @@ def _bar_caption(
     metric: str,
     mixed_periods: bool,
     ordered_by: str | None = None,
+    lowest_first: bool = False,
     resorted: bool = False,
 ) -> str:
     if ranked and metric != "market_cap" and resorted:
         caption = f"Bar length is latest-quarter {format_field_name(metric)}."
         return f"{caption} Periods differ by issuer." if mixed_periods else caption
     if ranked and metric != "market_cap":
+        direction = ", lowest first" if lowest_first else ""
         order = (
-            f"Ordered by {in_sentence(format_field_name(ordered_by))} among the largest by "
-            "market cap"
+            f"Ordered by {in_sentence(format_field_name(ordered_by))}{direction} among the "
+            "largest by market cap"
             if ordered_by
-            else "Ordered by market cap"
+            else f"Ordered by market cap{direction}"
         )
         caption = f"{order}; bar length is latest-quarter {format_field_name(metric)}."
         if mixed_periods:
@@ -1556,10 +1562,13 @@ def present_turn(result: TurnResult) -> Presentation:
             if result.ordered_by in (*PERCENT_FORMULAS, *MULTIPLE_FORMULAS, *PER_SHARE_METRICS)
             else f"more {label}"
         )
+        direction = ", lowest first" if result.ordered_lowest_first else ""
         banners.append(
-            f"Ordered by {label}. The companies are the largest by market cap in "
+            f"Ordered by {label}{direction}. The companies are the largest by market cap in "
             f"the snapshot, so a smaller company with {amount} is not listed."
         )
+    elif result.ordered_lowest_first and result.intent in (Intent.RANK, Intent.RANK_AND_LOOKUP):
+        banners.append("Ordered by market cap, lowest first.")
     return Presentation(
         intent=result.intent.value,
         intent_label=(

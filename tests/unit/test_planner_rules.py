@@ -71,6 +71,14 @@ def test_misspelt_company_is_corrected_and_said() -> None:
     assert plan.notes == ("Showing Microsoft for “microsft”.",)
 
 
+def test_a_fund_ticker_beside_a_name_is_not_said_to_be_shown() -> None:
+    # The turn leaves the fund out with its own note (ADR 0002); "Showing SPDR
+    # S&P 500 ETF TRUST for SPY" would read as if it were on screen.
+    plan = _live().complete("SPY and Apple revenue")
+
+    assert plan.notes == ()
+
+
 @pytest.mark.parametrize(
     "question",
     [
@@ -171,7 +179,9 @@ def test_growth_wording_asks_for_year_over_year() -> None:
         SpecPatch(mode="replace"), "How has Tesla's revenue changed over the last year?"
     )
 
-    assert patch.set_periods is not None and patch.set_periods.count == 5
+    # A change over "the last year" is over that year's four quarters (README's
+    # growth row, probe-round-3-gaps ticket 07), not the five of growth with no period.
+    assert patch.set_periods is not None and patch.set_periods.count == 4
     assert "across_periods" in patch.add_operations
     # Growth means year over year unless the analyst says sequential (ADR 0010).
     assert "year_over_year" in patch.add_operations
@@ -203,6 +213,30 @@ def test_industry_words_name_industries_inside_a_sector() -> None:
     assert regional is not None and regional.industries == {"Banks - Regional"}
     assert tech is not None and tech.sector == "Technology"
     assert resolve_industry_group("spaceships", groups) is None
+
+
+DRUG_MANUFACTURERS = {"Drug Manufacturers - General", "Drug Manufacturers - Specialty & Generic"}
+
+
+@pytest.mark.parametrize(
+    ("words", "industries"),
+    [
+        ("semis", {"Semiconductors"}),
+        ("chipmakers", {"Semiconductors"}),
+        ("chip companies", {"Semiconductors"}),
+        ("chip stocks", {"Semiconductors"}),
+        ("drugmakers", DRUG_MANUFACTURERS),
+        ("drug makers", DRUG_MANUFACTURERS),
+        ("big pharma", {"Drug Manufacturers - General"}),
+        ("big banks", {"Banks - Diversified"}),
+    ],
+)
+def test_everyday_group_names_name_their_industry(words: str, industries: set[str]) -> None:
+    groups = SnapshotGroups.of(load_universe_snapshot())
+
+    group = resolve_industry_group(words, groups)
+
+    assert group is not None and group.industries == industries
 
 
 def test_a_ranking_by_a_metric_is_ordered_by_it() -> None:
@@ -772,3 +806,29 @@ def test_a_figure_with_no_company_still_asks_which_company() -> None:
     plan = _live().complete("What's the EPS?")
 
     assert (plan.intent, plan.company, plan.metric) == (Intent.LOOKUP, None, "eps_diluted")
+
+
+@pytest.mark.parametrize(
+    ("question", "metric"),
+    [
+        ("what was net income this quarter?", "net_income"),
+        ("what was net interest income?", "net_interest_income"),
+        ("what was free cash flow last quarter?", "free_cash_flow"),
+    ],
+)
+def test_a_word_of_the_metric_phrase_is_never_the_company(question: str, metric: str) -> None:
+    # "net" in "net income" and "free" in "free cash flow" belong to the metric, so
+    # the question names no company and asks which one (README, general question).
+    plan = _live().complete(question)
+
+    assert (plan.intent, plan.company, plan.metric) == (Intent.LOOKUP, None, metric)
+
+
+def test_a_lookup_question_naming_a_company_before_the_metric_keeps_it() -> None:
+    plan = _live().complete("what was Danaher's net interest income?")
+
+    assert (plan.intent, plan.company, plan.metric) == (
+        Intent.LOOKUP,
+        "DHR",
+        "net_interest_income",
+    )

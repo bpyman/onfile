@@ -34,6 +34,8 @@ from financial_analyst_agent.issuer_index import (
 )
 from financial_analyst_agent.providers.sec.submissions import ACCESSION_PATTERN
 from financial_analyst_agent.request_wording import (
+    ASCENDING,
+    DESCENDING,
     OVERVIEW_METRICS,
     OVERVIEW_PLAN,
     asks_for_explanation,
@@ -50,6 +52,7 @@ from financial_analyst_agent.services.metric_catalog import (
 )
 from financial_analyst_agent.universe import (
     DEFAULT_SNAPSHOT_PATH,
+    INELIGIBLE_ISSUER_NAMES,
     former_names,
     ineligible_issuers,
     load_universe_snapshot,
@@ -156,19 +159,25 @@ def _companies_from_query(normalized: str) -> list[str]:
     return sorted(first_seen, key=first_seen.__getitem__)
 
 
-# "what was Apple's revenue": the words between the question and a metric.
-_LOOKUP_ISSUER = re.compile(
-    r"\b(?:what (?:was|is|were)|whats)\s+(.+?)(?:'s)?\s+(?:"
-    + "|".join(re.escape(phrase) for phrase in metric_phrases())
-    + r")\b"
+# "what was Apple's revenue": the words between the question and its metric.
+_LOOKUP_OPENER = re.compile(r"\b(?:what (?:was|is|were)|whats)\s+")
+# Longest phrase first, so "net income" is one phrase and "net" is not left over.
+_METRIC_PHRASE = re.compile(
+    r"\b(?:" + "|".join(re.escape(phrase) for phrase in metric_phrases()) + r")\b"
 )
 
 
 def _issuer_from_lookup_query(normalized: str) -> str | None:
-    match = _LOOKUP_ISSUER.search(normalized)
-    if match is None:
+    opener = _LOOKUP_OPENER.search(normalized)
+    if opener is None:
         return None
-    issuer = match.group(1).strip(" .,?!'")
+    metric = _METRIC_PHRASE.search(normalized, opener.end())
+    if metric is None:
+        return None
+    # A word of the metric phrase ("net" in "net income", "free" in "free cash
+    # flow") is never a company: the company is what stands before the phrase.
+    between = normalized[opener.end() : metric.start()].strip(" .,?!'’")
+    issuer = re.sub(r"['’]s$", "", between)
     # "what was the revenue?" names no company: "the" is not one.
     words = [word for word in issuer.split() if word not in _NOT_A_NAME]
     return " ".join(words) or None
@@ -501,7 +510,9 @@ def _plural_group(group: str) -> str:
 
 def _ranked_industry(normalized: str) -> str:
     """The group a ranking names: "top 5 semiconductor companies", "biggest banks"."""
-    text = re.sub(r"\b(?:by|in terms of|ranked by)\b.*$", "", normalized)
+    # "top 5 banks lowest first": the order's direction is not part of the group.
+    text = DESCENDING.sub("", ASCENDING.sub("", normalized))
+    text = re.sub(r"\b(?:by|in terms of|ranked by)\b.*$", "", text)
     # "oil and gas" is one industry, not a list to cut at "and".
     text = re.sub(r"\boil and gas\b", "oil & gas", text)
     text = re.split(r"\s+(?:and|with|plus)\s+|,", text, maxsplit=1)[0]
@@ -629,11 +640,15 @@ class DemoCompleter:
         """The closed plan a question asks for, before notes on what it leaves out."""
         companies = [mention.query for mention in mentions]
         which = _WHICH_HIGHEST.search(normalized) if not companies else None
-        ranked = _RANK_WORDS.search(normalized) is not None or which is not None
+        rank_words = _RANK_WORDS.search(normalized) is not None
+        group_by = _group_by_metric(normalized) if not companies and not rank_words else None
+        ranked = rank_words or which is not None or group_by is not None
         if ranked and _ranks_with(normalized, companies):
             if which is not None:
                 group = which.group("group")
                 industry = group if which.group("noun") else _plural_group(group)
+            elif group_by is not None:
+                industry = group_by
             else:
                 industry = _ranked_industry(normalized)
             industry = _clean_group(industry)
@@ -762,6 +777,33 @@ def _question_parts(query: str) -> list[str]:
 
 
 _RANK_NAMED = re.compile(r"\b(?:rank|ranked|sort|sorted|order|ordered)\b")
+# "chipmakers by free cash flow": a group and "by" a metric, with no "top", is a
+# ranking of the README's default length.
+_GROUP_BY_METRIC = re.compile(
+    r"^(?:(?:the|show|show me|list)\s+)?(?P<group>[a-z&][a-z&\- ]*?)"
+    r"(?:\s+(?:companies|stocks|firms|names))?\s+by\s+(?P<rest>.+)$"
+)
+_GROUP_BY_METRIC_MAX_WORDS = 3
+
+
+def _group_by_metric(normalized: str) -> str | None:
+    """The group of "<group> by <metric>", or None when the words name no group.
+
+    The group is a few words that name no metric ("revenue by segment" is a
+    metric cut by something, not a group), and what follows "by" is a metric.
+    """
+    match = _GROUP_BY_METRIC.match(normalized.strip(" .?!"))
+    if match is None:
+        return None
+    group = match.group("group").strip()
+    if not group or len(group.split()) > _GROUP_BY_METRIC_MAX_WORDS:
+        return None
+    if resolve_metric_phrase(group).kind != "unknown":
+        return None
+    after = resolve_metric_phrase(match.group("rest"))
+    if after.kind == "unknown" and after.term is None:
+        return None
+    return group
 
 
 def _ranks_with(normalized: str, companies: list[str]) -> bool:
@@ -800,7 +842,8 @@ def _ticker_notes(index: IssuerIndex, mentions: list[CompanyMention]) -> list[st
     )
     for mention in mentions:
         name = short_name(index.display_name(mention.query)) or mention.query
-        if mention.bare_ticker and named:
+        if mention.bare_ticker and named and mention.query not in INELIGIBLE_ISSUER_NAMES:
+            # A fund's ticker ("SPY") is not shown: the turn says it is left out.
             notes.append(f"Showing {name} for “{mention.typed}”.")
         if mention.also_typed:
             typed = " and ".join(
@@ -915,6 +958,12 @@ _COMPARE_FIRST = re.compile(
     r"(?:now |ok |okay )?compare (?:it |them |this |that )?(?:with|to|against) the "
     r"(?:first|1st|original) (?:one|company)"
 )
+# "lowest first", "sort them largest first", "ascending": only the order's direction.
+_ORDER_ONLY = re.compile(
+    r"(?:(?:show|sort|order|list|rank)\s+(?:them\s+|it\s+|these\s+)?)?(?:in\s+)?"
+    r"(?:(?:lowest|smallest|least|low|largest|biggest|highest|most|high)\s+first"
+    r"|ascending|descending)(?:\s+order)?(?:\s+(?:please|instead))?"
+)
 # "what about pharma?" after a ranking: the same ranking of another industry.
 _INDUSTRY_SWAP = re.compile(
     r"^(?:and |ok |okay |now )?(?:what about|how about|same for|now do|and) (?:the )?"
@@ -964,6 +1013,9 @@ def _follow_up(
             add_operations=("order_by_metric",),
             set_order_by=asked[0],
         )
+    if not companies and on_screen and _ORDER_ONLY.fullmatch(text):
+        # "lowest first", "largest first": the shared words set the order's direction.
+        return SpecPatch(mode="extend")
     if _RANK_WORDS.search(normalized) or _WHICH_HIGHEST.search(normalized):
         # "largest pharma companies by net income" is a new ranking, not an edit.
         return None

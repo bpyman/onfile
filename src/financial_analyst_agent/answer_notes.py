@@ -8,15 +8,24 @@ so in a line above the table.
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from datetime import date
 
+from financial_analyst_agent.contracts import TableRow
 from financial_analyst_agent.graph.analysis_spec import (
     MAX_RANKED_COMPANIES,
     AnalysisSpec,
+    PeriodSelection,
     SpecPatch,
     calendar_groups,
 )
-from financial_analyst_agent.guide import format_date, joined, possessive, short_name
+from financial_analyst_agent.guide import (
+    format_date,
+    in_sentence,
+    joined,
+    possessive,
+    short_name,
+)
 from financial_analyst_agent.request_wording import (
     EXPLICIT_YOY,
     GROWTH,
@@ -27,10 +36,12 @@ from financial_analyst_agent.request_wording import (
     YOY,
     WindowReading,
 )
+from financial_analyst_agent.services.filing_selector import FISCAL_WEEK_TOLERANCE
 from financial_analyst_agent.services.fiscal_periods import (
     adjacent_quarters,
     quarters_in_span,
 )
+from financial_analyst_agent.services.metric_catalog import METRIC_DISPLAY
 
 YEAR_OF_QUARTERS_BANNER = (
     "The last year: these are the four latest quarters, shown one by one rather "
@@ -93,6 +104,105 @@ def annual_filer_note(names: list[str]) -> str:
     return (
         f"{listed} {verb} annual reports with the SEC (Form 20-F or 40-F) rather than "
         "quarterly 10-Qs, so there are no quarterly figures to show."
+    )
+
+
+def fund_note(funds: list[tuple[str, str]]) -> str:
+    """Say a fund named beside a company is left out: "SPY (SPDR S&P 500 ETF Trust) is a fund"."""
+    listed = joined([f"{ticker} ({_name_in_prose(name)})" for ticker, name in funds])
+    if len(funds) == 1:
+        return f"{listed} is a fund, not an operating company, so it is left out."
+    return f"{listed} are funds, not operating companies, so they are left out."
+
+
+def missing_component_notes(rows: Sequence[TableRow]) -> list[str]:
+    """Say which part of a formula the filings lack, where a row has no value for it.
+
+    EBITDA is operating income plus depreciation and amortization (ADR 0008). A
+    company whose filings report no standalone quarterly depreciation and
+    amortization has no EBITDA, and so no change in it; the cell reads "Missing
+    fact", and this names the part, so a change never goes missing without a word.
+    Companies lacking the same parts of a metric share one note; a company's
+    quarters are named only where it has the figure for others in the window.
+    """
+    # (metric, parts) → company key → (name, the quarters missing it)
+    missing: dict[tuple[str, tuple[str, ...]], dict[str, tuple[str, list[date]]]] = {}
+    shown: set[tuple[str, str]] = set()
+    # A newest quarter SEC's structured data lacks: the newer-filing banner says so.
+    pending: set[tuple[str, date]] = {
+        (row.cik or row.company_name, row.newer_filing_end)
+        for row in rows
+        if row.value is not None and row.newer_filing_end is not None
+    }
+    for row in rows:
+        company = row.cik or row.company_name
+        if row.missing_components:
+            if row.end_date is not None and any(
+                company == other and abs(row.end_date - end) <= FISCAL_WEEK_TOLERANCE
+                for other, end in pending
+            ):
+                continue
+            companies = missing.setdefault((row.metric, tuple(row.missing_components)), {})
+            _name, dates = companies.setdefault(company, (row.company_name, []))
+            if row.end_date is not None:
+                dates.append(row.end_date)
+        elif row.value is not None and row.comparison is None:
+            shown.add((company, row.metric))
+    notes: list[str] = []
+    for (metric, parts), companies in missing.items():
+        label = _metric_in_prose(metric)
+        lacked = joined([_metric_in_prose(part) for part in parts], "or")
+        named = []
+        for company, (name, dates) in companies.items():
+            short = short_name(name) or name
+            if (company, metric) in shown and dates:
+                short += f" ({joined([format_date(day) for day in dates])})"
+            named.append(short)
+        # What was looked for and not found, not what the company reports: a
+        # quarter can be beyond what is on file, or the line tagged in a way this
+        # does not read.
+        if len(named) == 1:
+            (only,) = named
+            when = where = ""
+            if only.endswith(")"):
+                only, _, dates_shown = only[:-1].partition(" (")
+                when = f" for {dates_shown}"
+                where = " for that quarter" if " and " not in dates_shown else " for those quarters"
+            else:
+                where = " in its filings"
+            notes.append(
+                f"{possessive(only)} {label} is missing{when}: no standalone quarterly "
+                f"{lacked} was found{where}, which {label} needs."
+            )
+        else:
+            notes.append(
+                f"{label[:1].upper()}{label[1:]} is missing for {joined(named)}: no standalone "
+                f"quarterly {lacked} was found in their filings, which {label} needs."
+            )
+    return notes
+
+
+def _metric_in_prose(metric: str) -> str:
+    display = METRIC_DISPLAY.get(metric)
+    return in_sentence(display.label if display is not None else metric.replace("_", " "))
+
+
+def _name_in_prose(name: str) -> str:
+    """ "SPDR S&P 500 ETF TRUST" → "SPDR S&P 500 ETF Trust"; a mixed-case name as it is.
+
+    SEC shouts a name. A word of up to three letters (ETF, BDC), or of four with
+    no vowel (SPDR), is an acronym and keeps its case; every other word is
+    capitalised.
+    """
+    words = name.split()
+    if not all(word.isupper() for word in words if word.isalpha()):
+        return name
+
+    def acronym(word: str) -> bool:
+        return len(word) <= 3 or (len(word) == 4 and not set(word) & set("AEIOU"))
+
+    return " ".join(
+        word if not word.isalpha() or acronym(word) else word.capitalize() for word in words
     )
 
 
@@ -215,6 +325,8 @@ def period_notes(
         notes.append(TRAILING_YEAR_BANNER)
     elif (
         spec.periods.kind == "last_n_quarters"
+        # "the last year and a half" counts its own quarters; "last year" is four.
+        and not window.counted_window
         and YEAR_OF_QUARTERS.search(message)
         and not YOY.search(message)
     ):
@@ -258,32 +370,41 @@ def period_notes(
     ):
         notes.append(FISCAL_Q4_GAP_BANNER)
     if spec.periods.kind == "last_n_quarters":
-        notes.extend(_window_notes(window, windows))
+        notes.extend(_window_notes(window, spec.periods, windows))
     return notes
 
 
-def _window_notes(window: WindowReading, windows: list[tuple[date, ...]]) -> list[str]:
+def _window_notes(
+    window: WindowReading, periods: PeriodSelection, windows: list[tuple[date, ...]]
+) -> list[str]:
     """Say when a window is shorter than asked: capped, or more than the filings hold."""
     notes = list(window.interpretation_notes)
     shown = max((len(dates) for dates in windows), default=0)
+    if window.since_year is not None and window.since_fiscal:
+        # The span was counted on the company's own labels where its fiscal
+        # periods were listed; none asked means the filings hold all of it.
+        return [
+            *notes,
+            *_since_notes(f"fiscal {window.since_year}", periods.asked or shown, shown),
+        ]
     if window.since_year is not None:
-        return [*notes, *_since_notes(window.since_year, windows, shown)]
+        newest = max((dates[0] for dates in windows if dates), default=None)
+        if newest is None:
+            return notes
+        span = quarters_in_span(window.since_year, newest)
+        return [*notes, *_since_notes(str(window.since_year), span, shown)]
     wanted = window.asked_quarters
     if wanted is not None and 0 < shown < wanted:
         notes.append(f"The filings here hold only {shown} of the {wanted} quarters asked for.")
     return notes
 
 
-def _since_notes(year: int, windows: list[tuple[date, ...]], shown: int) -> list[str]:
+def _since_notes(year: str, span: int, shown: int) -> list[str]:
     """A "since" window's span, counted from the newest filed quarter, not from today.
 
     The span is capped as any window is; a quarter is missing only when the
     filings lack one that ended inside the span.
     """
-    newest = max((dates[0] for dates in windows if dates), default=None)
-    if newest is None:
-        return []
-    span = quarters_in_span(year, newest)
     notes: list[str] = []
     if span > MAX_SINCE_QUARTERS:
         notes.append(
