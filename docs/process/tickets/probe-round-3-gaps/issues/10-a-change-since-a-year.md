@@ -11,4 +11,14 @@ Change `test_what_a_change_is_measured_against`'s expectations for the since-win
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped 2026-10-07. A "since" window is a window: a change asked over it, in any wording, is year over year over every filed quarter since the year began; and "since 2025 year over year" reads 2025 as the year the window starts.
+
+- **The misreading** is fixed in the window grammar (`asked_window` in `period_window.py`), which both planners pass through (ADR 0010, 0011). `SINCE_YEAR` moved there from `request_wording.py`, and a window match that overlaps a "since <year>" phrase is dropped, so `Apple revenue since 2025 year over year` (read as 2025 years, 8100 quarters capped at 40, before) and `... quarter over quarter` (2025 quarters) are the window since 2025 began. `since fiscal 2025 year over year` keeps its fiscal reading.
+- **The rule** is in `_names_a_window` and the since branch of `bind_periods_from_message` in `request_wording.py`: a "since" window is a named window, so `How much did Intel's revenue change since 2023?`, `What caused Apple's revenue to fall since 2023?` and `Apple revenue growth since 2024` show every filed quarter since the year began, each with its year-over-year change from its own comparative (ADR 0009), with the "Since 2023" and "Year over year" chips. A sequential change over a since window keeps the quarters as listed, the oldest with no change, as `sequential instead` already did (ticket 05). With no window, `How much did Intel's revenue change?` still asks "Compared with what?". `year over year` after `Apple revenue since 2025` is the direct question's view, column for column.
+- `test_what_a_change_is_measured_against`'s three since-window expectations changed from `None` to `"year_over_year"`, as the ticket asks, with `Apple revenue growth since 2024` added; two binder tests and a window-grammar test pin the readings; a recorded-runtime test pins both acceptance answers, the follow-up and the no-window clarification. Phrase coverage: five `SINCE_CHANGE_QUESTIONS` cases and `How much did Intel's revenue change?` in `NO_BASE_QUESTIONS`, none sent to the model.
+- README's growth row, ADR 0010 and CONTEXT.md's Window entry say the rule.
+- `compare_answers`: 4 of 274 conversations differ, all added for this ticket and all intended: `Apple revenue since 2025 year over year` and `Apple revenue since 2025 quarter over quarter` (2025 read as a count with the "at most 40" note and 9 quarters before; the 6 quarters since 2025 with their change now), `Apple revenue growth since 2024` (the growth default of 5 quarters before; the 9 recorded quarters since 2024 now, each with its change) and `How much did Intel's revenue change since 2023?` (9 quarters with no change column before; each with its year-over-year change now). `Apple revenue since 2025` then `year over year` was added and does not differ.

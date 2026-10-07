@@ -336,6 +336,35 @@ def test_a_change_over_a_window_is_year_over_year_whatever_the_wording(runtime) 
     assert asked.clarify_prompt == "Compared with what?"
 
 
+def test_a_change_over_a_since_window_is_year_over_year_over_it(runtime) -> None:  # type: ignore[no-untyped-def]
+    # README's growth row (probe-round-3-gaps ticket 10): a "since" window is a
+    # window, so a change over it is year over year over every quarter since the
+    # year began; and "since 2025 year over year" names the year, not 2025 years.
+    shown = replay(runtime, "Apple revenue since 2025 year over year")
+    (apple,) = shown.answers
+    assert column_of(apple, "Quarter ended")[-1] == "Mar 29, 2025"
+    assert len(column_of(apple, "Quarter ended")) == 6
+    assert all("%" in change for change in column_of(apple, "YoY change"))
+    assert "Since 2025" in shown.chips and "Year over year" in shown.chips
+    assert not any("at most 40" in banner or "hold only" in banner for banner in apple.banners)
+    # The same view "year over year" asked after the window gives.
+    followed = replay(runtime, "Apple revenue since 2025", "year over year")
+    assert followed.answers[-1].table == apple.table
+    assert followed.chips == shown.chips
+    # In change wording that names no base, over its window: the recording holds
+    # 9 of Intel's 14 quarters since 2023, each with its change.
+    shown = replay(runtime, "How much did Intel's revenue change since 2023?")
+    (intel,) = shown.answers
+    assert len(column_of(intel, "Quarter ended")) == 9
+    assert all("%" in change for change in column_of(intel, "YoY change"))
+    assert "Since 2023" in shown.chips and "Year over year" in shown.chips
+    assert any("only 9 of the 14 quarters since 2023" in banner for banner in intel.banners)
+    # With no window, the same words still ask against what.
+    (asked,) = ask(runtime, "How much did Intel's revenue change?")
+    assert asked.table is None
+    assert asked.clarify_prompt == "Compared with what?"
+
+
 def test_a_change_with_no_window_still_asks_against_what(runtime) -> None:  # type: ignore[no-untyped-def]
     (asked,) = ask(runtime, "How did AMD's EBITDA change?")
     assert asked.clarify_prompt == "Compared with what?"

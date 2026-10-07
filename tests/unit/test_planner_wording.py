@@ -280,9 +280,9 @@ def test_a_change_over_a_named_window_is_year_over_year_over_that_window(
         ("What led to the decline in Pfizer's revenue?", "unclear"),
         ("What's the reason for the drop in Intel's revenue?", "unclear"),
         ("What caused Apple's revenue to fall year over year?", "year_over_year"),
-        ("What caused Apple's revenue to fall since 2023?", None),
+        ("What caused Apple's revenue to fall since 2023?", "year_over_year"),
         ("What drove the change in Apple's revenue year over year?", "year_over_year"),
-        ("What drove the change in Apple's revenue since 2023?", None),
+        ("What drove the change in Apple's revenue since 2023?", "year_over_year"),
         ("How much did Intel's revenue change year over year?", "year_over_year"),
         ("How much did Intel's revenue change since last quarter?", "sequential"),
         # A change over a named window is year over year over it, whatever the
@@ -291,7 +291,9 @@ def test_a_change_over_a_named_window_is_year_over_year_over_that_window(
         ("Over the past 10 quarters, how has Thermo Fisher's revenue moved?", "year_over_year"),
         ("How did Apple's revenue change over the last 2 quarters?", "year_over_year"),
         ("How has Apple's revenue grown over the past 6 quarters?", "year_over_year"),
-        ("How much did Intel's revenue change since 2023?", None),
+        # A "since" window is a window too (probe-round-3-gaps ticket 10).
+        ("How much did Intel's revenue change since 2023?", "year_over_year"),
+        ("Apple revenue growth since 2024", "year_over_year"),
         ("Apple revenue last quarter", None),
     ],
 )
@@ -299,6 +301,75 @@ def test_what_a_change_is_measured_against(message: str, base: str | None) -> No
     from financial_analyst_agent.request_wording import comparison_asked
 
     assert comparison_asked(message) == base
+
+
+@pytest.mark.parametrize(
+    ("message", "year", "fiscal"),
+    [
+        ("Apple revenue since 2025 year over year", 2025, False),
+        ("Apple revenue since 2025 quarter over quarter", 2025, False),
+        ("Apple revenue since the start of 2024 as growth", 2024, False),
+        ("Apple revenue since fiscal 2025 year over year", 2025, True),
+        ("Apple revenue since FY2025 yoy", 2025, True),
+    ],
+)
+def test_since_a_year_followed_by_a_change_word_names_the_year_not_a_count(
+    message: str, year: int, fiscal: bool
+) -> None:
+    """"since 2025 year over year" is the window since 2025 began, not 2025 years
+    (probe-round-3-gaps ticket 10)."""
+    from financial_analyst_agent.request_wording import read_window
+
+    window = read_window(message)
+
+    assert (window.since_year, window.since_fiscal) == (year, fiscal)
+    assert (window.asked_quarters, window.counted_window) == (None, False)
+    assert window.interpretation_notes == ()
+    assert window.unread_named_period is None
+
+
+@pytest.mark.parametrize(
+    ("message", "year", "fiscal"),
+    [
+        ("Apple revenue since 2025 year over year", 2025, False),
+        ("Apple revenue since 2025 as growth", 2025, False),
+        ("Apple revenue growth since 2024", 2024, False),
+        ("How much did Intel's revenue change since 2023?", 2023, False),
+        ("What caused Apple's revenue to fall since 2023?", 2023, False),
+        ("How has Apple's revenue moved since the start of 2024?", 2024, False),
+        ("Apple revenue since fiscal 2025 year over year", 2025, True),
+    ],
+)
+def test_a_change_over_a_since_window_is_year_over_year_over_it(
+    message: str, year: int, fiscal: bool
+) -> None:
+    """A "since" window is a window, so a change over it is year over year over
+    every quarter since the year began (probe-round-3-gaps ticket 10)."""
+    from financial_analyst_agent.graph.analysis_spec import MAX_QUARTERS_ASKED
+
+    patch = bind_periods_from_message(SpecPatch(mode="replace"), message)
+
+    assert patch.set_periods == PeriodSelection(
+        kind="last_n_quarters", count=MAX_QUARTERS_ASKED, since_year=year, since_fiscal=fiscal
+    )
+    assert "across_periods" in patch.add_operations
+    assert "year_over_year" in patch.add_operations
+
+
+def test_a_sequential_change_over_a_since_window_keeps_its_quarters() -> None:
+    from financial_analyst_agent.graph.analysis_spec import MAX_QUARTERS_ASKED
+
+    patch = bind_periods_from_message(
+        SpecPatch(mode="replace"), "Apple revenue since 2025 quarter over quarter"
+    )
+
+    # The quarters since the year began, each with its change on the one before;
+    # the oldest has no base inside the window, as after "sequential instead".
+    assert patch.set_periods == PeriodSelection(
+        kind="last_n_quarters", count=MAX_QUARTERS_ASKED, since_year=2025
+    )
+    assert "across_periods" in patch.add_operations
+    assert "year_over_year" not in patch.add_operations
 
 
 @pytest.mark.parametrize(

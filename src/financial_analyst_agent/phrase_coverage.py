@@ -176,6 +176,24 @@ def _year_over_year_window(tickers: frozenset[str], metric: str, count: int) -> 
     return check
 
 
+def _year_over_year_since(tickers: frozenset[str], metric: str, year: int) -> Check:
+    """Every quarter since the year began, each with its year-over-year change."""
+
+    def check(seen: Observation, turn: ConversationTurn) -> bool:
+        spec = turn.analysis_spec
+        return (
+            seen.outcome in ("answer", "no_data")
+            and seen.tickers == tickers
+            and seen.metrics == frozenset({metric})
+            and spec is not None
+            and spec.periods.since_year == year
+            and "year_over_year" in spec.operations
+            and _each_quarter_changed(turn, "year_over_year")
+        )
+
+    return check
+
+
 def _companies(*tickers: str, metrics: tuple[str, ...] = ("revenue",), count: int = 4) -> Check:
     def check(seen: Observation, _turn: ConversationTurn) -> bool:
         return (
@@ -338,6 +356,7 @@ SEQUENTIAL_QUESTIONS = (
 NO_BASE_QUESTIONS = (
     "Why did Apple revenue drop?",
     "How much did Apple's revenue change?",
+    "How much did Intel's revenue change?",
     "How did AMD's EBITDA change?",
     "What drove the change in Apple's revenue?",
     "Why did Apple's revenue go up?",
@@ -359,6 +378,16 @@ WINDOW_CHANGE_QUESTIONS: tuple[tuple[str, tuple[str, ...], str, int], ...] = (
     ("Over the past 10 quarters, how has Thermo Fisher's revenue moved?", ("TMO",), "revenue", 10),
     ("How did Apple's revenue change over the last 2 quarters?", ("AAPL",), "revenue", 2),
     ("How has Apple's revenue grown over the past 6 quarters?", ("AAPL",), "revenue", 6),
+)
+# A "since" window is a window too (probe-round-3-gaps ticket 10): a change over
+# it is year over year over every filed quarter since the year began, and
+# "since 2025 year over year" names the year, not 2025 years.
+SINCE_CHANGE_QUESTIONS: tuple[tuple[str, tuple[str, ...], str, int], ...] = (
+    ("Apple revenue since 2025 year over year", ("AAPL",), "revenue", 2025),
+    ("Apple revenue growth since 2024", ("AAPL",), "revenue", 2024),
+    ("How much did Intel's revenue change since 2023?", ("INTC",), "revenue", 2023),
+    ("What caused Apple's revenue to fall since 2023?", ("AAPL",), "revenue", 2023),
+    ("How has Apple's revenue moved since the start of 2024?", ("AAPL",), "revenue", 2024),
 )
 # An idiom that contains a company's everyday-word name ("apples to apples",
 # "building blocks") names no company: only the real companies are read.
@@ -802,6 +831,17 @@ def cases() -> list[PhraseCase]:
                 (question,),
                 _expected(tickers, (metric,), ("last_n_quarters", count), "year_over_year"),
                 _year_over_year_window(frozenset(tickers), metric, count),
+            )
+        )
+    for question, tickers, metric, year in SINCE_CHANGE_QUESTIONS:
+        found.append(
+            PhraseCase(
+                f"since_change:{question}",
+                "A change over a window",
+                (question,),
+                _expected(tickers, (metric,), ("last_n_quarters", None), "year_over_year")
+                + f" since {year}",
+                _year_over_year_since(frozenset(tickers), metric, year),
             )
         )
     for question, tickers, metric in IDIOM_QUESTIONS:

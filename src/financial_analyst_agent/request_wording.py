@@ -31,7 +31,7 @@ from financial_analyst_agent.graph.analysis_spec import (
 from financial_analyst_agent.guide import short_name
 from financial_analyst_agent.issuer_index import CompanyNames
 from financial_analyst_agent.observability import log_event
-from financial_analyst_agent.period_window import asked_window
+from financial_analyst_agent.period_window import SINCE_YEAR, asked_window
 from financial_analyst_agent.services.metric_catalog import (
     metric_phrases,
     resolve_metric_phrase,
@@ -375,16 +375,6 @@ def asks_for_explanation(message: str) -> bool:
 
 
 YEAR_TO_DATE = re.compile(r"\b(?:ytd|year[\s-]+to[\s-]+date)\b", re.I)
-
-
-# "since 2023", "since the start of 2023", "since early 2023": every quarter from
-# the start of that year. "since fiscal 2025", "since FY2025": from the start of
-# each company's own fiscal year.
-SINCE_YEAR = re.compile(
-    r"\bsince\s+(?:the\s+(?:start|beginning)\s+of\s+|early\s+(?:in\s+)?)?"
-    r"(?P<fiscal>fy\s*|fiscal\s+(?:year\s+)?)?(?P<y>(?:19|20)\d{2})\b",
-    re.I,
-)
 
 
 # A "since" window is a window: at most as many quarters as any other (README).
@@ -733,8 +723,8 @@ def _asks_change(message: str) -> bool:
     """A change asked about in words that name no base ("how much did revenue change?").
 
     Over a named window it is year over year over that window; with no window it
-    is asked about. Over a "since" window or named periods alone, the quarters
-    themselves are the answer, so no change is asked.
+    is asked about. Over named periods alone, the quarters themselves are the
+    answer, so no change is asked.
     """
     return _CHANGE.search(message) is not None and (
         _names_a_window(message) or not _names_a_span(message)
@@ -748,23 +738,23 @@ def window_words(message: str) -> str:
 
 def _names_a_window(message: str) -> bool:
     """Whether the wording names a window of quarters ("over the past 10 quarters",
-    "over the last year").
+    "over the last year", "since 2023").
 
     A change asked over one, in any wording, is year over year over that window
-    (README's growth row).
+    (README's growth row); a "since" window is a window too.
     """
     window = asked_window(window_words(message))
-    return (window is not None and window.quarters > 1) or _YEAR_BASE.search(message) is not None
+    return (
+        (window is not None and window.quarters > 1)
+        or _YEAR_BASE.search(message) is not None
+        or SINCE_YEAR.search(message) is not None
+    )
 
 
 def _names_a_span(message: str) -> bool:
-    """Whether the wording names quarters a change runs across: a window, a "since"
-    window or several named periods."""
-    return (
-        _names_a_window(message)
-        or SINCE_YEAR.search(message) is not None
-        or len(parse_named_periods(message)) > 1
-    )
+    """Whether the wording names quarters a change runs across: a window or
+    several named periods."""
+    return _names_a_window(message) or len(parse_named_periods(message)) > 1
 
 
 def bind_periods_from_message(
@@ -797,10 +787,17 @@ def bind_periods_from_message(
         # last 4 quarters" is, not the growth default (README's growth row).
         asked = 4
     named = parse_named_periods(message)
-    if not named and asked is None and not yoy and window.since_year is not None:
+    if not named and asked is None and window.since_year is not None:
         # Every filed quarter since that 1 January, at most the window cap: the
         # quarters are chosen where the report dates are listed, as a named
-        # period's are, not counted from today.
+        # period's are, not counted from today. A change over it is over those
+        # quarters: year over year from each one's own comparative (ADR 0009),
+        # or on the quarter before, where the oldest has none inside the window.
+        operations = patch.add_operations
+        if (yoy or sequential) and "across_periods" not in operations:
+            operations = (*operations, "across_periods")
+        if comparison_asked(message) == "year_over_year" and "year_over_year" not in operations:
+            operations = (*operations, "year_over_year")
         return patch.model_copy(
             update={
                 "set_periods": PeriodSelection(
@@ -808,7 +805,8 @@ def bind_periods_from_message(
                     count=MAX_SINCE_QUARTERS,
                     since_year=window.since_year,
                     since_fiscal=window.since_fiscal,
-                )
+                ),
+                "add_operations": operations,
             }
         )
     if not named and asked is None and not yoy and (

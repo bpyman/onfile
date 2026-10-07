@@ -15,10 +15,11 @@ that many years and two quarters more. A window is capped at
 ``MAX_QUARTERS_ASKED`` quarters, and that is said too.
 
 A count that names something else is not a window: "3 months ended June"
-names a quarter, "2 quarters ago" names one quarter, and "12-month" in
+names a quarter, "2 quarters ago" names one quarter, "12-month" in
 "trailing 12-month revenue" is the trailing year (no space between count and
-unit). A decimal that is not a half ("1.25 years") is left unread, rather than
-read by its last digits.
+unit), and the year of a "since" window ("since 2025 year over year") is a
+year, not 2025 of them. A decimal that is not a half ("1.25 years") is left
+unread, rather than read by its last digits.
 """
 
 from __future__ import annotations
@@ -104,6 +105,16 @@ _WINDOW_PATTERNS = (
 )
 _QUARTERS_PER = {"quarter": 1, "qtr": 1, "q": 1, "year": 4, "yr": 4, "decade": 40}
 
+# "since 2023", "since the start of 2023", "since early 2023": every quarter from
+# the start of that year. "since fiscal 2025", "since FY2025": from the start of
+# each company's own fiscal year. The year is no count: "since 2025 year over
+# year" is the window since 2025 began, with a change on it.
+SINCE_YEAR = re.compile(
+    r"\bsince\s+(?:the\s+(?:start|beginning)\s+of\s+|early\s+(?:in\s+)?)?"
+    r"(?P<fiscal>fy\s*|fiscal\s+(?:year\s+)?)?(?P<y>(?:19|20)\d{2})\b",
+    re.I,
+)
+
 
 @dataclass(frozen=True)
 class AskedWindow:
@@ -150,7 +161,13 @@ def _count(raw: str) -> tuple[int, bool]:
 
 def asked_window(message: str) -> AskedWindow | None:
     """The window the message asks for, or None when it names no count of periods."""
-    found = [match for pattern in _WINDOW_PATTERNS if (match := pattern.search(message))]
+    since_years = [since.span() for since in SINCE_YEAR.finditer(message)]
+    found = [
+        match
+        for pattern in _WINDOW_PATTERNS
+        if (match := pattern.search(message)) is not None
+        and not any(match.start() < end and start < match.end() for start, end in since_years)
+    ]
     if not found:
         return None
     match = min(found, key=lambda candidate: candidate.start())

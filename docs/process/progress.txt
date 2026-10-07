@@ -2209,3 +2209,51 @@ Blockers / next:
   (9 Thermo Fisher quarters with no change column before, each with its year-over-year change
   now) and the three conversations added for this ticket. Tickets 01-09 in probe-round-3-gaps
   are all resolved.
+
+## 2026-10-07 — probe-round-3-gaps 10 A change since a year is year over year since it, and "since 2025 year over year" reads a year
+
+Task completed: `docs/process/tickets/probe-round-3-gaps/issues/10-a-change-since-a-year.md`
+
+Key decisions:
+- The misreading is fixed in the window grammar (`asked_window` in `period_window.py`), which
+  both planners pass through (ADR 0010, 0011): `SINCE_YEAR` moved there from
+  `request_wording.py` (which imports it back), and a window match that overlaps a "since
+  <year>" phrase is dropped, so "since 2025 year over year" and "since 2025 quarter over
+  quarter" no longer read 2025 as a count of years or quarters (8100 or 2025 quarters, capped
+  at 40, with a note saying so). `read_window` then reads the since window as it does with no
+  change word; "since fiscal 2025 year over year" keeps its fiscal reading.
+- The rule is in `_names_a_window` and the since branch of `bind_periods_from_message` in
+  `request_wording.py`: a "since" window is a named window, so a change over it in any wording
+  (`How much did Intel's revenue change since 2023?`, `What caused Apple's revenue to fall
+  since 2023?`, `Apple revenue growth since 2024`) is year over year over every filed quarter
+  since the year began, each from its own comparative (ADR 0009). The since branch now carries
+  the change operations instead of requiring no change; `_names_a_span` lost its separate
+  since clause. A sequential change over a since window keeps the quarters as listed, the
+  oldest with no change, as `sequential instead` already did (ticket 05). With no window,
+  `How much did Intel's revenue change?` still asks "Compared with what?".
+- `year over year` asked after `Apple revenue since 2025` already kept the since window; the
+  recorded-runtime test pins that it is the direct question's view, column for column.
+- `test_what_a_change_is_measured_against`: the three since-window expectations the ticket
+  names changed from `None` to `"year_over_year"`, plus `Apple revenue growth since 2024`.
+- Phrase coverage: `SINCE_CHANGE_QUESTIONS` (5 cases under "A change over a window", checked
+  by the spec's since year, the year-over-year operation and every quarter changed) and
+  `How much did Intel's revenue change?` in `NO_BASE_QUESTIONS`; none sent to the model.
+- README's growth row, ADR 0010 (period grammar and growth paragraphs) and CONTEXT.md's
+  Window entry say the rule.
+
+Files changed:
+- `src/financial_analyst_agent/period_window.py`, `request_wording.py`, `phrase_coverage.py`
+- `tests/unit/test_planner_wording.py` (3 expectations changed, +1 case, +3 tests),
+  `tests/test_says_what_it_cannot_do.py` (+1 recorded-runtime test)
+- `README.md`, `CONTEXT.md`, `docs/adr/0010-one-reading-of-names-and-windows.md`,
+  `scripts/compare_answers.py` (+5 conversations), the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,193 Python tests pass; ruff and mypy pass; compare_answers reports `4 of 274
+  conversations differ from HEAD`, all conversations added for this ticket: `Apple revenue
+  since 2025 year over year` and `... quarter over quarter` (2025 read as a count before, with
+  the "at most 40" note; the quarters since 2025 with their change now), `Apple revenue growth
+  since 2024` (5 quarters before; every quarter since 2024 now) and `How much did Intel's
+  revenue change since 2023?` (the quarters alone before; each with its change now). `Apple
+  revenue since 2025` then `year over year` does not differ. Tickets 01-10 in
+  probe-round-3-gaps are all resolved.
