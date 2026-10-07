@@ -1766,3 +1766,34 @@ Files changed:
 Blockers / next:
 - None. All 2,059 Python tests pass; ruff and mypy pass; compare_answers reports
   `0 of 246 conversations differ from HEAD`. Tickets 04-06 in review-69-90 remain.
+
+## 2026-10-06 — review-69-90 04 "18 months" and "a couple of years" are windows without "last" or "past"
+
+Task completed: `docs/process/tickets/review-69-90/issues/04-a-window-without-a-recency-word.md`
+
+Key decisions:
+- `_WINDOW_PATTERNS` in `period_window.py` gains a bare `count unit` pattern (no recency word or
+  preposition), so `Apple revenue 18 months` is 6 quarters, `2 years` and `a couple of years` 8,
+  `6 quarters` 6. The earliest match wins, so a worded window keeps its recency word as `said`.
+- No new exclusions were needed: the unit's lookaheads already keep `3 months ended June` and
+  `2 quarters ago` as named quarters; `fiscal 2025` has no unit word; `12-month` in `trailing
+  12-month revenue` has no space, so it stays the trailing year and shows the latest 4 quarters.
+- Phrase coverage: `18 months` and `6 quarters` in `WINDOW_PHRASES`; `apple revenue 2 years`,
+  `MSFT net income a couple of years` and `Apple trailing 12-month revenue` (unchanged, 4) in
+  `WINDOW_QUESTIONS`. The rules planner is sure of each, so none goes to the LLM planner.
+- README window row and ADR 0010's grammar paragraph say the recency word is optional after the
+  metric and name the counts that are not windows. `compare_answers.py` gains
+  `Apple revenue 18 months`.
+
+Files changed:
+- `src/financial_analyst_agent/period_window.py`, `src/financial_analyst_agent/phrase_coverage.py`
+- `tests/unit/test_period_window.py` (+5 bare forms, +2 no-window forms, +1 trailing test,
+  +2 binding cases)
+- `README.md`, `docs/adr/0010-one-reading-of-names-and-windows.md`, `scripts/compare_answers.py`,
+  the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,069 Python tests pass; ruff and mypy pass; compare_answers reports
+  `1 of 247 conversations differ from HEAD`: the new `Apple revenue 18 months` case, latest quarter
+  before and 6 quarters now, as intended. `docs/evaluation/phrase-coverage.md` not regenerated.
+  Tickets 05-06 in review-69-90 remain.

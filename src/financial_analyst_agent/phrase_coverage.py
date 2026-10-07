@@ -264,6 +264,9 @@ WINDOW_PHRASES: tuple[tuple[str, str, int | None], ...] = (
     ("for the last two quarters", "last_n_quarters", 2),
     ("for the trailing four quarters", "last_n_quarters", 4),
     ("over the past decade", "last_n_quarters", 40),
+    # A count and a unit with no recency word.
+    ("18 months", "last_n_quarters", 6),
+    ("6 quarters", "last_n_quarters", 6),
     ("since 2024", "last_n_quarters", None),
     ("since the start of 2024", "last_n_quarters", None),
     ("since the beginning of 2024", "last_n_quarters", None),
@@ -275,9 +278,13 @@ WINDOW_PHRASES: tuple[tuple[str, str, int | None], ...] = (
     ("in calendar Q1 2026", "named", None),
 )
 # Whole questions whose window words only read right beside their metric: after
-# net income, "last twelve months" is a span of quarters; before it, LTM.
+# net income, "last twelve months" is a span of quarters; before it, LTM. A bare
+# count after the metric is a window; "12-month" before it is the trailing year.
 WINDOW_QUESTIONS: tuple[tuple[str, str, int | None], ...] = (
     ("pfizer net income over the last twelve months", "last_n_quarters", 4),
+    ("apple revenue 2 years", "last_n_quarters", 8),
+    ("MSFT net income a couple of years", "last_n_quarters", 8),
+    ("Apple trailing 12-month revenue", "last_n_quarters", 4),
 )
 
 YEAR_OVER_YEAR_QUESTIONS = (

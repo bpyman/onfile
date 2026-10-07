@@ -43,6 +43,7 @@ EXTRA = [
     ["Compare Google and GOOGL revenue"],
     ["Google revenue", "add GOOGL"],
     ["Apple revenue Q1 2025"],
+    ["Apple revenue 18 months"],
     ["Apple and Microsoft revenue fiscal 2025"],
     ["Apple and Microsoft revenue calendar Q2 2026"],
     ["Apple revenue growth last 4 quarters"],
