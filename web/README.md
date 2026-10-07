@@ -30,9 +30,10 @@ quarterly fact" for the Microsoft pretax-income fact card.
   public demo the switch is disabled and its tooltip says why.
 - The landing page renders its guided stories without the API, pings
   `/api/health` on load, and a turn that shows no progress after about 3 seconds
-  says "Waking the analysis service…". While the API wakes, a guided story shows
-  its recorded answer at once (`lib/demo-answers.json`, written by
-  `scripts/record_demo_answers.py`), marked "Demo data".
+  says "Waking the analysis service…". While the API is slow to answer (a
+  redeploy, say), a guided story shows its recorded answer at once
+  (`lib/demo-answers.json`, written by `scripts/record_demo_answers.py`), marked
+  "Demo data".
 - One malformed answer is contained to its own card (an error boundary per
   answer, and `app/error.tsx` for the page), and replies are validated in
   `lib/api.ts` before they render.

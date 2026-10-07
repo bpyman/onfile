@@ -10,7 +10,7 @@ browser ──> Vercel: Next.js window (web/) ──/api/*──> Render: analys
 The browser only talks to Vercel. The route handler `web/app/api/[...path]/route.ts`
 forwards `/api/*` to `API_ORIGIN` and sends the shared secret. When the API has
 `API_PROXY_TOKEN` set, it answers only proxied calls. `/api/health` stays open for
-wake-up pings and Render's health check.
+the window's ping on load and Render's health check.
 
 Everything a host reads is checked in: `render.yaml`, `Dockerfile`, `web/vercel.json`,
 and `web/scripts/ignore-build.sh`, plus the `deploy` job in `.github/workflows/ci.yml`.
@@ -45,7 +45,7 @@ checks, and npm runs the browser check. `gh` is optional. Its nine stages:
    field the Blueprint asks for. The wizard then waits for `/api/health`, checks that
    `/api/meta` without the token answers 401, and takes a guided story with the token.
 4. **Render Auto-Deploy**: confirms that Settings → Auto-Deploy reads "After CI
-   Checks Pass". If the free plan does not offer it, the wizard captures the
+   Checks Pass". If the plan does not offer it, the wizard captures the
    deploy hook and sets the `RENDER_DEPLOY_HOOK_URL` secret with `gh`
    ([fallback](#fallback-deploy-hook-from-ci)). You then set
    `autoDeployTrigger: off` yourself.
@@ -249,8 +249,9 @@ cd web && PLAYWRIGHT_BASE_URL=https://<project>.vercel.app npm run test:e2e
 The smoke script reads the token from `SMOKE_PROXY_TOKEN`, so it stays out of the
 process list; `--proxy-token <token>` also works and wins when both are given.
 
-The first call after 15 idle minutes waits about a minute while Render wakes the
-service. The window says "Waking the analysis service…" in the meantime.
+On the starter plan the service is always on, so no call waits for it to wake. A
+turn that shows no progress for about 3 seconds still says "Waking the analysis
+service…": now that means a redeploy or a slow reply, not a cold start.
 
 ## What was checked against current docs
 
@@ -310,8 +311,9 @@ sources:
   Render's changelog: success, neutral, and skipped count as passed, and a commit with
   zero checks is not deployed. No source said whether the free instance offers it,
   which is why the deploy hook fallback exists.
-- **Render free-instance limits**: sleep after 15 idle minutes and about a minute to
-  wake are from ADR 0006. The CPU share was not confirmed: ADR 0006 says 0.1 CPU, and
+- **Render free-instance limits** (the service left the free plan for `starter` on 28
+  September 2026): sleep after 15 idle minutes and about a minute to wake are from
+  ADR 0006. The CPU share was not confirmed: ADR 0006 says 0.1 CPU, and
   one secondary reference (OpenAI's `render-deploy` skill) lists 0.5. Check Render's
   pricing page if it matters.
 - **Vercel production gated on CI** (checked 25 September 2026, from search excerpts
