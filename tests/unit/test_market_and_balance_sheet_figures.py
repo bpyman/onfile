@@ -173,6 +173,49 @@ def test_a_derived_gross_profit_names_each_part_by_its_own_metric() -> None:
     assert [part.metric for part in row.derived_from] == ["revenue", "cost_of_revenue"]
 
 
+def test_a_sum_s_parts_are_named_by_their_own_metric_only_when_asked() -> None:
+    from financial_analyst_agent.services.fiscal_periods import (
+        revenue_from_components,
+        sum_of_components,
+    )
+
+    interest = _fact("net_interest_income", "14000000000", _QUARTER)
+    fees = _fact("noninterest_income", "11000000000", _QUARTER)
+    halves = [
+        _fact("depreciation_amortization", "2000000000", _QUARTER),
+        _fact("depreciation_amortization", "1320000000", _QUARTER),
+    ]
+    gross = _fact("gross_profit", "9010000000", _QUARTER)
+    cost = _fact("cost_of_revenue", "61520000000", _QUARTER)
+
+    named = sum_of_components(Metric.REVENUE, [interest, fees], name_parts=True)
+    unnamed = sum_of_components(Metric.DEPRECIATION_AMORTIZATION, halves)
+    rebuilt = revenue_from_components(_fact("revenue", "70530", _QUARTER), gross, cost)
+
+    assert named.derivation is not None and unnamed.derivation is not None
+    assert rebuilt.derivation is not None
+    assert [part.metric for part in named.derivation.parts] == [
+        "net_interest_income",
+        "noninterest_income",
+    ]
+    assert [part.metric for part in unnamed.derivation.parts] == [None, None]
+    assert [part.metric for part in rebuilt.derivation.parts] == ["gross_profit", "cost_of_revenue"]
+    # Each part keeps the fact's own provenance and any derivation of its own.
+    assert named.derivation.parts[0].model_dump(exclude={"metric"}) == {
+        "value": "14000000000",
+        "start_date": _QUARTER[0],
+        "end_date": _QUARTER[1],
+        "form": "10-Q",
+        "accession_number": "0000320193-26-000070",
+        "taxonomy": "us-gaap",
+        "concept": "Concept",
+        "filed_date": date(2026, 8, 1),
+        "source_url": "https://www.sec.gov/aapl",
+        "derivation": None,
+        "split_adjustment": None,
+    }
+
+
 class _FactsMissing(_Facts):
     """A facts port whose filings lack some metrics as standalone quarters."""
 

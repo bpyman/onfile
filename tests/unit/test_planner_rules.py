@@ -48,6 +48,7 @@ from financial_analyst_agent.rules_planner import (
 from financial_analyst_agent.runtime import RuntimeKind, recorded_runtime
 from financial_analyst_agent.thread_store import EphemeralThreadStore
 from financial_analyst_agent.universe import (
+    INDUSTRY_GROUP_ALIASES,
     SnapshotGroups,
     load_universe_snapshot,
     resolve_industry_group,
@@ -331,6 +332,120 @@ def test_gics_sector_names_and_common_industry_words_resolve() -> None:
     assert healthcare is not None and healthcare.sector == "Healthcare"
     for word in ("software", "telecom", "restaurants"):
         assert resolve_industry_group(word, groups) is not None, word
+
+
+SEMICONDUCTORS = {"Semiconductors"}
+BANKS = {"Banks", "Banks - Diversified", "Banks - Regional"}
+PHARMA = DRUG_MANUFACTURERS | {"Medical - Pharmaceuticals"}
+INSURANCE = {
+    "Insurance - Brokers",
+    "Insurance - Diversified",
+    "Insurance - Life",
+    "Insurance - Property & Casualty",
+    "Insurance - Reinsurance",
+    "Insurance - Specialty",
+}
+REITS = {
+    "REIT - Diversified",
+    "REIT - Healthcare Facilities",
+    "REIT - Hotel & Motel",
+    "REIT - Industrial",
+    "REIT - Mortgage",
+    "REIT - Office",
+    "REIT - Residential",
+    "REIT - Retail",
+    "REIT - Specialty",
+}
+OIL_AND_GAS = {
+    "Oil & Gas Drilling",
+    "Oil & Gas Energy",
+    "Oil & Gas Equipment & Services",
+    "Oil & Gas Exploration & Production",
+    "Oil & Gas Integrated",
+    "Oil & Gas Midstream",
+    "Oil & Gas Refining & Marketing",
+}
+RETAIL = {
+    "Apparel - Retail",
+    "Department Stores",
+    "Discount Stores",
+    "Grocery Stores",
+    "Home Improvement",
+    "Specialty Retail",
+}
+AUTO_MANUFACTURERS = {"Auto - Manufacturers"}
+AEROSPACE = {"Aerospace & Defense"}
+CREDIT_SERVICES = {"Financial - Credit Services"}
+
+# The snapshot industries each everyday word names (simplify-pass-2 ticket 10
+# pinned them before the alias table's prefix marker changed).
+EVERYDAY_GROUP_MEMBERS: dict[str, set[str] | None] = {
+    "semiconductor": SEMICONDUCTORS,
+    "semi": SEMICONDUCTORS,
+    "chip": SEMICONDUCTORS,
+    "chipmaker": SEMICONDUCTORS,
+    "chip maker": SEMICONDUCTORS,
+    "software": {"Software - Application", "Software - Infrastructure", "Software - Services"},
+    "bank": BANKS,
+    "banking": BANKS,
+    "big bank": {"Banks - Diversified"},
+    "big pharma": {"Drug Manufacturers - General"},
+    "biotech": {"Biotechnology"},
+    "pharma": PHARMA,
+    "pharmaceutical": PHARMA,
+    "drugmaker": DRUG_MANUFACTURERS,
+    "drug maker": DRUG_MANUFACTURERS,
+    "insurer": INSURANCE,
+    "insurance": INSURANCE,
+    "reit": REITS,
+    "oil": OIL_AND_GAS,
+    # "oil and gas" is normalised to "oil and ga" ("gas" loses its s), so this
+    # key is never looked up; the planner writes the industry as "oil & gas".
+    "oil and gas": None,
+    "oil & gas": OIL_AND_GAS,
+    "retailer": RETAIL,
+    "retail": RETAIL,
+    "airline": {"Airlines, Airports & Air Services"},
+    "automaker": AUTO_MANUFACTURERS,
+    "carmaker": AUTO_MANUFACTURERS,
+    "car maker": AUTO_MANUFACTURERS,
+    "auto": {
+        "Auto - Dealerships",
+        "Auto - Manufacturers",
+        "Auto - Parts",
+        "Auto - Recreational Vehicles",
+    },
+    "defense": AEROSPACE,
+    "aerospace": AEROSPACE,
+    "telecom": {"Telecommunications Services"},
+    "medical device": {"Medical - Devices"},
+    "medtech": {"Medical - Devices", "Medical - Instruments & Supplies"},
+    "restaurant": {"Restaurants"},
+    "hotel": {"REIT - Hotel & Motel", "Travel Lodging"},
+    "lodging": {"Travel Lodging"},
+    "payment": CREDIT_SERVICES,
+    "credit card": CREDIT_SERVICES,
+    "railroad": {"Railroads"},
+    "beverage": {
+        "Beverages - Alcoholic",
+        "Beverages - Non-Alcoholic",
+        "Beverages - Wineries & Distilleries",
+    },
+    "internet": {"Internet Content & Information"},
+    "asset manager": {"Asset Management"},
+    "asset management": {"Asset Management"},
+}
+
+
+def test_each_everyday_group_name_lists_the_same_snapshot_industries() -> None:
+    groups = SnapshotGroups.of(load_universe_snapshot())
+
+    members: dict[str, set[str] | None] = {}
+    for alias in INDUSTRY_GROUP_ALIASES:
+        group = resolve_industry_group(alias, groups)
+        members[alias] = None if group is None else set(group.industries)
+
+    assert members == EVERYDAY_GROUP_MEMBERS
 
 
 def test_oil_and_gas_is_one_industry_in_a_ranking() -> None:

@@ -223,6 +223,23 @@ def test_an_agreeing_restated_figure_adjusts() -> None:
     assert on_latest_basis(fact, splits, records).value == Decimal("0.598")
 
 
+def test_only_standalone_quarters_are_cross_checked_against_their_restatement() -> None:
+    splits = reported_splits(list(_TWO_SPLITS[2:]))
+    start, end = date(2024, 1, 29), date(2024, 4, 28)
+    fact = _fact("5.98", start, end, date(2024, 5, 29))
+    nine_months = date(2023, 7, 31)
+    records = [
+        _record(_EPS, "5.98", end, date(2024, 5, 29), start=start),
+        _record(_EPS, "0.60", end, date(2025, 5, 28), start=start),
+        # Nine months on two bases that do not agree: not one quarter (70 to 110
+        # days, the band fact_selector owns), so the check never reads them.
+        _record(_EPS, "12.00", end, date(2024, 5, 29), start=nine_months),
+        _record(_EPS, "1.50", end, date(2025, 5, 28), start=nine_months),
+    ]
+
+    assert on_latest_basis(fact, splits, records).value == Decimal("0.598")
+
+
 def test_the_comparative_in_the_same_filing_takes_the_same_divisor() -> None:
     splits = reported_splits(list(_TWO_SPLITS[2:]))
     fact = _fact("5.98", date(2024, 1, 29), date(2024, 4, 28), date(2024, 5, 29))

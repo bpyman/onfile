@@ -282,32 +282,37 @@ def build_universe_snapshot(
     return UniverseSnapshot(as_of=as_of, source=source, companies=companies)
 
 
+# Marks an INDUSTRY_GROUP_ALIASES value that names every industry starting
+# with the text before it.
+_PREFIX = "*"
+
 # Everyday words for groups narrower than a sector, matched against each
-# company's ``industry``. A value ending in " -" matches every industry with
-# that prefix ("Banks -" covers "Banks - Regional" and "Banks - Diversified").
+# company's ``industry``. A value ending in "*" matches every industry with
+# that prefix ("Banks -*" covers "Banks - Regional" and "Banks - Diversified";
+# "Oil & Gas*" covers "Oil & Gas Integrated" and "Oil & Gas Midstream").
 INDUSTRY_GROUP_ALIASES: dict[str, tuple[str, ...]] = {
     "semiconductor": ("Semiconductors",),
     "semi": ("Semiconductors",),
     "chip": ("Semiconductors",),
     "chipmaker": ("Semiconductors",),
     "chip maker": ("Semiconductors",),
-    "software": ("Software -",),
-    "bank": ("Banks", "Banks -"),
-    "banking": ("Banks", "Banks -"),
+    "software": ("Software -*",),
+    "bank": ("Banks", "Banks -*"),
+    "banking": ("Banks", "Banks -*"),
     # "Big banks" and "big pharma" are the money-center banks and the large drugmakers.
     "big bank": ("Banks - Diversified",),
     "big pharma": ("Drug Manufacturers - General",),
     "biotech": ("Biotechnology",),
-    "pharma": ("Drug Manufacturers -", "Medical - Pharmaceuticals"),
-    "pharmaceutical": ("Drug Manufacturers -", "Medical - Pharmaceuticals"),
-    "drugmaker": ("Drug Manufacturers -",),
-    "drug maker": ("Drug Manufacturers -",),
-    "insurer": ("Insurance -",),
-    "insurance": ("Insurance -",),
-    "reit": ("REIT -",),
-    "oil": ("Oil & Gas",),
-    "oil and gas": ("Oil & Gas",),
-    "oil & gas": ("Oil & Gas",),
+    "pharma": ("Drug Manufacturers -*", "Medical - Pharmaceuticals"),
+    "pharmaceutical": ("Drug Manufacturers -*", "Medical - Pharmaceuticals"),
+    "drugmaker": ("Drug Manufacturers -*",),
+    "drug maker": ("Drug Manufacturers -*",),
+    "insurer": ("Insurance -*",),
+    "insurance": ("Insurance -*",),
+    "reit": ("REIT -*",),
+    "oil": ("Oil & Gas*",),
+    "oil and gas": ("Oil & Gas*",),
+    "oil & gas": ("Oil & Gas*",),
     "retailer": (
         "Specialty Retail",
         "Discount Stores",
@@ -328,7 +333,7 @@ INDUSTRY_GROUP_ALIASES: dict[str, tuple[str, ...]] = {
     "automaker": ("Auto - Manufacturers",),
     "carmaker": ("Auto - Manufacturers",),
     "car maker": ("Auto - Manufacturers",),
-    "auto": ("Auto -",),
+    "auto": ("Auto -*",),
     "defense": ("Aerospace & Defense",),
     "aerospace": ("Aerospace & Defense",),
     "telecom": ("Telecommunications Services",),
@@ -340,7 +345,7 @@ INDUSTRY_GROUP_ALIASES: dict[str, tuple[str, ...]] = {
     "payment": ("Financial - Credit Services",),
     "credit card": ("Financial - Credit Services",),
     "railroad": ("Railroads",),
-    "beverage": ("Beverages -",),
+    "beverage": ("Beverages -*",),
     "internet": ("Internet Content & Information",),
     "asset manager": ("Asset Management",),
     "asset management": ("Asset Management",),
@@ -418,6 +423,13 @@ _WHOLE_SNAPSHOT = frozenset(
 )
 
 
+def _names(pattern: str, industry: str) -> bool:
+    """Whether an alias value names a snapshot industry: equal, or its marked prefix."""
+    if pattern.endswith(_PREFIX):
+        return industry.startswith(pattern[: -len(_PREFIX)])
+    return industry == pattern
+
+
 def resolve_industry_group(industry: str, groups: SnapshotGroups) -> IndustryGroup | None:
     """A sector by name or alias, else the industries an everyday word names.
 
@@ -436,14 +448,7 @@ def resolve_industry_group(industry: str, groups: SnapshotGroups) -> IndustryGro
         return None
     present = groups.industries
     patterns = INDUSTRY_GROUP_ALIASES.get(wanted, ())
-    matched = {
-        name
-        for name in present
-        for pattern in patterns
-        if name == pattern
-        or (pattern.endswith(" -") and name.startswith(pattern))
-        or (pattern == "Oil & Gas" and name.startswith(pattern))
-    }
+    matched = {name for name in present for pattern in patterns if _names(pattern, name)}
     if not matched:
         matched = {name for name in present if _normalize_group(name) == wanted}
     if not matched:

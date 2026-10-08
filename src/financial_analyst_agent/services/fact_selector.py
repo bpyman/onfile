@@ -3,6 +3,7 @@
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, timedelta
+from decimal import Decimal
 
 from financial_analyst_agent.domain.enums import (
     ANNUAL_FORMS,
@@ -56,7 +57,8 @@ def _is_quarterly_form(form: str, selected_form: str) -> bool:
     return form == selected_form
 
 
-def _is_standalone_quarter_duration(start_date: date | None, end_date: date) -> bool:
+def is_standalone_quarter(start_date: date | None, end_date: date) -> bool:
+    """Whether a duration fact covers one quarter: 70 to 110 days, inclusive."""
     if start_date is None:
         return False
     days = _duration_days(start_date, end_date)
@@ -83,7 +85,7 @@ def _filter_quarterly_candidates(
             continue
         if fact.unit.upper() != currency.upper():
             continue
-        if not _is_standalone_quarter_duration(fact.start_date, fact.end_date):
+        if not is_standalone_quarter(fact.start_date, fact.end_date):
             continue
         candidates.append(fact)
     return candidates
@@ -122,6 +124,45 @@ def _resolve_same_concept_candidates(candidates: list[FactRecord]) -> FactRecord
     )
 
 
+def _fact(
+    anchor: FactRecord,
+    metric: Metric,
+    owner: FactOwner,
+    source_url: str,
+    *,
+    value: Decimal,
+    start_date: date,
+    directly_reported: bool,
+    derivation: Derivation | None = None,
+    year_earlier: DerivationPart | None = None,
+) -> FinancialFact:
+    """``owner``'s ``metric``, with ``anchor``'s filing, period end and concept as its provenance.
+
+    A reported fact is its own anchor; a derived one is anchored on the record
+    whose filing reports the longer period it was computed from.
+    """
+    return FinancialFact(
+        company_name=owner.company_name,
+        ticker=owner.ticker,
+        cik=owner.cik,
+        metric=metric,
+        value=value,
+        currency=owner.currency.upper(),
+        start_date=start_date,
+        end_date=anchor.end_date,
+        form=anchor.form,
+        filed_date=anchor.filed_date,
+        accession_number=anchor.accession_number,
+        taxonomy=anchor.taxonomy,
+        concept=anchor.concept,
+        source_url=source_url,
+        directly_reported=directly_reported,
+        derivation=derivation,
+        source=DataSourceKind.SEC_XBRL,
+        year_earlier=year_earlier,
+    )
+
+
 def _build_financial_fact(
     selected: FactRecord,
     metric: Metric,
@@ -135,23 +176,14 @@ def _build_financial_fact(
             "Selected fact missing start_date for quarterly duration",
             details={"concept": selected.concept},
         )
-    return FinancialFact(
-        company_name=owner.company_name,
-        ticker=owner.ticker,
-        cik=owner.cik,
-        metric=metric,
+    return _fact(
+        selected,
+        metric,
+        owner,
+        source_url,
         value=selected.value,
-        currency=owner.currency.upper(),
         start_date=selected.start_date,
-        end_date=selected.end_date,
-        form=selected.form,
-        filed_date=selected.filed_date,
-        accession_number=selected.accession_number,
-        taxonomy=selected.taxonomy,
-        concept=selected.concept,
-        source_url=source_url,
         directly_reported=True,
-        source=DataSourceKind.SEC_XBRL,
         year_earlier=year_earlier,
     )
 
@@ -385,28 +417,19 @@ def _derived_fact(
                 ),
             }
         )
-    return FinancialFact(
-        company_name=owner.company_name,
-        ticker=owner.ticker,
-        cik=owner.cik,
-        metric=metric,
+    return _fact(
+        longer,
+        metric,
+        owner,
+        source_url,
         value=longer.value - shorter.value,
-        currency=owner.currency.upper(),
         start_date=shorter.end_date + timedelta(days=1),
-        end_date=longer.end_date,
-        form=longer.form,
-        filed_date=longer.filed_date,
-        accession_number=longer.accession_number,
-        taxonomy=longer.taxonomy,
-        concept=longer.concept,
-        source_url=source_url,
         directly_reported=False,
         derivation=Derivation(
             method=method,
             label=label,
             parts=[_part(longer, source_url), _part(shorter, shorter_url)],
         ),
-        source=DataSourceKind.SEC_XBRL,
         year_earlier=year_earlier,
     )
 
@@ -446,7 +469,7 @@ def derive_quarter(
             standalone = [
                 fact
                 for fact in in_filing
-                if _is_standalone_quarter_duration(fact.start_date, fact.end_date)
+                if is_standalone_quarter(fact.start_date, fact.end_date)
             ]
             if standalone:
                 selected = _resolve_same_concept_candidates(standalone)
@@ -638,21 +661,13 @@ def derive_trailing_year(
         ]
         prior = _resolve_same_concept_candidates(same_filing or _newest_filed(earlier))
         year = _resolve_same_concept_candidates(_newest_filed(last_year))
-        return FinancialFact(
-            company_name=owner.company_name,
-            ticker=owner.ticker,
-            cik=owner.cik,
-            metric=metric,
+        return _fact(
+            current,
+            metric,
+            owner,
+            source_url,
             value=year.value + current.value - prior.value,
-            currency=owner.currency.upper(),
             start_date=prior.end_date + timedelta(days=1),
-            end_date=current.end_date,
-            form=current.form,
-            filed_date=current.filed_date,
-            accession_number=current.accession_number,
-            taxonomy=current.taxonomy,
-            concept=current.concept,
-            source_url=source_url,
             directly_reported=False,
             derivation=Derivation(
                 method="trailing_twelve_months",
@@ -667,7 +682,6 @@ def derive_trailing_year(
                     )
                 ],
             ),
-            source=DataSourceKind.SEC_XBRL,
         )
     raise UnsupportedQuarterlyFactError(
         "No fiscal year and year-to-date amounts give the trailing year",

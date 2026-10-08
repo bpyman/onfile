@@ -25,4 +25,15 @@ Do not change `select_quarterly_fact`'s signature or remove `select_quarterly_fa
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped 8 October 2026. Cleanup only: 2,378 tests pass (six added), ruff and mypy are clean, `uv run python scripts/compare_answers.py` reports `0 of 893 conversations differ from HEAD` (which replays every phrase-coverage case, so coverage stays 555 of 555).
+
+1. **One fact builder.** `fact_selector._fact(anchor, metric, owner, source_url, *, value, start_date, directly_reported, derivation=None, year_earlier=None)` builds every `FinancialFact` the module returns: the owner's name, ticker, CIK and `currency.upper()`, the anchor's end date, form, filed date, accession, taxonomy and concept, `source=SEC_XBRL`. `_build_financial_fact` is its start-date check plus the call (the anchor is the selected record); `_derived_fact` anchors on the longer record and `derive_trailing_year` on the year-to-date record, as before. The trailing year no longer passes `source` explicitly; `_fact` sets it. Two tests pin that a derived quarter and a trailing year carry the owner's and the anchor filing's fields exactly as a reported fact would.
+2. **One quarter band.** Checked first: `fact_selector` read `70 <= days <= 110` and `stock_splits` read `_QUARTER_DAYS[0] <= days <= _QUARTER_DAYS[1]` with `(70, 110)`, both inclusive, both skipping a record with no start. `_is_standalone_quarter_duration` is now the public `is_standalone_quarter(start, end)`; `series_agrees` calls it and `_QUARTER_DAYS` is deleted. No import cycle: `stock_splits` is imported only by `sec_facts`, and `fact_selector` imports nothing from it. A test pins the band's ends and that the split cross-check reads only quarter-length records.
+3. **One derivation-part mapping.** `_derivation_part(fact, *, metric=None)` sets `metric` directly; the nested `part()` in `gross_profit_from_components` and the two `.model_copy(update={"metric": ...})` sites are gone. `sum_of_components` passes `metric=fact.metric.value if name_parts else None`. A test pins the parts' metrics for a named sum (bank revenue), an unnamed one (depreciation plus amortization) and the rebuilt revenue, and that each part keeps its provenance.
+4. **A general prefix marker.** An `INDUSTRY_GROUP_ALIASES` value ending in `*` names every snapshot industry starting with the text before it (`_PREFIX`); the trailing `" -"` entries became `" -*"` and the oil entries `"Oil & Gas*"`, so `resolve_industry_group`'s `pattern == "Oil & Gas"` branch is deleted and `_names(pattern, industry)` is the one test. `test_each_everyday_group_name_lists_the_same_snapshot_industries` pins every alias's members against the committed snapshot, captured before the change and unchanged after it.
+
+Noticed, not changed (it would be a behaviour change outside a cleanup ticket): the alias key `"oil and gas"` is never looked up, because `_normalize_group` singularises "gas" to "ga" ("oil and ga"). It does no harm today because the planner writes the industry as "oil & gas" (`test_oil_and_gas_is_one_industry_in_a_ranking`), and the pin test records it as resolving to nothing. A later ticket could delete the key or stop the singulariser at words ending in "as".

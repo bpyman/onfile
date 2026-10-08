@@ -13,6 +13,7 @@ from financial_analyst_agent.domain.errors import (
 )
 from financial_analyst_agent.services.fact_selector import (
     FactOwner,
+    is_standalone_quarter,
     select_quarterly_fact,
     select_quarterly_fact_with_filing_fallback,
 )
@@ -379,3 +380,12 @@ def test_filing_fallback_named_period_still_raises_ambiguous() -> None:
             source_url_for_filing=_source_url,
             report_date=OLDER_END,
         )
+
+
+def test_a_standalone_quarter_runs_seventy_to_one_hundred_ten_days_inclusive() -> None:
+    assert is_standalone_quarter(REPORT_END - timedelta(days=70), REPORT_END)
+    assert is_standalone_quarter(REPORT_END - timedelta(days=110), REPORT_END)
+    assert not is_standalone_quarter(REPORT_END - timedelta(days=69), REPORT_END)
+    assert not is_standalone_quarter(REPORT_END - timedelta(days=111), REPORT_END)
+    # An instant has no start, so it is not a quarter.
+    assert not is_standalone_quarter(None, REPORT_END)

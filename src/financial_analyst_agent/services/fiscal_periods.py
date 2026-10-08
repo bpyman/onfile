@@ -270,26 +270,13 @@ def dates_for(
 
 def gross_profit_from_components(revenue: FinancialFact, cost: FinancialFact) -> FinancialFact:
     """Gross profit as revenue minus cost of revenue, for filers that tag no gross profit."""
-
-    def part(fact: FinancialFact) -> DerivationPart:
-        return DerivationPart(
-            value=fact.value,
-            start_date=fact.start_date,
-            end_date=fact.end_date,
-            form=fact.form,
-            accession_number=fact.accession_number,
-            taxonomy=fact.taxonomy,
-            concept=fact.concept,
-            filed_date=fact.filed_date,
-            source_url=fact.source_url,
-            derivation=fact.derivation,
-            metric=fact.metric.value,
-        )
-
     derivation = Derivation(
         method="revenue_minus_cost_of_revenue",
         label=GROSS_PROFIT_LABEL,
-        parts=[part(revenue), part(cost)],
+        parts=[
+            _derivation_part(revenue, metric=revenue.metric.value),
+            _derivation_part(cost, metric=cost.metric.value),
+        ],
     )
     return revenue.model_copy(
         update={
@@ -317,8 +304,8 @@ def revenue_from_components(
         method="sum",
         label=REVENUE_FROM_COMPONENTS_LABEL,
         parts=[
-            _derivation_part(gross).model_copy(update={"metric": gross.metric.value}),
-            _derivation_part(cost).model_copy(update={"metric": cost.metric.value}),
+            _derivation_part(gross, metric=gross.metric.value),
+            _derivation_part(cost, metric=cost.metric.value),
         ],
     )
     return filed.model_copy(
@@ -362,9 +349,7 @@ def sum_of_components(
         method="sum",
         label=label,
         parts=[
-            _derivation_part(fact).model_copy(
-                update={"metric": fact.metric.value if name_parts else None}
-            )
+            _derivation_part(fact, metric=fact.metric.value if name_parts else None)
             for fact in facts
         ],
     )
@@ -420,7 +405,8 @@ def combined_year_earlier(
     )
 
 
-def _derivation_part(fact: FinancialFact) -> DerivationPart:
+def _derivation_part(fact: FinancialFact, *, metric: str | None = None) -> DerivationPart:
+    """``fact`` as one part of a derived amount; ``metric`` names it when it is not the whole's."""
     return DerivationPart(
         value=fact.value,
         start_date=fact.start_date,
@@ -432,6 +418,7 @@ def _derivation_part(fact: FinancialFact) -> DerivationPart:
         filed_date=fact.filed_date,
         source_url=fact.source_url,
         derivation=fact.derivation,
+        metric=metric,
     )
 
 
