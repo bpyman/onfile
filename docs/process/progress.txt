@@ -2663,3 +2663,36 @@ Blockers / next:
   rules planner passes 160 of 160 held-out set 5 cases. A profile of six recorded turns shows
   each message scanned for phrases once. Tickets 03-12 in simplify-pass-2 remain.
 - For a person: whether to fix the garbled missing-component note for the eleven ")" names.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/simplify-pass-2/issues/03-numeral-lock-module.md`
+
+Key decisions:
+- `numeral_lock.py` holds the lock unchanged; `numeral_lock_extras` and
+  `numeral_lock_message` are public, and turn, filing_change (top-level import),
+  mcp_server and numeral_lock_evaluation import from it. No re-exports in turn.py.
+- turn.py: `_locked_essay` is the one withhold-or-show tail; `_replay_banners(news=False)`
+  labels an essay alone; `metric_rows` (public, in `__all__`) is the one row-builder
+  dispatch, called by `_metrics_turn` and mcp_server; `_PROVENANCE_FIELDS` with
+  `model_dump(include=...)` builds the three pydantic provenance targets.
+  `_lookup_provenance` stays a literal: the recorded demo answers hold trace outputs as
+  ordered pairs, so its key order is behaviour (a dump reordered it and failed
+  test_demo_answers in 163 conversations).
+- filing_change.py: local `refuse(message, exc)` for the five refusals; `diff_paragraphs`
+  computes comparable forms and word sets once, `_aligned` takes word sets and a likeness
+  matrix, `_rejoin_moved` computes added words before its loop.
+- numeral_lock_evaluation.py: `_say` overloaded to pass None through; `_say_other`.
+
+Files changed:
+- `src/financial_analyst_agent/numeral_lock.py` (new), `turn.py`, `filing_change.py`,
+  `mcp_server.py`, `numeral_lock_evaluation.py`
+- `tests/unit/test_metric_rows.py` (new, +2), `tests/unit/test_filing_change.py` (+1, three
+  imports moved), `tests/unit/test_contracts_import.py`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,338 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 375
+  conversations differ from HEAD`; the numeral-lock evaluation reports the same counts;
+  phrase coverage 555 of 555 (report not regenerated). Tickets 04-12 in simplify-pass-2
+  remain.

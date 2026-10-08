@@ -29,4 +29,44 @@ From a parallel `/simplify` review of the whole codebase (7 October 2026): seven
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped 7 October 2026, cleanup only: compare_answers `0 of 375 conversations differ`;
+2,338 tests pass; ruff and mypy clean; the numeral-lock evaluation reports the same
+counts before and after (36 sentences a kind, 14 misattributed; the same withheld
+figures); phrase coverage 555 of 555 (report not regenerated).
+
+1. **`numeral_lock.py`** holds the patterns and functions unchanged, with
+   `numeral_lock_extras` and `numeral_lock_message` public. turn, filing_change
+   (a top-level import; no function-level import of turn remains), mcp_server and
+   numeral_lock_evaluation import from it. turn.py keeps no re-exports: the three
+   tests in `test_filing_change.py` import from the new module, and a fourth checks
+   filing_change binds the module-level name.
+2. **`_locked_essay(intent, essay, lock_json, traces, banners, *, citations=None,
+   hit_count=0)`** is the one withhold-or-show tail; `_replay_banners(runtime, *,
+   news=True)` labels the essay alone with `news=False`, which `explain_answer` uses.
+3. **`turn.metric_rows(runtime, issuers, metric, *, report_date=None)`** holds the
+   row-builder branch and is in `__all__`. `_metrics_turn` calls it after the
+   snapshot-metric early return (whose single-issuer `lookup_member` case and
+   snapshot trace stay in `_snapshot_metrics_turn`); mcp_server's `_metric_rows`
+   keeps only its ranking check and calls it, its three row-builder imports gone.
+   Each caller keeps its own RuntimeError text. `tests/unit/test_metric_rows.py`
+   (+2) checks the dispatch and that the MCP compare goes through it.
+4. **Provenance:** `_PROVENANCE_FIELDS` and `**model_dump(include=...)` build the
+   three pydantic targets (`_part_provenance`, `_table_row_from_fact`,
+   `_provenance_from_fact`); `_fact_source_kind` and `_metric_name` are inlined.
+   **Left as a literal:** `_lookup_provenance`. The recorded demo answers and
+   compare_answers hold a trace's outputs as ordered pairs, so its key order
+   (`form` first, `source` before `source_url`) is part of the answer; a model dump
+   orders by model field and failed `test_committed_demo_answers_match_a_fresh_recorded_run`
+   in 163 conversations. A comment at the site says why.
+5. **`refuse(message, exc=None)`** local to `run_filing_change`; the five refusal
+   sites are one line each.
+6. **`diff_paragraphs`** computes `comparable_left/right` and the word sets once
+   (`_comparable_words` on the comparable form; `_words` composes it); `_aligned`
+   takes the word sets and reads the DP pass's likeness from a matrix;
+   `_rejoin_moved` computes each added change's words before the loop.
+7. **`_say`** is overloaded (`str -> str`, `None -> None`), each KINDS entry is a
+   plain `_say(q, ...)`, and `misattributed` is `_say_other`.

@@ -1,5 +1,6 @@
 """Deterministic MD&A / Risk Factors diff between two accessions."""
 
+import inspect
 import json
 from types import SimpleNamespace
 from typing import Any
@@ -926,7 +927,7 @@ def test_a_non_member_whose_sec_title_reads_like_a_note_is_refused() -> None:
 
 
 def test_numeral_lock_does_not_ground_figures_on_links_or_accessions() -> None:
-    from financial_analyst_agent.turn import _numeral_lock_extras
+    from financial_analyst_agent.numeral_lock import numeral_lock_extras
 
     grounding = json.dumps(
         [
@@ -938,41 +939,41 @@ def test_numeral_lock_does_not_ground_figures_on_links_or_accessions() -> None:
         ]
     )
 
-    assert _numeral_lock_extras("Revenue grew 12%.", grounding) == []
-    assert _numeral_lock_extras("Revenue grew 25%.", grounding) == ["25"]
-    assert _numeral_lock_extras("Margins hit 789019.", grounding) == ["789019"]
+    assert numeral_lock_extras("Revenue grew 12%.", grounding) == []
+    assert numeral_lock_extras("Revenue grew 25%.", grounding) == ["25"]
+    assert numeral_lock_extras("Margins hit 789019.", grounding) == ["789019"]
 
 
 def test_numeral_lock_treats_dates_as_dates_not_figures() -> None:
-    from financial_analyst_agent.turn import _numeral_lock_extras
+    from financial_analyst_agent.numeral_lock import numeral_lock_extras
 
     grounding = json.dumps([{"value": "245122000000", "end_date": "2026-03-31"}])
 
     # A date's parts do not unlock a figure...
-    assert _numeral_lock_extras("Revenue rose 31%.", grounding) == ["31"]
-    assert _numeral_lock_extras("Margins moved 03 points.", grounding) == ["03"]
+    assert numeral_lock_extras("Revenue rose 31%.", grounding) == ["31"]
+    assert numeral_lock_extras("Margins moved 03 points.", grounding) == ["03"]
     # ...and a date written in the essay is not scanned as one.
     assert (
-        _numeral_lock_extras(
+        numeral_lock_extras(
             "Revenue was 245122000000 in the quarter ended March 31, 2026.", grounding
         )
         == []
     )
-    assert _numeral_lock_extras("In fiscal 2026 revenue rose.", grounding) == []
+    assert numeral_lock_extras("In fiscal 2026 revenue rose.", grounding) == []
     # A list comma and the next word are not part of a number.
-    assert _numeral_lock_extras("It grew 29, then 30.", grounding) == ["29", "30"]
+    assert numeral_lock_extras("It grew 29, then 30.", grounding) == ["29", "30"]
     # A year is a date only beside a word that dates it; an amount stays an amount.
-    assert _numeral_lock_extras("Revenue was 2050 million dollars.", grounding) == ["2050 million"]
-    assert _numeral_lock_extras("USD 1999 million on buybacks", grounding) == ["1999 million"]
-    assert _numeral_lock_extras("They plan to hire 2000 engineers.", grounding) == ["2000"]
-    assert _numeral_lock_extras("Sales rose in March 12% year over year.", grounding) == ["12"]
+    assert numeral_lock_extras("Revenue was 2050 million dollars.", grounding) == ["2050 million"]
+    assert numeral_lock_extras("USD 1999 million on buybacks", grounding) == ["1999 million"]
+    assert numeral_lock_extras("They plan to hire 2000 engineers.", grounding) == ["2000"]
+    assert numeral_lock_extras("Sales rose in March 12% year over year.", grounding) == ["12"]
     # The source's years may be quoted: its dates are 2026.
-    assert _numeral_lock_extras("2026 was a strong year.", grounding) == []
-    assert _numeral_lock_extras("In 2025, revenue rose.", grounding) == []
+    assert numeral_lock_extras("2026 was a strong year.", grounding) == []
+    assert numeral_lock_extras("In 2025, revenue rose.", grounding) == []
 
 
 def test_numeral_lock_accepts_a_grounded_value_as_the_window_shows_it() -> None:
-    from financial_analyst_agent.turn import _numeral_lock_extras
+    from financial_analyst_agent.numeral_lock import numeral_lock_extras
 
     grounding = json.dumps([{"value": "22974000000"}, {"value": "0.3088273701"}])
 
@@ -985,13 +986,13 @@ def test_numeral_lock_accepts_a_grounded_value_as_the_window_shows_it() -> None:
         "Net margin was 30.88 percent.",
         "Net margin was 31%.",
     ):
-        assert _numeral_lock_extras(essay, grounding) == [], essay
+        assert numeral_lock_extras(essay, grounding) == [], essay
     # A digit changed at the precision shown rounds from nothing grounded.
-    assert _numeral_lock_extras("Revenue was $22.98 B.", grounding) == ["$22.98 B"]
-    assert _numeral_lock_extras("Revenue was $24 billion.", grounding) == ["$24 billion"]
-    assert _numeral_lock_extras("Net margin was 31.9%.", grounding) == ["31.9"]
+    assert numeral_lock_extras("Revenue was $22.98 B.", grounding) == ["$22.98 B"]
+    assert numeral_lock_extras("Revenue was $24 billion.", grounding) == ["$24 billion"]
+    assert numeral_lock_extras("Net margin was 31.9%.", grounding) == ["31.9"]
     # One significant digit is too coarse to tie to a grounded value.
-    assert _numeral_lock_extras("Revenue was $2 billion more.", grounding) == ["$2 billion"]
+    assert numeral_lock_extras("Revenue was $2 billion more.", grounding) == ["$2 billion"]
 
 
 def test_table_cells_are_separated_in_filing_text() -> None:
@@ -1293,3 +1294,11 @@ def test_the_llm_planners_filing_change_carries_a_form() -> None:
 
     assert plan.form == "10-K"
     assert bind_filing_change(plan, "What changed in Microsoft's annual filing?").form == "10-K"
+
+
+def test_filing_change_imports_the_lock_at_module_level() -> None:
+    # The lock has its own module; filing_change no longer imports turn inside a function.
+    from financial_analyst_agent import filing_change, numeral_lock
+
+    assert filing_change.numeral_lock_extras is numeral_lock.numeral_lock_extras
+    assert "financial_analyst_agent.turn" not in inspect.getsource(filing_change)

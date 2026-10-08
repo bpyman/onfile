@@ -16,14 +16,9 @@ from financial_analyst_agent.contracts import (
 )
 from financial_analyst_agent.domain.errors import UnknownIndustryError
 from financial_analyst_agent.graph.analysis_spec import MAX_RANKED_COMPANIES
+from financial_analyst_agent.numeral_lock import numeral_lock_extras, numeral_lock_message
 from financial_analyst_agent.runtime import build_runtime
-from financial_analyst_agent.turn import (
-    _numeral_lock_extras,
-    _numeral_lock_message,
-    market_formula_rows,
-    snapshot_compare_rows,
-)
-from financial_analyst_agent.turn import compare_metrics as compare_metric_rows
+from financial_analyst_agent.turn import metric_rows
 
 mcp = FastMCP("financial-analyst")
 
@@ -48,13 +43,9 @@ def _catalog_metric(metric: str) -> str:
 
 
 def _metric_rows(runtime: Runtime, issuers: list[str], metric: str) -> list[TableRow]:
-    if metric in SNAPSHOT_METRICS or metric in MARKET_FORMULAS:
-        if runtime.ranking is None:
-            raise RuntimeError("ranking adapter is not configured")
-        if metric in SNAPSHOT_METRICS:
-            return snapshot_compare_rows(runtime.ranking, issuers, metric)
-        return market_formula_rows(runtime.facts, runtime.ranking, issuers, metric)
-    return compare_metric_rows(runtime.facts, issuers, metric)
+    if (metric in SNAPSHOT_METRICS or metric in MARKET_FORMULAS) and runtime.ranking is None:
+        raise RuntimeError("ranking adapter is not configured")
+    return metric_rows(runtime, issuers, metric)
 
 
 @mcp.tool()
@@ -135,9 +126,9 @@ def explain_topic(topic: str) -> dict[str, object]:
     if runtime.essay is None:
         raise RuntimeError("essay completer is not configured")
     essay = runtime.essay.complete_essay(topic)
-    extras = _numeral_lock_extras(essay, topic)
+    extras = numeral_lock_extras(essay, topic)
     if extras:
-        return {"essay": None, "message": _numeral_lock_message(", ".join(extras))}
+        return {"essay": None, "message": numeral_lock_message(", ".join(extras))}
     return {"essay": essay}
 
 
