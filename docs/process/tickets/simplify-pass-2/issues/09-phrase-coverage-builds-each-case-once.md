@@ -23,4 +23,16 @@ The phrase-coverage report must stay the same.
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped in two commits on `simplify-pass-2` (8 October 2026).
+
+**Steps 1 and 2 (phrase_coverage.py).** `_reading(case_id, group, turns, tickers, metrics, period, comparison)` builds the Expected column and the check from the same four readings; it is used at the growth, idiom, word-use, segment and overview sites and in both combination builders. The window-change and since-change sites keep their own checks, which read the spec's operations and `since_year`, not rows. `cases()` has one Windows loop over (phrasing, question, kind, count) rows, the `WINDOW_PHRASES` rows built as "Apple revenue {phrase}" and the `WINDOW_QUESTIONS` rows as written, in that order, and one loop over the three same-shaped tables with each one's prefix and group. `_planned(seen)` is the one "answer or no_data" test, carrying the comment about a fact the recording lacks, at all twelve sites; `_shows(comparison)` replaces `_year_over_year` and `_sequential`; `_companies` is a thin call to `_reads`. Case ids, groups, order and expected text are unchanged: every case's check was run against every case's observed turn (555 × 555) before and after, identical, and the report without its timestamp is byte for byte the same (555 of 555; not regenerated).
+
+**Step 3 (compare_answers.py).** `dump` replays every phrase case under `phrase:<case_id>`, and the 37 EXTRA conversations that copied a phrase case or an evaluation case are deleted (the list keeps only conversations neither source replays, tested). The comparison is `report(before, after, against, shown)`: it compares the conversations both runs replay, prints `N of M conversations differ`, and when one run has a conversation the other lacks prints how many were skipped on each side.
+
+**Notes.** The ref's dump runs the working tree's script against the ref's package (`_dump_tree` passes `--root`; the script file is the working tree's). So the phrase keys came from both sides at once: `compare_answers` against HEAD and against master both report `0 of 893 conversations differ`, 893 on the first run rather than growing on the next, and no EXTRA deletion shows as dropped. The skip applies when the ref's `phrase_coverage.py` lists different cases than the working tree's, which is what a ticket adding phrasings will meet.
+
+Tests: `tests/unit/test_phrase_coverage.py` (+3) pins eleven cases' ids, groups, turns and expected text and the group order, the Windows order, and that every reading case's check accepts the turn its Expected column describes and rejects another company; `tests/unit/test_compare_answers.py` (new, +3) covers the EXTRA list and `report`. 2,372 tests pass; ruff and mypy clean.

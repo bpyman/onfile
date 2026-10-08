@@ -2862,3 +2862,32 @@ Blockers / next:
   overlap report's probe file no longer exists, so the report was compared without probes).
   Tickets 09-12 in simplify-pass-2 remain. The committed planner-comparison.md predates set
   5's findings flag, so a `--from-json` regeneration would add one sentence; not regenerated.
+
+2026-10-08
+
+Task completed: `docs/process/tickets/simplify-pass-2/issues/09-phrase-coverage-builds-each-case-once.md`
+
+Key decisions:
+- phrase_coverage.py: `_reading(case_id, group, turns, tickers, metrics, period, comparison)`
+  builds the Expected column and the check from the same four readings (growth, idiom, word
+  use, segment, overview, both combination builders); `cases()` has one Windows loop over
+  (phrasing, question, kind, count) rows and one loop over the three same-shaped tables;
+  `_planned(seen)` at the twelve "answer or no_data" sites; `_shows(comparison)` replaces
+  `_year_over_year` and `_sequential`; `_companies` is a thin call to `_reads`.
+- compare_answers.py: `dump` replays every phrase case under `phrase:<case_id>`; the 37 EXTRA
+  conversations either source replays are deleted; `report(before, after, against, shown)`
+  compares the conversations both runs replay and prints how many were skipped on each side.
+  The ref's dump runs the working tree's script against the ref's package, so the phrase keys
+  are on both sides at once (0 of 893 against HEAD and master); the skip applies when the ref's
+  phrase_coverage.py lists different cases.
+
+Files changed:
+- `src/financial_analyst_agent/phrase_coverage.py`, `scripts/compare_answers.py`
+- `tests/unit/test_phrase_coverage.py` (+3), `tests/unit/test_compare_answers.py` (new, +3)
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. 2,372 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 893
+  conversations differ` against HEAD and master; every check against every observed turn
+  (555 × 555) and the report without its timestamp are identical before and after (report not
+  regenerated). Tickets 10-12 in simplify-pass-2 remain.
