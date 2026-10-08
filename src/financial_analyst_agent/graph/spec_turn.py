@@ -32,7 +32,6 @@ from financial_analyst_agent.answer_notes import (
     short_ranking_notes,
 )
 from financial_analyst_agent.contracts import (
-    ALLOWED_METRICS,
     COMPANY_NOT_FOUND,
     DEFAULT_RANK_LIMIT,
     LOOKUP_FAILED,
@@ -55,7 +54,6 @@ from financial_analyst_agent.contracts import (
     WorkflowPlan,
     refusal_from_error,
     split_between,
-    unknown_metric_message,
 )
 from financial_analyst_agent.domain.errors import (
     SOURCE_FAILURES,
@@ -83,6 +81,7 @@ from financial_analyst_agent.graph.analysis_spec import (
     calendar_groups,
     compile_tasks,
     emptied_by,
+    metric_rejection,
     ranked_window_asked,
     resolve_spec,
     validate_spec,
@@ -101,7 +100,6 @@ from financial_analyst_agent.request_wording import (
     bind_metrics_from_message,
     bind_order_from_message,
     comparison_asked,
-    read_window,
     refine_patch_from_message,
 )
 from financial_analyst_agent.services.filing_selector import FISCAL_WEEK_TOLERANCE
@@ -485,13 +483,14 @@ def _draft_intent(draft: SpecDraft) -> Intent:
 
 
 def _rejection_result(rejection: SpecRejection, intent: Intent) -> TurnResult:
-    return TurnResult(
-        intent=intent,
-        tool_traces=[],
-        renderer=RendererKind.REFUSE,
-        message=rejection.message,
-        refusal=Refusal(code=rejection.code, details=rejection.details),
+    return _refusal(
+        intent, rejection.message, refusal=Refusal(code=rejection.code, details=rejection.details)
     )
+
+
+def _empty_spec(asked: Intent, message: str) -> TurnResult:
+    """The refusal of an analysis with nothing to look up."""
+    return _rejection_result(SpecRejection(code="empty_spec", message=message), asked)
 
 
 # One deterministic workflow per compiled task kind: the closed set a task can run.
@@ -557,6 +556,16 @@ def _task_failure_result(task: CompiledTask, exc: BaseException) -> TurnResult:
     )
 
 
+def _run_isolated(task: CompiledTask, runtime: Runtime) -> TurnResult:
+    """One task's result, its failure isolated as its typed partial or refuse."""
+    try:
+        return execute_compiled_task(task, runtime)
+    except SessionQuotaError:
+        raise
+    except Exception as exc:
+        return _task_failure_result(task, exc)
+
+
 def dispatch_compiled_tasks(
     tasks: tuple[CompiledTask, ...],
     runtime: Runtime,
@@ -576,12 +585,7 @@ def dispatch_compiled_tasks(
     if total == 1 or max_workers <= 1:
         results: list[TurnResult] = []
         for index, task in enumerate(tasks):
-            try:
-                results.append(execute_compiled_task(task, runtime))
-            except SessionQuotaError:
-                raise
-            except Exception as exc:
-                results.append(_task_failure_result(task, exc))
+            results.append(_run_isolated(task, runtime))
             if on_progress is not None:
                 on_progress(index + 1, total)
         return results
@@ -592,23 +596,15 @@ def dispatch_compiled_tasks(
     pool = ThreadPoolExecutor(max_workers=workers)
     try:
         futures = {
-            pool.submit(
-                copy_context().run,
-                partial(execute_compiled_task, task, runtime),
-            ): index
+            pool.submit(copy_context().run, partial(_run_isolated, task, runtime)): index
             for index, task in enumerate(tasks)
         }
         left = sec_turn_seconds_left()
         timeout = None if left == float("inf") else max(0.0, left) + _TASK_GRACE_SECONDS
         try:
             for future in as_completed(futures, timeout=timeout):
-                index = futures[future]
-                try:
-                    ordered[index] = future.result()
-                except SessionQuotaError:
-                    raise
-                except Exception as exc:
-                    ordered[index] = _task_failure_result(tasks[index], exc)
+                # A spent quota re-raises here; any other failure is already a result.
+                ordered[futures[future]] = future.result()
                 done += 1
                 if on_progress is not None:
                     on_progress(done, total)
@@ -829,6 +825,35 @@ def _one_company_left(merged: TurnResult) -> TurnResult:
     return merged.model_copy(update={"intent": Intent.LOOKUP})
 
 
+def _latest_levels(
+    rows: list[TableRow], metric: str, key: Callable[[TableRow], str | None]
+) -> dict[str, TableRow]:
+    """Each company's newest level row of ``metric`` by ``key``; a row keyed None is skipped."""
+    latest: dict[str, TableRow] = {}
+    for row in rows:
+        company = key(row)
+        if row.metric != metric or row.comparison is not None or company is None:
+            continue
+        shown = latest.get(company)
+        if shown is None or (row.end_date or date.min) > (shown.end_date or date.min):
+            latest[company] = row
+    return latest
+
+
+def _value_order(
+    latest: dict[str, TableRow], ascending: bool, tiebreak: Callable[[str], int]
+) -> Callable[[str], tuple[bool, Decimal, int]]:
+    """A company's place by its latest value: the missing last, then by ``tiebreak``."""
+    sign = Decimal(1) if ascending else Decimal(-1)
+
+    def key(company: str) -> tuple[bool, Decimal, int]:
+        row = latest.get(company)
+        value = row.value if row is not None else None
+        return (value is None, sign * (value or Decimal(0)), tiebreak(company))
+
+    return key
+
+
 def _order_by_metric(result: TurnResult, metric: str, *, ascending: bool = False) -> TurnResult:
     """Order a ranking's market-cap members by ``metric``, largest first.
 
@@ -836,24 +861,11 @@ def _order_by_metric(result: TurnResult, metric: str, *, ascending: bool = False
     industry by a filed metric would mean a lookup per company in it.
     ``ascending`` ("lowest first") runs the same members from the lowest value.
     """
-    latest: dict[str, TableRow] = {}
-    for row in result.table_rows:
-        if row.metric != metric or row.comparison is not None or not row.cik:
-            continue
-        shown = latest.get(row.cik)
-        if shown is None or (row.end_date or date.min) > (shown.end_date or date.min):
-            latest[row.cik] = row
+    latest = _latest_levels(result.table_rows, metric, lambda row: row.cik or None)
     ranks = {row.cik: row.rank for row in result.table_rows if row.cik and row.rank is not None}
     if not latest or not ranks:
         return result
-
-    sign = Decimal(1) if ascending else Decimal(-1)
-
-    def key(cik: str) -> tuple[bool, Decimal, int]:
-        row = latest.get(cik)
-        value = row.value if row is not None else None
-        return (value is None, sign * (value or Decimal(0)), ranks[cik] or 0)
-
+    key = _value_order(latest, ascending, lambda cik: ranks[cik] or 0)
     order = {cik: index for index, cik in enumerate(sorted(ranks, key=key), start=1)}
     rows = sorted(
         (
@@ -876,24 +888,12 @@ def _order_companies_by_metric(
     result: TurnResult, metric: str, *, ascending: bool = False
 ) -> TurnResult:
     """Order named companies by their latest ``metric``, largest first ("sort by revenue")."""
-    latest: dict[str, TableRow] = {}
-    for row in result.table_rows:
-        if row.metric != metric or row.comparison is not None or row.value is None:
-            continue
-        key = row.cik or row.company_name
-        shown = latest.get(key)
-        if shown is None or (row.end_date or date.min) > (shown.end_date or date.min):
-            latest[key] = row
+    valued = [row for row in result.table_rows if row.value is not None]
+    latest = _latest_levels(valued, metric, lambda row: row.cik or row.company_name)
     if not latest:
         return result
     first_seen = list(dict.fromkeys(row.cik or row.company_name for row in result.table_rows))
-    sign = Decimal(1) if ascending else Decimal(-1)
-
-    def order(company: str) -> tuple[bool, Decimal, int]:
-        row = latest.get(company)
-        value = row.value if row is not None else None
-        return (value is None, sign * (value or Decimal(0)), first_seen.index(company))
-
+    order = _value_order(latest, ascending, first_seen.index)
     ranking = {company: index for index, company in enumerate(sorted(first_seen, key=order))}
     rows = sorted(result.table_rows, key=lambda row: ranking[row.cik or row.company_name])
     return result.model_copy(update={"table_rows": rows, "ordered_lowest_first": ascending})
@@ -997,7 +997,7 @@ def resolve_request(
     """
     message = request.wording
     patch = request.patch
-    window = request.window or read_window(message)
+    window = request.window
     intent = request.intent
 
     def answered(result: TurnResult, spec: AnalysisSpec | None) -> Resolution:
@@ -1006,14 +1006,9 @@ def resolve_request(
     invalid = INVALID_QUARTER.search(message)
     if invalid is not None:
         return answered(
-            TurnResult(
-                intent=intent or Intent.LOOKUP,
-                tool_traces=[],
-                renderer=RendererKind.REFUSE,
-                message=(
-                    f"There is no Q{invalid.group(1)}: a fiscal year has four quarters, "
-                    "Q1 to Q4."
-                ),
+            _refusal(
+                intent,
+                f"There is no Q{invalid.group(1)}: a fiscal year has four quarters, Q1 to Q4.",
             ),
             current_spec,
         )
@@ -1055,21 +1050,12 @@ def resolve_request(
     draft = apply_patch(current_spec, patch)
     # A refusal names the analysis that was asked for, not a default lookup.
     asked = intent or _draft_intent(draft)
-    # Drop model-supplied metrics that are not in the catalog when wording did not
-    # resolve a unique phrase (plan slug may still be present on replace).
-    if draft.metrics and any(m not in ALLOWED_METRICS for m in draft.metrics):
-        bad = next(m for m in draft.metrics if m not in ALLOWED_METRICS)
-        return answered(
-            _rejection_result(
-                SpecRejection(
-                    code="invalid_metric",
-                    message=unknown_metric_message(bad),
-                    details={"term": bad, "allowed": list(ALLOWED_METRICS)},
-                ),
-                asked,
-            ),
-            None,
-        )
+    # A model-supplied metric outside the catalog, where the wording resolved no
+    # unique phrase (a plan slug may still be present on replace), is refused
+    # here, before any ranking or SEC identity is read.
+    rejection = metric_rejection(draft.metrics)
+    if rejection is not None:
+        return answered(_rejection_result(rejection, asked), None)
 
     try:
         spec = resolve_spec(draft, ranking=runtime.ranking, identify=sec_identity(runtime))
@@ -1108,13 +1094,7 @@ def resolve_request(
     spec, funds = drop_funds(spec)
     spec, annual_filers = drop_annual_filers(spec, runtime)
     if annual_filers and not spec.companies and spec.constituents is None:
-        return answered(
-            _rejection_result(
-                SpecRejection(code="empty_spec", message=annual_filer_note(annual_filers)),
-                asked,
-            ),
-            None,
-        )
+        return answered(_empty_spec(asked, annual_filer_note(annual_filers)), None)
 
     try:
         spec = materialize_period_dates(spec, runtime)
@@ -1136,45 +1116,26 @@ def resolve_request(
             period.year > date.today().year for period in spec.periods.named
         ) or _after_latest_filing(spec, runtime)
         return answered(
-            _rejection_result(
-                SpecRejection(
-                    code="empty_spec",
-                    message=(
-                        f"No filings found for {spec.periods.label}: it has not been "
-                        "reported yet."
-                        if future
-                        else f"No filings found for {spec.periods.label}. Periods are fiscal "
-                        "years as each company names them; filings older than about "
-                        "ten years may not be available."
-                    ),
-                ),
+            _empty_spec(
                 asked,
+                f"No filings found for {spec.periods.label}: it has not been reported yet."
+                if future
+                else f"No filings found for {spec.periods.label}. Periods are fiscal "
+                "years as each company names them; filings older than about "
+                "ten years may not be available.",
             ),
             None,
         )
     if spec.periods.kind == "last_n_quarters" and not spec.periods.report_dates:
         return answered(
-            _rejection_result(
-                SpecRejection(
-                    code="empty_spec",
-                    message=(
-                        "Could not determine quarterly report dates "
-                        "for the requested window"
-                    ),
-                ),
-                asked,
+            _empty_spec(
+                asked, "Could not determine quarterly report dates for the requested window"
             ),
             None,
         )
     tasks = compile_tasks(spec)
     if not tasks:
-        return answered(
-            _rejection_result(
-                SpecRejection(code="empty_spec", message="Analysis compiled to no tasks"),
-                asked,
-            ),
-            None,
-        )
+        return answered(_empty_spec(asked, "Analysis compiled to no tasks"), None)
     return Resolution(
         patch=patch,
         compiled=CompiledAnalysis(
@@ -1418,12 +1379,7 @@ def _after_latest_filing(spec: AnalysisSpec, runtime: Runtime) -> bool:
     """Whether every named period ends after the first company's newest filed quarter."""
     if not spec.companies:
         return False
-    try:
-        listed = runtime.facts.fiscal_periods(spec.companies[0].handle)
-    except SessionQuotaError:
-        raise
-    except Exception:
-        return False
+    listed = _or_none(partial(runtime.facts.fiscal_periods, spec.companies[0].handle))
     if not listed:
         return False
     latest = max(listed, key=lambda period: period.end)
@@ -1471,9 +1427,29 @@ def overview_trend(
             "periods": PeriodSelection(kind="last_n_quarters", count=TREND_QUARTERS),
         }
     )
+    return _window_levels(window, runtime, max_workers=max_workers)
+
+
+def _window_levels(
+    window: AnalysisSpec,
+    runtime: Runtime,
+    *,
+    max_workers: int,
+    narrow: Callable[[AnalysisSpec], AnalysisSpec | None] | None = None,
+) -> TurnResult | None:
+    """The level rows a derived window reads beside an answer, or None for no rows.
+
+    The window is dated against the filings, narrowed by ``narrow`` once its
+    dates are known (None means there is nothing to read), compiled and run.
+    A lookup that fails or runs out of the thread's allowance leaves the rows
+    out. Only rows with a value, and no change, are kept.
+    """
     try:
-        window = materialize_period_dates(window, runtime)
-        tasks = compile_tasks(window)
+        dated = materialize_period_dates(window, runtime)
+        chosen = dated if narrow is None else narrow(dated)
+        if chosen is None:
+            return None
+        tasks = compile_tasks(chosen)
         results = dispatch_compiled_tasks(tasks, runtime, max_workers=max_workers)
     except (CompanyNotFoundError, SessionQuotaError, *SOURCE_FAILURES):
         return None
@@ -1530,20 +1506,15 @@ def earlier_quarters(
     def a_year_before(day: date) -> bool:
         return year_target is not None and abs(day - year_target) <= FISCAL_WEEK_TOLERANCE
 
-    # Four quarters back reach a year earlier; the quarter before needs one.
-    count = 5 if year_target is not None else 2
-    window = spec.model_copy(
-        update={"periods": PeriodSelection(kind="last_n_quarters", count=count)}
-    )
-    try:
-        window = materialize_period_dates(window, runtime)
+    def earlier_dates(window: AnalysisSpec) -> AnalysisSpec | None:
+        # The quarter before the fact's, and the one a year earlier, from the listed dates.
         dates = window.periods.report_dates[1:]
         wanted = [day for day in dates[:1] if adjacent_quarters(end, day)]
         wanted += [day for day in dates if a_year_before(day)][:1]
         if not wanted:
             return None
         key = spec.companies[0].key
-        window = window.model_copy(
+        return window.model_copy(
             update={
                 "periods": window.periods.model_copy(
                     update={
@@ -1554,20 +1525,19 @@ def earlier_quarters(
                 )
             }
         )
-        tasks = compile_tasks(window)
-        results = dispatch_compiled_tasks(tasks, runtime, max_workers=1)
-    except (CompanyNotFoundError, SessionQuotaError, *SOURCE_FAILURES):
+
+    # Four quarters back reach a year earlier; the quarter before needs one.
+    count = 5 if year_target is not None else 2
+    window = spec.model_copy(
+        update={"periods": PeriodSelection(kind="last_n_quarters", count=count)}
+    )
+    merged = _window_levels(window, runtime, max_workers=1, narrow=earlier_dates)
+    if merged is None:
         return None
-    if not tasks:
-        return None
-    merged = merge_task_results(tasks, results, across_periods=False)
     levels = [
         row
         for row in merged.table_rows
-        if row.comparison is None
-        and row.value is not None
-        and row.end_date is not None
-        and not split_between(current, row)
+        if row.end_date is not None and not split_between(current, row)
     ]
     prior = [row for row in levels if row.end_date and adjacent_quarters(end, row.end_date)]
     year = [row for row in levels if row.end_date and a_year_before(row.end_date)]

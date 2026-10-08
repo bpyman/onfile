@@ -7,7 +7,7 @@ should not depend on these helpers; the conversation seam owns the public API.
 from __future__ import annotations
 
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Collection, Iterable
 from datetime import date
 from typing import Any, Literal
 
@@ -268,6 +268,22 @@ def _seen(*groups: tuple[str, ...]) -> tuple[str, ...]:
     return seen[:_MAX_SEEN_COMPANIES]
 
 
+def _edited[T](items: Iterable[T], remove: Collection[T], add: Iterable[T]) -> list[T]:
+    """``items`` without ``remove``, then each of ``add`` not yet present, in order."""
+    edited = [item for item in items if item not in remove]
+    edited.extend(item for item in add if item not in edited)
+    return edited
+
+
+def _kept(companies: Iterable[ResolvedCompany], tokens: tuple[str, ...]) -> list[ResolvedCompany]:
+    """The companies none of ``tokens`` names ("remove JPMorgan")."""
+    return [
+        company
+        for company in companies
+        if not any(_company_matches_token(company, token) for token in tokens)
+    ]
+
+
 def apply_patch(current: AnalysisSpec | None, patch: SpecPatch) -> SpecDraft:
     """Apply a proposed patch to the current spec (or empty) → unresolved draft."""
     if patch.mode is None and current is not None:
@@ -293,21 +309,14 @@ def apply_patch(current: AnalysisSpec | None, patch: SpecPatch) -> SpecDraft:
         patch.add_companies or patch.remove_companies
     ):
         # "add Apple" to the top 5 banks: the ranking becomes those companies.
-        members = [
-            company
-            for company in current.constituents.members
-            if not any(_company_matches_token(company, token) for token in patch.remove_companies)
-        ]
-        companies = [company.query for company in members]
-        companies.extend(token for token in patch.add_companies if token not in companies)
-        metrics = [m for m in current.metrics if m not in patch.remove_metrics]
-        metrics.extend(m for m in patch.add_metrics if m not in metrics)
+        members = _kept(current.constituents.members, patch.remove_companies)
+        companies = _edited([company.query for company in members], (), patch.add_companies)
+        metrics = _edited(current.metrics, patch.remove_metrics, patch.add_metrics)
         # A plain ranking shows market cap; the companies keep showing it.
         metrics = metrics or ["market_cap"]
         periods = patch.set_periods or current.periods
         dropped = ("rank", *patch.remove_operations)
-        operations = [op for op in current.operations if op not in dropped]
-        operations.extend(op for op in patch.add_operations if op not in operations)
+        operations = _edited(current.operations, dropped, patch.add_operations)
         if periods.kind == "latest_quarter" and "across_periods" in operations:
             # A ranking's growth is its latest quarter's; the companies' is over
             # growth's window, as "Apple and JPMorgan revenue growth" would be.
@@ -317,36 +326,17 @@ def apply_patch(current: AnalysisSpec | None, patch: SpecPatch) -> SpecDraft:
         order_by = patch.set_order_by or current.order_by
         earlier = ()
     else:
-        kept = [
-            company
-            for company in current.companies
-            if not any(
-                _company_matches_token(company, token) for token in patch.remove_companies
-            )
-        ]
-        companies = [company.query for company in kept]
+        kept = _kept(current.companies, patch.remove_companies)
         if not patch.add_companies and not patch.remove_companies:
             earlier = current.earlier_companies
         elif current.companies and not kept and patch.add_companies:
             earlier = tuple(company.query for company in current.companies)
         else:
             earlier = ()
-        for token in patch.add_companies:
-            if token not in companies:
-                companies.append(token)
-        metrics = list(current.metrics)
-        for slug in patch.remove_metrics:
-            metrics = [m for m in metrics if m != slug]
-        for slug in patch.add_metrics:
-            if slug not in metrics:
-                metrics.append(slug)
+        companies = _edited([company.query for company in kept], (), patch.add_companies)
+        metrics = _edited(current.metrics, patch.remove_metrics, patch.add_metrics)
         periods = patch.set_periods or current.periods
-        operations = list(current.operations)
-        for op in patch.remove_operations:
-            operations = [o for o in operations if o != op]
-        for op in patch.add_operations:
-            if op not in operations:
-                operations.append(op)
+        operations = _edited(current.operations, patch.remove_operations, patch.add_operations)
         presentation = patch.set_presentation or current.presentation
         if patch.ranked_request is not None:
             ranked = patch.ranked_request
@@ -381,14 +371,13 @@ def emptied_by(
     """What an edit would leave the analysis without: "remove Apple" when Apple is all."""
     if current is None or patch.mode != "extend" or patch.ranked_request is not None:
         return None
-    if current.constituents is None and current.companies and not patch.add_companies:
-        kept = [
-            company
-            for company in current.companies
-            if not any(_company_matches_token(company, token) for token in patch.remove_companies)
-        ]
-        if not kept:
-            return "companies"
+    if (
+        current.constituents is None
+        and current.companies
+        and not patch.add_companies
+        and not _kept(current.companies, patch.remove_companies)
+    ):
+        return "companies"
     # A ranking without its metrics is still a ranking, by market cap.
     if (
         current.constituents is None
@@ -497,14 +486,23 @@ def ranked_window_asked(draft: SpecDraft) -> bool:
     return draft.ranked_request is not None and draft.periods.kind != "latest_quarter"
 
 
+def metric_rejection(metrics: Iterable[str]) -> SpecRejection | None:
+    """The rejection of the first metric outside the closed catalog, if any."""
+    bad = next((metric for metric in metrics if metric not in ALLOWED_METRICS), None)
+    if bad is None:
+        return None
+    return SpecRejection(
+        code="invalid_metric",
+        message=unknown_metric_message(bad),
+        details={"term": bad, "allowed": list(ALLOWED_METRICS)},
+    )
+
+
 def validate_spec(spec: AnalysisSpec) -> SpecRejection | None:
     """Validate a resolved spec against closed catalogs. No provider I/O."""
-    for metric in spec.metrics:
-        if metric not in ALLOWED_METRICS:
-            return SpecRejection(
-                code="invalid_metric",
-                message=unknown_metric_message(metric),
-            )
+    rejection = metric_rejection(spec.metrics)
+    if rejection is not None:
+        return rejection
     for operation in spec.operations:
         if operation not in SUPPORTED_OPERATIONS:
             return SpecRejection(

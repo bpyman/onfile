@@ -2726,3 +2726,37 @@ Blockers / next:
 - None. All 2,349 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 375
   conversations differ from HEAD`; phrase coverage 555 of 555 and the rules planner 160 of 160
   held-out set 5 cases (reports not regenerated). Tickets 05-12 in simplify-pass-2 remain.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/simplify-pass-2/issues/05-one-copy-of-each-spec-turn-rule.md`
+
+Key decisions:
+- spec_turn.py: `_run_isolated` is the one failure isolation for both dispatch paths (the
+  pool stores `future.result()` with no try; a spent quota re-raises through it);
+  `_after_latest_filing` reads through `_or_none`; `_window_levels(window, runtime, *,
+  max_workers, narrow=None)` is the one derived-window pipeline, `overview_trend` one call
+  and `earlier_quarters` keeping its date choice as `narrow`, its split filter and its
+  prior / year-earlier split; `_latest_levels` and `_value_order` shared by the two
+  orderings with each caller's own filtering; `_rejection_result` through `_refusal`,
+  `_empty_spec` for the four empty-spec refusals, the invalid-quarter refusal through
+  `_refusal`.
+- analysis_spec.py: `metric_rejection(metrics)` returns the detailed invalid-metric
+  rejection; `validate_spec` calls it first and resolve_request's early check (still before
+  `resolve_spec`) uses it. `_edited(items, remove, add)` and `_kept(companies, tokens)`
+  are the one list edit and the one company filter in `apply_patch` and `emptied_by`.
+- state.py: `StructuredRequest.window` is a `WindowReading`, read from the wording by a
+  data-aware `default_factory` when absent and by a before-validator when a stored
+  checkpoint holds `window: null`; spec_turn reads it with no fallback. clarify.py,
+  turn_graph.py and request_wording.py unchanged.
+
+Files changed:
+- `src/financial_analyst_agent/graph/spec_turn.py`, `graph/analysis_spec.py`, `graph/state.py`
+- `tests/unit/test_analysis_spec.py` (+2, one assertion added), `tests/unit/test_window_copy.py` (+2)
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,353 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 375
+  conversations differ from HEAD`; phrase coverage 555 of 555 (report not regenerated).
+  Tickets 06-12 in simplify-pass-2 remain; ticket 06 can switch spec_turn's
+  `row.cik or row.company_name` sites to `TableRow.company_key`.

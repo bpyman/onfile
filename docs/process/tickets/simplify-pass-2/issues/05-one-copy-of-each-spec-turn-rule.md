@@ -33,4 +33,50 @@ Not in this ticket: spec_turn's eight `row.cik or row.company_name` sites, which
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped 7 October 2026. Cleanup only: compare_answers reports `0 of 375 conversations
+differ from HEAD`; 2,353 tests pass; ruff and mypy are clean; phrase coverage stays
+555 of 555 (report not regenerated).
+
+1. `_run_isolated(task, runtime)` holds the one failure isolation (a spent quota
+   re-raises, anything else becomes `_task_failure_result`). The sequential loop appends
+   it; the pool submits `copy_context().run, partial(_run_isolated, task, runtime)` and
+   stores `future.result()` with no try, so a quota still re-raises through it.
+2. `_after_latest_filing` reads the fiscal periods through `_or_none`.
+3. `_window_levels(window, runtime, *, max_workers, narrow=None)` is the one derived-window
+   pipeline (materialize, narrow, compile, dispatch, merge, keep level rows with a value).
+   `overview_trend` is one call; `earlier_quarters` keeps its date choice as the `narrow`
+   step (`earlier_dates`), its split filter, and the split into prior and year-earlier rows.
+4. `_latest_levels(rows, metric, key)` and `_value_order(latest, ascending, tiebreak)` are
+   shared by `_order_by_metric` (keys on `row.cik`, skips rows without one) and
+   `_order_companies_by_metric` (keys on `row.cik or row.company_name`, given only rows
+   with a value). The `end_date` comparison is as it was.
+5. `_rejection_result` returns `_refusal(...)` with the typed `Refusal`; `_empty_spec(asked,
+   message)` builds the four `empty_spec` refusals; the invalid-quarter refusal is
+   `_refusal(intent, ...)`.
+6. `metric_rejection(metrics)` in analysis_spec.py returns the detailed rejection (term and
+   allowed). `validate_spec` calls it first; resolve_request's early check, still before
+   `resolve_spec`, is `metric_rejection(draft.metrics)`. The turn's answer is unchanged:
+   `validate_spec`'s invalid-metric rejection can only be reached through resolve_request,
+   whose earlier check refuses the same metrics first, so the details it gains are never
+   shown.
+7. `_edited(items, remove, add)` and `_kept(companies, tokens)` are the one list edit and
+   the one company filter, used for metrics, operations and companies in both branches of
+   `apply_patch` and in `emptied_by`. Order and de-duplication are as before (tested).
+8. `StructuredRequest.window` is typed `WindowReading`, filled from `read_window(wording)`
+   by a data-aware `default_factory` when absent and, through a `model_validator(mode=
+   "before")`, when a stored checkpoint holds `window: null`. spec_turn reads
+   `request.window` with no fallback. clarify.py, turn_graph.py and request_wording.py are
+   unchanged.
+
+Tests: `tests/unit/test_analysis_spec.py` (+2: `metric_rejection`'s term and allowed list,
+and an extend edit's order and de-duplication across companies, metrics and operations;
+`validate_spec`'s rejection now asserts its term), `tests/unit/test_window_copy.py` (+2: a
+request reads its window from its wording; a stored request holding `window: null` loads
+with one and round-trips).
+
+Left for ticket 06, as the ticket says: the `row.cik or row.company_name` sites.
+
