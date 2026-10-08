@@ -228,7 +228,13 @@ def test_a_paragraph_that_only_moved_a_year_is_not_a_change() -> None:
     ]
 
 
-_CIKS = {"AMD": "0000002488", "INTC": "0000050863", "MRK": "0000310158", "AAPL": "0000320193"}
+_CIKS = {
+    "AMD": "0000002488",
+    "INTC": "0000050863",
+    "MRK": "0000310158",
+    "AAPL": "0000320193",
+    "JRSH": "0001696558",
+}
 
 
 def _missing_row(
@@ -298,6 +304,21 @@ def test_a_formula_missing_in_some_quarters_names_them() -> None:
         "Advanced Micro Devices' EBITDA is missing for Mar 28, 2026 and Dec 27, 2025: no "
         "standalone quarterly depreciation and amortization was found for those quarters, "
         "which EBITDA needs."
+    ]
+
+
+def test_a_name_ending_in_a_parenthesis_is_not_read_as_dates() -> None:
+    # simplify-leftovers ticket 03: eleven snapshot short names end in ")". The
+    # note once read "Jerash Holdings (US)" back as a name and dates, and said
+    # "is missing for US ... for that quarter".
+    rows = [
+        _missing_row("Jerash Holdings (US), Inc.", "JRSH", end, ["depreciation_amortization"])
+        for end in (date(2026, 6, 30), date(2026, 3, 31))
+    ]
+
+    assert missing_component_notes(rows) == [
+        "Jerash Holdings (US)'s EBITDA is missing: no standalone quarterly depreciation "
+        "and amortization was found in its filings, which EBITDA needs."
     ]
 
 

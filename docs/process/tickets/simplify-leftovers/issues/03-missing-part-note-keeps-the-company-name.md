@@ -20,4 +20,27 @@ Add a test with one of the eleven names that pins the corrected note, and one th
 
 **Blocked by:** 02 (both edit `answer_notes.py`)
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped 8 October 2026.
+
+- `missing_component_notes` keeps each company as a `(short name, quarters)` pair: the quarters are
+  the formatted dates where today's `(company, metric) in shown` held, else empty. The one-company
+  sentence builds `when` from `joined(quarters)` and picks "that quarter" or "those quarters" by
+  `len(quarters)`; the several-company sentence adds the parentheses itself. The parse-back
+  (`endswith(")")`, `partition(" (")`) is gone from `answer_notes.py`.
+- For a name not ending in ")" the output is the same character for character: `joined` of
+  formatted dates contains " and " exactly when there are two or more, which is what the old
+  `" and " not in dates_shown` test read.
+- New test `test_a_name_ending_in_a_parenthesis_is_not_read_as_dates` pins Jerash Holdings (US)
+  alone with the part missing in every quarter: "Jerash Holdings (US)'s EBITDA is missing: no
+  standalone quarterly depreciation and amortization was found in its filings, which EBITDA needs."
+  (`possessive` adds "'s" to a name ending in ")", unchanged.) Today's note for an ordinary name
+  with dates was already pinned by `test_a_formula_missing_in_some_quarters_names_them`, so no
+  second test was added.
+- `rules-to-review.md` carries the Revisited line under the 2026-10-07 simplify-pass-2 02 entry.
+- 2,537 tests pass (1 new); ruff and mypy clean; `compare_answers.py --against master` reports
+  `0 of 893 conversations differ`: no recorded demo conversation asks about one of the eleven
+  names with a formula's part missing.

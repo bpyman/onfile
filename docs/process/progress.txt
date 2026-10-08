@@ -3259,3 +3259,28 @@ Blockers / next:
 - None. 2,536 tests pass (2 new); ruff and mypy clean; compare_answers reports `0 of 893
   conversations differ from master`; phrase coverage 555 of 555. Ticket 03 (missing-part note keeps
   the company name) is next; its blocker 02 is resolved.
+
+
+## 2026-10-08 — simplify-leftovers 03: the missing-part note keeps a company name ending in ")"
+
+Ticket: `docs/process/tickets/simplify-leftovers/issues/03-missing-part-note-keeps-the-company-name.md`
+
+Key decisions:
+- `missing_component_notes` keeps `(short name, quarters)` pairs instead of formatting
+  `"Name (dates)"` and parsing it back with `endswith(")")` / `partition(" (")`. Quarters are present
+  only where the company has the figure for other quarters in the window; the several-company
+  sentence adds the parentheses; the one-company sentence reads `when` and "that/those quarters"
+  from the list. Ordinary names produce the same note character for character.
+- A name ending in ")" alone ("Jerash Holdings (US)") now reads as any company with no dates, with
+  whatever `possessive` makes of the name ("Jerash Holdings (US)'s"), pinned by a new test.
+- The ordinary-name-with-dates branch was already pinned, so no second test was added.
+- The 2026-10-07 rules-to-review entry gets the "Revisited (2026-10-08)" line the ticket dictates.
+
+Files changed:
+- `src/financial_analyst_agent/answer_notes.py`
+- `tests/unit/test_filers_rankings_and_narrowing.py`
+- the ticket, `docs/process/progress.txt`, `docs/process/rules-to-review.md`
+
+Blockers / next:
+- None. 2,537 tests pass (1 new); ruff and mypy clean; compare_answers reports `0 of 893
+  conversations differ from master`. Every simplify-leftovers ticket is resolved.
