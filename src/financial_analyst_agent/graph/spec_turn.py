@@ -1064,19 +1064,10 @@ def annotate_analysis(
     """The answer's notes, and the resolved analysis the thread keeps."""
     spec = compiled.spec
     patch = compiled.patch
-    # A metric reply to a clarification keeps the held question's window, so its
-    # reading can say "last year" or year to date where the reply does not. The
-    # notes have always read those two from the wording; they still do until that
-    # is decided (rules-to-review, 8 October 2026).
-    worded = read(compiled.wording).reading
-    window = compiled.window.model_copy(
-        update={
-            "year_of_quarters": worded.year_of_quarters,
-            "year_to_date": worded.year_to_date,
-        }
-    )
+    # The stored reading, not the wording: a metric reply to a clarification
+    # keeps the held question's window, and with it the notes about that window.
     period = Periods(spec).notes(
-        window,
+        compiled.window,
         change_asked(compiled.wording),
         ranked_window=compiled.ranked_window_asked,
     )

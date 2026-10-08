@@ -138,6 +138,7 @@ Each entry: date, ticket, where, the rule, why it looks wrong, what the agent di
 - **The rule:** a step that needs a file outside the ticket's list is left undone.
 - **Why it looks wrong:** `graph/clarify.py` imports `read_window` and `WindowReading` from `request_wording`, and `tests/test_says_what_it_cannot_do.py` monkeypatches `request_wording.date` for the "N years ago" reading; neither file is on the list. Leaving them would fail `pytest` and step 6 (no re-exports), which the same ticket requires. `tests/unit/services/test_metric_phrase.py` imports `TRAILING_YEAR` the same way.
 - **What you did:** changed the three files by one import (and, in `clarify`, two `read(...).reading` calls) each, and said so in the Answer. The design record's call-site list has `clarify` changing in ticket 03 (`words.bind`), so its import line is the only part done early.
+- **Decided (2026-10-08):** the agent is right. The ticket's file list missed a caller of the moved names; one import each is the change the ticket asked for.
 
 ## 2026-10-08 — period-selection 03: the file list leaves out a caller and a test of the moved names
 
@@ -145,6 +146,7 @@ Each entry: date, ticket, where, the rule, why it looks wrong, what the agent di
 - **The rule:** a step that needs a file outside the ticket's list is left undone.
 - **Why it looks wrong:** `answer_notes.py` imports `MAX_SINCE_QUARTERS` from `request_wording`, where it sat beside the binding. The binding moves into `period_selection` and needs it; the module may import nothing from `request_wording`; and leaving a second definition behind in `request_wording` is the duplicate the no-re-export rule exists to prevent. `tests/unit/test_planner_window.py` calls `bind_periods_from_message` in two tests, which the ticket deletes, so leaving it fails `pytest`.
 - **What you did:** changed each by one import (and, in the test, the two calls), and said so in the Answer, as ticket 02 did for `clarify.py`. Ticket 06 moves the since notes into the module, after which `answer_notes` would import it from there anyway.
+- **Decided (2026-10-08):** the agent is right. The ticket's file list missed a caller of the moved names; one import each is the change the ticket asked for.
 
 ## 2026-10-08 — period-selection 05: the file list leaves out the notes' caller of `calendar_groups`
 
@@ -152,7 +154,7 @@ Each entry: date, ticket, where, the rule, why it looks wrong, what the agent di
 - **The rule:** a step that needs a file outside the ticket's list is left undone.
 - **Why it looks wrong:** `answer_notes.period_notes` calls `calendar_groups` for the calendars-differ and fiscal-Q4 notes. The same ticket says `calendar_groups` no longer exists and that `Periods.groups` is the one place that groups companies "for compilation, notes and row hiding", so leaving `answer_notes` alone fails `pytest` and the Acceptance.
 - **What you did:** changed `answer_notes.py` by one import and one line (`Periods(spec).groups`), and said so in the Answer, as tickets 02 and 03 did. Ticket 06 moves these notes into the module.
-
+- **Decided (2026-10-08):** the agent is right. The ticket's file list missed a caller of the moved names; one import each is the change the ticket asked for.
 
 ## 2026-10-08 — period-selection 06: notes read from the stored reading change a clarification's answer
 
@@ -160,3 +162,4 @@ Each entry: date, ticket, where, the rule, why it looks wrong, what the agent di
 - **The rule:** the notes stop searching the wording for "last year" and year-to-date words and read them from the request's stored reading, with no change to any answer.
 - **Why it looks wrong:** the two are not always the same. A metric reply to a clarification keeps the held question's reading when the reply names no window (`clarify._resume_metric`). On master, "Apple margin last year" then "gross margin" shows four quarters with no "The last year: ..." note, and "Apple margin YTD" then "gross margin" has no year-to-date note, because the notes search the reply. Reading the stored reading adds both notes. That is arguably right (it is the #103 class ADR 0015 names: a clarified answer losing its window note), but it changes answers. No recorded conversation reaches it, so compare_answers shows 0 differences either way.
 - **What you did:** kept the behaviour, as the ticket says to when a step would change it. `Periods.notes` reads `reading.year_of_quarters` and `reading.year_to_date` as designed. `spec_turn.annotate_analysis` passes a copy of the stored reading with those two fields read from the wording (`read(compiled.wording).reading`), as before. A test in `test_calendars_clarification_and_formatting.py` pins master's answer. To take the fix, a person decides; it is then a deletion of the copy in `annotate_analysis` and a flip of that test.
+- **Decided (2026-10-08):** take the fix. It is the #103 class: a clarified answer losing a note about the window it keeps. `annotate_analysis` passes the stored reading unchanged, and the test now asserts the reply shows the same last-year or year-to-date note as the question naming the metric itself.

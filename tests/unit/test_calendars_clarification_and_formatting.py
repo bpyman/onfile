@@ -400,15 +400,18 @@ def test_a_metric_answer_keeps_the_held_questions_window() -> None:
     assert own.window.asked_quarters == 6
 
 
-@pytest.mark.parametrize("question", ["Apple margin last year", "Apple margin YTD"])
-def test_a_metric_reply_says_last_year_and_year_to_date_only_where_the_reply_does(
-    question: str,
+@pytest.mark.parametrize(
+    ("question", "direct", "note"),
+    [
+        ("Apple margin last year", "Apple gross margin last year", "The last year:"),
+        ("Apple margin YTD", "Apple gross margin YTD", "Year-to-date"),
+    ],
+)
+def test_a_metric_reply_keeps_the_held_questions_period_notes(
+    question: str, direct: str, note: str
 ) -> None:
-    """The held question's window is kept; its last-year and year-to-date notes are not.
-
-    As before the period module: the notes read those two words from the reply
-    (rules-to-review, 8 October 2026).
-    """
+    """The held question's last-year and year-to-date notes survive a metric reply,
+    as they show when the same question names the metric itself."""
     from financial_analyst_agent.conversation import run_conversation_turn, start_thread
     from financial_analyst_agent.runtime import RuntimeKind, recorded_runtime
     from financial_analyst_agent.thread_store import EphemeralThreadStore
@@ -417,9 +420,12 @@ def test_a_metric_reply_says_last_year_and_year_to_date_only_where_the_reply_doe
     start_thread("held-window", RuntimeKind.RECORDED, store=store)
     asked = run_conversation_turn("held-window", question, runtime, store=store).result
     assert asked.renderer is RendererKind.CLARIFY
-
     answer = run_conversation_turn("held-window", "gross margin", runtime, store=store).result
 
-    assert not any(
-        banner.startswith(("The last year:", "Year-to-date")) for banner in answer.banners
-    )
+    start_thread("asked-direct", RuntimeKind.RECORDED, store=store)
+    named = run_conversation_turn("asked-direct", direct, runtime, store=store).result
+
+    def notes(result: TurnResult) -> list[str]:
+        return [banner for banner in result.banners if banner.startswith(note)]
+
+    assert notes(answer) and notes(answer) == notes(named)
