@@ -429,3 +429,34 @@ def test_a_metric_reply_keeps_the_held_questions_period_notes(
         return [banner for banner in result.banners if banner.startswith(note)]
 
     assert notes(answer) and notes(answer) == notes(named)
+
+
+@pytest.mark.parametrize(
+    ("question", "direct"),
+    [
+        # The growth note, the segment note, and the base still to be asked.
+        ("Apple margin growth", "Apple gross margin growth"),
+        ("iPhone margin", "iPhone gross margin"),
+        ("Why did Apple margin fall", "Why did Apple gross margin fall"),
+    ],
+)
+def test_a_metric_reply_answers_as_the_question_naming_the_metric(
+    question: str, direct: str
+) -> None:
+    """A metric chosen on a clarification resumes the held question, not the reply's words."""
+    from financial_analyst_agent.conversation import run_conversation_turn, start_thread
+    from financial_analyst_agent.runtime import RuntimeKind, recorded_runtime
+    from financial_analyst_agent.thread_store import EphemeralThreadStore
+
+    runtime, store = recorded_runtime(), EphemeralThreadStore()
+    start_thread("held", RuntimeKind.RECORDED, store=store)
+    asked = run_conversation_turn("held", question, runtime, store=store).result
+    assert asked.renderer is RendererKind.CLARIFY
+    answer = run_conversation_turn("held", "gross margin", runtime, store=store).result
+
+    start_thread("direct", RuntimeKind.RECORDED, store=store)
+    named = run_conversation_turn("direct", direct, runtime, store=store).result
+
+    assert answer.renderer is named.renderer
+    assert answer.banners == named.banners
+    assert answer.clarify_kind == named.clarify_kind
