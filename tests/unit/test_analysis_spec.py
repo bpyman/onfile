@@ -202,6 +202,55 @@ def test_validate_spec_rejects_unknown_metric_before_providers() -> None:
     outcome = validate_spec(spec)
     assert isinstance(outcome, SpecRejection)
     assert outcome.code == "invalid_metric"
+    assert outcome.details["term"] == "not_a_real_metric"
+
+
+def test_metric_rejection_names_the_term_and_the_allowed_metrics() -> None:
+    from financial_analyst_agent.contracts import ALLOWED_METRICS, unknown_metric_message
+    from financial_analyst_agent.graph.analysis_spec import metric_rejection
+
+    assert metric_rejection(("revenue", "net_income")) is None
+
+    rejection = metric_rejection(("revenue", "not_a_real_metric", "another_bad_one"))
+
+    assert rejection is not None
+    assert rejection.code == "invalid_metric"
+    assert rejection.message == unknown_metric_message("not_a_real_metric")
+    assert rejection.details == {"term": "not_a_real_metric", "allowed": list(ALLOWED_METRICS)}
+
+
+def test_apply_patch_extend_edits_keep_order_and_add_each_item_once() -> None:
+    from financial_analyst_agent.graph.analysis_spec import (
+        AnalysisSpec,
+        ResolvedCompany,
+        SpecPatch,
+        apply_patch,
+    )
+
+    current = AnalysisSpec(
+        companies=(
+            ResolvedCompany(cik="0000789019", name="Microsoft Corp", ticker="MSFT", query="MSFT"),
+            ResolvedCompany(cik="0001652044", name="Alphabet Inc.", ticker="GOOG", query="Google"),
+        ),
+        metrics=("revenue", "net_income"),
+        operations=("across_companies", "order_by_metric"),
+    )
+    patch = SpecPatch(
+        mode="extend",
+        add_companies=("Apple", "Google", "Apple"),
+        remove_companies=("Microsoft",),
+        add_metrics=("net_income", "eps_diluted", "eps_diluted"),
+        remove_metrics=("revenue",),
+        add_operations=("lowest_first", "order_by_metric"),
+        remove_operations=("across_companies",),
+    )
+
+    draft = apply_patch(current, patch)
+
+    # Kept items first in their order; added ones follow, each once, none twice.
+    assert draft.company_queries == ("Google", "Apple")
+    assert draft.metrics == ("net_income", "eps_diluted")
+    assert draft.operations == ("order_by_metric", "lowest_first")
 
 
 def test_validate_spec_rejects_empty_analysis() -> None:

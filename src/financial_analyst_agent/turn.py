@@ -12,10 +12,9 @@ New multi-turn behaviour is asserted at ``run_conversation_turn``.
 """
 
 import json
-import re
 from dataclasses import dataclass
 from datetime import date, datetime
-from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
+from decimal import Decimal
 from typing import Any
 
 from financial_analyst_agent.contracts import (
@@ -78,6 +77,7 @@ from financial_analyst_agent.domain.errors import (
 from financial_analyst_agent.domain.models import DerivationPart, FinancialFact
 from financial_analyst_agent.fan_out import map_in_order
 from financial_analyst_agent.graph.analysis_spec import CompiledTask
+from financial_analyst_agent.numeral_lock import numeral_lock_extras, numeral_lock_message
 from financial_analyst_agent.observability import call_provider
 from financial_analyst_agent.services.filing_selector import FISCAL_WEEK_TOLERANCE
 from financial_analyst_agent.universe import UniverseCompany
@@ -95,37 +95,6 @@ _COMPANY_FAILURES = (*_LOOKUP_FAILURES, *SOURCE_FAILURES)
 # formula's other components are still read, so the row can name each missing one.
 _FACT_FAILURES = (AmbiguousFactError, UnsupportedQuarterlyFactError)
 ESSAY_UNAVAILABLE_MESSAGE = "The written answer could not be produced just now. Please try again."
-_NUMERIC_TOKEN = re.compile(
-    # A number never ends in its list comma ("29, then"), and a one-letter unit
-    # must end the word ("5B", not the "t" of "then").
-    r"\$?\d(?:[\d,]*\d)?(?:\.\d+)?(?:\s*(?:[KMBTkmbt]\b|[Bb]illion|[Mm]illion|[Tt]rillion))?"
-)
-_CITE_MARKER = re.compile(r"\[([1-9]\d*)\]")
-# Grounding keys whose digits identify a document rather than state a figure.
-_IDENTIFIER_KEYS = frozenset({"url", "cik", "document", "primary_document", "anchor"})
-_MONTH = (
-    r"(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?"
-    r"|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)"
-)
-# What may follow a date and makes it an amount instead: "March 12%", "2050 million".
-_AMOUNT_AFTER = (
-    r"(?!\s*(?:%|percent\b|[KMBTkmbt]\b|thousand\b|million\b|billion\b|trillion\b"
-    r"|dollars?\b|shares\b)|[.,]?\d)"
-)
-# Dates are when, not how much: "March 31, 2026", "2026-03-31" or "in fiscal 2026" in
-# an essay is not a figure, and a grounding date's "31" or "03" must not unlock "31%"
-# elsewhere. A bare four-digit number is a year only beside a word that dates it;
-# "hire 2000 engineers" stays a figure.
-_DATE_TEXT = re.compile(
-    rf"\b\d{{4}}-\d{{2}}-\d{{2}}(?:T[\d:.+-]+Z?)?\b"
-    rf"|\b{_MONTH}\.?\s+\d{{1,2}}(?:st|nd|rd|th)?(?:,?\s+(?:19|20)\d{{2}})?\b{_AMOUNT_AFTER}"
-    rf"|\b{_MONTH}\.?\s+(?:19|20)\d{{2}}\b{_AMOUNT_AFTER}"
-    r"|\b(?:in|during|since|by|until|through|from|fiscal(?:\s+year)?|calendar(?:\s+year)?"
-    r"|FY|Q[1-4]|H[12]|early|mid|late|end\s+of)\s*'?(?:19|20)\d{2}\b"
-    rf"{_AMOUNT_AFTER}",
-    re.IGNORECASE,
-)
-_YEAR = re.compile(r"\b(?:19|20)\d{2}\b")
 
 __all__ = [
     "compare_metrics",
@@ -135,142 +104,12 @@ __all__ = [
     "exploratory_research_answer",
     "lookup_task",
     "market_formula_rows",
+    "metric_rows",
     "rank_and_lookup_task",
     "rank_task",
     "run_turn",
     "snapshot_compare_rows",
 ]
-
-
-def _strip_valid_citation_markers(essay: str, hit_count: int) -> str:
-    def replace(match: re.Match[str]) -> str:
-        raw = match.group(1)
-        index = int(raw)
-        if raw == str(index) and 1 <= index <= hit_count:
-            return ""
-        return match.group(0)
-
-    return _CITE_MARKER.sub(replace, essay)
-
-
-def _is_identifier_key(key: str) -> bool:
-    key = key.casefold()
-    return key in _IDENTIFIER_KEYS or key.endswith("_url") or "accession" in key
-
-
-def _grounding_text(tool_json: str) -> str:
-    """The grounding's readable values, without the digits of links and identifiers.
-
-    "0000950170-25-061046" and an article's URL are not figures an essay can
-    quote: "25%" must not pass because an accession number holds "-25-".
-    """
-    try:
-        payload = json.loads(tool_json)
-    except ValueError:
-        return tool_json
-    parts: list[str] = []
-
-    def walk(value: Any) -> None:
-        if isinstance(value, dict):
-            for key, item in value.items():
-                if not _is_identifier_key(str(key)):
-                    walk(item)
-        elif isinstance(value, list):
-            for item in value:
-                walk(item)
-        elif value is not None:
-            parts.append(str(value))
-
-    walk(payload)
-    return "\n".join(parts)
-
-
-def _figures(text: str) -> list[str]:
-    """Numeric tokens outside dates."""
-    return _NUMERIC_TOKEN.findall(_DATE_TEXT.sub(" ", text))
-
-
-_UNIT_SCALE = {
-    "k": Decimal(1_000),
-    "thousand": Decimal(1_000),
-    "m": Decimal(1_000_000),
-    "million": Decimal(1_000_000),
-    "b": Decimal(1_000_000_000),
-    "billion": Decimal(1_000_000_000),
-    "t": Decimal(1_000_000_000_000),
-    "trillion": Decimal(1_000_000_000_000),
-}
-_FIGURE_PARTS = re.compile(r"\$?(?P<number>\d[\d,]*(?:\.(?P<decimals>\d+))?)\s*(?P<unit>[A-Za-z]*)")
-_PERCENT_AFTER = re.compile(r"\s*(?:%|percent\b|per cent\b)", re.IGNORECASE)
-# A figure shown to fewer significant digits than this ("$2 billion", "3%") is
-# too coarse to tie to one grounded value, so only an exact match lets it pass.
-_MIN_SIGNIFICANT_DIGITS = 2
-
-
-def _grounded_amounts(grounding: str) -> list[Decimal]:
-    """Every number in the grounding, as an amount (sign dropped, as an essay's has none)."""
-    amounts = []
-    for token in _figures(grounding):
-        try:
-            amounts.append(abs(Decimal(token.lstrip("$").split()[0].replace(",", ""))))
-        except ArithmeticError:
-            continue
-    return amounts
-
-
-def _rounds_from_grounding(token: str, percent: bool, amounts: list[Decimal]) -> bool:
-    """Whether ``token`` is a grounded amount written as the window or a reader would.
-
-    "$22.97 B", "$22.97 billion" and "about $23 billion" round from 22974000000 at
-    the precision they show; "30.9%" rounds from the ratio 0.3088. A digit changed
-    at that precision ("$22.98 B", "31.9%") rounds from nothing grounded.
-    """
-    parts = _FIGURE_PARTS.fullmatch(token.strip())
-    if parts is None:
-        return False
-    shown = Decimal(parts.group("number").replace(",", ""))
-    decimals = len(parts.group("decimals") or "")
-    if len(shown.as_tuple().digits) < _MIN_SIGNIFICANT_DIGITS or shown == 0:
-        return False
-    unit = parts.group("unit").casefold()
-    if unit and unit not in _UNIT_SCALE:
-        return False
-    scale = _UNIT_SCALE.get(unit, Decimal(1)) / (Decimal(100) if percent else Decimal(1))
-    step = Decimal(1).scaleb(-decimals)
-    for amount in amounts:
-        try:
-            if (amount / scale).quantize(step, rounding=ROUND_HALF_UP) == shown:
-                return True
-        except InvalidOperation:
-            continue
-    return False
-
-
-def _numeral_lock_extras(essay: str, tool_json: str, *, hit_count: int = 0) -> list[str]:
-    scanned = _DATE_TEXT.sub(" ", _strip_valid_citation_markers(essay, hit_count))
-    grounding = _grounding_text(tool_json)
-    # A source's dates do not unlock their day or month, but their years may be quoted.
-    years = {
-        year for date in _DATE_TEXT.findall(grounding) for year in _YEAR.findall(date)
-    }
-    allowed = set(_figures(grounding)) | years
-    amounts = _grounded_amounts(grounding)
-    extras = []
-    for match in _NUMERIC_TOKEN.finditer(scanned):
-        token = match.group(0)
-        if token in allowed:
-            continue
-        percent = _PERCENT_AFTER.match(scanned, match.end()) is not None
-        if not _rounds_from_grounding(token, percent, amounts):
-            extras.append(token)
-    return list(dict.fromkeys(extras))
-
-
-def _numeral_lock_message(invented: str) -> str:
-    return (
-        "The written answer was withheld because it quoted numbers its sources "
-        f"do not contain: {invented}."
-    )
 
 
 def explain_answer(topic: str, runtime: Runtime, *, grounding_json: str = "") -> TurnResult:
@@ -302,28 +141,42 @@ def explain_answer(topic: str, runtime: Runtime, *, grounding_json: str = "") ->
     lock_json = grounding_json or json.dumps(
         [trace.model_dump(mode="json") for trace in traces]
     )
-    extras = _numeral_lock_extras(essay, lock_json)
+    return _locked_essay(
+        Intent.EXPLAIN,
+        essay,
+        lock_json,
+        traces,
+        [MODEL_ANALYSIS_BANNER, *_replay_banners(runtime, news=False)],
+    )
+
+
+def _locked_essay(
+    intent: Intent,
+    essay: str,
+    lock_json: str,
+    traces: list[ToolTrace],
+    banners: list[str],
+    *,
+    citations: list[NewsHit] | None = None,
+    hit_count: int = 0,
+) -> TurnResult:
+    """The essay with its banners, or its refusal when it quotes numbers ``lock_json`` lacks."""
+    extras = numeral_lock_extras(essay, lock_json, hit_count=hit_count)
     if extras:
-        invented = ", ".join(extras)
         return TurnResult(
-            intent=Intent.EXPLAIN,
+            intent=intent,
             tool_traces=traces,
             renderer=RendererKind.REFUSE,
+            citations=citations or [],
             numeral_lock_extras=extras,
-            message=_numeral_lock_message(invented),
+            message=numeral_lock_message(", ".join(extras)),
         )
     return TurnResult(
-        intent=Intent.EXPLAIN,
+        intent=intent,
         tool_traces=traces,
         renderer=RendererKind.ESSAY,
-        banners=[
-            MODEL_ANALYSIS_BANNER,
-            *(
-                [REPLAYED_ESSAY_BANNER]
-                if runtime.kind is RuntimeKind.LIVE and not runtime.live_essays
-                else []
-            ),
-        ],
+        citations=citations or [],
+        banners=banners,
         essay=essay,
     )
 
@@ -364,11 +217,14 @@ def _replays_news(runtime: Runtime) -> bool:
     return runtime.kind is RuntimeKind.RECORDED or not runtime.live_news
 
 
-def _replay_banners(runtime: Runtime) -> list[str]:
-    """On the live runtime, label an answer replayed from the recorded demo (story 36)."""
+def _replay_banners(runtime: Runtime, *, news: bool = True) -> list[str]:
+    """On the live runtime, label an answer replayed from the recorded demo (story 36).
+
+    An answer with no news search (``news=False``) is labelled for its essay alone.
+    """
     if runtime.kind is RuntimeKind.RECORDED:
         return []
-    banners = [] if runtime.live_news else [REPLAYED_NEWS_BANNER]
+    banners = [REPLAYED_NEWS_BANNER] if news and not runtime.live_news else []
     return banners + ([] if runtime.live_essays else [REPLAYED_ESSAY_BANNER])
 
 
@@ -438,24 +294,14 @@ def _news_grounded_essay_turn(
     essay = call_provider(
         "llm", lambda: essay_completer.complete_essay(query, tool_json)
     )
-    extras = _numeral_lock_extras(essay, tool_json, hit_count=len(hits))
-    if extras:
-        invented = ", ".join(extras)
-        return TurnResult(
-            intent=intent,
-            tool_traces=traces,
-            renderer=RendererKind.REFUSE,
-            citations=hits,
-            numeral_lock_extras=extras,
-            message=_numeral_lock_message(invented),
-        )
-    return TurnResult(
-        intent=intent,
-        tool_traces=traces,
-        renderer=RendererKind.ESSAY,
+    return _locked_essay(
+        intent,
+        essay,
+        tool_json,
+        traces,
+        [*(banners or []), *_replay_banners(runtime)],
         citations=hits,
-        banners=[*(banners or []), *_replay_banners(runtime)],
-        essay=essay,
+        hit_count=len(hits),
     )
 
 
@@ -476,6 +322,19 @@ def exploratory_research_answer(query: str, runtime: Runtime) -> TurnResult:
     )
 
 
+# The filing a value came from, as every provenance model names it: a table row,
+# a formula's component and a derived quarter's part.
+_PROVENANCE_FIELDS: set[str] = {
+    "start_date",
+    "end_date",
+    "form",
+    "accession_number",
+    "taxonomy",
+    "concept",
+    "source_url",
+}
+
+
 def _part_provenance(part: DerivationPart, parent: str, source: str) -> ComponentProvenance:
     """A reported fact behind a derived amount, with the facts it came from in turn."""
     nested = part.derivation
@@ -483,13 +342,7 @@ def _part_provenance(part: DerivationPart, parent: str, source: str) -> Componen
     return ComponentProvenance(
         metric=own,
         value=part.value,
-        start_date=part.start_date,
-        end_date=part.end_date,
-        form=part.form,
-        accession_number=part.accession_number,
-        taxonomy=part.taxonomy,
-        concept=part.concept,
-        source_url=part.source_url,
+        **part.model_dump(include=_PROVENANCE_FIELDS),
         source=source,
         derivation=nested.label if nested is not None else None,
         derived_from=(
@@ -505,7 +358,7 @@ def _derivation_fields(fact: FinancialFact) -> dict[str, Any]:
     if derivation is None:
         return {}
     metric = fact.metric.value
-    source = _fact_source_kind(fact)
+    source = str(fact.source)
     return {
         "derivation": derivation.label,
         "derived_from": [_part_provenance(part, metric, source) for part in derivation.parts],
@@ -517,7 +370,7 @@ def _year_earlier(fact: FinancialFact, metric: str | None = None) -> ComponentPr
     before = fact.year_earlier
     if before is None:
         return None
-    return _part_provenance(before, metric or fact.metric.value, _fact_source_kind(fact))
+    return _part_provenance(before, metric or fact.metric.value, str(fact.source))
 
 
 def _table_row_from_fact(fact: FinancialFact) -> TableRow:
@@ -528,13 +381,7 @@ def _table_row_from_fact(fact: FinancialFact) -> TableRow:
         metric=fact.metric.value,
         value=fact.value,
         currency=fact.currency,
-        start_date=fact.start_date,
-        end_date=fact.end_date,
-        form=fact.form,
-        accession_number=fact.accession_number,
-        taxonomy=fact.taxonomy,
-        concept=fact.concept,
-        source_url=fact.source_url,
+        **fact.model_dump(include=_PROVENANCE_FIELDS),
         newer_filing_end=fact.newer_filing_end,
         year_only_quarter_end=fact.year_only_quarter_end,
         year_earlier=_year_earlier(fact),
@@ -544,15 +391,13 @@ def _table_row_from_fact(fact: FinancialFact) -> TableRow:
     )
 
 
-def _fact_source_kind(fact: FinancialFact) -> str:
-    return str(fact.source)
-
-
 def _lookup_provenance(fact: FinancialFact) -> dict[str, Any]:
     derivation = fact.derivation
     extra: dict[str, Any] = {}
     if derivation is not None:
         extra["derivation"] = derivation.model_dump(mode="json")
+    # Spelled out: the recorded demo answers hold a trace's outputs as ordered
+    # pairs, so this order is part of the answer; a model dump would reorder it.
     return extra | {
         "form": fact.form,
         "accession_number": fact.accession_number,
@@ -560,7 +405,7 @@ def _lookup_provenance(fact: FinancialFact) -> dict[str, Any]:
         "concept": fact.concept,
         "start_date": fact.start_date.isoformat(),
         "end_date": fact.end_date.isoformat(),
-        "source": _fact_source_kind(fact),
+        "source": str(fact.source),
         "source_url": fact.source_url,
     }
 
@@ -629,14 +474,8 @@ def _provenance_from_fact(fact: FinancialFact, metric: str) -> ComponentProvenan
     return ComponentProvenance(
         metric=metric,
         value=fact.value,
-        start_date=fact.start_date,
-        end_date=fact.end_date,
-        form=fact.form,
-        accession_number=fact.accession_number,
-        taxonomy=fact.taxonomy,
-        concept=fact.concept,
-        source_url=fact.source_url,
-        source=_fact_source_kind(fact),
+        **fact.model_dump(include=_PROVENANCE_FIELDS),
+        source=str(fact.source),
         split_adjustment=fact.split_adjustment,
         **_derivation_fields(fact),
     )
@@ -718,17 +557,13 @@ def _formula_year_earlier(
     )
 
 
-def _metric_name(fact: FinancialFact) -> str:
-    return fact.metric.value
-
-
 def _aligned_period(facts: list[FinancialFact]) -> tuple[date, date] | None:
     """The period every component covers; a balance-sheet amount needs only its date.
 
     Return on equity divides a trailing year by the equity on its last day, so
     the row keeps the year and the equity must be at that year's end.
     """
-    durations = [fact for fact in facts if _metric_name(fact) not in INSTANT_METRICS]
+    durations = [fact for fact in facts if fact.metric.value not in INSTANT_METRICS]
     periods = {(fact.start_date, fact.end_date) for fact in durations or facts}
     if len(periods) != 1:
         return None
@@ -1133,14 +968,9 @@ def _metrics_turn(
 ) -> TurnResult:
     if metric in SNAPSHOT_METRICS:
         return _snapshot_metrics_turn(intent, issuers, metric, runtime)
-    if metric in MARKET_FORMULAS:
-        if runtime.ranking is None:
-            raise RuntimeError(f"{metric} requires a ranking adapter for market cap")
-        rows = market_formula_rows(
-            runtime.facts, runtime.ranking, issuers, metric, report_date=report_date
-        )
-    else:
-        rows = compare_metrics(runtime.facts, issuers, metric, report_date=report_date)
+    if metric in MARKET_FORMULAS and runtime.ranking is None:
+        raise RuntimeError(f"{metric} requires a ranking adapter for market cap")
+    rows = metric_rows(runtime, issuers, metric, report_date=report_date)
     args: dict[str, Any] = {"issuers": issuers, "metric": metric}
     if report_date is not None:
         args["report_date"] = report_date.isoformat()
@@ -1157,6 +987,26 @@ def _metrics_turn(
         table_rows=rows,
         banners=[PERIODS_DIFFER_BANNER] if periods_differ(rows) else [],
     )
+
+
+def metric_rows(
+    runtime: Runtime, issuers: list[str], metric: str, *, report_date: date | None = None
+) -> list[TableRow]:
+    """One row per company for ``metric``, from the builder that serves its kind.
+
+    A snapshot metric reads the snapshot, a market formula the filings and the
+    snapshot, any other metric the filings. Callers check ``runtime.ranking``
+    first and say in their own words when it is missing.
+    """
+    if metric in SNAPSHOT_METRICS or metric in MARKET_FORMULAS:
+        if runtime.ranking is None:
+            raise RuntimeError(f"{metric} requires a ranking adapter")
+        if metric in SNAPSHOT_METRICS:
+            return snapshot_compare_rows(runtime.ranking, issuers, metric)
+        return market_formula_rows(
+            runtime.facts, runtime.ranking, issuers, metric, report_date=report_date
+        )
+    return compare_metrics(runtime.facts, issuers, metric, report_date=report_date)
 
 
 def _snapshot_row(member: Any, metric: str, **kwargs: Any) -> TableRow:

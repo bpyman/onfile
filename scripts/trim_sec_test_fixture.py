@@ -16,12 +16,12 @@ import json
 from pathlib import Path
 from typing import Any
 
+from financial_analyst_agent.domain.enums import PERIODIC_FORMS
 from financial_analyst_agent.providers.sec.submissions import KEPT_COLUMNS
 
 ROOT = Path(__file__).resolve().parents[1]
 CACHE = ROOT / ".cache" / "sec"
 OUT = ROOT / "tests" / "fixtures" / "sec"
-PERIODIC_FORMS = frozenset({"10-Q", "10-Q/A", "10-K", "10-K/A"})
 
 
 def trim(

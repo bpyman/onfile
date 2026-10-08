@@ -206,3 +206,30 @@ def test_a_result_stored_when_a_change_row_said_yoy_still_loads() -> None:
 
     (row,) = TurnResult.model_validate_json(stored).table_rows
     assert row.comparison == "year_over_year"
+
+
+def test_a_stored_answer_is_read_by_its_ref_and_a_damaged_one_reads_as_none(
+    tmp_path: Path,
+) -> None:
+    from financial_analyst_agent.contracts import Intent, RendererKind, TurnResult
+
+    store = LocalThreadStore(tmp_path)
+    evidence = store.evidence_for("t")
+    kept = evidence.put_result(
+        TurnResult(
+            intent=Intent.LOOKUP, tool_traces=[], renderer=RendererKind.REFUSE, message="kept"
+        )
+    )
+    damaged = evidence.put_result(
+        TurnResult(
+            intent=Intent.LOOKUP, tool_traces=[], renderer=RendererKind.REFUSE, message="lost"
+        )
+    )
+    (tmp_path / "evidence" / "t" / f"{damaged}.json").write_text("{", encoding="utf-8")
+    state = ThreadState(thread_id="t", evidence_refs=(kept, "facts-1", damaged))
+
+    assert state.result_refs() == (kept, damaged)
+    read = store.resolve_result("t", kept)
+    assert read is not None and read.message == "kept"
+    assert store.resolve_result("t", damaged) is None
+    assert store.resolve_result("t", "result-never-written") is None

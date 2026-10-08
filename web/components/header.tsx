@@ -3,12 +3,12 @@
 import { Ellipsis, Lock, Monitor, Moon, RotateCcw, Sun } from "lucide-react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import { useId, useRef, type ToggleEvent } from "react";
+import { useId } from "react";
 import { cn } from "@/lib/format";
 import type { RuntimeKind } from "@/lib/types";
 import { ConfirmPanel, type ConfirmRequest } from "./confirm-panel";
 import { LogoMark } from "./ui";
-import { useHydrated } from "@/lib/browser";
+import { useAnchoredPopover, useHydrated } from "@/lib/browser";
 
 const RUNTIMES: { kind: RuntimeKind; label: string }[] = [
   { kind: "recorded", label: "Recorded" },
@@ -117,22 +117,11 @@ function PhoneMenu({
   onSwitchRuntime: (runtime: RuntimeKind) => void;
   onStartOver: () => void;
 }) {
-  const id = useId();
-  const panel = useRef<HTMLDivElement>(null);
-  const button = useRef<HTMLButtonElement>(null);
+  const { id, button, panel, onBeforeToggle, close: run } = useAnchoredPopover((menu, anchor) => {
+    menu.style.top = `${anchor.bottom + 6}px`;
+    menu.style.right = `${Math.max(12, window.innerWidth - anchor.right)}px`;
+  });
   const other = RUNTIMES.find(({ kind }) => kind !== runtime);
-
-  function place(event: ToggleEvent<HTMLDivElement>) {
-    if (event.newState !== "open" || !button.current) return;
-    const anchor = button.current.getBoundingClientRect();
-    event.currentTarget.style.top = `${anchor.bottom + 6}px`;
-    event.currentTarget.style.right = `${Math.max(12, window.innerWidth - anchor.right)}px`;
-  }
-
-  function run(action: () => void) {
-    panel.current?.hidePopover();
-    action();
-  }
 
   return (
     <div className="ml-auto sm:hidden">
@@ -151,7 +140,7 @@ function PhoneMenu({
         popover="auto"
         role="menu"
         aria-label="Menu"
-        onBeforeToggle={place}
+        onBeforeToggle={onBeforeToggle}
         className="fixed inset-auto m-0 w-60 rounded-xl border border-border-strong bg-surface p-1.5 text-[13px] text-fg shadow-xl shadow-black/25"
       >
         <button

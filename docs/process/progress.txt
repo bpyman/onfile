@@ -2607,3 +2607,397 @@ Files changed:
 Blockers / next:
 - None. All 2,328 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 375
   conversations differ from HEAD`. Every ticket in held-out-5-findings is resolved.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/simplify-pass-2/issues/01-read-a-companys-facts-once-per-turn.md`
+
+Key decisions:
+- `SecFactLookup` reads a company once a turn: `_parsed(cik)` (one `_ParsedFacts` through
+  `_remembering_failure`), `_records(cik, concepts, unit)` keyed by concept set, and a bound
+  `Records` callable the module helpers read with; `_filings(cik)` memoised; `_merged`
+  helper; `_first_available` holds the latest-quarter step-back.
+- `CachingSECDataSource.facts_digest_stamp` finds a parse in memory without reading the
+  digest; `facts_file` / `digest_file` / `missing_file` / `submissions_file` name the files.
+- runtime.py: `_snapshot_version`, `_member_ticker(ranking)`, `_facts_lookup`.
+- Cleanup only; `_merged` returns the filings as given when a predecessor's page adds
+  nothing (the old code re-sorted), and every reader sorts for itself.
+
+Files changed:
+- `src/financial_analyst_agent/sec_facts.py`, `providers/sec/cache.py`, `runtime.py`
+- `tests/unit/providers/test_facts_read_once.py` (+4 tests)
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,332 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 375
+  conversations differ from HEAD`. Tickets 02-12 in simplify-pass-2 remain.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/simplify-pass-2/issues/02-match-metric-phrases-once.md`
+
+Key decisions:
+- metric_catalog.py: each phrase's pattern compiled at import (`_UNIQUE_PATTERNS`,
+  `_UNKNOWN_PATTERNS`, `_AMBIGUOUS_PATTERNS`); `_longest_phrases` (the one scan) and
+  `_phrase_matches` (the full reading) cached and returning tuples, beside the asked-for
+  caches on `resolve_metric_phrases`, `resolve_metric_phrase` and
+  `without_trailing_year_words`; `_with_prefixed_metric` takes the matches already read.
+  `TRAILING_YEAR_WORDS` is the one spelling of the trailing-year alternation.
+- request_wording.py: `TRAILING_YEAR` built from it; `WindowReading.year_of_quarters` read
+  once in `read_window` from the raw message; `_change_operations`, `_full_year`,
+  `_metrics_in_place`; `_refine_against` strips once; `_keep_window_for_change` uses the
+  shorter check.
+- answer_notes.py: `_shown_name(company)` at the five sites; `_named_period_notes` iterates
+  `dated`. The `missing_component_notes` rewrite is left: eleven snapshot short names end in
+  ")", so it would change (correct) their one-company note; recorded in rules-to-review.md.
+
+Files changed:
+- `src/financial_analyst_agent/services/metric_catalog.py`, `request_wording.py`,
+  `answer_notes.py`
+- `tests/unit/services/test_metric_phrase.py` (+2 tests), `tests/unit/test_window_copy.py` (+1)
+- `docs/process/rules-to-review.md`, the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,335 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 375
+  conversations differ from HEAD`; phrase coverage 555 of 555 (report not regenerated); the
+  rules planner passes 160 of 160 held-out set 5 cases. A profile of six recorded turns shows
+  each message scanned for phrases once. Tickets 03-12 in simplify-pass-2 remain.
+- For a person: whether to fix the garbled missing-component note for the eleven ")" names.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/simplify-pass-2/issues/03-numeral-lock-module.md`
+
+Key decisions:
+- `numeral_lock.py` holds the lock unchanged; `numeral_lock_extras` and
+  `numeral_lock_message` are public, and turn, filing_change (top-level import),
+  mcp_server and numeral_lock_evaluation import from it. No re-exports in turn.py.
+- turn.py: `_locked_essay` is the one withhold-or-show tail; `_replay_banners(news=False)`
+  labels an essay alone; `metric_rows` (public, in `__all__`) is the one row-builder
+  dispatch, called by `_metrics_turn` and mcp_server; `_PROVENANCE_FIELDS` with
+  `model_dump(include=...)` builds the three pydantic provenance targets.
+  `_lookup_provenance` stays a literal: the recorded demo answers hold trace outputs as
+  ordered pairs, so its key order is behaviour (a dump reordered it and failed
+  test_demo_answers in 163 conversations).
+- filing_change.py: local `refuse(message, exc)` for the five refusals; `diff_paragraphs`
+  computes comparable forms and word sets once, `_aligned` takes word sets and a likeness
+  matrix, `_rejoin_moved` computes added words before its loop.
+- numeral_lock_evaluation.py: `_say` overloaded to pass None through; `_say_other`.
+
+Files changed:
+- `src/financial_analyst_agent/numeral_lock.py` (new), `turn.py`, `filing_change.py`,
+  `mcp_server.py`, `numeral_lock_evaluation.py`
+- `tests/unit/test_metric_rows.py` (new, +2), `tests/unit/test_filing_change.py` (+1, three
+  imports moved), `tests/unit/test_contracts_import.py`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,338 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 375
+  conversations differ from HEAD`; the numeral-lock evaluation reports the same counts;
+  phrase coverage 555 of 555 (report not regenerated). Tickets 04-12 in simplify-pass-2
+  remain.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/simplify-pass-2/issues/04-shared-ranked-group-reading.md`
+
+Key decisions:
+- `ranked_wording.py` (new) holds the ranking's group reading, moved from rules_planner.py
+  with no pattern text changed; `RANK_WORDS`, `WHICH_HIGHEST`, `GROUP_COUNT`,
+  `without_preamble`, `group_by_metric`, `group_named`, `prepared`, `ranking_group` and
+  `ranked_group` are public. turn_graph.py imports `ranked_group` from it; nothing under
+  `graph/` imports rules_planner (tested).
+- `prepared(query)` is the one preparation pipeline (`complete`, `ranked_group`);
+  `ranking_group(ranking)` is the one no-companies group reading (`_plan`, `ranked_group`),
+  so the group the graph checks cannot drift from the group the plan uses.
+- rules_planner.py: `_typed_words(mentions)` at the four sites; guide.py:
+  `short_display_name(index, query, fallback)` at the five sites, imports moved to the top,
+  `_named_company` / `_spec_company` return `str | None`.
+- turn_graph.py: the rank-intent test written once (`_RANK_INTENTS`), the two industry
+  fixes nested under it in order.
+
+Files changed:
+- `src/financial_analyst_agent/ranked_wording.py` (new), `rules_planner.py`, `guide.py`,
+  `graph/turn_graph.py`
+- `tests/unit/test_ranked_wording.py` (new, +10), `tests/unit/test_planner_rules.py` (+1)
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,349 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 375
+  conversations differ from HEAD`; phrase coverage 555 of 555 and the rules planner 160 of 160
+  held-out set 5 cases (reports not regenerated). Tickets 05-12 in simplify-pass-2 remain.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/simplify-pass-2/issues/05-one-copy-of-each-spec-turn-rule.md`
+
+Key decisions:
+- spec_turn.py: `_run_isolated` is the one failure isolation for both dispatch paths (the
+  pool stores `future.result()` with no try; a spent quota re-raises through it);
+  `_after_latest_filing` reads through `_or_none`; `_window_levels(window, runtime, *,
+  max_workers, narrow=None)` is the one derived-window pipeline, `overview_trend` one call
+  and `earlier_quarters` keeping its date choice as `narrow`, its split filter and its
+  prior / year-earlier split; `_latest_levels` and `_value_order` shared by the two
+  orderings with each caller's own filtering; `_rejection_result` through `_refusal`,
+  `_empty_spec` for the four empty-spec refusals, the invalid-quarter refusal through
+  `_refusal`.
+- analysis_spec.py: `metric_rejection(metrics)` returns the detailed invalid-metric
+  rejection; `validate_spec` calls it first and resolve_request's early check (still before
+  `resolve_spec`) uses it. `_edited(items, remove, add)` and `_kept(companies, tokens)`
+  are the one list edit and the one company filter in `apply_patch` and `emptied_by`.
+- state.py: `StructuredRequest.window` is a `WindowReading`, read from the wording by a
+  data-aware `default_factory` when absent and by a before-validator when a stored
+  checkpoint holds `window: null`; spec_turn reads it with no fallback. clarify.py,
+  turn_graph.py and request_wording.py unchanged.
+
+Files changed:
+- `src/financial_analyst_agent/graph/spec_turn.py`, `graph/analysis_spec.py`, `graph/state.py`
+- `tests/unit/test_analysis_spec.py` (+2, one assertion added), `tests/unit/test_window_copy.py` (+2)
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,353 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 375
+  conversations differ from HEAD`; phrase coverage 555 of 555 (report not regenerated).
+  Tickets 06-12 in simplify-pass-2 remain; ticket 06 can switch spec_turn's
+  `row.cik or row.company_name` sites to `TableRow.company_key`.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/simplify-pass-2/issues/06-presentation-shares-row-names-and-codes.md`
+
+Key decisions:
+- contracts.py: `TableRow.company_key` (`cik or company_name`) and `TableRow.short`
+  (`short_name(company_name) or company_name`); `short` imports `short_name` inside the
+  property because guide.py imports contracts. `refuse_unknown_metric` uses
+  `UnknownMetricError.code`.
+- presentation.py: `company_key` at the eight sites (the casefolded key at 377-378 kept),
+  `short` at the six sites and `_names_by_cik`, `_owner` is `possessive(row.short)`;
+  `present_turn` builds the names map once; `_trend_points(rows, *, value, label,
+  series_of, locate)` returns the line chart's ChartSpec keyword arguments for both the
+  level trend and the growth line (a level with no value keeps an empty amount, a change
+  with no percent has none, as before); `_quarters_clause` opens the three banners;
+  `_friendly_message`, `_REASON_LABELS` and `_SOURCE_ERROR_CODES` use the error classes'
+  codes and the contracts constants.
+
+Files changed:
+- `src/financial_analyst_agent/presentation.py`, `contracts.py`
+- `tests/unit/test_table_row.py` (new, +3), `tests/unit/test_answer_card.py` (+2),
+  `tests/unit/test_split_adjusted_per_share.py` (+1)
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,359 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 375
+  conversations differ from HEAD`; phrase coverage 555 of 555 (report not regenerated).
+  Tickets 07-12 in simplify-pass-2 remain; spec_turn.py and answer_notes.py can now switch
+  their `row.cik or row.company_name` sites to `TableRow.company_key`.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/simplify-pass-2/issues/07-web-answer-reads-once.md`
+
+Key decisions:
+- lib/notes.ts: `eachFiling(presentation, label)` is the one walk over the filings an answer
+  read (card, evidence, each change's two sides, each filing once by its hash-free URL); it
+  hands the label function a `FilingSource` (`url`, `company`, `form`, `accession`,
+  `fallback`, `side?`). `answerFilings` and answer-text's `filingLinks` are its two labellings,
+  byte for byte as before. `SNAPSHOT_HELP` lives beside the SNAPSHOT prefix.
+- answer-chart.tsx: `series`, `rows` and `bars` built once per chart in `AnswerChart` and
+  passed to `TrendChart`, `ComparisonChart` and `ChartSummary` (one `<ul>` for either kind).
+  `PeriodTick` and `tickLine` share chart-data's `splitPeriod`.
+- answer.tsx passes `rowOrder` to `DataTable` (`rowOrder ?? identity`) and derives the bars'
+  `order` from it; `sortedRowKeys` deleted.
+- diff-view.ts: `rank` is the one figures check; `ranked` sorts once for `orderChanges` and
+  `splitChanges` (`{substantive, wording}`, cut at the first rewording); `isWordingOnly` is
+  `rank === 2`. `FilingChanges` splits inside its `useMemo`.
+- filing-changes.tsx: `Marked` deleted; `FilingSide` renders `Runs` over `sided` pieces. The
+  phone filing links and data-table's Filing cell are ui.tsx's `ExternalLink` behind
+  `safeHref`; checked in the browser (computed styles and screenshots), same look.
+
+Files changed:
+- `web/lib/notes.ts`, `answer-text.ts`, `chart-data.ts`, `diff-view.ts`, `table-sort.ts`
+- `web/components/answer.tsx`, `answer-chart.tsx`, `data-table.tsx`, `filing-changes.tsx`
+- `web/lib/notes.test.ts` (+2), `interaction.test.ts` (+1), `chart-data.test.ts` (+1),
+  `table-sort.test.ts` (−1)
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. web: 213 vitest, lint, tsc, build and 46 Playwright checks pass; a render harness over
+  the recorded demo answers shows the Markdown and CSV byte-identical and the HTML differing
+  only in class order and the link icon's `shrink-0`. Python: 2,359 tests, ruff, mypy,
+  compare_answers `0 of 375 conversations differ`. Tickets 08-12 in simplify-pass-2 remain;
+  status-line.tsx still holds its own `SNAPSHOT_HELP` copy (outside this ticket's files).
+
+2026-10-07
+
+Task completed: `docs/process/tickets/simplify-pass-2/issues/08-evaluation-harness-cleanups.md`
+
+Key decisions:
+- planner_evaluation.py: `protocol()` writes its lines directly (the fourth set's clause and
+  the count as f-strings, the fifth-set item spliced in with `*fifth`); `_PROTOCOL` and
+  `_FIFTH_AT` deleted. `_accuracy_by_run` is the one accuracy-per-run figure;
+  `CaseRun.passes(adjudicated=False)` the one pass test, `passed` reads it; `_BUDGET_REACHED`
+  written once and `CaseRun.stopped` read at the five sites. `_NO_DATA_CODES` built from
+  `UnsupportedQuarterlyFactError.code` and the contracts constants. `main`: `_write(report)`
+  for both writes, `_scored(name, label, cases, completer, usage, prices, *, llm_usage=None)`
+  runs and records a planner (the cascade's token counts copied with `dataclasses.replace`
+  and `llm_calls` added, both known only after the run); `_llm_completer` reads the model once.
+- evaluation.py: `_missing(label, wanted, have)` chains the six checks; `_run_case` runs a
+  case's turns and `run_suite` times it once (`try/finally`), `passed = not detail`.
+- held_out_overlap.py: `_earlier` for the three constructors; `load_cases()` with no arguments;
+  the nearest match scored once with `max(key=...)`, first of equals kept.
+- scripts: `PERIODIC_FORMS` from `domain.enums`; `_sync_fixture_snapshot` builds `live_by_cik`
+  once; `build_everyday_words._sample` reads the snapshot through `load_universe_snapshot`.
+
+Files changed:
+- `src/financial_analyst_agent/planner_evaluation.py`, `evaluation.py`, `held_out_overlap.py`
+- `scripts/record_sec_fixtures.py`, `trim_sec_test_fixture.py`, `build_everyday_words.py`
+- `tests/unit/test_planner_evaluation.py` (+2), `tests/unit/test_held_out_set.py` (+2),
+  `tests/unit/test_script_constants.py` (+3), `tests/test_evaluation.py`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. 2,366 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 375
+  conversations differ from HEAD`; `--from-json`, the overlap report, the protocol text, the
+  fixture sync and the trimmer give byte-identical output before and after (the committed
+  overlap report's probe file no longer exists, so the report was compared without probes).
+  Tickets 09-12 in simplify-pass-2 remain. The committed planner-comparison.md predates set
+  5's findings flag, so a `--from-json` regeneration would add one sentence; not regenerated.
+
+2026-10-08
+
+Task completed: `docs/process/tickets/simplify-pass-2/issues/09-phrase-coverage-builds-each-case-once.md`
+
+Key decisions:
+- phrase_coverage.py: `_reading(case_id, group, turns, tickers, metrics, period, comparison)`
+  builds the Expected column and the check from the same four readings (growth, idiom, word
+  use, segment, overview, both combination builders); `cases()` has one Windows loop over
+  (phrasing, question, kind, count) rows and one loop over the three same-shaped tables;
+  `_planned(seen)` at the twelve "answer or no_data" sites; `_shows(comparison)` replaces
+  `_year_over_year` and `_sequential`; `_companies` is a thin call to `_reads`.
+- compare_answers.py: `dump` replays every phrase case under `phrase:<case_id>`; the 37 EXTRA
+  conversations either source replays are deleted; `report(before, after, against, shown)`
+  compares the conversations both runs replay and prints how many were skipped on each side.
+  The ref's dump runs the working tree's script against the ref's package, so the phrase keys
+  are on both sides at once (0 of 893 against HEAD and master); the skip applies when the ref's
+  phrase_coverage.py lists different cases.
+
+Files changed:
+- `src/financial_analyst_agent/phrase_coverage.py`, `scripts/compare_answers.py`
+- `tests/unit/test_phrase_coverage.py` (+3), `tests/unit/test_compare_answers.py` (new, +3)
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. 2,372 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 893
+  conversations differ` against HEAD and master; every check against every observed turn
+  (555 × 555) and the report without its timestamp are identical before and after (report not
+  regenerated). Tickets 10-12 in simplify-pass-2 remain.
+
+2026-10-08
+
+Task completed: `docs/process/tickets/simplify-pass-2/issues/10-fact-selector-one-fact-builder.md`
+
+Key decisions:
+- fact_selector.py: `_fact(anchor, metric, owner, source_url, *, value, start_date,
+  directly_reported, derivation=None, year_earlier=None)` builds every FinancialFact the module
+  returns (owner fields and `currency.upper()`, the anchor record's end date, form, filed date,
+  accession, taxonomy and concept, `source=SEC_XBRL`); `_build_financial_fact` is its start-date
+  check plus the call, `_derived_fact` anchors on the longer record, `derive_trailing_year` on
+  the year-to-date record. `_is_standalone_quarter_duration` is the public
+  `is_standalone_quarter(start, end)`.
+- stock_splits.py: `series_agrees` calls `is_standalone_quarter`; `_QUARTER_DAYS` deleted after
+  confirming both bands were `70 <= days <= 110` inclusive and both skipped instants.
+- fiscal_periods.py: `_derivation_part(fact, *, metric=None)` sets the part's metric; the nested
+  `part()` in `gross_profit_from_components` and the two `model_copy(update={"metric": ...})`
+  sites are gone.
+- universe.py: an `INDUSTRY_GROUP_ALIASES` value ending in `*` (`_PREFIX`) names every industry
+  starting with the text before it; `" -"` entries became `" -*"`, the oil entries `"Oil & Gas*"`,
+  and `_names(pattern, industry)` replaces the three-clause match with its `"Oil & Gas"` branch.
+
+Files changed:
+- `src/financial_analyst_agent/services/fact_selector.py`, `stock_splits.py`, `fiscal_periods.py`,
+  `src/financial_analyst_agent/universe.py`
+- `tests/unit/services/test_fact_selector.py` (+1), `test_balance_sheet_and_trailing_year.py` (+1),
+  `tests/unit/test_derived_and_named_periods.py` (+1), `test_market_and_balance_sheet_figures.py`
+  (+1), `test_split_adjusted_per_share.py` (+1), `test_planner_rules.py` (+1, pinning every
+  everyday group alias's snapshot industries)
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. 2,378 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 893
+  conversations differ from HEAD` (phrase coverage replayed, so 555 of 555). Tickets 11-12 in
+  simplify-pass-2 remain. Noticed: the alias key "oil and gas" is never looked up because
+  `_normalize_group` singularises "gas" to "ga"; harmless today (the planner writes "oil & gas"),
+  pinned as resolving to nothing, left for a ticket that may change behaviour.
+
+2026-10-08
+
+Task completed: `docs/process/tickets/simplify-pass-2/issues/11-thread-view-and-small-module-cleanups.md`
+
+Key decisions:
+- thread_store.py: `_result_or_none(evidence, ref)` is the one unreadable-answer guard;
+  `resolve_results` and `resolve_last_result` go through it. `resolve_result(thread_id, ref)` and
+  `ThreadState.result_refs()` replace the ticket's `(ref, result)` pair generator, so a GET reads
+  only the answers it has not presented.
+- api.py: `present_turn` confirmed to read nothing but the result, so `_PresentedTurns` memoises
+  each stored answer's `presentation` and `candidate_slugs` by `(thread_id, ref)` (both random
+  uuids) in a locked LRU of 256 entries per app; `thread_view(..., presented=)` rebuilds only
+  `index`, `message` and `clarify_enabled`. Forgotten on DELETE and when a GET finds the thread
+  gone; a background purge's entries age out. A 10-turn thread's JSON is byte-identical before
+  and after; a second GET presents nothing (tested).
+- clarify.py: `_only_option_holding(words, options)` serves `_candidate_named_by_word` and the
+  tail of `_company_named`, each keeping its own filler and subject handling.
+- config.py: `validate_base_url` covers both base URLs by `info.field_name`; `_required(field,
+  purpose)` builds the five `ConfigurationError` messages, pinned word for word.
+- planner.py and planner_cascade.py import `OVERVIEW_PLAN` from request_wording; `complete`
+  validates an unparsed response with `response_format.model_validate`.
+
+Files changed:
+- `src/financial_analyst_agent/thread_store.py`, `api.py`, `graph/clarify.py`, `config.py`,
+  `planner.py`, `planner_cascade.py`
+- `tests/unit/test_thread_store.py` (+1), `tests/test_api.py` (+2), `tests/test_config.py` (+3),
+  `tests/unit/test_calendars_clarification_and_formatting.py` (+2), `tests/test_openai_planner.py`
+  (+1), `tests/unit/test_llm_planner.py` (+1)
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. 2,401 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 893
+  conversations differ from HEAD` (phrase coverage replayed, so 555 of 555). Ticket 12 in
+  simplify-pass-2 remains.
+
+2026-10-08
+
+Task completed: `docs/process/tickets/simplify-pass-2/issues/12-web-window-and-popover-helpers.md`
+
+Key decisions:
+- analyst-window.tsx: `showThread(next, notice?)` is the one `shownTurns.current = 0; setView;
+  info notice` sequence (locked-runtime restart, both branches of the other-tab follow, the
+  lost-thread restart inside `ask`, the moved-thread branch, `startOver`); `retryResume()` the one
+  `setBooted(false); setResumeAttempt(+1)` (startOver's failure path, the Try again button).
+  `loadIfCurrent(store, threadId)` is `getThread` plus the `isCurrentThread` check (the follow,
+  the moved branch, `refresh`); it is module-level and takes the store because a component-scoped
+  closure made `react-hooks/exhaustive-deps` ask for it as a dependency of the storage-listener
+  effect. The stale first doc comment on `ask()` is deleted.
+- lib/browser.ts: `useAnchoredPopover(place)` returns `{id, button, panel, onBeforeToggle, close}`;
+  `PhoneMenu` passes its right-edge placement, `AddMenu` `placeBelow(menu, anchor, 288, 6)`,
+  `RuntimeGuide` `placeBelow(panel, anchor, PANEL_WIDTH, 8, GUTTER)`. Each panel keeps its native
+  `popover="auto"`, role and placement call.
+- lib/api.ts: `textRows(value)` reads `raw` and `raw_percent`; `recordOf(value, guard)` reads a
+  line chart's `amounts` (with `isText`) and `evidence` (with `isIndex`). `rows`, `numbers` and the
+  conditional spreads are as they were.
+- lib/proxy.ts, route.ts: `hasBody(request)` and `TOO_LARGE` exported and used in
+  `upstreamRequestHeaders`, `refusal` and the route's chunked-body refusal.
+
+Files changed:
+- `web/components/analyst-window.tsx`, `header.tsx`, `status-line.tsx`, `runtime-guide.tsx`,
+  `web/lib/browser.ts`, `api.ts`, `proxy.ts`, `web/app/api/[...path]/route.ts`
+- `web/lib/browser.test.tsx` (new, +3), `web/lib/proxy.test.ts` (+1, the 413 case pins
+  `TOO_LARGE`), `web/lib/api.test.ts` (+2)
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. In web/: vitest 219 pass, lint and `tsc --noEmit` clean, `next build` ok, Playwright
+  46 pass. Python unchanged: 2,401 tests pass, ruff and mypy pass, compare_answers `0 of 893
+  conversations differ from HEAD`. The by-hand pass of the three menus by click and keyboard was
+  not done (unattended run). Note for this machine: `next build` fails under the agent's Git
+  Bash shell with a Turbopack worker spawn error (0xc0000142) and succeeds from PowerShell.
+  simplify-pass-2 is complete: all twelve tickets are resolved.

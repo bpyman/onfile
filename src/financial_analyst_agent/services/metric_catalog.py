@@ -1,6 +1,7 @@
 """Closed metric enum to XBRL concept candidate mapping."""
 
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import Literal
@@ -630,40 +631,64 @@ def metric_phrases() -> tuple[str, ...]:
     return tuple(sorted(phrases, key=len, reverse=True))
 
 
-def _phrase_spans(query: str, phrase: str) -> list[tuple[int, int]]:
-    return [
-        (match.start(), match.end()) for match in re.finditer(rf"\b{re.escape(phrase)}\b", query)
-    ]
+def _phrase_pattern(phrase: str) -> re.Pattern[str]:
+    return re.compile(rf"\b{re.escape(phrase)}\b")
+
+
+# Each phrase's pattern, compiled once: a turn matches every phrase against
+# its message several times over.
+_UNIQUE_PATTERNS: tuple[tuple[re.Pattern[str], str, re.Pattern[str] | None], ...] = tuple(
+    (_phrase_pattern(phrase), metric, _NOT_FOLLOWED_BY.get(phrase))
+    for phrase, metric in _UNIQUE_PHRASES
+)
+_UNKNOWN_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = tuple(
+    (_phrase_pattern(phrase), name) for phrase, name in _UNKNOWN_MEASURES
+)
+_AMBIGUOUS_PATTERNS: tuple[tuple[re.Pattern[str], tuple[str, ...]], ...] = tuple(
+    (_phrase_pattern(phrase), candidates) for phrase, candidates in _AMBIGUOUS_PHRASES
+)
+
+
+def _phrase_spans(query: str, pattern: re.Pattern[str]) -> list[tuple[int, int]]:
+    return [match.span() for match in pattern.finditer(query)]
 
 
 Span = tuple[int, int, str]
 AmbiguousSpan = tuple[int, int, tuple[str, ...]]
+PhraseMatches = tuple[tuple[Span, ...], tuple[Span, ...], tuple[AmbiguousSpan, ...]]
 
 
-def _phrase_matches(query: str) -> tuple[list[Span], list[Span], list[AmbiguousSpan]]:
+@lru_cache(maxsize=256)
+def _phrase_matches(query: str) -> PhraseMatches:
     """The unique phrases, unknown measures and ambiguous words in the question.
 
     Unique phrases and unknown measures compete by length first; an ambiguous
-    word counts only where neither took its span.
+    word counts only where neither took its span. Read once per message: the
+    planner, the turn and the notes each ask.
     """
-    unique, unknown = _longest_phrases(query)
-    unique = _as_ratios_of_revenue(query, _as_trailing_years(query, unique))
+    longest, unknown = _longest_phrases(query)
+    unique = _as_ratios_of_revenue(query, _as_trailing_years(query, longest))
     occupied = [(start, end) for start, end, _label in (*unique, *unknown)]
-    return unique, unknown, _nonoverlapping_ambiguous_matches(query, occupied)
+    ambiguous = _nonoverlapping_ambiguous_matches(query, occupied)
+    return tuple(unique), unknown, tuple(ambiguous)
 
 
-def _longest_phrases(query: str) -> tuple[list[Span], list[Span]]:
+@lru_cache(maxsize=256)
+def _longest_phrases(query: str) -> tuple[tuple[Span, ...], tuple[Span, ...]]:
     """Each unique phrase and unknown measure in the question, the longest winning
-    where two overlap (ADR 0004): (start, end, metric) and (start, end, name)."""
+    where two overlap (ADR 0004): (start, end, metric) and (start, end, name).
+
+    The one scan of every phrase; the full reading and the trailing-year words
+    both start from it.
+    """
     found: list[tuple[int, int, str, bool]] = []
-    for phrase, metric in _UNIQUE_PHRASES:
-        excluded = _NOT_FOLLOWED_BY.get(phrase)
-        for start, end in _phrase_spans(query, phrase):
+    for pattern, metric, excluded in _UNIQUE_PATTERNS:
+        for start, end in _phrase_spans(query, pattern):
             if excluded is not None and excluded.match(query, end):
                 continue
             found.append((start, end, metric, True))
-    for phrase, name in _UNKNOWN_MEASURES:
-        for start, end in _phrase_spans(query, phrase):
+    for pattern, name in _UNKNOWN_PATTERNS:
+        for start, end in _phrase_spans(query, pattern):
             found.append((start, end, name, False))
     found.sort(key=lambda item: (item[0] - item[1], item[0]))
     accepted: list[tuple[int, int, str, bool]] = []
@@ -672,12 +697,12 @@ def _longest_phrases(query: str) -> tuple[list[Span], list[Span]]:
             continue
         accepted.append((start, end, label, known))
     accepted.sort(key=lambda item: item[0])
-    unique = [(start, end, label) for start, end, label, known in accepted if known]
-    unknown = [(start, end, label) for start, end, label, known in accepted if not known]
+    unique = tuple((start, end, label) for start, end, label, known in accepted if known)
+    unknown = tuple((start, end, label) for start, end, label, known in accepted if not known)
     return unique, unknown
 
 
-def _longest_unique_phrases(query: str) -> list[Span]:
+def _longest_unique_phrases(query: str) -> tuple[Span, ...]:
     return _longest_phrases(query)[0]
 
 
@@ -688,10 +713,13 @@ def _longest_unique_phrases(query: str) -> list[Span]:
 # net income") it is the same figure; after the metric ("net income over the
 # last twelve months") it is a span of quarters, which these words do not reach.
 _TRAILING_YEAR_FORM: dict[str, str] = {"net_income": "net_income_ttm"}
-_TRAILING_YEAR_WORDS = re.compile(
-    r"\b(?:ttm|ltm|trailing[\s-]+(?:twelve|12)[\s-]+months?"
-    r"|(?:last|past)\s+(?:twelve|12)\s+months)\s+$"
+# The words, as an alternation: here they end just before a figure's name, and
+# request_wording's ``TRAILING_YEAR`` reads them anywhere in the message.
+TRAILING_YEAR_WORDS = (
+    r"ttm|ltm|trailing[\s-]+(?:twelve|12)[\s-]+months?"
+    r"|(?:last|past)\s+(?:twelve|12)\s+months"
 )
+_TRAILING_YEAR_WORDS = re.compile(rf"\b(?:{TRAILING_YEAR_WORDS})\s+$")
 
 
 def _trailing_year_words_before(query: str, start: int) -> int | None:
@@ -700,9 +728,7 @@ def _trailing_year_words_before(query: str, start: int) -> int | None:
     return match.start() if match is not None else None
 
 
-def _as_trailing_years(
-    query: str, matches: list[tuple[int, int, str]]
-) -> list[tuple[int, int, str]]:
+def _as_trailing_years(query: str, matches: Sequence[Span]) -> list[Span]:
     """Read "TTM net income" as net income's trailing year."""
     read: list[tuple[int, int, str]] = []
     for start, end, metric in matches:
@@ -715,6 +741,7 @@ def _as_trailing_years(
     return read
 
 
+@lru_cache(maxsize=256)
 def without_trailing_year_words(query: str) -> str:
     """The question without the "TTM" a trailing-year figure takes, for reading its window."""
     folded = query.casefold()
@@ -744,9 +771,7 @@ _AS_A_SHARE_OF = re.compile(
 )
 
 
-def _as_ratios_of_revenue(
-    query: str, matches: list[tuple[int, int, str]]
-) -> list[tuple[int, int, str]]:
+def _as_ratios_of_revenue(query: str, matches: Sequence[Span]) -> list[Span]:
     """Read "X as a percentage (or share) of revenue" as X's ratio, where the catalog has one."""
     merged: list[tuple[int, int, str]] = []
     for start, end, metric in matches:
@@ -775,8 +800,8 @@ def _nonoverlapping_ambiguous_matches(
     query: str, occupied: list[tuple[int, int]]
 ) -> list[tuple[int, int, tuple[str, ...]]]:
     found: list[tuple[int, int, tuple[str, ...]]] = []
-    for phrase, candidates in _AMBIGUOUS_PHRASES:
-        for start, end in _phrase_spans(query, phrase):
+    for pattern, candidates in _AMBIGUOUS_PATTERNS:
+        for start, end in _phrase_spans(query, pattern):
             if _spans_overlap(start, end, occupied):
                 continue
             found.append((start, end, candidates))
@@ -792,15 +817,19 @@ def _nonoverlapping_ambiguous_matches(
     return accepted
 
 
+@lru_cache(maxsize=256)
 def resolve_metric_phrases(query: str) -> tuple[MetricPhraseResolution, ...]:
     """Classify each metric phrase in the user question, left to right.
 
     An unknown measure the catalog lists by name is an "unknown" entry with its
     ``term``; a question naming no measure at all gives an empty tuple.
     """
-    normalized = query.casefold()
-    unique_matches, unknown_matches, ambiguous_matches = _phrase_matches(normalized)
+    return _resolutions(_phrase_matches(query.casefold()))
 
+
+def _resolutions(matches: PhraseMatches) -> tuple[MetricPhraseResolution, ...]:
+    """The matches as resolutions, in the order the question names them."""
+    unique_matches, unknown_matches, ambiguous_matches = matches
     ordered: list[tuple[int, MetricPhraseResolution]] = [
         (
             start,
@@ -824,14 +853,17 @@ def resolve_metric_phrases(query: str) -> tuple[MetricPhraseResolution, ...]:
     return tuple(resolution for _start, resolution in ordered)
 
 
+@lru_cache(maxsize=256)
 def resolve_metric_phrase(query: str) -> MetricPhraseResolution:
     """Classify metric phrases for the one-shot turn seam."""
-    phrases = resolve_metric_phrases(query)
+    normalized = query.casefold()
+    matches = _phrase_matches(normalized)
+    phrases = _resolutions(matches)
     if not phrases:
         return MetricPhraseResolution(kind="unknown")
     for phrase in phrases:
         if phrase.kind == "ambiguous":
-            return _with_prefixed_metric(query, phrase)
+            return _with_prefixed_metric(normalized, matches, phrase)
     uniques = [phrase for phrase in phrases if phrase.kind == "unique"]
     if len(uniques) == 1:
         return uniques[0]
@@ -846,15 +878,14 @@ def resolve_metric_phrase(query: str) -> MetricPhraseResolution:
 
 
 def _with_prefixed_metric(
-    query: str, phrase: MetricPhraseResolution
+    normalized: str, matches: PhraseMatches, phrase: MetricPhraseResolution
 ) -> MetricPhraseResolution:
     """Offer the metric named just before "margin" ("free cash flow margin").
 
     The catalog has no such ratio, but the metric itself is a likely answer and
     the margins alone would not include it.
     """
-    normalized = query.casefold()
-    unique, _unknown, ambiguous = _phrase_matches(normalized)
+    unique, _unknown, ambiguous = matches
     prefixed = [
         named
         for _start, end, metric in unique

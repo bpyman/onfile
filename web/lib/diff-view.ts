@@ -31,9 +31,17 @@ export function changesFigures(item: DisplayDisclosure): boolean {
   return before.length !== after.length || before.some((figure, index) => figure !== after[index]);
 }
 
+/**
+ * Where a change goes: a figure that moved within a paragraph (0), a paragraph
+ * added, removed or otherwise edited (1), or a rewording (2).
+ */
+function rank(item: DisplayDisclosure): number {
+  return item.change_kind !== "changed" ? 1 : changesFigures(item) ? 0 : 2;
+}
+
 /** A rewording: the paragraph changed, its figures did not. */
 export function isWordingOnly(item: DisplayDisclosure): boolean {
-  return item.change_kind === "changed" && !changesFigures(item);
+  return rank(item) === 2;
 }
 
 /** How much changed, in words gone or come. */
@@ -54,12 +62,30 @@ function size(item: DisplayDisclosure): number {
  * figures on one side only, but says less than "20% to 29%".
  */
 export function orderChanges(items: DisplayDisclosure[]): DisplayDisclosure[] {
-  const rank = (item: DisplayDisclosure) =>
-    isWordingOnly(item) ? 2 : item.change_kind === "changed" && changesFigures(item) ? 0 : 1;
+  return ranked(items).map(({ item }) => item);
+}
+
+/**
+ * The changes in that order, split into those worth a row of their own and the
+ * rewordings (the order's tail) that fold into one.
+ */
+export function splitChanges(items: DisplayDisclosure[]): {
+  substantive: DisplayDisclosure[];
+  wording: DisplayDisclosure[];
+} {
+  const ordered = ranked(items);
+  const first = ordered.findIndex((entry) => entry.rank === 2);
+  const tail = first < 0 ? ordered.length : first;
+  return {
+    substantive: ordered.slice(0, tail).map(({ item }) => item),
+    wording: ordered.slice(tail).map(({ item }) => item),
+  };
+}
+
+function ranked(items: DisplayDisclosure[]): { item: DisplayDisclosure; rank: number }[] {
   return items
     .map((item, index) => ({ item, index, rank: rank(item), size: size(item) }))
-    .sort((a, b) => a.rank - b.rank || (a.rank === 1 ? b.size - a.size : 0) || a.index - b.index)
-    .map(({ item }) => item);
+    .sort((a, b) => a.rank - b.rank || (a.rank === 1 ? b.size - a.size : 0) || a.index - b.index);
 }
 
 // A sentence ends at . ! or ? followed by space and a capital or an opening mark.

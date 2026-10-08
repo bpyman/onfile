@@ -19,10 +19,11 @@ import threading
 import time
 import unicodedata
 import uuid
-from collections import deque
+from collections import OrderedDict, deque
 from collections.abc import AsyncIterator, Callable
 from dataclasses import asdict
 from datetime import UTC, datetime
+from functools import partial
 from pathlib import Path
 from typing import Any
 
@@ -396,6 +397,55 @@ def presentation_json(result: TurnResult) -> dict[str, Any]:
     return asdict(present_turn(result))
 
 
+# Stored answers kept presented, across threads: about ten full ones.
+PRESENTED_TURNS_KEPT = 256
+
+
+class _PresentedTurns:
+    """Each stored answer's display record, by thread and ref, presented once.
+
+    A stored answer never changes once written, and ``present_turn`` reads
+    nothing but the answer, so a reloaded or polling window is shown the
+    record made the first time. A thread's records go when it is cleared;
+    those of a thread purged in the background go as newer ones take their
+    place. The records are shared, so a caller never alters one.
+    """
+
+    def __init__(self, capacity: int = PRESENTED_TURNS_KEPT) -> None:
+        self._capacity = capacity
+        self._turns: OrderedDict[tuple[str, str], dict[str, Any]] = OrderedDict()
+        self._lock = threading.Lock()
+
+    def presented(
+        self, thread_id: str, ref: str, read: Callable[[], TurnResult | None]
+    ) -> dict[str, Any] | None:
+        """The answer's record, presenting it the first time; None when ``read`` has none."""
+        key = (thread_id, ref)
+        with self._lock:
+            turn = self._turns.get(key)
+            if turn is not None:
+                self._turns.move_to_end(key)
+                return turn
+        result = read()
+        if result is None:
+            return None
+        turn = {
+            "presentation": presentation_json(result),
+            "candidate_slugs": list(result.candidates),
+        }
+        with self._lock:
+            self._turns[key] = turn
+            self._turns.move_to_end(key)
+            while len(self._turns) > self._capacity:
+                self._turns.popitem(last=False)
+        return turn
+
+    def forget(self, thread_id: str) -> None:
+        with self._lock:
+            for key in [key for key in self._turns if key[0] == thread_id]:
+                del self._turns[key]
+
+
 def thread_view(
     store: LocalThreadStore,
     thread_id: str,
@@ -403,22 +453,28 @@ def thread_view(
     *,
     turn_in_flight: bool = False,
     keep: Callable[[str], bool] = lambda _thread_id: False,
+    presented: _PresentedTurns | None = None,
 ) -> dict[str, Any]:
     """Everything the window needs to draw one thread, as JSON-safe display records.
 
     ``turn_in_flight`` says a turn is running on the thread (a reloaded window
     polls until it ends); such a thread is not expired however old its last save.
     The store asks ``keep`` again as it decides expiry, for a turn begun since.
+    ``presented`` holds the turns shown before, so none is read or presented twice.
     """
     ttl = None if turn_in_flight else settings.thread_ttl_seconds
     state = store.load(thread_id, ttl_seconds=ttl, keep=keep)
+    memo = presented or _PresentedTurns()
     turns: list[dict[str, Any]] = []
     chips: tuple[str, ...] = ()
     edits: list[dict[str, Any]] = []
     actions: dict[str, Any] = {}
     pending = False
     turn_count = 0
-    if state is not None:
+    if state is None:
+        # Expired or deleted: nothing of it is kept.
+        memo.forget(thread_id)
+    else:
         pending = state.pending_clarification is not None
         turn_count = state.turn_count
         if state.analysis_spec is not None:
@@ -429,17 +485,24 @@ def thread_view(
                 group: [asdict(action) for action in items]
                 for group, items in chip_quick_actions(state.analysis_spec).items()
             }
-        results = store.resolve_results(state) if state.evidence_refs else ()
-        last = min(len(state.messages), len(results)) - 1
-        for index, (message, result) in enumerate(
-            zip(state.messages, results, strict=False)
-        ):
+        # A gone or damaged answer is left out; the rest still show.
+        shown = [
+            turn
+            for ref in state.result_refs()
+            if (
+                turn := memo.presented(
+                    thread_id, ref, partial(store.resolve_result, thread_id, ref)
+                )
+            )
+            is not None
+        ]
+        last = min(len(state.messages), len(shown)) - 1
+        for index, (message, turn) in enumerate(zip(state.messages, shown, strict=False)):
             turns.append(
                 {
                     "index": index,
                     "message": message.content,
-                    "presentation": presentation_json(result),
-                    "candidate_slugs": list(result.candidates),
+                    **turn,
                     "clarify_enabled": pending and index == last,
                 }
             )
@@ -531,6 +594,7 @@ def create_app(
     configure_logging()
     resolved = settings or get_settings()
     store = LocalThreadStore(store_root or thread_store_root())
+    presented = _PresentedTurns()
     turn_locks = TurnLocks()
     turn_slots = TurnSlots(resolved.max_concurrent_turns)
     purge = _Throttle(PURGE_INTERVAL_SECONDS)
@@ -729,6 +793,7 @@ def create_app(
             resolved,
             turn_in_flight=turn_locks.held(valid),
             keep=turn_locks.held,
+            presented=presented,
         )
 
     @app.delete("/api/threads/{thread_id}", status_code=204)
@@ -738,6 +803,7 @@ def create_app(
             raise HTTPException(status_code=409, detail=TURN_IN_FLIGHT_MESSAGE)
         try:
             store.clear(valid)
+            presented.forget(valid)
         finally:
             turn_locks.release(valid)
         return Response(status_code=204)
@@ -866,7 +932,7 @@ def create_app(
                 save_reserved(turn_store)
                 return "error", {"message": public_error_message(exc)}
             persist_session_budget(turn_store, valid, budget)
-            return "thread", thread_view(store, valid, resolved)
+            return "thread", thread_view(store, valid, resolved, presented=presented)
 
         def time_out() -> None:
             if not claim_end():

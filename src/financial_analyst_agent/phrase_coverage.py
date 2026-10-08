@@ -61,10 +61,14 @@ class PhraseCase:
     check: Check
 
 
+def _planned(seen: Observation) -> bool:
+    """The turn planned an answer: a fact the recording lacks still planned the right metric."""
+    return seen.outcome in ("answer", "no_data")
+
+
 def _answers_metric(slug: str) -> Check:
     def check(seen: Observation, _turn: ConversationTurn) -> bool:
-        # A fact the recording lacks still planned the right metric.
-        return seen.outcome in ("answer", "no_data") and seen.metrics == frozenset({slug})
+        return _planned(seen) and seen.metrics == frozenset({slug})
 
     return check
 
@@ -95,25 +99,20 @@ def _refuses_naming(measure: str) -> Check:
 def _window(kind: str, count: int | None = None) -> Check:
     def check(seen: Observation, _turn: ConversationTurn) -> bool:
         seen_kind, seen_count = seen.periods
-        return (
-            seen.outcome in ("answer", "no_data")
-            and seen_kind == kind
-            and (count is None or seen_count == count)
-        )
+        return _planned(seen) and seen_kind == kind and (count is None or seen_count == count)
 
     return check
 
 
-def _year_over_year(seen: Observation, turn: ConversationTurn) -> bool:
-    return seen.outcome in ("answer", "no_data") and any(
-        row.comparison == "year_over_year" for row in turn.result.table_rows
-    )
+def _shows(comparison: str) -> Check:
+    """An answer with at least one row of the change asked for."""
 
+    def check(seen: Observation, turn: ConversationTurn) -> bool:
+        return _planned(seen) and any(
+            row.comparison == comparison for row in turn.result.table_rows
+        )
 
-def _sequential(seen: Observation, turn: ConversationTurn) -> bool:
-    return seen.outcome in ("answer", "no_data") and any(
-        row.comparison == "sequential" for row in turn.result.table_rows
-    )
+    return check
 
 
 def _both_changes(seen: Observation, turn: ConversationTurn) -> bool:
@@ -127,7 +126,7 @@ def _both_changes(seen: Observation, turn: ConversationTurn) -> bool:
     )
     sequential = {row.end_date for row in rows if row.comparison == "sequential"}
     return (
-        seen.outcome in ("answer", "no_data")
+        _planned(seen)
         and _each_quarter_changed(turn, "year_over_year")
         and set(levels[1:]) <= sequential
     )
@@ -151,7 +150,7 @@ def _reads(
 
     def check(seen: Observation, turn: ConversationTurn) -> bool:
         return (
-            seen.outcome in ("answer", "no_data")
+            _planned(seen)
             and seen.tickers == tickers
             and seen.metrics == metrics
             and (
@@ -183,7 +182,7 @@ def _year_over_year_window(tickers: frozenset[str], metric: str, count: int) -> 
 
     def check(seen: Observation, _turn: ConversationTurn) -> bool:
         return (
-            seen.outcome in ("answer", "no_data")
+            _planned(seen)
             and seen.tickers == tickers
             and seen.metrics == frozenset({metric})
             and seen.periods == ("last_n_quarters", count)
@@ -199,7 +198,7 @@ def _year_over_year_since(tickers: frozenset[str], metric: str, year: int) -> Ch
     def check(seen: Observation, turn: ConversationTurn) -> bool:
         spec = turn.analysis_spec
         return (
-            seen.outcome in ("answer", "no_data")
+            _planned(seen)
             and seen.tickers == tickers
             and seen.metrics == frozenset({metric})
             and spec is not None
@@ -212,15 +211,7 @@ def _year_over_year_since(tickers: frozenset[str], metric: str, year: int) -> Ch
 
 
 def _companies(*tickers: str, metrics: tuple[str, ...] = ("revenue",), count: int = 4) -> Check:
-    def check(seen: Observation, _turn: ConversationTurn) -> bool:
-        return (
-            seen.outcome in ("answer", "no_data")
-            and seen.tickers == frozenset(tickers)
-            and seen.metrics == frozenset(metrics)
-            and seen.periods == ("last_n_quarters", count)
-        )
-
-    return check
+    return _reads(frozenset(tickers), frozenset(metrics), ("last_n_quarters", count), None)
 
 
 # Each catalog metric in the words analysts use for it. Bank figures are asked of
@@ -557,7 +548,7 @@ def _ranks(group: frozenset[str], metric: str, ascending: bool | None) -> Check:
     """A ranking of the group's members showing ``metric``, ordered as asked."""
 
     def check(seen: Observation, turn: ConversationTurn) -> bool:
-        if seen.outcome not in ("answer", "no_data") or seen.intent != "rank_and_lookup":
+        if not _planned(seen) or seen.intent != "rank_and_lookup":
             return False
         if not seen.tickers or not seen.tickers <= group or metric not in seen.metrics:
             return False
@@ -622,14 +613,13 @@ FOLLOW_UPS: tuple[tuple[str, str, Check, str], ...] = (
 )
 
 
-
 def _switched_to(comparison: str, count: int) -> Check:
     """The quarters on screen, each with the change switched to, and only that one asked."""
 
     def check(seen: Observation, turn: ConversationTurn) -> bool:
         spec = turn.analysis_spec
         return (
-            seen.outcome in ("answer", "no_data")
+            _planned(seen)
             and seen.periods == ("last_n_quarters", count)
             and spec is not None
             and ("year_over_year" in spec.operations) == (comparison == "year_over_year")
@@ -742,12 +732,14 @@ def _combined_cases() -> list[PhraseCase]:
         question = " ".join(word for word in words if word)
         period = window or default_window
         found.append(
-            PhraseCase(
+            _reading(
                 f"combined:{question}",
                 "Combinations",
                 (question,),
-                _expected(tickers, (metric,), period, comparison),
-                _reads(frozenset(tickers), frozenset({metric}), period, comparison),
+                tickers,
+                (metric,),
+                period,
+                comparison,
             )
         )
     return found
@@ -788,12 +780,14 @@ def _combined_follow_up_cases() -> list[PhraseCase]:
                 # The README keeps the quarters on screen; one quarter it leaves open.
                 shown = None
         found.append(
-            PhraseCase(
+            _reading(
                 f"combined_follow_up:{first} | {follow}",
                 "Follow-up combinations",
                 (first, follow),
-                _expected(tickers, metrics, shown, comparison),
-                _reads(frozenset(tickers), frozenset(metrics), shown, comparison),
+                tickers,
+                metrics,
+                shown,
+                comparison,
             )
         )
     return found
@@ -811,6 +805,26 @@ def _expected(
     if comparison is not None:
         parts.append(f"{comparison} rows")
     return "; ".join(parts)
+
+
+def _reading(
+    case_id: str,
+    group: str,
+    turns: tuple[str, ...],
+    tickers: Sequence[str],
+    metrics: Sequence[str],
+    period: tuple[str, int | None] | None,
+    comparison: str | None,
+) -> PhraseCase:
+    """A case read as companies, metrics, a window and change rows: the Expected
+    column and the check are built from the same four readings."""
+    return PhraseCase(
+        case_id,
+        group,
+        turns,
+        _expected(tickers, metrics, period, comparison),
+        _reads(frozenset(tickers), frozenset(metrics), period, comparison),
+    )
 
 
 def _metric_cases() -> list[PhraseCase]:
@@ -847,21 +861,18 @@ def _metric_cases() -> list[PhraseCase]:
 def cases() -> list[PhraseCase]:
     """Every phrasing case, in report order."""
     found = _metric_cases()
-    for phrase, kind, count in WINDOW_PHRASES:
+    # The window phrasings beside Apple's revenue, then the whole window questions.
+    windows = (
+        *(
+            (phrase, f"Apple revenue {phrase}", kind, count)
+            for phrase, kind, count in WINDOW_PHRASES
+        ),
+        *((question, question, kind, count) for question, kind, count in WINDOW_QUESTIONS),
+    )
+    for phrasing, question, kind, count in windows:
         expected = kind if count is None else f"{kind} {count}"
         found.append(
-            PhraseCase(
-                f"window:{phrase}",
-                "Windows",
-                (f"Apple revenue {phrase}",),
-                expected,
-                _window(kind, count),
-            )
-        )
-    for question, kind, count in WINDOW_QUESTIONS:
-        expected = kind if count is None else f"{kind} {count}"
-        found.append(
-            PhraseCase(f"window:{question}", "Windows", (question,), expected, _window(kind, count))
+            PhraseCase(f"window:{phrasing}", "Windows", (question,), expected, _window(kind, count))
         )
     for question in YEAR_OVER_YEAR_QUESTIONS:
         found.append(
@@ -870,18 +881,20 @@ def cases() -> list[PhraseCase]:
                 "Year over year",
                 (question,),
                 "year-over-year rows",
-                _year_over_year,
+                _shows("year_over_year"),
             )
         )
     growth: tuple[str, int | None] = ("last_n_quarters", 5)
     for question, tickers in GROWTH_NO_METRIC_QUESTIONS:
         found.append(
-            PhraseCase(
+            _reading(
                 f"growth:{question}",
                 "Growth with no metric",
                 (question,),
-                _expected(tickers, ("revenue",), growth, "year_over_year"),
-                _reads(frozenset(tickers), frozenset({"revenue"}), growth, "year_over_year"),
+                tickers,
+                ("revenue",),
+                growth,
+                "year_over_year",
             )
         )
     for question in SEQUENTIAL_QUESTIONS:
@@ -891,7 +904,7 @@ def cases() -> list[PhraseCase]:
                 "Quarter over quarter",
                 (question,),
                 "sequential rows",
-                _sequential,
+                _shows("sequential"),
             )
         )
     for question in NAMED_CHANGE_QUESTIONS:
@@ -901,8 +914,7 @@ def cases() -> list[PhraseCase]:
                 "A named period with a change",
                 (question,),
                 "each quarter shown with its year-over-year change",
-                lambda seen, turn: seen.outcome in ("answer", "no_data")
-                and _each_quarter_changed(turn, "year_over_year"),
+                lambda seen, turn: _planned(seen) and _each_quarter_changed(turn, "year_over_year"),
             )
         )
     for question in BOTH_BASES_QUESTIONS:
@@ -940,47 +952,29 @@ def cases() -> list[PhraseCase]:
                 _year_over_year_since(frozenset(tickers), metric, year),
             )
         )
-    for question, tickers, metric in IDIOM_QUESTIONS:
-        period = ("latest_quarter", None)
-        found.append(
-            PhraseCase(
-                f"idiom:{question}",
-                "Idioms beside a company",
-                (question,),
-                _expected(tickers, (metric,), period, None),
-                _reads(frozenset(tickers), frozenset({metric}), period, None),
+    # A company read beside a word that is not one: the metric's latest quarter.
+    latest: tuple[str, int | None] = ("latest_quarter", None)
+    for prefix, heading, table in (
+        ("idiom", "Idioms beside a company", IDIOM_QUESTIONS),
+        ("word use", "Everyday-word names used as the word", WORD_USE_QUESTIONS),
+        ("segment", "A segment names its company", SEGMENT_QUESTIONS),
+    ):
+        for question, tickers, metric in table:
+            found.append(
+                _reading(
+                    f"{prefix}:{question}", heading, (question,), tickers, (metric,), latest, None
+                )
             )
-        )
-    for question, tickers, metric in WORD_USE_QUESTIONS:
-        period = ("latest_quarter", None)
-        found.append(
-            PhraseCase(
-                f"word use:{question}",
-                "Everyday-word names used as the word",
-                (question,),
-                _expected(tickers, (metric,), period, None),
-                _reads(frozenset(tickers), frozenset({metric}), period, None),
-            )
-        )
-    for question, tickers, metric in SEGMENT_QUESTIONS:
-        period = ("latest_quarter", None)
-        found.append(
-            PhraseCase(
-                f"segment:{question}",
-                "A segment names its company",
-                (question,),
-                _expected(tickers, (metric,), period, None),
-                _reads(frozenset(tickers), frozenset({metric}), period, None),
-            )
-        )
     for question, tickers, window in OVERVIEW_QUESTIONS:
         found.append(
-            PhraseCase(
+            _reading(
                 f"overview:{question}",
                 "Overviews",
                 (question,),
-                _expected(tickers, OVERVIEW_METRICS, window, None),
-                _reads(frozenset(tickers), frozenset(OVERVIEW_METRICS), window, None),
+                tickers,
+                OVERVIEW_METRICS,
+                window,
+                None,
             )
         )
     for question, measure in UNKNOWN_MEASURE_QUESTIONS:

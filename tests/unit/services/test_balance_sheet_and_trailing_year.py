@@ -107,6 +107,47 @@ def test_the_trailing_year_after_a_10q_adds_the_year_to_date_to_the_last_10k() -
     assert [part.form for part in fact.derivation.parts] == ["10-K", "10-Q", "10-Q"]
 
 
+def test_the_trailing_year_carries_its_owner_and_the_10q_s_provenance() -> None:
+    facts = _trailing_facts()
+    year_to_date = facts[1]
+
+    fact = derive_trailing_year(
+        facts,
+        FISCAL_Q3,
+        Metric.NET_INCOME_TTM,
+        OWNER,
+        source_url=URL,
+        source_url_for_accession=_url,
+    )
+
+    # The 10-Q that reports this year to date is the trailing year's filing; the
+    # owner's name, ticker, CIK and currency are read as for a reported fact.
+    assert fact.model_dump(
+        exclude={"value", "start_date", "directly_reported", "derivation", "year_earlier"}
+    ) == {
+        **COMPANY,
+        "metric": Metric.NET_INCOME_TTM,
+        "currency": "USD",
+        "end_date": year_to_date.end_date,
+        "filed_date": year_to_date.filed_date,
+        "form": year_to_date.form,
+        "accession_number": year_to_date.accession_number,
+        "taxonomy": year_to_date.taxonomy,
+        "concept": year_to_date.concept,
+        "source_url": URL,
+        "source": "sec_xbrl",
+        "newer_filing_end": None,
+        "year_only_quarter_end": None,
+        "diluted_shares": None,
+        "split_adjustment": None,
+    }
+    assert [part.metric for part in (fact.derivation.parts if fact.derivation else [])] == [
+        "net_income",
+        "net_income",
+        "net_income",
+    ]
+
+
 def test_the_trailing_year_after_a_10k_is_the_fiscal_year() -> None:
     annual = make_filing(
         form="10-K",

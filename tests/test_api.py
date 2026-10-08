@@ -1264,3 +1264,47 @@ def test_without_a_sec_user_agent_the_live_runtime_is_locked_and_says_so(
     assert created["runtime"] == "recorded"
     assert created["notice"] == "Live runtime is off on this server"
     assert any("SEC_USER_AGENT is not set" in record.getMessage() for record in caplog.records)
+
+
+def test_a_reload_presents_no_stored_turn_twice(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    thread_id = _new_thread(client)
+    _ask(client, thread_id, GUIDED_STORIES[1][1])
+    view = _ask(client, thread_id, "add Apple")
+    presented: list[str] = []
+
+    def counting(result: Any) -> Any:
+        presented.append(result.intent.value)
+        raise AssertionError("a stored turn was presented again")
+
+    monkeypatch.setattr(api, "present_turn", counting)
+
+    assert client.get(f"/api/threads/{thread_id}").json() == view
+    assert presented == []
+    assert client.delete(f"/api/threads/{thread_id}").status_code == 204
+    assert client.get(f"/api/threads/{thread_id}").json()["turns"] == []
+
+
+def test_a_restarted_api_presents_a_stored_thread_once_more(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "threads"
+    first = TestClient(create_app(_settings(), store_root=root))
+    thread_id = _new_thread(first)
+    _ask(first, thread_id, GUIDED_STORIES[0][1])
+    view = _ask(first, thread_id, GUIDED_STORIES[1][1])
+    restarted = TestClient(create_app(_settings(), store_root=root))
+    present_turn = api.present_turn
+    presented: list[str] = []
+
+    def counting(result: Any) -> Any:
+        presented.append(result.intent.value)
+        return present_turn(result)
+
+    monkeypatch.setattr(api, "present_turn", counting)
+
+    assert restarted.get(f"/api/threads/{thread_id}").json() == view
+    assert presented == ["lookup", "lookup"]
+    assert restarted.get(f"/api/threads/{thread_id}").json() == view
+    assert presented == ["lookup", "lookup"]

@@ -379,11 +379,25 @@ function readTable(raw: Raw): DisplayTable {
     numbers,
     ...(Array.isArray(raw.row_keys) ? { row_keys: texts(raw.row_keys) } : {}),
     ...(Array.isArray(raw.evidence) ? { evidence: raw.evidence.map(indices) } : {}),
-    ...(Array.isArray(raw.raw) ? { raw: raw.raw.map((row) => (Array.isArray(row) ? row.map(text) : [])) } : {}),
-    ...(Array.isArray(raw.raw_percent)
-      ? { raw_percent: raw.raw_percent.map((row) => (Array.isArray(row) ? row.map(text) : [])) }
-      : {}),
+    ...(Array.isArray(raw.raw) ? { raw: textRows(raw.raw) } : {}),
+    ...(Array.isArray(raw.raw_percent) ? { raw_percent: textRows(raw.raw_percent) } : {}),
   };
+}
+
+/** Rows of text; a row that is not a list is read as an empty one. */
+function textRows(value: unknown): string[][] {
+  return Array.isArray(value) ? value.map((row) => (Array.isArray(row) ? row.map(text) : [])) : [];
+}
+
+/** The entries of a record whose values pass `guard`; anything but a record is empty. */
+function recordOf<T>(value: unknown, guard: (candidate: unknown) => candidate is T): Record<string, T> {
+  return Object.fromEntries(
+    Object.entries(record(value)).filter((entry): entry is [string, T] => guard(entry[1])),
+  );
+}
+
+function isText(value: unknown): value is string {
+  return typeof value === "string";
 }
 
 /** A row of evidence indices: whole numbers at least zero, else null. */
@@ -432,23 +446,9 @@ function readChart(raw: Raw): ChartSpec | null {
       records: list(raw.records, (item) => item as LineChartSpec["records"][number]),
       period_labels: Array.isArray(raw.period_labels) ? raw.period_labels.map(text) : [],
       series: texts(raw.series),
-      amounts: Array.isArray(raw.amounts)
-        ? raw.amounts.map((item) =>
-            Object.fromEntries(
-              Object.entries(record(item)).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
-            ),
-          )
-        : [],
+      amounts: Array.isArray(raw.amounts) ? raw.amounts.map((item) => recordOf(item, isText)) : [],
       ...(Array.isArray(raw.series_labels) ? { series_labels: raw.series_labels.map(text) } : {}),
-      ...(Array.isArray(raw.evidence)
-        ? {
-            evidence: raw.evidence.map((item) =>
-              Object.fromEntries(
-                Object.entries(record(item)).filter((entry): entry is [string, number] => isIndex(entry[1])),
-              ),
-            ),
-          }
-        : {}),
+      ...(Array.isArray(raw.evidence) ? { evidence: raw.evidence.map((item) => recordOf(item, isIndex)) } : {}),
       ...(Array.isArray(raw.derived) ? { derived: raw.derived.map(texts) } : {}),
     };
     return line;

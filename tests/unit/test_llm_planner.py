@@ -209,3 +209,9 @@ def test_the_follow_up_operations_are_the_spec_operations() -> None:
     from financial_analyst_agent.planner import Operation
 
     assert set(get_args(Operation)) == SUPPORTED_OPERATIONS
+
+
+def test_the_first_turn_prompt_names_the_overview_plan_value_code_reads() -> None:
+    from financial_analyst_agent.request_wording import OVERVIEW_PLAN
+
+    assert f"Use {OVERVIEW_PLAN} when" in _SYSTEM_PROMPT

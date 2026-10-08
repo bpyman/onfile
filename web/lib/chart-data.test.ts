@@ -8,6 +8,7 @@ import {
   lineRows,
   niceTicks,
   quarterTicks,
+  splitPeriod,
   tickLine,
   valueDomain,
   SERIES_COLORS,
@@ -195,6 +196,14 @@ describe("barRows", () => {
       { value: 0, label: "—", missing: true },
       { value: 0, label: "—", missing: true },
     ]);
+  });
+});
+
+describe("splitPeriod", () => {
+  it("cuts a period label into the line over the year, and leaves a label with no year whole", () => {
+    expect(splitPeriod("Mar 31, 2026")).toEqual(["Mar 31", "2026"]);
+    expect(splitPeriod("FY2025")).toEqual(["FY2025", ""]);
+    expect(splitPeriod(", 2026")).toEqual([", 2026", ""]);
   });
 });
 

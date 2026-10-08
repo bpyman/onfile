@@ -56,6 +56,7 @@ def test_turn_exports_its_workflows_and_contracts_owns_the_types() -> None:
         "exploratory_research_answer",
         "lookup_task",
         "market_formula_rows",
+        "metric_rows",
         "rank_and_lookup_task",
         "rank_task",
         "run_turn",

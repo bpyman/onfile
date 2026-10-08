@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
+import pytest
+
 from financial_analyst_agent.answer_notes import CALENDARS_DIFFER_BANNER, period_notes
 from financial_analyst_agent.api import _Throttle
 from financial_analyst_agent.contracts import Intent, RendererKind, TableRow, TurnResult
@@ -362,3 +364,49 @@ def test_purge_throttle_allows_one_scan_per_interval() -> None:
     assert throttle.due(start)
     assert not throttle.due(start + timedelta(seconds=30))
     assert throttle.due(start + timedelta(seconds=61))
+
+
+@pytest.mark.parametrize(
+    ("answer", "chosen"),
+    [
+        ("the net one please", ("net_income",)),
+        ("net", ("net_income",)),
+        ("income", None),
+        ("the one", None),
+        ("gross", None),
+    ],
+)
+def test_a_metric_answer_names_the_one_candidate_holding_its_words(
+    answer: str, chosen: tuple[str, ...] | None
+) -> None:
+    reply = clarification_reply(_pending(), answer)
+    assert (reply.chosen if reply is not None else None) == chosen
+
+
+@pytest.mark.parametrize(
+    ("answer", "chosen"),
+    [
+        ("the corporation one", ("LNC",)),
+        ("holdings", ("LECO",)),
+        # "national" is in two labels; "lincoln" is the name asked about.
+        ("the national one", None),
+        ("lincoln", None),
+        ("the one", None),
+    ],
+)
+def test_a_company_answer_names_the_one_offered_company_holding_its_words(
+    answer: str, chosen: tuple[str, ...] | None
+) -> None:
+    pending = PendingClarification(
+        kind="ambiguous_company",
+        candidates=("LECO", "LNC", "LNN"),
+        labels=(
+            "Lincoln Electric Holdings, Inc. (LECO)",
+            "Lincoln National Corporation (LNC)",
+            "Lincoln National Bancorp (LNN)",
+        ),
+        subject="Lincoln",
+        patch=SpecPatch(),
+    )
+    reply = clarification_reply(pending, answer)
+    assert (reply.chosen if reply is not None else None) == chosen

@@ -28,6 +28,7 @@ import {
   lineSeries,
   niceTicks,
   quarterTicks,
+  splitPeriod,
   tickLine,
   valueDomain,
   type BarRow,
@@ -36,6 +37,7 @@ import {
 } from "@/lib/chart-data";
 import { axisTick, cn } from "@/lib/format";
 import { emphasis, NO_LEGEND, toggleSeries, type LegendState } from "@/lib/legend";
+import { SNAPSHOT_HELP } from "@/lib/notes";
 import type { BarChartSpec, ChartSpec, LineChartSpec, ValueKind } from "@/lib/types";
 import { useInspect } from "./inspect-context";
 import { SectionLabel } from "./ui";
@@ -68,11 +70,11 @@ export function AnswerChart({
   const single =
     !compact && chart.kind === "line" && chart.series.length === 1 ? chart.series[0] : null;
   const [legend, setLegend] = useState<LegendState>(NO_LEGEND);
+  // Built once per chart: hovering the legend re-renders without rebuilding the rows.
   const series = useMemo(() => (chart.kind === "line" ? lineSeries(chart) : []), [chart]);
-  const derived = useMemo(
-    () => chart.kind === "line" && lineRows(chart).some((row) => row.derived.length > 0),
-    [chart],
-  );
+  const rows = useMemo(() => (chart.kind === "line" ? lineRows(chart) : []), [chart]);
+  const bars = useMemo(() => (chart.kind === "bar" ? barRows(chart) : []), [chart]);
+  const derived = rows.some((row) => row.derived.length > 0);
   // Bars that follow the table's sort are no longer in the server's order.
   const caption = chart.kind === "bar" && order && chart.resorted_caption ? chart.resorted_caption : chart.caption;
   return (
@@ -107,14 +109,21 @@ export function AnswerChart({
       </header>
       <div className={cn("px-1 pb-3 sm:px-3", compact ? "pt-2" : "pt-4")}>
         {chart.kind === "line" ? (
-          <TrendChart chart={chart} height={compact ? 150 : 280} compact={compact} legend={legend} />
+          <TrendChart
+            chart={chart}
+            rows={rows}
+            series={series}
+            height={compact ? 150 : 280}
+            compact={compact}
+            legend={legend}
+          />
         ) : (
           // A new order draws the bars afresh: animating heights between orders
           // would pair each label with another company's bar for a moment.
-          <ComparisonChart key={order?.join("|") ?? "server"} chart={chart} order={order} />
+          <ComparisonChart key={order?.join("|") ?? "server"} chart={chart} bars={bars} order={order} />
         )}
       </div>
-      <ChartSummary chart={chart} />
+      <ChartSummary bars={bars} rows={rows} series={series} />
       {(caption || captionNote) && (
         <figcaption className="border-t border-border bg-surface-2/40 px-4 py-2.5 text-xs leading-relaxed text-muted sm:px-5">
           {caption}
@@ -122,7 +131,7 @@ export function AnswerChart({
           {captionNote && (
             <span
               className="cursor-help text-subtle"
-              title="The universe snapshot is a dated list of US-listed operating companies with their market caps. Rankings read it; it is not rescreened live."
+              title={SNAPSHOT_HELP}
             >
               {captionNote}.
             </span>
@@ -135,22 +144,16 @@ export function AnswerChart({
 
 /**
  * The chart's points as text for a screen reader, in place of the plot: one
- * line per bar, or per series with each period's amount.
+ * line per bar, or per series with each period's amount (a chart has rows of
+ * one kind, so the other list is empty).
  */
-function ChartSummary({ chart }: { chart: ChartSpec }) {
-  if (chart.kind === "bar") {
-    return (
-      <ul className="sr-only">
-        {barRows(chart).map((row, index) => (
-          <li key={`${row.key}-${index}`}>{`${row.name}: ${row.missing ? row.label : row.amount || row.label}`}</li>
-        ))}
-      </ul>
-    );
-  }
-  const rows = lineRows(chart);
+function ChartSummary({ bars, rows, series }: { bars: BarRow[]; rows: LineRow[]; series: LineSeries[] }) {
   return (
     <ul className="sr-only">
-      {lineSeries(chart).map(({ key, name }) => (
+      {bars.map((row, index) => (
+        <li key={`${row.key}-${index}`}>{`${row.name}: ${row.missing ? row.label : row.amount || row.label}`}</li>
+      ))}
+      {series.map(({ key, name }) => (
         <li key={key}>
           {`${name}: ${rows.map((row) => `${row.period} ${row.amounts[key] ?? "no value"}`).join("; ")}`}
         </li>
@@ -229,11 +232,15 @@ const AXIS_TICK = { fill: "var(--subtle)", fontSize: 11 } as const;
 const GRID = "var(--border)";
 function TrendChart({
   chart,
+  rows,
+  series,
   height,
   compact,
   legend,
 }: {
   chart: LineChartSpec;
+  rows: LineRow[];
+  series: LineSeries[];
   height: number;
   compact: boolean;
   legend: LegendState;
@@ -241,10 +248,7 @@ function TrendChart({
   const gradientId = useId().replace(/:/g, "");
   const inspect = useInspect();
   const phone = usePhone();
-  // Built once per chart: hovering the legend re-renders without rebuilding the rows.
-  const series = useMemo(() => lineSeries(chart), [chart]);
   const shown = series.filter(({ key }) => !legend.hidden.includes(key));
-  const rows = useMemo(() => lineRows(chart), [chart]);
   const values = rows.flatMap((row) => shown.map(({ key }) => row[key] as number | null));
   // A small trend needs only its floor, middle and top.
   const ticks = niceTicks(valueDomain(values, { zero: false }), compact ? 3 : 5);
@@ -550,9 +554,7 @@ function QuarterTick({ x, y, payload }: { x?: number; y?: number; payload?: { va
 
 /** "Mar 31, 2026" on two lines, so four quarters fit a phone. */
 function PeriodTick({ x, y, payload }: { x?: number; y?: number; payload?: { value: string } }) {
-  const text = payload?.value ?? "";
-  const split = text.lastIndexOf(", ");
-  const [day, year] = split > 0 ? [text.slice(0, split), text.slice(split + 2)] : [text, ""];
+  const [day, year] = splitPeriod(payload?.value ?? "");
   return (
     <text x={x} y={y} textAnchor="middle" fontSize={11} fill="var(--subtle)">
       <tspan x={x} dy={14} fill="var(--muted)">
@@ -623,8 +625,8 @@ function TooltipBox({ title, wide = false, children }: { title: string; wide?: b
 
 const BAR_FILL = "var(--chart-1)";
 
-function ComparisonChart({ chart, order }: { chart: BarChartSpec; order: string[] | null }) {
-  const rows = useMemo(() => orderedBars(barRows(chart), order), [chart, order]);
+function ComparisonChart({ chart, bars, order }: { chart: BarChartSpec; bars: BarRow[]; order: string[] | null }) {
+  const rows = useMemo(() => orderedBars(bars, order), [bars, order]);
   const ticks = barTicks(rows.map((row) => (row.missing ? null : row.value)));
   // Sorted by another column, a rank number no longer matches the bar's place.
   const props = { rows, ticks, kind: chart.value_kind, metric: chart.metric_label, ranked: !order };

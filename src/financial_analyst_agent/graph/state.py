@@ -12,9 +12,9 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Literal, TypedDict
+from typing import Any, Literal, TypedDict
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from financial_analyst_agent.contracts import (
     ClarifyKind,
@@ -25,7 +25,7 @@ from financial_analyst_agent.contracts import (
     TurnResult,
 )
 from financial_analyst_agent.graph.analysis_spec import AnalysisSpec, CompiledTask, SpecPatch
-from financial_analyst_agent.request_wording import WindowReading
+from financial_analyst_agent.request_wording import WindowReading, read_window
 
 
 @dataclass(frozen=True)
@@ -67,14 +67,15 @@ class StructuredRequest(BaseModel):
 
     ``wording`` is what deterministic resolution reads for metrics and periods
     (ADR 0004: the analyst's words, not a model slug). ``question`` is what a
-    clarification would hold. ``intent`` is the closed intent the planner named,
-    if any; refusals name it.
+    clarification would hold. ``window`` is the one reading of the wording's
+    window words, read here when the request is made or loaded. ``intent`` is
+    the closed intent the planner named, if any; refusals name it.
     """
 
     patch: SpecPatch
     wording: str
     question: str
-    window: WindowReading | None = None
+    window: WindowReading = Field(default_factory=lambda data: read_window(data["wording"]))
     intent: Intent | None = None
     # The planner's notes (a corrected company name), shown before the answer's own.
     notes: tuple[str, ...] = ()
@@ -85,6 +86,15 @@ class StructuredRequest(BaseModel):
     # A shared name the analyst was asked about, and the ticker they chose
     # ("Lincoln", "LNC"): the held wording names the company again on resume.
     company_choice: tuple[str, str] | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _read_window(cls, value: Any) -> Any:
+        # A checkpoint saved while the window was optional holds "window": null;
+        # it is read from the wording as a request made without one is.
+        if isinstance(value, dict) and "window" in value and value["window"] is None:
+            return {key: item for key, item in value.items() if key != "window"}
+        return value
 
 
 QualitativeIntent = Literal[Intent.EXPLAIN, Intent.NEWS_AND_EXPLAIN, Intent.EXPLORATORY_RESEARCH]

@@ -23,7 +23,12 @@ from financial_analyst_agent.news import (
 )
 from financial_analyst_agent.planner import OpenAIStructuredCompleter
 from financial_analyst_agent.planner_cascade import CascadeCompleter
-from financial_analyst_agent.providers.sec.cache import CachingSECDataSource
+from financial_analyst_agent.providers.sec.cache import (
+    CachingSECDataSource,
+    digest_file,
+    missing_file,
+    submissions_file,
+)
 from financial_analyst_agent.providers.sec.client import SECClient
 from financial_analyst_agent.providers.sec.filing_watch import (
     FilingWatch,
@@ -44,7 +49,7 @@ from financial_analyst_agent.rules_planner import (
     DemoCompleter as DemoCompleter,
 )
 from financial_analyst_agent.rules_planner import issuer_index, recorded_issuer_index
-from financial_analyst_agent.sec_facts import SecFactLookup
+from financial_analyst_agent.sec_facts import SECDataSource, SecFactLookup
 from financial_analyst_agent.session import SessionBudget
 
 _LOGGER = logging.getLogger("financial_analyst_agent")
@@ -183,30 +188,43 @@ def _cached_snapshot_maps(
     return names, tickers
 
 
+def _snapshot_version(path: Path | None) -> int:
+    """Which copy of the snapshot file is on disk (its modified time); None is the default."""
+    from financial_analyst_agent.universe import DEFAULT_SNAPSHOT_PATH
+
+    return (path or DEFAULT_SNAPSHOT_PATH).stat().st_mtime_ns
+
+
 def _snapshot_maps(path: Path | None) -> tuple[Mapping[str, str], Mapping[str, str]]:
     """Each snapshot company's name and ticker by CIK, built once per snapshot version.
 
     The names make tables read like the landing page; the tickers are the
     listing rankings show.
     """
-    from financial_analyst_agent.universe import DEFAULT_SNAPSHOT_PATH
-
-    resolved = path or DEFAULT_SNAPSHOT_PATH
-    return _cached_snapshot_maps(path, resolved.stat().st_mtime_ns)
+    return _cached_snapshot_maps(path, _snapshot_version(path))
 
 
-def _member_ticker(path: Path | None) -> Callable[[str], str]:
+def _member_ticker(ranking: SnapshotRanking) -> Callable[[str], str]:
     """The snapshot ticker a company name resolves to, for the facts lookup."""
-    ranking = _snapshot_ranking(path)
     return lambda company: ranking.lookup_member(company).ticker
 
 
 def _snapshot_ranking(path: Path | None) -> SnapshotRanking:
     """The snapshot is immutable per file version; parse it once, not on every turn."""
-    from financial_analyst_agent.universe import DEFAULT_SNAPSHOT_PATH
+    return _cached_ranking(path, _snapshot_version(path))
 
-    resolved = path or DEFAULT_SNAPSHOT_PATH
-    return _cached_ranking(path, resolved.stat().st_mtime_ns)
+
+def _facts_lookup(
+    client: SECDataSource, path: Path | None, ranking: SnapshotRanking
+) -> SecFactLookup:
+    """A fact lookup over ``client`` that names and resolves companies as the snapshot does."""
+    display_names, listed_tickers = _snapshot_maps(path)
+    return SecFactLookup(
+        client=client,
+        display_names=display_names,
+        listed_tickers=listed_tickers,
+        member_ticker=_member_ticker(ranking),
+    )
 
 
 _SEC_CLIENTS: dict[tuple[object, ...], SECClient] = {}
@@ -238,17 +256,12 @@ def _shared_sec_client(settings: Settings) -> SECClient:
 def recorded_runtime() -> Runtime:
     """Replay captured SEC, news, and model responses; never touches the network."""
     source = RecordedSECDataSource()
-    display_names, listed_tickers = _snapshot_maps(FIXTURE_UNIVERSE_SNAPSHOT_PATH)
+    ranking = _snapshot_ranking(FIXTURE_UNIVERSE_SNAPSHOT_PATH)
     return Runtime(
         completer=DemoCompleter(recorded_issuer_index(), recorded=True),
         filings=source,
-        facts=SecFactLookup(
-            client=source,
-            display_names=display_names,
-            listed_tickers=listed_tickers,
-            member_ticker=_member_ticker(FIXTURE_UNIVERSE_SNAPSHOT_PATH),
-        ),
-        ranking=_snapshot_ranking(FIXTURE_UNIVERSE_SNAPSHOT_PATH),
+        facts=_facts_lookup(source, FIXTURE_UNIVERSE_SNAPSHOT_PATH, ranking),
+        ranking=ranking,
         news=RecordedNewsSearch(),
         essay=RecordedEssayCompleter(),
         kind=RuntimeKind.RECORDED,
@@ -275,9 +288,9 @@ def company_needs_warming(watch: FilingWatch, cache: CachingSECDataSource, cik: 
     A company SEC keeps no facts for counts as warm once that is known.
     """
     facts = watch.needs_warming(
-        cik, cache.company_written(f"digest-{cik}.json.gz")
-    ) and watch.needs_warming(cik, cache.company_written(f"facts-{cik}.missing"))
-    return facts or watch.needs_warming(cik, cache.company_written(f"submissions-{cik}.json"))
+        cik, cache.company_written(digest_file(cik))
+    ) and watch.needs_warming(cik, cache.company_written(missing_file(cik)))
+    return facts or watch.needs_warming(cik, cache.company_written(submissions_file(cik)))
 
 
 def _sec_cache_dir(settings: Settings) -> Path:
@@ -356,7 +369,6 @@ def live_runtime(
         else RecordedEssayCompleter(live=True)
     )
     news = TavilyNewsSearch(resolved) if use_tavily else RecordedNewsSearch()
-    display_names, listed_tickers = _snapshot_maps(None)
     client = CachingSECDataSource(
         _shared_sec_client(resolved),
         _sec_cache_dir(resolved),
@@ -371,12 +383,7 @@ def live_runtime(
     return Runtime(
         completer=completer,
         filings=client,
-        facts=SecFactLookup(
-            client=client,
-            display_names=display_names,
-            listed_tickers=listed_tickers,
-            member_ticker=_member_ticker(None),
-        ),
+        facts=_facts_lookup(client, None, ranking),
         ranking=ranking,
         news=news,
         essay=essay,

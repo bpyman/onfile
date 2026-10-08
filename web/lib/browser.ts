@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useId, useRef, useSyncExternalStore, type ToggleEvent } from "react";
 
 const PHONE = "(max-width: 639px)";
 
@@ -42,4 +42,29 @@ export function placeBelow(
   panel.style.width = `${fitted}px`;
   panel.style.left = `${Math.min(Math.max(gutter, anchor.left), window.innerWidth - fitted - gutter)}px`;
   panel.style.top = `${anchor.bottom + gap}px`;
+}
+
+/**
+ * A native popover anchored to its button: Escape and a click elsewhere close
+ * it. `place` positions the panel against the button's rectangle as it opens;
+ * `close(then)` hides the panel, then runs the chosen action. The button takes
+ * `ref={button}` and `popoverTarget={id}`; the panel `ref={panel}`, `id={id}`
+ * and `onBeforeToggle`.
+ */
+export function useAnchoredPopover(place: (panel: HTMLElement, anchor: DOMRect) => void) {
+  const id = useId();
+  const button = useRef<HTMLButtonElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+
+  function onBeforeToggle(event: ToggleEvent<HTMLDivElement>) {
+    if (event.newState !== "open" || !button.current) return;
+    place(event.currentTarget, button.current.getBoundingClientRect());
+  }
+
+  function close(then: () => void) {
+    panel.current?.hidePopover();
+    then();
+  }
+
+  return { id, button, panel, onBeforeToggle, close };
 }

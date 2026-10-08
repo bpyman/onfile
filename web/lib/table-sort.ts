@@ -65,12 +65,6 @@ export function sortedRowIndices(table: DisplayTable, sort: TableSort | null): n
   });
 }
 
-/** The company keys of the rows in display order, for a chart to follow; null when unsorted. */
-export function sortedRowKeys(table: DisplayTable, sort: TableSort | null): string[] | null {
-  if (!sort || !table.row_keys?.length) return null;
-  return sortedRowIndices(table, sort).map((row) => table.row_keys?.[row] ?? "");
-}
-
 /** "Revenue, largest first": what the table is sorted by, for the chart to say. */
 export function sortDescription(table: DisplayTable, sort: TableSort): string {
   const header = table.headers[columnIndex(table, sort.key)] ?? sort.key;

@@ -1,15 +1,17 @@
 """Compare what the recorded demo answers, before and after a change.
 
-Replays every planner evaluation conversation, and a few more aimed at
-per-company state (calendars, windows, companies outside the snapshot), on the
-recorded runtime: once in the working tree and once at a git ref (``HEAD`` by
-default, so the change under way). Each answer's presentation, chips and
-resolved spec are compared, and every conversation that differs is listed with
-the fields that changed.
+Replays every planner evaluation conversation, every phrase coverage case, and
+a few more aimed at per-company state (calendars, windows, companies outside
+the snapshot), on the recorded runtime: once in the working tree and once at a
+git ref (``HEAD`` by default, so the change under way). Each answer's
+presentation, chips and resolved spec are compared, and every conversation that
+differs is listed with the fields that changed.
 
 A change meant to leave the answers alone must show none; one meant to change
 them shows only the conversations it should. The two runs share a day, so
 wording that reads today's date ("two years ago") does not differ between them.
+A conversation only one run replays (a case added or dropped since the ref) is
+skipped, and the count of skipped conversations printed.
 
 Usage:
     uv run python scripts/compare_answers.py               # working tree vs HEAD
@@ -31,58 +33,31 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
 
-# Beyond the evaluation cases: the per-company state a spec keys by company
-# (quarter dates, calendars, named periods), companies outside the snapshot,
-# shared names and edits.
+# Beyond the evaluation and phrase coverage cases: the per-company state a spec
+# keys by company (quarter dates, calendars, named periods), companies outside
+# the snapshot, shared names and edits.
 EXTRA = [
     ["Tesla vs GM revenue last 4 quarters"],
     ["Apple and Microsoft revenue last 4 quarters"],
     ["Apple, Microsoft and NVIDIA net margin last 6 quarters"],
-    ["How is Apple doing?"],
     ["How is Tesla doing?"],
     ["Compare Google and GOOGL revenue"],
     ["Google revenue", "add GOOGL"],
     ["Apple revenue Q1 2025"],
-    ["Apple revenue 18 months"],
     ["Danaher net income the last year and a half"],
-    ["Apple revenue over the past 2.5 years"],
-    ["What was net income this quarter?"],
-    ["What was net interest income?"],
     ["Apple and Microsoft revenue fiscal 2025"],
     ["Apple and Microsoft revenue calendar Q2 2026"],
     ["Apple revenue growth last 4 quarters"],
-    ["How did AMD's EBITDA change over the past year?"],
     ["Merck EBITDA over the last 4 quarters year over year"],
-    ["How did Apple's revenue change over the past year?"],
-    ["How much did Intel's revenue change over the last year?"],
-    ["Over the past 10 quarters, how has Thermo Fisher's revenue moved?"],
-    ["How did Apple's revenue change over the last 2 quarters?"],
-    ["Apple revenue over the last 6 quarters", "as growth", "sequential instead"],
-    ["Did Cisco's revenue grow sequentially or versus last year?"],
-    ["Goldman net interest income, sequentially or versus last year"],
     ["Apple revenue over the last 6 quarters", "sequentially or versus last year"],
-    ["Palantir operating income, intel aside"],
-    ["Broadcom gross margin to the micron"],
-    ["NVIDIA revenue to the nearest micron"],
-    ["Intel and Palantir operating income"],
-    ["iPhone sales"],
-    ["Azure revenue"],
     ["Apple iPhone revenue"],
     ["Apple revenue", "what about iPhone sales?"],
-    ["5 banks by net income"],
-    ["Over the past year, the top 3 drugmakers by gross margin"],
-    ["This quarter, top 5 banks by net income"],
     ["top 3 drugmakers by gross margin"],
     ["Over the past year, the top 3 drugmakers by gross margin", "add Pfizer"],
     ["top 5 banks by revenue growth", "add Apple"],
-    ["How fast is Broadcom growing?"],
-    ["Is Apple growing?"],
     ["Why is Goldman's revenue so volatile?"],
     ["How does Apple's buyback affect its EPS?"],
     ["How might AI change Goldman Sachs's business?"],
-    ["How might AI change Apple's revenue?"],
-    ["How could tariffs affect Nvidia's gross margin?"],
-    ["What if Apple's revenue fell 10%?"],
     ["How would you rank banks by revenue?"],
     ["How would Apple's revenue compare with Microsoft's?"],
     ["Why did NVIDIA's revenue drop?"],
@@ -92,15 +67,9 @@ EXTRA = [
     ["top 10 companies in AI"],
     ["top 10 AI companies by revenue"],
     ["which companies are worth the most?"],
-    ["Apple revenue over the last 6 quarters quarter over quarter", "year over year instead"],
-    ["Apple revenue since 2025 year over year"],
     ["Apple revenue since 2025", "year over year"],
     ["Apple revenue since 2025 quarter over quarter"],
-    ["Apple revenue growth since 2024"],
-    ["How much did Intel's revenue change since 2023?"],
-    ["Apple revenue since 2024"],
     ["Apple revenue since 2015"],
-    ["Apple revenue since the start of fiscal 2025"],
     ["Microsoft revenue since FY2025"],
     ["Apple and Microsoft revenue since fiscal 2025"],
     ["Apple revenue", "add Tesla", "last 4 quarters"],
@@ -113,10 +82,6 @@ EXTRA = [
     ["Apple cash"],
     ["Apple revenue", "what about Microsoft", "and Tesla"],
     ["Top 5 banks by net income", "add Apple"],
-    ["top 5 semis by market cap and revenue"],
-    ["chipmakers by free cash flow, lowest first"],
-    ["big pharma by revenue"],
-    ["Top 5 banks by revenue, smallest first"],
     ["Top 5 banks by revenue", "lowest first", "largest first"],
     ["Lincoln revenue", "LNC"],
     ["Coca-Cola revenue", "KO"],
@@ -131,6 +96,7 @@ EXTRA = [
 def dump(out: Path) -> None:
     """Every conversation's answers, chips and spec, from the tree this runs in."""
     from financial_analyst_agent.conversation import run_conversation_turn, start_thread
+    from financial_analyst_agent.phrase_coverage import cases as phrase_cases
     from financial_analyst_agent.planner_evaluation import load_cases
     from financial_analyst_agent.presentation import present_turn, spec_chips
     from financial_analyst_agent.runtime import RuntimeKind, recorded_runtime
@@ -161,6 +127,8 @@ def dump(out: Path) -> None:
     for case in load_cases():
         if case.split != "held_out":
             conversations[f"case:{case.case_id}"] = replay(list(case.turns))
+    for case in phrase_cases():
+        conversations[f"phrase:{case.case_id}"] = replay(list(case.turns))
     for messages in EXTRA:
         conversations["extra:" + " | ".join(messages)] = replay(messages)
     out.write_text(json.dumps(conversations, sort_keys=True, default=str), encoding="utf-8")
@@ -210,13 +178,21 @@ def compare(against: str, shown: int) -> int:
         _dump_tree(ROOT, scratch_dir / "after.json")
         before = json.loads((scratch_dir / "before.json").read_text(encoding="utf-8"))
         after = json.loads((scratch_dir / "after.json").read_text(encoding="utf-8"))
+    return report(before, after, against, shown)
 
-    changed = {
-        name: found
-        for name in sorted(set(before) | set(after))
-        if (found := _differences(before.get(name), after.get(name)))
-    }
-    print(f"{len(changed)} of {len(after)} conversations differ from {against}.")
+
+def report(before: dict[str, Any], after: dict[str, Any], against: str, shown: int) -> int:
+    """Print the conversations both runs replay that differ; 1 when any does."""
+    shared = sorted(set(before) & set(after))
+    changed = {name: found for name in shared if (found := _differences(before[name], after[name]))}
+    print(f"{len(changed)} of {len(shared)} conversations differ from {against}.")
+    new, gone = len(set(after) - set(before)), len(set(before) - set(after))
+    if new or gone:
+        skipped = [
+            f"{new} conversation{'s' if new != 1 else ''} {against} does not replay",
+            f"{gone} conversation{'s' if gone != 1 else ''} the working tree no longer replays",
+        ]
+        print(f"Skipped {' and '.join(skipped)}.")
     for name, found in list(changed.items())[:shown]:
         print(f"\n== {name}")
         for path, old, new in found[:6]:

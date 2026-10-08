@@ -33,6 +33,7 @@ from financial_analyst_agent.issuer_index import CompanyNames, word_uses
 from financial_analyst_agent.observability import log_event
 from financial_analyst_agent.period_window import SINCE_YEAR, asked_window
 from financial_analyst_agent.services.metric_catalog import (
+    TRAILING_YEAR_WORDS,
     metric_phrases,
     resolve_metric_phrase,
     segment_companies,
@@ -323,10 +324,7 @@ _LATEST = re.compile(
 )
 
 
-TRAILING_YEAR = re.compile(
-    r"\b(?:ttm|ltm|trailing[\s-]+(?:twelve|12)[\s-]+months?|(?:last|past)\s+(?:twelve|12)\s+months)\b",
-    re.I,
-)
+TRAILING_YEAR = re.compile(rf"\b(?:{TRAILING_YEAR_WORDS})\b", re.I)
 
 
 # "Apple revenue last year", "annual revenue": a year of quarters, like TTM.
@@ -408,6 +406,8 @@ class WindowReading(BaseModel):
     counted_window: bool = False
     interpretation_notes: tuple[str, ...] = ()
     trailing_year: bool = False
+    # "last year", "annual": the four latest quarters, shown one by one.
+    year_of_quarters: bool = False
     # "since 2024": the quarters are every filed quarter since that 1 January,
     # chosen where the companies' report dates are known, so no count is read.
     since_year: int | None = None
@@ -694,13 +694,16 @@ def parse_named_periods(message: str) -> tuple[NamedPeriodSpec, ...]:
     """Every period the message names, in the order named, without repeats."""
     found: list[tuple[int, NamedPeriodSpec]] = []
     taken: list[tuple[int, int]] = []
+
+    def free(start: int, end: int) -> bool:
+        return not any(start < other_end and end > other_start for other_start, other_end in taken)
+
     for match in _HALF_YEAR.finditer(message):
         start, end = match.span()
-        if any(start < other_end and end > other_start for other_start, other_end in taken):
+        if not free(start, end):
             continue
         groups = match.groupdict()
-        raw_year = groups["y"]
-        year = int(raw_year) + (2000 if len(raw_year) == 2 else 0)
+        year = _full_year(groups["y"])
         second = groups.get("h") == "2" or (groups.get("hw") or "").casefold() in ("second", "2nd")
         first_quarter = 3 if second else 1
         taken.append((start, end))
@@ -713,9 +716,6 @@ def parse_named_periods(message: str) -> tuple[NamedPeriodSpec, ...]:
                     ),
                 )
             )
-    def free(start: int, end: int) -> bool:
-        return not any(start < other_end and end > other_start for other_start, other_end in taken)
-
     # "since the start of 2023" is a window; its year names no period.
     taken.extend(match.span() for match in SINCE_YEAR.finditer(message))
     for match in _YEAR_RANGE.finditer(message):
@@ -749,8 +749,7 @@ def parse_named_periods(message: str) -> tuple[NamedPeriodSpec, ...]:
             if not free(start, end):
                 continue
             groups = match.groupdict()
-            raw_year = groups["y"]
-            year = int(raw_year) + (2000 if len(raw_year) == 2 else 0)
+            year = _full_year(groups["y"])
             quarter = None
             if groups.get("q"):
                 quarter = int(groups["q"])
@@ -765,6 +764,11 @@ def parse_named_periods(message: str) -> tuple[NamedPeriodSpec, ...]:
             )
     ordered = [period for _start, period in sorted(found, key=lambda item: item[0])]
     return tuple(dict.fromkeys(ordered))
+
+
+def _full_year(raw: str) -> int:
+    """ "25" and "2025" are both 2025."""
+    return int(raw) + (2000 if len(raw) == 2 else 0)
 
 
 def comparison_asked(message: str) -> ComparisonBase | Literal["unclear"] | None:
@@ -876,6 +880,7 @@ def bind_periods_from_message(
             }
         )
     asked = window.asked_quarters if window.counted_window else None
+    base = comparison_asked(message)
     # "How much did revenue change?" shows the quarters "how has it changed?" does.
     yoy = YOY.search(message) is not None or _asks_change(message)
     # "quarter over quarter" is a window of sequential changes.
@@ -895,13 +900,9 @@ def bind_periods_from_message(
         # period's are, not counted from today. A change over it is over those
         # quarters: year over year from each one's own comparative (ADR 0009),
         # or on the quarter before, where the oldest has none inside the window.
-        operations = patch.add_operations
-        if (yoy or sequential) and "across_periods" not in operations:
-            operations = (*operations, "across_periods")
-        if comparison_asked(message) == "year_over_year" and "year_over_year" not in operations:
-            operations = (*operations, "year_over_year")
-        if both:
-            operations = _with_operations(operations, "year_over_year", "sequential")
+        operations = _change_operations(
+            patch.add_operations, across=yoy or sequential, base=base, both=both
+        )
         return patch.model_copy(
             update={
                 "set_periods": PeriodSelection(
@@ -914,7 +915,7 @@ def bind_periods_from_message(
             }
         )
     if not named and asked is None and not yoy and (
-        window.trailing_year or YEAR_OF_QUARTERS.search(message)
+        window.trailing_year or window.year_of_quarters
     ):
         # "TTM revenue": show the four quarters that make up the trailing year.
         return patch.model_copy(
@@ -924,14 +925,13 @@ def bind_periods_from_message(
         # A change on a named period is read as on a window: the named quarters,
         # each with its year-over-year change from its own filing's comparative
         # (ADR 0009), or with its change on the quarter before, read but not shown.
-        operations = patch.add_operations
         quarters = [period for period in named if period.quarter is not None]
-        if (yoy or sequential or len(quarters) >= 2) and "across_periods" not in operations:
-            operations = (*operations, "across_periods")
-        if comparison_asked(message) == "year_over_year" and "year_over_year" not in operations:
-            operations = (*operations, "year_over_year")
-        if both:
-            operations = _with_operations(operations, "year_over_year", "sequential")
+        operations = _change_operations(
+            patch.add_operations,
+            across=yoy or sequential or len(quarters) >= 2,
+            base=base,
+            both=both,
+        )
         return patch.model_copy(
             update={
                 "set_periods": PeriodSelection(
@@ -950,16 +950,12 @@ def bind_periods_from_message(
                 }
             )
         return patch
-    operations = patch.add_operations
-    if (yoy or sequential) and "across_periods" not in operations:
-        operations = (*operations, "across_periods")
     # Growth is year over year unless the analyst says sequential (ADR 0010); a
     # change that names no base is asked about before the analysis runs.
-    explicit_yoy = comparison_asked(message) == "year_over_year"
-    if explicit_yoy and "year_over_year" not in operations:
-        operations = (*operations, "year_over_year")
-    if both:
-        operations = _with_operations(operations, "year_over_year", "sequential")
+    explicit_yoy = base == "year_over_year"
+    operations = _change_operations(
+        patch.add_operations, across=yoy or sequential, base=base, both=both
+    )
     if asked is None and patch.set_periods is not None:
         return patch.model_copy(update={"add_operations": operations})
     count = asked if asked is not None else 5
@@ -991,6 +987,24 @@ def bind_periods_from_message(
             "add_operations": operations,
         }
     )
+
+
+def _change_operations(
+    operations: tuple[str, ...],
+    *,
+    across: bool,
+    base: ComparisonBase | Literal["unclear"] | None,
+    both: bool,
+) -> tuple[str, ...]:
+    """The patch's operations with the change the words ask for: across the
+    quarters, year over year where that base is named, and both bases where both are."""
+    if across and "across_periods" not in operations:
+        operations = (*operations, "across_periods")
+    if base == "year_over_year" and "year_over_year" not in operations:
+        operations = (*operations, "year_over_year")
+    if both:
+        operations = _with_operations(operations, "year_over_year", "sequential")
+    return operations
 
 
 def _with_operations(operations: tuple[str, ...], *names: str) -> tuple[str, ...]:
@@ -1178,7 +1192,7 @@ def _keep_window_for_change(
         or base not in ("year_over_year", "sequential")
         or window.counted_window
         or window.trailing_year
-        or _names_a_span(message)
+        or _names_a_window(message)
         or parse_named_periods(message)
     ):
         return patch
@@ -1247,7 +1261,8 @@ def _refine_against(
             patch, add_companies=(), remove_companies=(), add_metrics=(), remove_metrics=()
         )
 
-    swap = _swap_pair(message.strip())
+    stripped = message.strip()
+    swap = _swap_pair(stripped)
     if swap is not None:
         incoming, outgoing = swap
         add_metrics = unique_metrics_from_phrase(incoming)
@@ -1267,24 +1282,18 @@ def _refine_against(
             add_metrics=(),
         )
 
-    switched = _SWITCH_TO_EDIT.match(message.strip())
+    switched = _SWITCH_TO_EDIT.match(stripped)
     if switched is not None:
         span = (switched.group("span") or switched.group("instead")).strip(" .,")
         metrics = unique_metrics_from_phrase(span)
         if metrics:
-            return _extend(
-                patch,
-                add_metrics=metrics,
-                remove_metrics=tuple(m for m in current_spec.metrics if m not in metrics),
-                add_companies=(),
-                remove_companies=(),
-            )
+            return _metrics_in_place(patch, metrics, current_spec)
 
     metric_swap = _metric_swap(message, patch, current_spec, index)
     if metric_swap is not None:
         return metric_swap
 
-    added = _ADD_EDIT.match(message.strip())
+    added = _ADD_EDIT.match(stripped)
     if added is not None:
         # "now add operating margin": adding never takes anything away.
         patch = patch.model_copy(update={"remove_metrics": (), "remove_companies": ()})
@@ -1306,11 +1315,11 @@ def _refine_against(
         companies = _companies_in(token, patch, index)
         return _extend(patch, add_companies=companies, add_metrics=())
 
-    companies_edit = _company_edit(message.strip(), patch, current_spec, index)
+    companies_edit = _company_edit(stripped, patch, current_spec, index)
     if companies_edit is not None:
         return companies_edit
 
-    dropped = _DROP_EDIT.match(message.strip())
+    dropped = _DROP_EDIT.match(stripped)
     if dropped is not None:
         token = dropped.group(1).strip(" .,")
         metrics = unique_metrics_from_phrase(token)
@@ -1325,7 +1334,7 @@ def _refine_against(
             companies = tuple(company.query for company in current_spec.companies)
         return _extend(patch, remove_companies=companies, add_metrics=(), add_companies=())
 
-    compare_to = _COMPARE_TO_ISSUER.match(message.strip())
+    compare_to = _COMPARE_TO_ISSUER.match(stripped)
     if compare_to is not None and YOY.search(message) is None:
         token = compare_to.group(1).strip(" .,")
         if token and not unique_metrics_from_phrase(token):
@@ -1333,8 +1342,8 @@ def _refine_against(
 
     # "What was it last quarter?" names nothing new: it is not a question of its own.
     standalone = (patch.ranked_request is not None or _names_companies(patch)) and (
-        _STANDALONE_LOOKUP.search(message.strip()) is not None
-        or _STANDALONE_COMPARE.search(message.strip()) is not None
+        _STANDALONE_LOOKUP.search(stripped) is not None
+        or _STANDALONE_COMPARE.search(stripped) is not None
     )
     # A period on its own ("for Q3 2024", "last 8 quarters") edits the current
     # analysis. One that names another company or ranking ("Microsoft TTM net
@@ -1376,6 +1385,13 @@ def _metric_swap(
     metrics = unique_metrics_from_phrase(message)
     if not metrics or (index is not None and index.find(message)):
         return None
+    return _metrics_in_place(patch, metrics, current_spec)
+
+
+def _metrics_in_place(
+    patch: SpecPatch, metrics: tuple[str, ...], current_spec: AnalysisSpec
+) -> SpecPatch:
+    """These metrics in place of the ones on screen, the companies as they are."""
     return _extend(
         patch,
         add_metrics=metrics,
@@ -1460,6 +1476,7 @@ def _within(outer: re.Match[str], inner: re.Match[str]) -> bool:
 
 def read_window(message: str) -> WindowReading:
     """Read once the window details that compilation and answer notes both need."""
+    year_of_quarters = YEAR_OF_QUARTERS.search(message) is not None
     message = window_words(message)
     window = asked_window(message)
     since = SINCE_YEAR.search(message) if window is None else None
@@ -1477,6 +1494,7 @@ def read_window(message: str) -> WindowReading:
         counted_window=window is not None,
         interpretation_notes=tuple(window.notes()) if window is not None else (),
         trailing_year=TRAILING_YEAR.search(message) is not None,
+        year_of_quarters=year_of_quarters,
         since_year=int(since.group("y")) if since is not None else None,
         since_fiscal=since is not None and since.group("fiscal") is not None,
         unread_named_period=unread,

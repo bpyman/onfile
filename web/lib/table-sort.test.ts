@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nextSort, sortDescription, sortedRowIndices, sortedRowKeys } from "./table-sort";
+import { nextSort, sortDescription, sortedRowIndices } from "./table-sort";
 import type { DisplayTable } from "./types";
 
 const table: DisplayTable = {
@@ -44,13 +44,6 @@ describe("nextSort", () => {
     expect(second).toEqual({ key: "value", direction: "ascending" });
     expect(nextSort(table, second, "value")).toBeNull();
     expect(nextSort(table, second, "company_name")).toEqual({ key: "company_name", direction: "ascending" });
-  });
-});
-
-describe("sortedRowKeys", () => {
-  it("gives the chart the companies in table order, or nothing when unsorted", () => {
-    expect(sortedRowKeys(table, { key: "value", direction: "descending" })).toEqual(["GOOG", "AAPL", "MSFT", "NVDA"]);
-    expect(sortedRowKeys(table, null)).toBeNull();
   });
 });
 

@@ -38,6 +38,7 @@ from financial_analyst_agent.domain.errors import (
 from financial_analyst_agent.fan_out import map_in_order
 from financial_analyst_agent.graph.state import FilingChangeRequest, SectionId
 from financial_analyst_agent.guide import format_date, joined, short_name
+from financial_analyst_agent.numeral_lock import numeral_lock_extras
 from financial_analyst_agent.observability import call_provider
 from financial_analyst_agent.providers.sec.company_resolver import resolve_company
 from financial_analyst_agent.providers.sec.submissions import (
@@ -469,8 +470,12 @@ def _comparable(paragraph: str) -> str:
 
 
 def _words(paragraph: str) -> frozenset[str]:
+    return _comparable_words(_comparable(paragraph))
+
+
+def _comparable_words(comparable: str) -> frozenset[str]:
     # Words alone: an edited paragraph's figures all change, its wording mostly does not.
-    return frozenset(re.findall(r"[a-z][a-z']*", _comparable(paragraph).casefold()))
+    return frozenset(re.findall(r"[a-z][a-z']*", comparable.casefold()))
 
 
 def _similarity(left: frozenset[str], right: frozenset[str]) -> float:
@@ -504,29 +509,31 @@ _MOVED_PARAGRAPH = 0.8
 _MAX_PAIRINGS = 250_000
 
 
-def _aligned(left: list[str], right: list[str]) -> list[tuple[int | None, int | None]]:
+def _aligned(
+    left: list[frozenset[str]], right: list[frozenset[str]]
+) -> list[tuple[int | None, int | None]]:
     """A replaced run's paragraphs paired in order by shared words; the rest unpaired.
 
     The diff reports a run of old paragraphs replaced by a run of new ones;
     position alone pairs a paragraph with whatever stands in its place (one
     sentence with 80 new risk factors), so each is paired with the one most
-    like it, keeping their order.
+    like it, keeping their order. ``left`` and ``right`` are the paragraphs'
+    word sets (``_words``).
     """
     n, m = len(left), len(right)
     if n * m > _MAX_PAIRINGS:
         return [(i, None) for i in range(n)] + [(None, j) for j in range(m)]
-    words_left = [_words(text) for text in left]
-    words_right = [_words(text) for text in right]
+    alike = [[_likeness(left[i], right[j]) for j in range(m)] for i in range(n)]
     score = [[0.0] * (m + 1) for _ in range(n + 1)]
     for i in range(n - 1, -1, -1):
         for j in range(m - 1, -1, -1):
-            similar = _likeness(words_left[i], words_right[j])
+            similar = alike[i][j]
             paired = similar + score[i + 1][j + 1] if similar >= _SAME_PARAGRAPH else -1.0
             score[i][j] = max(paired, score[i + 1][j], score[i][j + 1])
     pairs: list[tuple[int | None, int | None]] = []
     i = j = 0
     while i < n and j < m:
-        similar = _likeness(words_left[i], words_right[j])
+        similar = alike[i][j]
         if similar >= _SAME_PARAGRAPH and score[i][j] == similar + score[i + 1][j + 1]:
             pairs.append((i, j))
             i, j = i + 1, j + 1
@@ -557,11 +564,11 @@ def diff_paragraphs(
     under_right = _subsections(newer)
     # Matched with dates masked: a paragraph that differs only by its dates ("the
     # quarter ended March 31, 2026" a year on) is the same disclosure, not a change.
-    matcher = SequenceMatcher(
-        a=[_comparable(text) for text in left],
-        b=[_comparable(text) for text in right],
-        autojunk=False,
-    )
+    comparable_left = [_comparable(text) for text in left]
+    comparable_right = [_comparable(text) for text in right]
+    matcher = SequenceMatcher(a=comparable_left, b=comparable_right, autojunk=False)
+    words_left = [_comparable_words(text) for text in comparable_left]
+    words_right = [_comparable_words(text) for text in comparable_right]
     label = SECTION_LABELS[section]
 
     def added(paragraph: str) -> DisclosureChange:
@@ -608,11 +615,10 @@ def diff_paragraphs(
     for tag, i1, i2, j1, j2 in matcher.get_opcodes():
         if tag == "equal":
             continue
-        for i, j in _aligned(left[i1:i2], right[j1:j2]):
+        for i, j in _aligned(words_left[i1:i2], words_right[j1:j2]):
             if i is not None and j is not None:
-                before, after = left[i1 + i], right[j1 + j]
-                if _comparable(before) != _comparable(after):
-                    changes.append(changed(before, after))
+                if comparable_left[i1 + i] != comparable_right[j1 + j]:
+                    changes.append(changed(left[i1 + i], right[j1 + j]))
             elif j is not None:
                 changes.append(added(right[j1 + j]))
             elif i is not None:
@@ -630,6 +636,11 @@ def _rejoin_moved(
     another (Accenture's one-word edit to a risk it listed elsewhere).
     """
     joined: list[DisclosureChange | None] = list(changes)
+    added_words = {
+        index: _words(item.after_text)
+        for index, item in enumerate(changes)
+        if item.change_kind == "added"
+    }
     for index, item in enumerate(changes):
         if item.change_kind != "removed":
             continue
@@ -640,7 +651,7 @@ def _rejoin_moved(
                 for other, candidate in enumerate(joined)
                 if candidate is not None
                 and candidate.change_kind == "added"
-                and _similarity(words, _words(candidate.after_text)) >= _MOVED_PARAGRAPH
+                and _similarity(words, added_words[other]) >= _MOVED_PARAGRAPH
             ),
             None,
         )
@@ -999,40 +1010,30 @@ def run_filing_change(plan: FilingChangeRequest, runtime: Runtime) -> TurnResult
             },
         )
     ]
-    refused = _request_refusal(company, older, newer, plan)
-    if refused:
+
+    def refuse(message: str, exc: BaseException | None = None) -> TurnResult:
         return TurnResult(
             intent=Intent.FILING_CHANGE,
             tool_traces=traces,
             renderer=RendererKind.REFUSE,
-            message=refused,
+            message=message,
+            refusal=refusal_from_error(exc) if isinstance(exc, FinancialAnalystError) else None,
         )
+
+    refused = _request_refusal(company, older, newer, plan)
+    if refused:
+        return refuse(refused)
     form = plan.form
     filings = runtime.filings
     if filings is None:
-        return TurnResult(
-            intent=Intent.FILING_CHANGE,
-            tool_traces=traces,
-            renderer=RendererKind.REFUSE,
-            message="Filing documents are not available on this runtime.",
-        )
+        return refuse("Filing documents are not available on this runtime.")
     members = runtime.ranking.member_ciks() if runtime.ranking is not None else frozenset()
     try:
         resolved = resolve_company(company, filings.get_company_tickers())
         # The same membership rule lookups and rankings apply (ADR 0001, 0002).
         require_operating(resolved.cik, resolved.name, members)
     except (CompanyNotFoundError, AmbiguousCompanyError, *SOURCE_FAILURES) as exc:
-        return TurnResult(
-            intent=Intent.FILING_CHANGE,
-            tool_traces=traces,
-            renderer=RendererKind.REFUSE,
-            message=_public_message(exc),
-            refusal=(
-                refusal_from_error(exc)
-                if isinstance(exc, FinancialAnalystError)
-                else None
-            ),
-        )
+        return refuse(_public_message(exc), exc)
     cik = resolved.cik
     # SEC titles companies "PFIZER INC"; the snapshot knows them as "Pfizer Inc.".
     name = runtime.facts.display_name(cik, resolved.name)
@@ -1103,17 +1104,7 @@ def run_filing_change(plan: FilingChangeRequest, runtime: Runtime) -> TurnResult
         traces[0] = traces[0].model_copy(
             update={"provenance": {"error": {"code": code, "message": _public_message(exc)}}}
         )
-        return TurnResult(
-            intent=Intent.FILING_CHANGE,
-            tool_traces=traces,
-            renderer=RendererKind.REFUSE,
-            message=_public_message(exc),
-            refusal=(
-                refusal_from_error(exc)
-                if isinstance(exc, FinancialAnalystError)
-                else None
-            ),
-        )
+        return refuse(_public_message(exc), exc)
     traces[0] = traces[0].model_copy(
         update={
             "provenance": {
@@ -1125,12 +1116,7 @@ def run_filing_change(plan: FilingChangeRequest, runtime: Runtime) -> TurnResult
     )
     if not changes:
         # "No changes" is claimed only for sections both filings let us compare.
-        return TurnResult(
-            intent=Intent.FILING_CHANGE,
-            tool_traces=traces,
-            renderer=RendererKind.REFUSE,
-            message=_unchanged_message(compared, unreadable),
-        )
+        return refuse(_unchanged_message(compared, unreadable))
     banners: list[str] = [chosen_banner] if chosen_banner else []
     if unreadable:
         banners.append(
@@ -1164,8 +1150,6 @@ def run_filing_change(plan: FilingChangeRequest, runtime: Runtime) -> TurnResult
     essay = None
     extras: list[str] = []
     if runtime.essay is not None and plan.summarize:
-        from financial_analyst_agent.turn import _numeral_lock_extras
-
         topic = (
             f"Summarize only the following disclosure changes for {name}. "
             "Do not invent numbers."
@@ -1175,7 +1159,7 @@ def run_filing_change(plan: FilingChangeRequest, runtime: Runtime) -> TurnResult
             essay = call_provider(
                 "llm", lambda: essay_completer.complete_essay(topic, grounding)
             )
-            extras = _numeral_lock_extras(essay, grounding)
+            extras = numeral_lock_extras(essay, grounding)
             if extras:
                 # The summary is withheld; say why rather than label nothing. The
                 # turn itself succeeds, so the extras go on the trace, not the result

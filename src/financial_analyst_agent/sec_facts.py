@@ -27,7 +27,6 @@ from financial_analyst_agent.domain.errors import (
 from financial_analyst_agent.domain.models import Company, FactRecord, Filing, FinancialFact
 from financial_analyst_agent.providers.sec.client import SECClient
 from financial_analyst_agent.providers.sec.company_facts import (
-    parse_company_facts,
     parse_company_facts_for_concepts,
 )
 from financial_analyst_agent.providers.sec.company_resolver import resolve_company
@@ -43,13 +42,12 @@ from financial_analyst_agent.services.fact_selector import (
     derive_quarter,
     derive_trailing_year,
     select_instant_fact,
-    select_quarterly_fact_with_filing_fallback,
+    select_quarterly_fact,
 )
 from financial_analyst_agent.services.filing_selector import (
     FISCAL_WEEK_TOLERANCE,
     get_annual_filings,
     get_candidate_filings,
-    latest_period_end,
     list_quarterly_report_dates,
 )
 from financial_analyst_agent.services.fiscal_periods import (
@@ -72,6 +70,7 @@ from financial_analyst_agent.services.metric_catalog import (
     SHARE_COUNT_CONCEPT,
     SPLIT_RATIO_CONCEPT,
     TRAILING_YEAR_METRICS,
+    get_concept_candidates,
     metric_unit,
     parse_metric,
 )
@@ -111,6 +110,13 @@ _FACTS_PARSE_SLOTS = threading.BoundedSemaphore(2)
 _BACKGROUND_PARSE_SLOT = threading.BoundedSemaphore(1)
 # Fewer periodic reports than this marks a new registrant worth a predecessor check.
 _THIN_HISTORY = 4
+
+# What a module helper reads a company's facts with: the records for a metric's
+# concepts, or for named ones, in a unit, parsed once a turn (``SecFactLookup._records``).
+type Concepts = Metric | Sequence[tuple[str, str]]
+type Records = Callable[[Concepts, str], list[FactRecord]]
+# Why a period has no fact: nothing standalone, or no filing for it.
+type _LookupFailure = UnsupportedQuarterlyFactError | FilingNotFoundError
 
 
 # Companies whose parsed facts stay in memory across turns. A company's trimmed
@@ -332,15 +338,12 @@ def _select_or_derive_in_unit(
                 last = last or exc
         assert last is not None
         raise last
-    if quarterly:
+    # Amendment first; a filing without the quarter is passed over, and the last
+    # one's refusal is kept. An ambiguous fact is never passed over.
+    for filing in quarterly:
         try:
-            return select_quarterly_fact_with_filing_fallback(
-                records,
-                filings,
-                metric,
-                owner,
-                source_url_for_filing,
-                report_date=report_date,
+            return select_quarterly_fact(
+                records, filing, metric, owner, source_url_for_filing(filing)
             )[0]
         except UnsupportedQuarterlyFactError as exc:
             last = exc
@@ -395,14 +398,16 @@ class SecFactLookup:
         self._resolved_by_query: dict[str, Company] = {}
         self._submissions_by_cik: dict[str, dict[str, Any]] = {}
         self._documents_by_cik: dict[str, dict[str, str]] = {}
-        self._company_facts_by_cik: dict[str, dict[str, Any] | None] = {}
-        # A window asks for each quarter of the same metric: its records are read
-        # from the facts once a turn, not once a quarter.
-        self._records_by_metric: dict[
-            tuple[str, Metric, str], tuple[list[FactRecord], list[dict[str, Any]]]
+        # A company's facts as the turn reads them (``_parsed``): read once a turn.
+        self._parsed_by_cik: dict[str, _ParsedFacts] = {}
+        # A window asks for each quarter of the same metric, and revenue's checks
+        # for the same lines: records are parsed from the facts once a turn per
+        # concept set, not once a quarter (``_records``).
+        self._records_by_concepts: dict[
+            tuple[str, tuple[tuple[str, str], ...], str],
+            tuple[list[FactRecord], list[dict[str, Any]]],
         ] = {}
-        self._facts_filings_by_cik: dict[str, Sequence[Filing]] = {}
-        self._fiscal_labels_by_cik: dict[str, dict[str, FiscalLabel]] = {}
+        self._filings_by_cik: dict[str, list[Filing]] = {}
         self._predecessor_ciks: dict[str, str | None] = {}
         if client is not None:
             self._client: SECDataSource = client
@@ -499,20 +504,23 @@ class SecFactLookup:
         company a new CIK whose history starts at the reorganisation. Its first
         reports are filed jointly with the old registrant, so the old CIK is found
         from them, and its filings supply the quarters before.
+
+        Built once a turn: every input is cached for the turn already.
         """
+        filings = self._filings_by_cik.get(cik)
+        if filings is None:
+            filings = self._read_filings(cik)
+            self._filings_by_cik[cik] = filings
+        return filings
+
+    def _read_filings(self, cik: str) -> list[Filing]:
         filings = self._with_facts_filings(cik, parse_submissions(self._cached_submissions(cik)))
         if cik not in self._predecessor_ciks:
             self._predecessor_ciks[cik] = self._find_predecessor(cik, filings)
         predecessor = self._predecessor_ciks[cik]
         if predecessor is None:
             return filings
-        known = {filing.accession_number for filing in filings}
-        older = [
-            filing
-            for filing in parse_submissions(self._cached_submissions(predecessor))
-            if filing.accession_number not in known
-        ]
-        return sorted([*filings, *older], key=lambda filing: filing.filed_date, reverse=True)
+        return _merged(filings, parse_submissions(self._cached_submissions(predecessor)))
 
     def _with_facts_filings(self, cik: str, filings: list[Filing]) -> list[Filing]:
         """``filings`` plus the 10-Qs and 10-Ks company facts names, for a short history.
@@ -526,43 +534,34 @@ class SecFactLookup:
         if _periodic_history_days(filings) >= _FULL_HISTORY_DAYS:
             return filings
         try:
-            self._cached_company_facts(cik)
+            parsed = self._parsed(cik)
         except ProviderError:
             return filings
-        known = {filing.accession_number for filing in filings}
-        extra = [
-            filing
-            for filing in self._facts_filings_by_cik.get(cik, [])
-            if filing.accession_number not in known
-        ]
-        if not extra:
-            return filings
-        return sorted([*filings, *extra], key=lambda filing: filing.filed_date, reverse=True)
+        return _merged(filings, parsed.filings)
 
     def _with_predecessor_facts(
-        self, records: list[FactRecord], predecessor: str, metric: Metric, unit: str
+        self, facts: list[FactRecord], predecessor: str, metric: Metric, unit: str
     ) -> tuple[list[FactRecord], dict[str, str]]:
-        """``records`` plus the predecessor's, so a quarter can span the reorganisation."""
+        """``facts`` plus the predecessor's, so a quarter can span the reorganisation."""
         try:
-            payload = self._cached_company_facts(predecessor)
+            older, _rejections = self._records(predecessor, metric, unit)
         except ProviderError as exc:
             if exc.details.get("status_code") != 404:
                 raise
-            return records, {}
-        older, _rejections = self._metric_records(predecessor, payload, metric, unit)
-        seen = {(record.accession_number, record.start_date, record.end_date) for record in records}
+            return facts, {}
+        seen = {(record.accession_number, record.start_date, record.end_date) for record in facts}
         extra = [
             record
             for record in older
             if (record.accession_number, record.start_date, record.end_date) not in seen
         ]
-        own = {record.accession_number for record in records}
+        own = {record.accession_number for record in facts}
         folders = {
             record.accession_number: predecessor
             for record in extra
             if record.accession_number not in own
         }
-        return [*records, *extra], folders
+        return [*facts, *extra], folders
 
     def _find_predecessor(self, cik: str, filings: list[Filing]) -> str | None:
         periodic = [filing for filing in filings if filing.form in PERIODIC_FORMS]
@@ -582,50 +581,58 @@ class SecFactLookup:
                 return other
         return None
 
-    def _metric_records(
-        self, cik: str, payload: dict[str, Any], metric: Metric, unit: str
+    def _records(
+        self, cik: str, concepts: Concepts, unit: str
     ) -> tuple[list[FactRecord], list[dict[str, Any]]]:
-        """``parse_company_facts`` for the company's facts, once a turn per metric."""
-        key = (cik, metric, unit)
-        parsed = self._records_by_metric.get(key)
+        """The company's records for ``concepts`` (a metric's, or named) in ``unit``.
+
+        Parsed once a turn per concept set, with each record's rejection diagnostics.
+        Every reader in the turn shares the lists; none changes them.
+        """
+        named = tuple(
+            get_concept_candidates(concepts) if isinstance(concepts, Metric) else concepts
+        )
+        key = (cik, named, unit)
+        parsed = self._records_by_concepts.get(key)
         if parsed is None:
-            parsed = parse_company_facts(payload, metric, unit)
-            self._records_by_metric[key] = parsed
-        # Callers extend the lists; the cached ones stay as parsed.
-        return list(parsed[0]), list(parsed[1])
+            parsed = parse_company_facts_for_concepts(self._parsed(cik).concepts, list(named), unit)
+            self._records_by_concepts[key] = parsed
+        return parsed
 
-    def _cached_company_facts(self, cik: str) -> dict[str, Any]:
-        if cik in self._company_facts_by_cik:
-            payload = self._company_facts_by_cik[cik]
-            if payload is None:
-                raise ProviderError(
-                    "No SEC companyfacts response exists for the issuer",
-                    details={"cik": cik, "status_code": 404},
-                )
-            return payload
-        try:
-            payload = self._remembering_failure(f"facts:{cik}", lambda: self._parsed_facts(cik))
-        except ProviderError as exc:
-            if exc.details.get("status_code") == 404:
-                self._company_facts_by_cik[cik] = None
-            raise
-        self._company_facts_by_cik[cik] = payload
-        return payload
+    def _reader(self, cik: str) -> Records:
+        """``_records`` for one company, as the module helpers read its facts."""
+        return lambda concepts, unit: self._records(cik, concepts, unit)[0]
 
-    def _parsed_facts(self, cik: str) -> dict[str, Any]:
-        parsed = self._parsed_from_disk(cik) or self._parsed_from_facts(cik)
-        self._fiscal_labels_by_cik.setdefault(cik, parsed.labels)
-        self._facts_filings_by_cik[cik] = parsed.filings
-        return parsed.concepts
+    def _parsed(self, cik: str) -> _ParsedFacts:
+        """The company's facts as the turn reads them, read once (``_remembering_failure``)."""
+        parsed = self._parsed_by_cik.get(cik)
+        if parsed is None:
+            parsed = self._remembering_failure(
+                f"facts:{cik}",
+                lambda: self._parsed_from_disk(cik) or self._parsed_from_facts(cik),
+            )
+            self._parsed_by_cik[cik] = parsed
+        return parsed
 
     def _parsed_from_disk(self, cik: str) -> _ParsedFacts | None:
-        """The company's digest, from memory or from a fresh one the cache keeps on disk."""
+        """The company's digest, from memory or from a fresh one the cache keeps on disk.
+
+        The parse in memory is found by the digest's stamp; the digest is read
+        and decompressed only when memory holds none.
+        """
+        stamp_of = getattr(self._client, "facts_digest_stamp", None)
+        stamp = stamp_of(cik) if callable(stamp_of) else None
+        if stamp is None:
+            return None
+        parsed = _PARSED_FACTS.get(stamp)
+        if parsed is not None:
+            return parsed
         read = getattr(self._client, "read_facts_digest", None)
         digest = read(cik) if callable(read) else None
         if digest is None:
             return None
         stamp, data = digest
-        parsed = _PARSED_FACTS.get(stamp) or _parsed_from_digest(data)
+        parsed = _parsed_from_digest(data)
         if parsed is not None and not self._background:
             _PARSED_FACTS.put(stamp, parsed)
         return parsed
@@ -665,7 +672,7 @@ class SecFactLookup:
 
     def warm_facts(self, cik: str) -> None:
         """Bring a company's facts digest onto disk, as a turn would."""
-        self._cached_company_facts(cik)
+        self._parsed(cik)
 
     def get_financials(
         self,
@@ -688,103 +695,51 @@ class SecFactLookup:
             else company.upper()
         )
         filings = self._filings(resolved.cik)
-        # "Latest" is the newest period any 10-Q or 10-K covers (ADR 0007).
-        target = report_date if report_date is not None else latest_period_end(filings)
-        last_unsupported: UnsupportedQuarterlyFactError | FilingNotFoundError | None = None
+        # "Latest" is the newest period any 10-Q or 10-K covers (ADR 0007), or the
+        # newest with facts when SEC's structured data lags (``_first_available``).
+        targets: list[date | None] = [report_date]
+        if report_date is None:
+            targets = list(list_quarterly_report_dates(filings, limit=_LATEST_FALLBACK))
+        predecessor = self._predecessor_ciks.get(resolved.cik)
+        name = self._display_names.get(resolved.cik, resolved.name)
+        last: _LookupFailure | None = None
         last_missing: ProviderError | None = None
         unreadable = False
-        related = _related_lookup_ciks(resolved.cik, self._predecessor_ciks.get(resolved.cik))
-        for cik in related:
+        for cik in _related_lookup_ciks(resolved.cik, predecessor):
             try:
-                company_facts_payload = self._cached_company_facts(cik)
+                facts, rejections = self._records(cik, parsed_metric, unit)
             except ProviderError as exc:
                 if exc.details.get("status_code") != 404:
                     raise
                 last_missing = exc
                 continue
-            records, rejections = self._metric_records(
-                cik, company_facts_payload, parsed_metric, unit
-            )
-            unreadable = unreadable or (not records and bool(rejections))
+            unreadable = unreadable or (not facts and bool(rejections))
             folders: dict[str, str] = {}
-            predecessor = self._predecessor_ciks.get(resolved.cik)
             if cik == resolved.cik and predecessor is not None:
-                records, folders = self._with_predecessor_facts(
-                    records, predecessor, parsed_metric, unit
+                facts, folders = self._with_predecessor_facts(
+                    facts, predecessor, parsed_metric, unit
                 )
-            sources = FilingSources(folders, self._primary_document)
-            name = self._display_names.get(resolved.cik, resolved.name)
-            targets: list[date | None] = [target]
-            if report_date is None:
-                targets = list(list_quarterly_report_dates(filings, limit=_LATEST_FALLBACK))
-            pending_end: date | None = None
-            year_only_end: date | None = None
-            for period in targets:
-                try:
-                    fact = self._select_with_fallbacks(
-                        company_facts_payload,
-                        records,
-                        filings,
-                        parsed_metric,
-                        FactOwner(company_name=name, ticker=ticker, cik=cik, currency=unit),
-                        report_date=period,
-                        sources=sources,
-                    )
-                except (UnsupportedQuarterlyFactError, FilingNotFoundError) as exc:
-                    if (
-                        report_date is None
-                        and period is not None
-                        and isinstance(exc, PerShareNotDerivableError)
-                        and not isinstance(exc, NoDividendThisQuarterError)
-                    ):
-                        # A fiscal fourth quarter reports its per-share figure only
-                        # for the year, and per-share figures are never derived
-                        # (ADR 0007); "latest" is then the latest quarter with its own.
-                        year_only_end = year_only_end or period
-                        last_unsupported = last_unsupported or exc
-                        continue
-                    last_unsupported = exc
-                    if (
-                        report_date is not None
-                        and period is not None
-                        and not self._period_in_xbrl(cik, filings, period)
-                        and any(
-                            abs(filing.report_date - period) <= FISCAL_WEEK_TOLERANCE
-                            for filing in filings
-                        )
-                    ):
-                        # Filed, but SEC's company facts have not caught up with it.
-                        last_unsupported = UnsupportedQuarterlyFactError(
-                            PENDING_IN_XBRL_MESSAGE,
-                            details={
-                                "metric": parsed_metric.value,
-                                "reason": "pending_structured_data",
-                            },
-                        )
-                    if period is None or report_date is not None:
-                        break
-                    if self._period_in_xbrl(cik, filings, period):
-                        break
-                    # SEC has not yet added the newest filing to companyfacts;
-                    # "latest" is then the newest quarter it has.
-                    pending_end = pending_end or period
-                    continue
-                if pending_end is not None:
-                    fact = fact.model_copy(update={"newer_filing_end": pending_end})
-                if year_only_end is not None:
-                    fact = fact.model_copy(update={"year_only_quarter_end": year_only_end})
-                return fact
+            found = self._first_available(
+                facts,
+                filings,
+                parsed_metric,
+                FactOwner(company_name=name, ticker=ticker, cik=cik, currency=unit),
+                targets,
+                report_date=report_date,
+                sources=FilingSources(folders, self._primary_document),
+                last=last,
+            )
+            if isinstance(found, FinancialFact):
+                return found
+            last = found
         if unreadable:
             raise DataIntegrityError(
                 UNREADABLE_FACTS_MESSAGE, details={"metric": parsed_metric.value}
-            ) from last_unsupported
-        if isinstance(last_unsupported, FilingNotFoundError):
-            raise UnsupportedQuarterlyFactError(
-                str(last_unsupported),
-                details=last_unsupported.details,
-            ) from last_unsupported
-        if last_unsupported is not None:
-            raise last_unsupported
+            ) from last
+        if isinstance(last, FilingNotFoundError):
+            raise UnsupportedQuarterlyFactError(str(last), details=last.details) from last
+        if last is not None:
+            raise last
         if last_missing is not None:
             raise UnsupportedQuarterlyFactError(
                 "No SEC companyfacts response exists for the issuer",
@@ -798,10 +753,81 @@ class SecFactLookup:
             },
         )
 
+    def _first_available(
+        self,
+        facts: list[FactRecord],
+        filings: list[Filing],
+        metric: Metric,
+        owner: FactOwner,
+        targets: Sequence[date | None],
+        *,
+        report_date: date | None,
+        sources: FilingSources,
+        last: _LookupFailure | None,
+    ) -> FinancialFact | _LookupFailure | None:
+        """The fact for the first of ``targets`` that has one, else the last failure.
+
+        Asked for "latest" (no ``report_date``), the targets are the newest
+        quarters: one whose filing SEC's structured data lacks yet is stepped
+        past and named on the fact (``newer_filing_end``), as is a fiscal fourth
+        quarter whose per-share figure is reported only for the year
+        (``year_only_quarter_end``). ``last`` is an earlier registrant's failure,
+        kept when nothing here says more.
+        """
+        pending_end: date | None = None
+        year_only_end: date | None = None
+        for period in targets:
+            try:
+                fact = self._select_with_fallbacks(
+                    owner.cik,
+                    facts,
+                    filings,
+                    metric,
+                    owner,
+                    report_date=period,
+                    sources=sources,
+                )
+            except (UnsupportedQuarterlyFactError, FilingNotFoundError) as exc:
+                if (
+                    report_date is None
+                    and period is not None
+                    and isinstance(exc, PerShareNotDerivableError)
+                    and not isinstance(exc, NoDividendThisQuarterError)
+                ):
+                    # A fiscal fourth quarter reports its per-share figure only
+                    # for the year, and per-share figures are never derived
+                    # (ADR 0007); "latest" is then the latest quarter with its own.
+                    year_only_end = year_only_end or period
+                    last = last or exc
+                    continue
+                last = exc
+                if period is not None and not self._period_in_xbrl(owner.cik, filings, period):
+                    if report_date is None:
+                        # SEC has not yet added the newest filing to companyfacts;
+                        # "latest" is then the newest quarter it has.
+                        pending_end = pending_end or period
+                        continue
+                    if any(
+                        abs(filing.report_date - period) <= FISCAL_WEEK_TOLERANCE
+                        for filing in filings
+                    ):
+                        # Filed, but SEC's company facts have not caught up with it.
+                        last = UnsupportedQuarterlyFactError(
+                            PENDING_IN_XBRL_MESSAGE,
+                            details={"metric": metric.value, "reason": "pending_structured_data"},
+                        )
+                break
+            if pending_end is not None:
+                fact = fact.model_copy(update={"newer_filing_end": pending_end})
+            if year_only_end is not None:
+                fact = fact.model_copy(update={"year_only_quarter_end": year_only_end})
+            return fact
+        return last
+
     def _select_with_fallbacks(
         self,
-        payload: dict[str, Any],
-        records: list[FactRecord],
+        cik: str,
+        facts: list[FactRecord],
         filings: list[Filing],
         metric: Metric,
         owner: FactOwner,
@@ -809,6 +835,7 @@ class SecFactLookup:
         report_date: date | None,
         sources: FilingSources | None = None,
     ) -> FinancialFact:
+        records = self._reader(cik)
 
         def select(kept: list[FactRecord], chosen: Metric) -> FinancialFact:
             return _select_or_derive(
@@ -821,20 +848,20 @@ class SecFactLookup:
             )
 
         if metric is Metric.REVENUE:
-            fact = _total_revenue(records, payload, owner.currency, select)
-            fact = _bank_revenue(fact, payload, owner.currency, select)
-            return self._plausible_revenue(fact, payload, filings, owner, sources=sources)
+            fact = _total_revenue(facts, records, owner.currency, select)
+            fact = _bank_revenue(fact, records, owner.currency, select)
+            return self._plausible_revenue(fact, records, filings, owner, sources=sources)
         try:
-            fact = select(records, metric)
+            fact = select(facts, metric)
             if metric is Metric.DIVIDENDS_PER_SHARE:
-                _refuse_dividend_declared_earlier(fact, records)
+                _refuse_dividend_declared_earlier(fact, facts)
             if metric not in PER_SHARE_METRICS:
                 return fact
-            return _on_latest_basis(_with_diluted_shares(fact, payload), payload, records)
+            return _on_latest_basis(_with_diluted_shares(fact, records), records, facts)
         except UnsupportedQuarterlyFactError:
             if metric is Metric.DEPRECIATION_AMORTIZATION:
                 return self._depreciation_plus_amortization(
-                    payload,
+                    records,
                     filings,
                     owner,
                     report_date=report_date,
@@ -844,24 +871,23 @@ class SecFactLookup:
                 raise
             # Retailers (Costco, Walmart) tag no gross profit line; revenue
             # minus cost of revenue is the same amount (ADR 0007).
-            revenue_records, _ = parse_company_facts(payload, Metric.REVENUE, owner.currency)
+            revenue_facts = records(Metric.REVENUE, owner.currency)
             revenue = _sales_revenue(
-                _total_revenue(revenue_records, payload, owner.currency, select),
-                revenue_records,
+                _total_revenue(revenue_facts, records, owner.currency, select),
+                revenue_facts,
                 select,
             )
-            cost_records, _ = parse_company_facts(payload, Metric.COST_OF_REVENUE, owner.currency)
-            cost = select(cost_records, Metric.COST_OF_REVENUE)
+            cost = select(records(Metric.COST_OF_REVENUE, owner.currency), Metric.COST_OF_REVENUE)
             if (revenue.start_date, revenue.end_date) != (cost.start_date, cost.end_date):
                 raise
-            if _reports_excluding_costs(payload, revenue.end_date):
+            if _reports_excluding_costs(self._parsed(cik).concepts, revenue.end_date):
                 raise
             return gross_profit_from_components(revenue, cost)
 
     def _plausible_revenue(
         self,
         revenue: FinancialFact,
-        payload: dict[str, Any],
+        records: Records,
         filings: list[Filing],
         owner: FactOwner,
         *,
@@ -876,11 +902,10 @@ class SecFactLookup:
         """
         parts: list[FinancialFact] = []
         for component in (Metric.GROSS_PROFIT, Metric.COST_OF_REVENUE):
-            component_records, _ = parse_company_facts(payload, component, owner.currency)
             try:
                 parts.append(
                     _select_or_derive(
-                        component_records,
+                        records(component, owner.currency),
                         filings,
                         component,
                         owner,
@@ -911,7 +936,7 @@ class SecFactLookup:
 
     def _depreciation_plus_amortization(
         self,
-        payload: dict[str, Any],
+        records: Records,
         filings: list[Filing],
         owner: FactOwner,
         *,
@@ -922,29 +947,21 @@ class SecFactLookup:
 
         Both must cover the same period; depreciation alone would understate it.
         """
-        parts = []
-        for component in (Metric.DEPRECIATION, Metric.AMORTIZATION_OF_INTANGIBLES):
-            component_records, _ = parse_company_facts(payload, component, owner.currency)
-            parts.append(
-                _select_or_derive(
-                    component_records,
-                    filings,
-                    component,
-                    owner,
-                    report_date=report_date,
-                    sources=sources,
-                )
+        parts = [
+            _select_or_derive(
+                records(component, owner.currency),
+                filings,
+                component,
+                owner,
+                report_date=report_date,
+                sources=sources,
             )
+            for component in (Metric.DEPRECIATION, Metric.AMORTIZATION_OF_INTANGIBLES)
+        ]
         return sum_of_components(Metric.DEPRECIATION_AMORTIZATION, parts)
 
-    def _fiscal_labels(self, cik: str) -> dict[str, FiscalLabel]:
-        if cik not in self._fiscal_labels_by_cik:
-            # Reading the facts records their labels before trimming them.
-            self._cached_company_facts(cik)
-        return self._fiscal_labels_by_cik.get(cik, {})
-
     def _period_in_xbrl(self, cik: str, filings: list[Filing], period: date) -> bool:
-        labels = self._fiscal_labels(cik)
+        labels = self._parsed(cik).labels
         return any(
             filing.accession_number in labels
             for filing in filings
@@ -964,7 +981,7 @@ class SecFactLookup:
             if cik is None:
                 continue
             try:
-                labels.update(self._fiscal_labels(cik))
+                labels.update(self._parsed(cik).labels)
             except ProviderError as exc:
                 if exc.details.get("status_code") != 404:
                     raise
@@ -1017,6 +1034,14 @@ _OTHER_INCOME_SHARE = Decimal("0.05")
 _COST_CONCEPTS = tuple(concept for _, concept in METRIC_CONCEPTS[Metric.COST_OF_REVENUE])
 # Cost of revenue this many times revenue means the revenue line is a part of it.
 _COST_MULTIPLE = 5
+# The lines a filing's revenue is checked against (``_revenue_checks``).
+_REVENUE_CHECK_LINES: tuple[tuple[str, str], ...] = (
+    *REVENUE_CHECK_CONCEPTS,
+    *METRIC_CONCEPTS[Metric.OPERATING_EXPENSES],
+    *METRIC_CONCEPTS[Metric.OPERATING_INCOME],
+    *METRIC_CONCEPTS[Metric.COST_OF_REVENUE],
+    *METRIC_CONCEPTS[Metric.GROSS_PROFIT],
+)
 
 
 def _anchor(fact: FinancialFact) -> tuple[str, date | None, date]:
@@ -1043,7 +1068,7 @@ def _reported(
 
 
 def _revenue_checks(
-    payload: dict[str, Any], unit: str, anchor: tuple[str, date | None, date]
+    records: Records, unit: str, anchor: tuple[str, date | None, date]
 ) -> tuple[list[Decimal], dict[str, Decimal]]:
     """Totals the filing's other lines add up to, and those lines, for the anchor period.
 
@@ -1051,15 +1076,7 @@ def _revenue_checks(
     expenses plus operating income, with or without cost of revenue (Kopin's
     operating expenses hold its cost of sales), and gross profit plus cost of revenue.
     """
-    concepts = [
-        *REVENUE_CHECK_CONCEPTS,
-        *METRIC_CONCEPTS[Metric.OPERATING_EXPENSES],
-        *METRIC_CONCEPTS[Metric.OPERATING_INCOME],
-        *METRIC_CONCEPTS[Metric.COST_OF_REVENUE],
-        *METRIC_CONCEPTS[Metric.GROSS_PROFIT],
-    ]
-    records, _ = parse_company_facts_for_concepts(payload, concepts, unit)
-    lines = _reported(records, anchor)
+    lines = _reported(records(_REVENUE_CHECK_LINES, unit), anchor)
     income = lines.get("OperatingIncomeLoss")
     costs = [lines[name] for name in _COST_CONCEPTS if name in lines]
     totals: list[Decimal] = []
@@ -1090,8 +1107,8 @@ def _implausible(value: Decimal, lines: dict[str, Decimal]) -> bool:
 
 
 def _total_revenue(
-    records: list[FactRecord],
-    payload: dict[str, Any],
+    facts: list[FactRecord],
+    records: Records,
     unit: str,
     select: Callable[[list[FactRecord], Metric], FinancialFact],
 ) -> FinancialFact:
@@ -1104,11 +1121,9 @@ def _total_revenue(
     income or far below cost of revenue is a part. California Resources'
     smaller ``Revenues`` nets a derivative loss and does add up, so it stays.
     """
-    fact = select(records, Metric.REVENUE)
+    fact = select(facts, Metric.REVENUE)
     anchor = _anchor(fact)
-    reported = _reported(
-        [record for record in records if record.taxonomy == fact.taxonomy], anchor
-    )
+    reported = _reported([record for record in facts if record.taxonomy == fact.taxonomy], anchor)
     others = {
         concept: value
         for concept, value in reported.items()
@@ -1116,7 +1131,7 @@ def _total_revenue(
     }
     if not others:
         return fact
-    totals, lines = _revenue_checks(payload, unit, anchor)
+    totals, lines = _revenue_checks(records, unit, anchor)
     if _agrees(fact.value, totals):
         return fact
     agreeing = {concept for concept, value in reported.items() if _agrees(value, totals)}
@@ -1129,9 +1144,7 @@ def _total_revenue(
     if not set(others) - wrong:
         return fact
     try:
-        total = select(
-            [record for record in records if record.concept not in wrong], Metric.REVENUE
-        )
+        total = select([record for record in facts if record.concept not in wrong], Metric.REVENUE)
     except (UnsupportedQuarterlyFactError, FilingNotFoundError):
         return fact
     return total if total.end_date == fact.end_date else fact
@@ -1139,7 +1152,7 @@ def _total_revenue(
 
 def _bank_revenue(
     revenue: FinancialFact,
-    payload: dict[str, Any],
+    records: Records,
     unit: str,
     select: Callable[[list[FactRecord], Metric], FinancialFact],
 ) -> FinancialFact:
@@ -1152,9 +1165,8 @@ def _bank_revenue(
         return revenue
     parts: list[FinancialFact] = []
     for component in (Metric.NET_INTEREST_INCOME, Metric.NONINTEREST_INCOME):
-        component_records, _ = parse_company_facts(payload, component, unit)
         try:
-            parts.append(select(component_records, component))
+            parts.append(select(records(component, unit), component))
         except (UnsupportedQuarterlyFactError, FilingNotFoundError):
             return revenue
     interest, noninterest = parts
@@ -1226,25 +1238,36 @@ def _refuse_dividend_declared_earlier(fact: FinancialFact, records: list[FactRec
         )
 
 
-def _with_diluted_shares(fact: FinancialFact, payload: dict[str, Any]) -> FinancialFact:
+def _with_diluted_shares(fact: FinancialFact, records: Records) -> FinancialFact:
     """A per-share figure with the weighted diluted shares its filing reports beside it."""
-    records, _ = parse_company_facts_for_concepts(payload, [SHARE_COUNT_CONCEPT], "shares")
-    shares = _reported(records, (fact.accession_number, fact.start_date, fact.end_date))
+    shares = _reported(
+        records((SHARE_COUNT_CONCEPT,), "shares"),
+        (fact.accession_number, fact.start_date, fact.end_date),
+    )
     count = shares.get(SHARE_COUNT_CONCEPT[1])
     return fact if count is None else fact.model_copy(update={"diluted_shares": count})
 
 
 def _on_latest_basis(
-    fact: FinancialFact, payload: dict[str, Any], records: list[FactRecord]
+    fact: FinancialFact, records: Records, facts: list[FactRecord]
 ) -> FinancialFact:
     """A per-share figure filed before a split, on the basis after it (ADR 0009)."""
-    ratios, _ = parse_company_facts_for_concepts(payload, [SPLIT_RATIO_CONCEPT], "pure")
-    return on_latest_basis(fact, reported_splits(ratios), records)
+    ratios = records((SPLIT_RATIO_CONCEPT,), "pure")
+    return on_latest_basis(fact, reported_splits(ratios), facts)
 
 
 def _periodic_history_days(filings: list[Filing]) -> int:
     ends = [filing.report_date for filing in filings if filing.form in PERIODIC_FORMS]
     return (max(ends) - min(ends)).days if ends else 0
+
+
+def _merged(filings: list[Filing], extra: Sequence[Filing]) -> list[Filing]:
+    """``filings`` with those of ``extra`` it lacks, newest filed first; as given when none."""
+    known = {filing.accession_number for filing in filings}
+    more = [filing for filing in extra if filing.accession_number not in known]
+    if not more:
+        return filings
+    return sorted([*filings, *more], key=lambda filing: filing.filed_date, reverse=True)
 
 
 def filings_from_company_facts(payload: dict[str, Any]) -> list[Filing]:

@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any, Literal, Protocol, Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from financial_analyst_agent.domain.errors import UnknownMetricError
 from financial_analyst_agent.domain.models import FinancialFact, SplitAdjustment
 from financial_analyst_agent.domain.serialization import DecimalStr
 from financial_analyst_agent.services.metric_catalog import METRIC_DISPLAY
@@ -408,6 +409,19 @@ class TableRow(BaseModel):
         """Threads stored before the comparison base had one spelling say "yoy"."""
         return "year_over_year" if value == "yoy" else value
 
+    @property
+    def company_key(self) -> str:
+        """What a row's company is keyed on: the CIK, or the name SEC does not know."""
+        return self.cik or self.company_name
+
+    @property
+    def short(self) -> str:
+        """The company as a sentence names it ("Microsoft"), or its whole name."""
+        # guide imports contracts, so the prose helper is imported where it is used.
+        from financial_analyst_agent.guide import short_name
+
+        return short_name(self.company_name) or self.company_name
+
 
 # Weighted diluted shares moving by half again or more between quarters is a split,
 # not buybacks or issuance; so is a per-share figure restated by that much.
@@ -533,7 +547,7 @@ def refuse_unknown_metric(intent: Intent, term: str) -> TurnResult:
         renderer=RendererKind.REFUSE,
         message=unknown_metric_message(term),
         refusal=Refusal(
-            code="unknown_metric",
+            code=UnknownMetricError.code,
             details={"term": term, "allowed": list(ALLOWED_METRICS)},
         ),
     )

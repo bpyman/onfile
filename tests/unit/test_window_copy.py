@@ -230,6 +230,38 @@ def test_compilation_carries_the_window_reading_and_notes_use_it() -> None:
     assert "only 1 of the 2 quarters asked for" in notes[-1]
 
 
+def test_a_structured_request_reads_its_window_from_its_wording() -> None:
+    from financial_analyst_agent.graph.analysis_spec import SpecPatch
+    from financial_analyst_agent.graph.state import StructuredRequest
+
+    wording = "Apple revenue over the last six quarters"
+    patch = SpecPatch(mode="replace", add_companies=("Apple",), add_metrics=("revenue",))
+
+    request = StructuredRequest(patch=patch, wording=wording, question=wording)
+
+    assert request.window == read_window(wording)
+    assert request.window.asked_quarters == 6
+
+
+def test_a_stored_request_holding_no_window_still_loads_with_one() -> None:
+    # A checkpoint saved while the window was optional holds ``"window": null``.
+    from financial_analyst_agent.graph.state import StructuredRequest
+
+    wording = "Apple revenue since 2024"
+    stored = {
+        "patch": {"mode": "replace", "add_companies": ["Apple"], "add_metrics": ["revenue"]},
+        "wording": wording,
+        "question": wording,
+        "window": None,
+    }
+
+    request = StructuredRequest.model_validate(stored)
+
+    assert request.window == read_window(wording)
+    assert request.window.since_year == 2024
+    assert StructuredRequest.model_validate(request.model_dump()).window == request.window
+
+
 def test_recorded_planner_knows_every_recorded_company_in_the_order_named() -> None:
     plan = DemoCompleter().complete("Compare Eli Lilly and Merck net margins")
 
@@ -395,3 +427,12 @@ def test_a_since_fiscal_window_note_counts_the_span_on_the_companys_own_labels()
         )
     )
     assert period_notes(message, whole, window=read_window(message)) == []
+
+
+def test_the_window_reading_says_whether_a_year_of_quarters_was_asked() -> None:
+    # simplify-pass-2 ticket 02: "last year" is read once, into the WindowReading
+    # that compilation and the answer's notes share.
+    assert read_window("Apple revenue last year").year_of_quarters
+    assert read_window("Apple annual revenue").year_of_quarters
+    assert not read_window("Apple revenue last 4 quarters").year_of_quarters
+    assert not read_window("Apple TTM revenue").year_of_quarters

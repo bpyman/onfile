@@ -17,6 +17,7 @@ from financial_analyst_agent.domain.models import (
     FinancialFact,
     SplitAdjustment,
 )
+from financial_analyst_agent.services.fact_selector import is_standalone_quarter
 
 # Reports of one ratio this close together are one split: NVIDIA tags its 2024
 # split with periods ending 31 May and 30 June 2024.
@@ -24,7 +25,6 @@ _SAME_SPLIT = timedelta(days=90)
 # An adjusted figure and the figure a later filing restates must agree to within
 # rounding: half a cent.
 _HALF_CENT = Decimal("0.005")
-_QUARTER_DAYS = (70, 110)
 # An adjusted value keeps four places, the finest the window shows a per-share
 # figure at, and more only where four would read zero.
 _PLACES = 4
@@ -144,10 +144,7 @@ def series_agrees(splits: tuple[StockSplit, ...], records: list[FactRecord]) -> 
     """
     by_period: dict[tuple[str, date | None, date], list[tuple[Decimal, Decimal]]] = {}
     for record in records:
-        if record.start_date is None:
-            continue
-        days = (record.end_date - record.start_date).days
-        if not _QUARTER_DAYS[0] <= days <= _QUARTER_DAYS[1]:
+        if not is_standalone_quarter(record.start_date, record.end_date):
             continue
         divisor = _divisor(_after(splits, record.filed_date))
         key = (record.concept, record.start_date, record.end_date)

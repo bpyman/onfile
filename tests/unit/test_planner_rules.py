@@ -23,7 +23,12 @@ from financial_analyst_agent.graph.analysis_spec import (
     resolve_spec,
 )
 from financial_analyst_agent.graph.spec_turn import _order_by_metric, plan_to_spec_patch
-from financial_analyst_agent.guide import guide_reply, short_name, suggest_follow_ups
+from financial_analyst_agent.guide import (
+    guide_reply,
+    short_display_name,
+    short_name,
+    suggest_follow_ups,
+)
 from financial_analyst_agent.issuer_index import IssuerIndex
 from financial_analyst_agent.planner_cascade import unsure_reason
 from financial_analyst_agent.presentation import present_turn
@@ -35,10 +40,15 @@ from financial_analyst_agent.request_wording import (
     bind_periods_from_message,
     refine_patch_from_message,
 )
-from financial_analyst_agent.rules_planner import DemoCompleter, issuer_index
+from financial_analyst_agent.rules_planner import (
+    DemoCompleter,
+    issuer_index,
+    recorded_issuer_index,
+)
 from financial_analyst_agent.runtime import RuntimeKind, recorded_runtime
 from financial_analyst_agent.thread_store import EphemeralThreadStore
 from financial_analyst_agent.universe import (
+    INDUSTRY_GROUP_ALIASES,
     SnapshotGroups,
     load_universe_snapshot,
     resolve_industry_group,
@@ -324,6 +334,120 @@ def test_gics_sector_names_and_common_industry_words_resolve() -> None:
         assert resolve_industry_group(word, groups) is not None, word
 
 
+SEMICONDUCTORS = {"Semiconductors"}
+BANKS = {"Banks", "Banks - Diversified", "Banks - Regional"}
+PHARMA = DRUG_MANUFACTURERS | {"Medical - Pharmaceuticals"}
+INSURANCE = {
+    "Insurance - Brokers",
+    "Insurance - Diversified",
+    "Insurance - Life",
+    "Insurance - Property & Casualty",
+    "Insurance - Reinsurance",
+    "Insurance - Specialty",
+}
+REITS = {
+    "REIT - Diversified",
+    "REIT - Healthcare Facilities",
+    "REIT - Hotel & Motel",
+    "REIT - Industrial",
+    "REIT - Mortgage",
+    "REIT - Office",
+    "REIT - Residential",
+    "REIT - Retail",
+    "REIT - Specialty",
+}
+OIL_AND_GAS = {
+    "Oil & Gas Drilling",
+    "Oil & Gas Energy",
+    "Oil & Gas Equipment & Services",
+    "Oil & Gas Exploration & Production",
+    "Oil & Gas Integrated",
+    "Oil & Gas Midstream",
+    "Oil & Gas Refining & Marketing",
+}
+RETAIL = {
+    "Apparel - Retail",
+    "Department Stores",
+    "Discount Stores",
+    "Grocery Stores",
+    "Home Improvement",
+    "Specialty Retail",
+}
+AUTO_MANUFACTURERS = {"Auto - Manufacturers"}
+AEROSPACE = {"Aerospace & Defense"}
+CREDIT_SERVICES = {"Financial - Credit Services"}
+
+# The snapshot industries each everyday word names (simplify-pass-2 ticket 10
+# pinned them before the alias table's prefix marker changed).
+EVERYDAY_GROUP_MEMBERS: dict[str, set[str] | None] = {
+    "semiconductor": SEMICONDUCTORS,
+    "semi": SEMICONDUCTORS,
+    "chip": SEMICONDUCTORS,
+    "chipmaker": SEMICONDUCTORS,
+    "chip maker": SEMICONDUCTORS,
+    "software": {"Software - Application", "Software - Infrastructure", "Software - Services"},
+    "bank": BANKS,
+    "banking": BANKS,
+    "big bank": {"Banks - Diversified"},
+    "big pharma": {"Drug Manufacturers - General"},
+    "biotech": {"Biotechnology"},
+    "pharma": PHARMA,
+    "pharmaceutical": PHARMA,
+    "drugmaker": DRUG_MANUFACTURERS,
+    "drug maker": DRUG_MANUFACTURERS,
+    "insurer": INSURANCE,
+    "insurance": INSURANCE,
+    "reit": REITS,
+    "oil": OIL_AND_GAS,
+    # "oil and gas" is normalised to "oil and ga" ("gas" loses its s), so this
+    # key is never looked up; the planner writes the industry as "oil & gas".
+    "oil and gas": None,
+    "oil & gas": OIL_AND_GAS,
+    "retailer": RETAIL,
+    "retail": RETAIL,
+    "airline": {"Airlines, Airports & Air Services"},
+    "automaker": AUTO_MANUFACTURERS,
+    "carmaker": AUTO_MANUFACTURERS,
+    "car maker": AUTO_MANUFACTURERS,
+    "auto": {
+        "Auto - Dealerships",
+        "Auto - Manufacturers",
+        "Auto - Parts",
+        "Auto - Recreational Vehicles",
+    },
+    "defense": AEROSPACE,
+    "aerospace": AEROSPACE,
+    "telecom": {"Telecommunications Services"},
+    "medical device": {"Medical - Devices"},
+    "medtech": {"Medical - Devices", "Medical - Instruments & Supplies"},
+    "restaurant": {"Restaurants"},
+    "hotel": {"REIT - Hotel & Motel", "Travel Lodging"},
+    "lodging": {"Travel Lodging"},
+    "payment": CREDIT_SERVICES,
+    "credit card": CREDIT_SERVICES,
+    "railroad": {"Railroads"},
+    "beverage": {
+        "Beverages - Alcoholic",
+        "Beverages - Non-Alcoholic",
+        "Beverages - Wineries & Distilleries",
+    },
+    "internet": {"Internet Content & Information"},
+    "asset manager": {"Asset Management"},
+    "asset management": {"Asset Management"},
+}
+
+
+def test_each_everyday_group_name_lists_the_same_snapshot_industries() -> None:
+    groups = SnapshotGroups.of(load_universe_snapshot())
+
+    members: dict[str, set[str] | None] = {}
+    for alias in INDUSTRY_GROUP_ALIASES:
+        group = resolve_industry_group(alias, groups)
+        members[alias] = None if group is None else set(group.industries)
+
+    assert members == EVERYDAY_GROUP_MEMBERS
+
+
 def test_oil_and_gas_is_one_industry_in_a_ranking() -> None:
     plan = _live().complete("top 5 oil and gas companies by revenue")
     both = _live().complete("biggest banks and their net income")
@@ -499,6 +623,23 @@ def test_short_names_drop_legal_suffixes() -> None:
     assert short_name("JPMorgan Chase & Co.") == "JPMorgan Chase"
     assert short_name("The Goldman Sachs Group, Inc.") == "Goldman Sachs"
     assert short_name("Wells Fargo & Company") == "Wells Fargo"
+
+
+def test_a_mentions_short_display_name_falls_back_to_what_was_typed() -> None:
+    class Blank:
+        def find(self, question: str, *, company_slot: bool = False) -> list[Any]:
+            return []
+
+        def named(self, company: str) -> str | None:
+            return None
+
+        def display_name(self, query: str) -> str:
+            return ""
+
+    recorded = recorded_issuer_index()
+    assert short_display_name(recorded, "GS", "goldman") == "Goldman Sachs"
+    assert short_display_name(recorded, "NVDA", "nvidia") == "NVIDIA"
+    assert short_display_name(Blank(), "AAPL", "aapl") == "aapl"
 
 
 def test_several_metrics_for_one_quarter_read_across_one_row() -> None:

@@ -409,3 +409,25 @@ def test_a_catalog_metric_beside_an_unknown_measure_still_answers() -> None:
     resolved = resolve_metric_phrase("Apple revenue and debt-to-equity")
     assert resolved.kind == "unique"
     assert resolved.metric == "revenue"
+
+
+def test_a_message_is_read_for_metric_phrases_once() -> None:
+    # simplify-pass-2 ticket 02: the three pure readings of a message are cached,
+    # so a turn that asks the same question of each scans the phrases once.
+    question = "Compare Apple's TTM net income and free cash flow margin"
+    assert resolve_metric_phrases(question) is resolve_metric_phrases(question)
+    assert resolve_metric_phrase(question) is resolve_metric_phrase(question)
+    assert without_trailing_year_words(question) is without_trailing_year_words(question)
+
+
+def test_the_trailing_year_words_are_spelled_once() -> None:
+    from financial_analyst_agent.request_wording import TRAILING_YEAR
+    from financial_analyst_agent.services.metric_catalog import TRAILING_YEAR_WORDS
+
+    # Both patterns stay character for character what they were when each
+    # spelled the words itself.
+    assert TRAILING_YEAR.pattern == (
+        r"\b(?:ttm|ltm|trailing[\s-]+(?:twelve|12)[\s-]+months?"
+        r"|(?:last|past)\s+(?:twelve|12)\s+months)\b"
+    )
+    assert TRAILING_YEAR.pattern == rf"\b(?:{TRAILING_YEAR_WORDS})\b"

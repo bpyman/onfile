@@ -1,10 +1,9 @@
 "use client";
 
 import { CalendarClock, CircleHelp, Database, Info, Radio } from "lucide-react";
-import { useId, useRef, type ToggleEvent } from "react";
 import { cn } from "@/lib/format";
 import type { RuntimeGuide as Guide, RuntimeKind } from "@/lib/types";
-import { placeBelow } from "@/lib/browser";
+import { placeBelow, useAnchoredPopover } from "@/lib/browser";
 
 const PANEL_WIDTH = 352;
 const GUTTER = 12;
@@ -26,13 +25,9 @@ export function RuntimeGuide({
   /** A line the panel ends with: the ranking snapshot's date, when the row has no room for it. */
   note?: string | null;
 }) {
-  const id = useId();
-  const button = useRef<HTMLButtonElement>(null);
-
-  function place(event: ToggleEvent<HTMLDivElement>) {
-    if (event.newState !== "open" || !button.current) return;
-    placeBelow(event.currentTarget, button.current.getBoundingClientRect(), PANEL_WIDTH, 8, GUTTER);
-  }
+  const { id, button, onBeforeToggle } = useAnchoredPopover((panel, anchor) =>
+    placeBelow(panel, anchor, PANEL_WIDTH, 8, GUTTER),
+  );
 
   return (
     <>
@@ -54,7 +49,7 @@ export function RuntimeGuide({
         popover="auto"
         role="dialog"
         aria-label="How runtimes differ"
-        onBeforeToggle={place}
+        onBeforeToggle={onBeforeToggle}
         className="fixed inset-auto m-0 max-h-[calc(100dvh-6rem)] overflow-y-auto rounded-xl border border-border-strong bg-surface p-4 text-[12.5px] leading-relaxed text-muted shadow-xl shadow-black/25"
       >
         <div className="space-y-3.5">

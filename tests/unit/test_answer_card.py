@@ -3,6 +3,8 @@
 from datetime import date
 from decimal import Decimal
 
+import pytest
+
 from financial_analyst_agent.contracts import (
     ComponentProvenance,
     Intent,
@@ -397,3 +399,79 @@ def test_an_overview_says_so() -> None:
         trend_rows=rows,
     )
     assert present_turn(result).intent_label == "Overview"
+
+
+def _change(company: dict[str, str], value: str, end: date, year_earlier: str) -> TableRow:
+    start = date(end.year, end.month - 2, 1)
+    before = _part(
+        year_earlier, date(end.year - 1, start.month, 1), date(end.year - 1, end.month, end.day)
+    )
+    after = _part(str(Decimal(year_earlier) + Decimal(value)), start, end)
+    return TableRow(
+        **company,
+        metric="revenue",
+        value=Decimal(value),
+        comparison="year_over_year",
+        start_date=start,
+        end_date=end,
+        form="10-Q",
+        accession_number=f"{company['cik']}-{end.isoformat()}",
+        components=[before, after],
+    )
+
+
+def _compare(rows: list[TableRow]) -> TurnResult:
+    return TurnResult(
+        intent=Intent.COMPARE, renderer=RendererKind.TABLE, tool_traces=[], table_rows=rows
+    )
+
+
+def test_a_trend_line_keeps_a_missing_quarter_as_a_gap_with_an_empty_amount() -> None:
+    rows = [*_series(MSFT, ["70", "80", "90"]), *_series(AAPL, ["95", "140", "100"])]
+    rows[-1] = rows[-1].model_copy(update={"value": None, "reason": "missing_fact"})
+    chart = present_turn(_compare(rows)).chart
+    assert chart is not None and chart.kind == "line" and chart.title == "Trend"
+    assert chart.records == (
+        {"Period": "2025-09-30", "Microsoft Corporation": 70.0, "Apple Inc.": 95.0},
+        {"Period": "2025-12-31", "Microsoft Corporation": 80.0, "Apple Inc.": 140.0},
+        {"Period": "2026-03-31", "Microsoft Corporation": 90.0, "Apple Inc.": None},
+    )
+    assert chart.period_labels == ("Sep 30, 2025", "Dec 31, 2025", "Mar 31, 2026")
+    assert chart.series == ("Microsoft Corporation", "Apple Inc.")
+    assert chart.amounts == (
+        {"Microsoft Corporation": "$70", "Apple Inc.": "$95"},
+        {"Microsoft Corporation": "$80", "Apple Inc.": "$140"},
+        {"Microsoft Corporation": "$90", "Apple Inc.": ""},
+    )
+    assert chart.metric_label == "Revenue" and chart.value_kind == "usd"
+
+
+def test_a_growth_line_leaves_out_the_amount_of_a_change_with_no_percent() -> None:
+    ends = [date(2025, 12, 31), date(2026, 3, 31)]
+    rows = [
+        *_series(MSFT, ["70", "80", "90"]),
+        *_series(AAPL, ["95", "140", "100"]),
+        _change(MSFT, "10", ends[0], "70"),
+        _change(MSFT, "20", ends[1], "70"),
+        _change(AAPL, "15", ends[0], "80"),
+        # From a year-earlier loss, the change has no percent: a gap, not a point.
+        _change(AAPL, "5", ends[1], "-10"),
+    ]
+    chart = present_turn(_compare(rows)).chart
+    assert chart is not None and chart.kind == "line" and chart.title == "Growth"
+    assert [record["Period"] for record in chart.records] == ["2025-12-31", "2026-03-31"]
+    assert chart.records[0]["Microsoft Corporation"] == pytest.approx(0.143)
+    assert chart.records[0]["Apple Inc."] == pytest.approx(0.188)
+    assert chart.records[1]["Microsoft Corporation"] == pytest.approx(0.286)
+    assert chart.records[1]["Apple Inc."] is None
+    assert chart.period_labels == ("Dec 31, 2025", "Mar 31, 2026")
+    assert chart.series == ("Microsoft Corporation", "Apple Inc.")
+    assert chart.amounts == (
+        {"Microsoft Corporation": "+14.3%", "Apple Inc.": "+18.8%"},
+        {"Microsoft Corporation": "+28.6%"},
+    )
+    assert chart.series_labels == ("MSFT", "AAPL")
+    assert chart.caption == (
+        "YoY growth in revenue, quarter by quarter; the table lists the amounts."
+    )
+    assert chart.metric_label == "Revenue growth, YoY" and chart.value_kind == "percent"

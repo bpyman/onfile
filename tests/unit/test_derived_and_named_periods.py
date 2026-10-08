@@ -109,6 +109,40 @@ def test_fourth_quarter_is_the_year_minus_nine_months() -> None:
     assert fact.derivation.parts[1].source_url == "https://www.sec.gov/q3.htm"
 
 
+def test_a_derived_quarter_carries_its_owner_and_its_longer_filing_s_provenance() -> None:
+    facts = [
+        _fact(REVENUE, FY_START, Q3_END, "313695", "q3", "10-Q"),
+        _fact(REVENUE, FY_START, FY_END, "416161", "k", "10-K"),
+    ]
+    annual = facts[1]
+
+    fact = _derive(facts, _filing("10-K", "k", FY_END), Metric.REVENUE)
+
+    # Every field but the amount, its start, the flag and the derivation is the
+    # owner's or the 10-K's, as a directly reported fact's would be.
+    assert fact.model_dump(
+        exclude={"value", "start_date", "directly_reported", "derivation", "year_earlier"}
+    ) == {
+        "company_name": "Apple Inc.",
+        "ticker": "AAPL",
+        "cik": "0000320193",
+        "metric": Metric.REVENUE,
+        "currency": "USD",
+        "end_date": annual.end_date,
+        "filed_date": annual.filed_date,
+        "form": annual.form,
+        "accession_number": annual.accession_number,
+        "taxonomy": annual.taxonomy,
+        "concept": annual.concept,
+        "source_url": "https://www.sec.gov/primary.htm",
+        "source": "sec_xbrl",
+        "newer_filing_end": None,
+        "year_only_quarter_end": None,
+        "diluted_shares": None,
+        "split_adjustment": None,
+    }
+
+
 def test_a_fourth_quarter_s_year_earlier_is_each_filing_s_own_comparative() -> None:
     prior_start = date(2023, 10, 1)
     facts = [

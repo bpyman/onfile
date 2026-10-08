@@ -5,9 +5,18 @@ from decimal import Decimal
 
 from financial_analyst_agent.contracts import Intent, RendererKind, TableRow, TurnResult
 from financial_analyst_agent.domain.enums import Metric
-from financial_analyst_agent.domain.models import DerivationPart, FactRecord, FinancialFact
+from financial_analyst_agent.domain.models import (
+    DerivationPart,
+    FactRecord,
+    FinancialFact,
+    SplitAdjustment,
+)
 from financial_analyst_agent.graph.spec_turn import across_period_change_rows
-from financial_analyst_agent.presentation import format_metric_value, present_turn
+from financial_analyst_agent.presentation import (
+    format_metric_value,
+    present_turn,
+    split_adjusted_banners,
+)
 from financial_analyst_agent.services.stock_splits import on_latest_basis, reported_splits
 from financial_analyst_agent.turn import _table_row_from_fact
 from sec_fixtures import fixture_lookup
@@ -214,6 +223,23 @@ def test_an_agreeing_restated_figure_adjusts() -> None:
     assert on_latest_basis(fact, splits, records).value == Decimal("0.598")
 
 
+def test_only_standalone_quarters_are_cross_checked_against_their_restatement() -> None:
+    splits = reported_splits(list(_TWO_SPLITS[2:]))
+    start, end = date(2024, 1, 29), date(2024, 4, 28)
+    fact = _fact("5.98", start, end, date(2024, 5, 29))
+    nine_months = date(2023, 7, 31)
+    records = [
+        _record(_EPS, "5.98", end, date(2024, 5, 29), start=start),
+        _record(_EPS, "0.60", end, date(2025, 5, 28), start=start),
+        # Nine months on two bases that do not agree: not one quarter (70 to 110
+        # days, the band fact_selector owns), so the check never reads them.
+        _record(_EPS, "12.00", end, date(2024, 5, 29), start=nine_months),
+        _record(_EPS, "1.50", end, date(2025, 5, 28), start=nine_months),
+    ]
+
+    assert on_latest_basis(fact, splits, records).value == Decimal("0.598")
+
+
 def test_the_comparative_in_the_same_filing_takes_the_same_divisor() -> None:
     splits = reported_splits(list(_TWO_SPLITS[2:]))
     fact = _fact("5.98", date(2024, 1, 29), date(2024, 4, 28), date(2024, 5, 29))
@@ -241,3 +267,37 @@ def test_a_fact_filed_after_the_split_is_unchanged() -> None:
     fact = _fact("0.67", date(2024, 4, 29), date(2024, 7, 28), date(2024, 8, 28))
 
     assert on_latest_basis(fact, splits, []) == fact
+
+
+def _adjusted_eps(end: date, value: str) -> TableRow:
+    return TableRow(
+        company_name="NVIDIA Corporation",
+        ticker="NVDA",
+        cik="0001045810",
+        metric="eps_diluted",
+        value=Decimal(value),
+        start_date=date(end.year, max(end.month - 2, 1), 1),
+        end_date=end,
+        split_adjustment=SplitAdjustment(
+            first_filed=Decimal("5.98"),
+            divisor=Decimal("10"),
+            splits="the ten-for-one split of June 2024",
+        ),
+    )
+
+
+def test_the_split_note_reads_one_quarter_in_the_singular_and_several_in_the_plural() -> None:
+    assert split_adjusted_banners([_adjusted_eps(date(2024, 4, 28), "0.598")]) == [
+        "NVIDIA's diluted EPS for the quarter ended Apr 28, 2024 is shown after the "
+        "ten-for-one split of June 2024, as the later filings restate it: the figure as "
+        "first filed ÷ 10, by the ratio the company reports. The evidence gives the figure "
+        "as first filed."
+    ]
+    assert split_adjusted_banners(
+        [_adjusted_eps(date(2024, 4, 28), "0.598"), _adjusted_eps(date(2024, 1, 28), "0.488")]
+    ) == [
+        "NVIDIA's diluted EPS for the quarters ended Apr 28, 2024 and Jan 28, 2024 are shown "
+        "after the ten-for-one split of June 2024, as the later filings restate them: the "
+        "figure as first filed ÷ 10, by the ratio the company reports. The evidence gives "
+        "the figure as first filed."
+    ]

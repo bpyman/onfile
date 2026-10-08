@@ -10,6 +10,8 @@ export const PROXY_TOKEN_HEADER = "x-proxy-token";
 export const CLIENT_IP_HEADER = "x-client-ip";
 /** A request body the API would take: one question of at most 2,000 characters. */
 export const MAX_BODY_BYTES = 16 * 1024;
+/** The 413 detail, for a declared length over the limit and for a chunked body that passes it. */
+export const TOO_LARGE = "That request is too large for the analysis service.";
 
 /** Response headers the browser needs; everything else from upstream is dropped. */
 const FORWARD_RESPONSE_HEADERS = [
@@ -30,7 +32,7 @@ export function upstreamRequestHeaders(
   { onPlatform = false }: { onPlatform?: boolean } = {},
 ): Headers {
   const headers = new Headers({ accept: request.headers.get("accept") ?? "application/json" });
-  if (request.method !== "GET" && request.method !== "HEAD") {
+  if (hasBody(request)) {
     headers.set("content-type", request.headers.get("content-type") ?? "application/json");
   }
   if (token) headers.set(PROXY_TOKEN_HEADER, token);
@@ -59,7 +61,7 @@ export function refusal(request: Request, path: string[]): { status: number; det
   if (path.map(decoded).some((segment) => segment === "." || segment === ".." || /[/\\]/.test(segment))) {
     return { status: 404, detail: "Not found." };
   }
-  if (request.method === "GET" || request.method === "HEAD") return null;
+  if (!hasBody(request)) return null;
   // Only this app's own pages may change threads: a cross-site form or fetch
   // would otherwise open threads and spend turns in a visitor's name.
   // Browsers mark every request with where it came from; a script or form on
@@ -71,9 +73,14 @@ export function refusal(request: Request, path: string[]): { status: number; det
   }
   const length = Number(request.headers.get("content-length") ?? "0");
   if (length > MAX_BODY_BYTES) {
-    return { status: 413, detail: "That request is too large for the analysis service." };
+    return { status: 413, detail: TOO_LARGE };
   }
   return null;
+}
+
+/** Whether the request carries a body: every method but the two reads. */
+export function hasBody(request: Request): boolean {
+  return request.method !== "GET" && request.method !== "HEAD";
 }
 
 function decoded(segment: string): string {

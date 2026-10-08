@@ -2,7 +2,7 @@
 
 An essay written about an answer may quote only the numbers in that answer's
 grounding: its table rows, as JSON (``evidence_store.grounding_json_from_result``).
-The lock withholds an essay with any other number (``turn._numeral_lock_extras``).
+The lock withholds an essay with any other number (``numeral_lock.numeral_lock_extras``).
 
 This takes the grounding of recorded answers, writes sentences that quote one of
 its values in a known way (exactly as the JSON holds it, as the window shows it,
@@ -23,13 +23,14 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import Any
+from typing import Any, overload
 
 from financial_analyst_agent.evidence_store import grounding_json_from_result
+from financial_analyst_agent.numeral_lock import numeral_lock_extras
 from financial_analyst_agent.presentation import format_metric_value
 from financial_analyst_agent.runtime import recorded_runtime
 from financial_analyst_agent.services.metric_catalog import METRIC_DISPLAY
-from financial_analyst_agent.turn import _numeral_lock_extras, run_turn
+from financial_analyst_agent.turn import run_turn
 
 REPORT_PATH = Path("docs/evaluation/numeral-lock.md")
 REPORT_JSON_PATH = Path("docs/evaluation/numeral-lock.json")
@@ -69,7 +70,18 @@ class Kind:
     sentence: Callable[[Quote, Sequence[Quote]], str | None]
 
 
-def _say(quote: Quote, number: str) -> str:
+@overload
+def _say(quote: Quote, number: str) -> str: ...
+@overload
+def _say(quote: Quote, number: None) -> None: ...
+@overload
+def _say(quote: Quote, number: str | None) -> str | None: ...
+
+
+def _say(quote: Quote, number: str | None) -> str | None:
+    """The sentence quoting ``number`` as the company's figure; none without a number."""
+    if number is None:
+        return None
     label = METRIC_DISPLAY[quote.metric].label if quote.metric in METRIC_DISPLAY else quote.metric
     return f"{quote.company} reported {label.lower()} of {number} for the quarter."
 
@@ -116,6 +128,12 @@ def _other(quote: Quote, quotes: Sequence[Quote]) -> Quote | None:
     )
 
 
+def _say_other(quote: Quote, quotes: Sequence[Quote]) -> str | None:
+    """Another company's value of the same metric, given as this company's."""
+    other = _other(quote, quotes)
+    return _say(quote, other.raw if other else None)
+
+
 KINDS: tuple[Kind, ...] = (
     Kind(
         "exact_json",
@@ -139,19 +157,19 @@ KINDS: tuple[Kind, ...] = (
         "rounded",
         "the shown value rounded to a whole number (about $23 billion)",
         False,
-        lambda q, _qs: (lambda r: _say(q, r) if r else None)(_rounded(q.shown)),
+        lambda q, _qs: _say(q, _rounded(q.shown)),
     ),
     Kind(
         "json_digit_changed",
         "the JSON value with its last digit changed",
         True,
-        lambda q, _qs: (lambda c: _say(q, c) if c else None)(_last_digit_changed(q.raw)),
+        lambda q, _qs: _say(q, _last_digit_changed(q.raw)),
     ),
     Kind(
         "shown_digit_changed",
         "the shown value with its last digit changed ($22.98 B)",
         True,
-        lambda q, _qs: (lambda c: _say(q, c) if c else None)(_last_digit_changed(q.shown)),
+        lambda q, _qs: _say(q, _last_digit_changed(q.shown)),
     ),
     Kind(
         "invented",
@@ -163,7 +181,7 @@ KINDS: tuple[Kind, ...] = (
         "misattributed",
         "another company's value of the same metric, given as this company's",
         True,
-        lambda q, qs: (lambda o: _say(q, o.raw) if o else None)(_other(q, qs)),
+        _say_other,
     ),
     Kind(
         "in_words",
@@ -211,7 +229,7 @@ def measure(questions: Sequence[str] = QUESTIONS) -> dict[str, Any]:
             continue
         answers += 1
         for kind, _quote, sentence in sentences(quotes):
-            withheld = bool(_numeral_lock_extras(sentence, grounding))
+            withheld = bool(numeral_lock_extras(sentence, grounding))
             counts[kind.name]["sentences"] += 1
             counts[kind.name]["withheld"] += withheld
             examples.setdefault(kind.name, {"sentence": sentence, "withheld": withheld})

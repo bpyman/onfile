@@ -3,7 +3,9 @@
 // move freely, and the hosted API answers only calls that came through here.
 
 import {
+  TOO_LARGE,
   clientResponseHeaders,
+  hasBody,
   passesThrough,
   readLimitedBody,
   refusal,
@@ -29,14 +31,8 @@ async function forward(
   if (refused) return Response.json({ detail: refused.detail }, { status: refused.status });
   const search = new URL(request.url).search;
   const target = `${API_ORIGIN}/api/${path.map(encodeURIComponent).join("/")}${search}`;
-  const hasBody = request.method !== "GET" && request.method !== "HEAD";
-  const body = hasBody ? await readLimitedBody(request) : undefined;
-  if (body === null) {
-    return Response.json(
-      { detail: "That request is too large for the analysis service." },
-      { status: 413 },
-    );
-  }
+  const body = hasBody(request) ? await readLimitedBody(request) : undefined;
+  if (body === null) return Response.json({ detail: TOO_LARGE }, { status: 413 });
   // Aborts if the visitor leaves, or if the API has not begun answering in time.
   const controller = new AbortController();
   const onAbort = () => controller.abort();

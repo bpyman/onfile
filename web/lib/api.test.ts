@@ -140,6 +140,54 @@ describe("readThreadView", () => {
     expect(turn.presentation.chart).toBeNull();
     expect(turn.presentation.traces).toEqual([{ header: "Step", inputs: [["only", ""]], outputs: [] }]);
   });
+
+  it("reads a table's exact-figure rows as text, an unreadable row as empty, and skips the keys it lacks", () => {
+    const [turn] = readThreadView({
+      thread_id: "t",
+      turns: [
+        {
+          presentation: {
+            table: {
+              headers: ["Company", "Revenue"],
+              rows: [["Apple", "$94.0B"], "junk"],
+              raw: [[1, "94036000000"], null, ["x"]],
+              raw_percent: [["", 0.5]],
+            },
+          },
+        },
+      ],
+    }).turns;
+    expect(turn.presentation.table).toEqual({
+      headers: ["Company", "Revenue"],
+      keys: [],
+      rows: [["Apple", "$94.0B"]],
+      numbers: [],
+      raw: [["1", "94036000000"], [], ["x"]],
+      raw_percent: [["", "0.5"]],
+    });
+  });
+
+  it("keeps a line chart's amounts that are text and evidence that is an index, dropping the rest", () => {
+    const [turn] = readThreadView({
+      thread_id: "t",
+      turns: [
+        {
+          presentation: {
+            chart: {
+              kind: "line",
+              amounts: [{ AAPL: "$94.0B", MSFT: 7, note: null }, "junk"],
+              evidence: [{ AAPL: 0, MSFT: -1, GOOG: 2.5, note: "1" }, null],
+            },
+          },
+        },
+      ],
+    }).turns;
+    expect(turn.presentation.chart).toMatchObject({
+      kind: "line",
+      amounts: [{ AAPL: "$94.0B" }, {}],
+      evidence: [{ AAPL: 0 }, {}],
+    });
+  });
 });
 
 describe("readTurnEvent", () => {
