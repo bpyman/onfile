@@ -9,7 +9,7 @@ from financial_analyst_agent.graph.analysis_spec import PeriodSelection, SpecPat
 from financial_analyst_agent.graph.spec_turn import plan_to_spec_patch
 from financial_analyst_agent.period_selection import read
 from financial_analyst_agent.planner import Plan
-from financial_analyst_agent.request_wording import bind_periods_from_message
+from financial_analyst_agent.request_wording import change_asked
 
 
 def _lookup(recent_quarters: int | None) -> WorkflowPlan:
@@ -57,7 +57,7 @@ def test_the_wordings_window_overrules_the_models() -> None:
     message = "Nvidia net income over the past six quarters"
     patch = _proposed(message, 4)
 
-    assert bind_periods_from_message(patch, message).set_periods == _window(6)
+    assert read(message).bind(patch, change_asked(message)).set_periods == _window(6)
 
 
 @pytest.mark.parametrize(
@@ -70,7 +70,7 @@ def test_the_wordings_window_overrules_the_models() -> None:
 def test_the_models_window_stands_where_the_words_ask_about_time(message: str) -> None:
     patch = _proposed(message, 5)
 
-    assert bind_periods_from_message(patch, message).set_periods == _window(5)
+    assert read(message).bind(patch, change_asked(message)).set_periods == _window(5)
 
 
 def test_a_window_the_words_never_asked_for_is_dropped() -> None:

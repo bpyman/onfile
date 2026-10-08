@@ -2,12 +2,18 @@
 
 from __future__ import annotations
 
+import dataclasses
+
 import pytest
 
-from financial_analyst_agent.graph.analysis_spec import NamedPeriodSpec, PeriodSelection, SpecPatch
-from financial_analyst_agent.period_selection import WindowReading, read
+from financial_analyst_agent.graph.analysis_spec import (
+    AnalysisSpec,
+    NamedPeriodSpec,
+    PeriodSelection,
+    SpecPatch,
+)
+from financial_analyst_agent.period_selection import ChangeAsked, WindowReading, read
 from financial_analyst_agent.phrase_coverage import cases
-from financial_analyst_agent.request_wording import bind_periods_from_message
 from financial_analyst_agent.rules_planner import issuer_index
 
 
@@ -141,7 +147,7 @@ def test_decades_past_the_cap_say_so() -> None:
     ],
 )
 def test_the_turn_binds_the_window_it_reads(message: str, count: int) -> None:
-    patch = bind_periods_from_message(SpecPatch(mode="replace"), message)
+    patch = read(message).bind(SpecPatch(mode="replace"), ChangeAsked.NONE)
 
     assert patch.set_periods == PeriodSelection(kind="last_n_quarters", count=count)
 
@@ -299,3 +305,285 @@ def test_a_stored_reading_replaces_the_grammars_but_not_the_named_periods() -> N
 )
 def test_a_former_name_finds_the_company(question: str, ticker: str) -> None:
     assert [mention.query for mention in issuer_index().find(question)] == [ticker]
+
+
+# --- The change asked, and the binding --------------------------------------
+
+
+def _change(**flags: object) -> ChangeAsked:
+    return dataclasses.replace(ChangeAsked.NONE, **flags)
+
+
+# "Apple revenue growth": year over year by convention, not named as such.
+_GROWTH = _change(base="year_over_year", yoy=True)
+# "year over year", "versus last year": named as such.
+_EXPLICIT_YOY = _change(base="year_over_year", yoy=True, explicit_yoy=True)
+# "quarter over quarter", "sequential instead".
+_SEQUENTIAL = _change(base="sequential", sequential=True)
+# "sequentially or versus last year".
+_BOTH = _change(base="sequential", yoy=True, sequential=True, both=True, explicit_yoy=True)
+# "How much did revenue change?": a change, but against what is not said.
+_UNCLEAR = _change(base="unclear", change_words=True)
+_Q4_2025 = NamedPeriodSpec(year=2025, quarter=4)
+_ACROSS = ("across_periods",)
+_ACROSS_YOY = ("across_periods", "year_over_year")
+_EVERY_CHANGE = ("across_periods", "year_over_year", "sequential")
+
+
+def _window(count: int, **fields: object) -> PeriodSelection:
+    return PeriodSelection(kind="last_n_quarters", count=count, **fields)
+
+
+def _named(*periods: NamedPeriodSpec, **fields: object) -> PeriodSelection:
+    return PeriodSelection(kind="named", named=periods, **fields)
+
+
+def test_no_change_asked_is_every_flag_off() -> None:
+    every_flag_off = ChangeAsked(
+        base=None,
+        yoy=False,
+        sequential=False,
+        both=False,
+        explicit_yoy=False,
+        change_words=False,
+        dropped=False,
+    )
+
+    assert every_flag_off == ChangeAsked.NONE
+
+
+def test_bind_returns_the_patch_itself_when_the_words_say_nothing_about_periods() -> None:
+    # A clarification tells a period reply from a metric by comparing the two.
+    patch = SpecPatch(mode="extend", add_metrics=("gross_margin",))
+
+    assert read("gross margin").bind(patch, ChangeAsked.NONE) is patch
+
+
+@pytest.mark.parametrize(
+    ("message", "change", "periods", "added"),
+    [
+        # A counted window, with or without a change over it.
+        ("Apple revenue over the past six quarters", ChangeAsked.NONE, _window(6), ()),
+        ("Apple revenue over the past six quarters", _GROWTH, _window(6), _ACROSS_YOY),
+        ("Apple revenue last 4 quarters yoy", _EXPLICIT_YOY, _window(4), _ACROSS_YOY),
+        # A sequential window reads one quarter more than it shows.
+        (
+            "Apple revenue last 4 quarters quarter over quarter",
+            _SEQUENTIAL,
+            _window(5, asked=4),
+            _ACROSS,
+        ),
+        # No window named: growth shows five quarters, explicit year over year eight,
+        # a sequential change five, and a change with no base is read over five.
+        ("Apple revenue growth", _GROWTH, _window(5), _ACROSS_YOY),
+        ("Apple revenue year over year", _EXPLICIT_YOY, _window(8), _ACROSS_YOY),
+        ("Apple revenue quarter over quarter", _SEQUENTIAL, _window(5), _ACROSS),
+        ("How much did Apple's revenue change?", _UNCLEAR, _window(5), _ACROSS),
+        ("Apple revenue sequentially or versus last year", _BOTH, _window(5), _EVERY_CHANGE),
+        # A change over a window of two is over those two, not the five of growth.
+        (
+            "How much did Apple's revenue change over the last 2 quarters?",
+            _change(base="year_over_year", change_words=True),
+            _window(2),
+            _ACROSS_YOY,
+        ),
+        # A change over "the past year" is over that year's four quarters.
+        (
+            "How did Apple's revenue change over the past year?",
+            _change(base="year_over_year", yoy=True, change_words=True),
+            _window(4),
+            _ACROSS_YOY,
+        ),
+        # The trailing year and "last year" are four quarters, shown one by one.
+        ("Apple TTM revenue", ChangeAsked.NONE, _window(4), ()),
+        ("Apple revenue last year", ChangeAsked.NONE, _window(4), ()),
+        # A "since" window names its year; the cap stands in for its count.
+        ("Apple revenue since 2024", ChangeAsked.NONE, _window(40, since_year=2024), ()),
+        (
+            "Apple revenue since fiscal 2025 year over year",
+            _EXPLICIT_YOY,
+            _window(40, since_year=2025, since_fiscal=True),
+            _ACROSS_YOY,
+        ),
+        (
+            "Apple revenue since 2025 quarter over quarter",
+            _SEQUENTIAL,
+            _window(40, since_year=2025),
+            _ACROSS,
+        ),
+        # Named periods: a change on one is on a window of it; a sequential change
+        # reads the quarter before each named quarter once the dates are listed.
+        ("Apple revenue Q4 2025", ChangeAsked.NONE, _named(_Q4_2025), ()),
+        ("Apple revenue Q4 2025 yoy", _EXPLICIT_YOY, _named(_Q4_2025), _ACROSS_YOY),
+        (
+            "Apple revenue Q4 2025 quarter over quarter",
+            _SEQUENTIAL,
+            _named(_Q4_2025, company_base_dates=()),
+            _ACROSS,
+        ),
+        (
+            "Apple revenue Q3 2024 vs Q3 2023",
+            ChangeAsked.NONE,
+            _named(NamedPeriodSpec(year=2024, quarter=3), NamedPeriodSpec(year=2023, quarter=3)),
+            _ACROSS,
+        ),
+        (
+            "Apple revenue 2025 vs 2024",
+            ChangeAsked.NONE,
+            _named(NamedPeriodSpec(year=2025), NamedPeriodSpec(year=2024)),
+            (),
+        ),
+        # Change words with no base are a change over at most one named period;
+        # over two, the periods themselves are the answer.
+        ("How much did Apple's revenue change in Q4 2025?", _UNCLEAR, _named(_Q4_2025), _ACROSS),
+        (
+            "How much did Apple's revenue change, 2025 vs 2024?",
+            _change(change_words=True),
+            _named(NamedPeriodSpec(year=2025), NamedPeriodSpec(year=2024)),
+            (),
+        ),
+    ],
+)
+def test_bind_sets_the_periods_the_words_ask_for(
+    message: str, change: ChangeAsked, periods: PeriodSelection, added: tuple[str, ...]
+) -> None:
+    patch = read(message).bind(SpecPatch(mode="replace"), change)
+
+    assert patch.set_periods == periods
+    assert patch.add_operations == added
+    assert patch.remove_operations == ()
+
+
+def test_bind_keeps_a_proposed_window_and_adds_the_change_asked_over_it() -> None:
+    proposed = SpecPatch(mode="replace", set_periods=_window(6))
+
+    patch = read("How has Nvidia's net income trended lately?").bind(proposed, _GROWTH)
+
+    assert patch.set_periods == _window(6)
+    assert patch.add_operations == _ACROSS_YOY
+
+
+def test_bind_latest_resets_to_one_quarter_with_no_change() -> None:
+    patch = read("latest").bind(SpecPatch(mode="extend"), ChangeAsked.NONE)
+
+    assert patch.set_periods == PeriodSelection()
+    assert patch.remove_operations == _EVERY_CHANGE
+
+
+def test_bind_a_dropped_change_keeps_the_quarters_and_takes_every_change_away() -> None:
+    patch = SpecPatch(
+        mode="extend",
+        add_operations=("order_by_metric", "year_over_year"),
+        remove_operations=("sequential",),
+    )
+
+    bound = read("remove year over year").bind(patch, _change(dropped=True))
+
+    assert bound.set_periods is None
+    assert bound.add_operations == ("order_by_metric",)
+    assert bound.remove_operations == ("sequential", "across_periods", "year_over_year")
+
+
+# --- Rebasing a change follow-up on the quarters on screen -----------------
+
+
+def _on_screen(periods: PeriodSelection, *operations: str) -> AnalysisSpec:
+    return AnalysisSpec(metrics=("revenue",), periods=periods, operations=operations)
+
+
+_YOY_BOUND = SpecPatch(mode="extend", set_periods=_window(8), add_operations=_ACROSS_YOY)
+_SEQUENTIAL_BOUND = SpecPatch(mode="extend", set_periods=_window(5), add_operations=_ACROSS)
+
+
+@pytest.mark.parametrize(
+    ("message", "change", "patch", "on_screen"),
+    [
+        # Nothing on screen to keep: the latest quarter, or a window of one.
+        ("show that year over year", _EXPLICIT_YOY, _YOY_BOUND, PeriodSelection()),
+        ("show that year over year", _EXPLICIT_YOY, _YOY_BOUND, _window(1)),
+        # The follow-up names its own quarters.
+        ("show that year over year for the last 3 quarters", _EXPLICIT_YOY, _YOY_BOUND, _window(6)),
+        ("show that year over year for Q4 2025", _EXPLICIT_YOY, _YOY_BOUND, _window(6)),
+        ("TTM revenue year over year", _EXPLICIT_YOY, _YOY_BOUND, _window(6)),
+        ("year over year since 2024", _EXPLICIT_YOY, _YOY_BOUND, _window(6)),
+        # No base to rebase on, or no periods bound, or not an edit.
+        ("add net income", ChangeAsked.NONE, SpecPatch(mode="extend"), _window(6)),
+        ("why did revenue drop?", _change(base="unclear", yoy=True), _YOY_BOUND, _window(6)),
+        (
+            "show that year over year",
+            _EXPLICIT_YOY,
+            SpecPatch(mode="extend", add_operations=_ACROSS_YOY),
+            _window(6),
+        ),
+        (
+            "show that year over year",
+            _EXPLICIT_YOY,
+            _YOY_BOUND.model_copy(update={"mode": "replace"}),
+            _window(6),
+        ),
+    ],
+)
+def test_rebase_leaves_the_patch_alone_unless_a_change_follow_up_keeps_the_screen(
+    message: str, change: ChangeAsked, patch: SpecPatch, on_screen: PeriodSelection
+) -> None:
+    assert read(message).rebase(patch, change, _on_screen(on_screen)) is patch
+
+
+def test_rebase_a_year_over_year_follow_up_keeps_a_counted_window() -> None:
+    rebased = read("show that year over year").rebase(
+        _YOY_BOUND, _EXPLICIT_YOY, _on_screen(_window(6), "across_periods")
+    )
+
+    assert rebased.set_periods is None
+    assert rebased.add_operations == _ACROSS_YOY
+    assert rebased.remove_operations == ("sequential",)
+
+
+def test_rebase_year_over_year_after_a_sequential_named_period_reads_no_base_quarter() -> None:
+    on_screen = _named(NamedPeriodSpec(year=2025), company_base_dates=())
+
+    rebased = read("show that year over year").rebase(
+        _YOY_BOUND, _EXPLICIT_YOY, _on_screen(on_screen, "across_periods")
+    )
+
+    assert rebased.set_periods == _named(NamedPeriodSpec(year=2025))
+    assert rebased.remove_operations == ("sequential",)
+
+
+@pytest.mark.parametrize(
+    ("on_screen", "periods"),
+    [
+        # The quarter before the oldest one shown is read as its base, not shown.
+        (_window(6), _window(7, asked=6)),
+        # A named period reads the quarter before each named quarter the same way.
+        (
+            _named(NamedPeriodSpec(year=2025)),
+            _named(NamedPeriodSpec(year=2025), company_base_dates=()),
+        ),
+        # Already read with its base, or every quarter since a year: unchanged.
+        (_window(7, asked=6), None),
+        (_window(40, since_year=2024), None),
+    ],
+)
+def test_rebase_a_sequential_follow_up_switches_the_change_and_keeps_the_screen(
+    on_screen: PeriodSelection, periods: PeriodSelection | None
+) -> None:
+    rebased = read("sequential instead").rebase(
+        _SEQUENTIAL_BOUND, _SEQUENTIAL, _on_screen(on_screen, *_ACROSS_YOY)
+    )
+
+    assert rebased.set_periods == periods
+    assert rebased.add_operations == _ACROSS
+    assert rebased.remove_operations == ("year_over_year", "sequential")
+
+
+def test_rebase_both_bases_keep_the_screen_and_show_both_changes() -> None:
+    bound = SpecPatch(mode="extend", set_periods=_window(5), add_operations=_EVERY_CHANGE)
+
+    rebased = read("sequentially or versus last year").rebase(
+        bound, _BOTH, _on_screen(_window(6), "across_periods")
+    )
+
+    assert rebased.set_periods == _window(7, asked=6)
+    assert rebased.add_operations == _EVERY_CHANGE
+    assert rebased.remove_operations == ()

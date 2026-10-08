@@ -262,9 +262,10 @@ def test_industry_names_are_not_repeated_in_another_case() -> None:
 
 def test_a_since_window_carries_its_year_to_the_spec_capped_at_forty() -> None:
     from financial_analyst_agent.graph.analysis_spec import MAX_QUARTERS_ASKED, SpecPatch
-    from financial_analyst_agent.request_wording import bind_periods_from_message
+    from financial_analyst_agent.request_wording import change_asked
 
-    patch = bind_periods_from_message(SpecPatch(mode="replace"), "Apple revenue since 2000")
+    message = "Apple revenue since 2000"
+    patch = read(message).bind(SpecPatch(mode="replace"), change_asked(message))
 
     periods = patch.set_periods
     assert periods is not None
@@ -290,7 +291,7 @@ def test_a_since_window_carries_its_year_to_the_spec_capped_at_forty() -> None:
 )
 def test_since_a_fiscal_year_is_a_window_on_each_companys_own_fiscal_year(wording: str) -> None:
     from financial_analyst_agent.graph.analysis_spec import SpecPatch
-    from financial_analyst_agent.request_wording import bind_periods_from_message
+    from financial_analyst_agent.request_wording import change_asked
 
     message = f"Apple revenue {wording}"
     window = read(message).reading
@@ -299,7 +300,7 @@ def test_since_a_fiscal_year_is_a_window_on_each_companys_own_fiscal_year(wordin
     # year rather than a named period left unread (probe-round-3-gaps ticket 06).
     assert (window.since_year, window.since_fiscal, window.asked_quarters) == (2025, True, None)
     assert window.unread_named_period is None
-    periods = bind_periods_from_message(SpecPatch(mode="replace"), message).set_periods
+    periods = read(message).bind(SpecPatch(mode="replace"), change_asked(message)).set_periods
     assert periods is not None
     assert (periods.kind, periods.since_year, periods.since_fiscal) == (
         "last_n_quarters",

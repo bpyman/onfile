@@ -16,9 +16,10 @@ from financial_analyst_agent.contracts import Intent, TableRow
 from financial_analyst_agent.domain.errors import CompanyNotFoundError
 from financial_analyst_agent.graph.analysis_spec import AnalysisSpec, NamedPeriodSpec, SpecPatch
 from financial_analyst_agent.graph.spec_turn import plan_to_spec_patch
+from financial_analyst_agent.period_selection import read
 from financial_analyst_agent.presentation import overview_headline
 from financial_analyst_agent.ranking import SnapshotRanking
-from financial_analyst_agent.request_wording import bind_periods_from_message
+from financial_analyst_agent.request_wording import change_asked
 from financial_analyst_agent.rules_planner import DemoCompleter, issuer_index
 from financial_analyst_agent.services.metric_catalog import resolve_metric_phrase
 
@@ -261,14 +262,16 @@ def test_ordinary_words_are_not_typos(question: str) -> None:
 
 
 def test_a_bare_year_is_that_fiscal_year() -> None:
-    patch = bind_periods_from_message(SpecPatch(mode="replace"), "Apple revenue 2024")
+    message = "Apple revenue 2024"
+    patch = read(message).bind(SpecPatch(mode="replace"), change_asked(message))
 
     assert patch.set_periods is not None
     assert patch.set_periods.named == (NamedPeriodSpec(year=2024),)
 
 
 def test_two_years_compare_both() -> None:
-    patch = bind_periods_from_message(SpecPatch(mode="replace"), "Apple revenue 2025 vs 2024")
+    message = "Apple revenue 2025 vs 2024"
+    patch = read(message).bind(SpecPatch(mode="replace"), change_asked(message))
 
     assert patch.set_periods is not None
     assert patch.set_periods.named == (NamedPeriodSpec(year=2025), NamedPeriodSpec(year=2024))
@@ -283,7 +286,7 @@ def test_two_years_compare_both() -> None:
     ],
 )
 def test_last_n_years_is_four_n_quarters(message: str, count: int) -> None:
-    patch = bind_periods_from_message(SpecPatch(mode="replace"), message)
+    patch = read(message).bind(SpecPatch(mode="replace"), change_asked(message))
 
     assert patch.set_periods is not None
     assert patch.set_periods.kind == "last_n_quarters"
@@ -310,16 +313,15 @@ def test_last_n_years_is_four_n_quarters(message: str, count: int) -> None:
 def test_a_month_named_quarter_is_that_calendar_quarter(
     message: str, period: NamedPeriodSpec
 ) -> None:
-    patch = bind_periods_from_message(SpecPatch(mode="replace"), message)
+    patch = read(message).bind(SpecPatch(mode="replace"), change_asked(message))
 
     assert patch.set_periods is not None
     assert patch.set_periods.named == (period,)
 
 
 def test_quarter_over_quarter_is_a_sequential_window() -> None:
-    patch = bind_periods_from_message(
-        SpecPatch(mode="replace"), "Apple revenue quarter over quarter"
-    )
+    message = "Apple revenue quarter over quarter"
+    patch = read(message).bind(SpecPatch(mode="replace"), change_asked(message))
 
     assert patch.set_periods is not None and patch.set_periods.kind == "last_n_quarters"
     assert "across_periods" in patch.add_operations
@@ -327,9 +329,8 @@ def test_quarter_over_quarter_is_a_sequential_window() -> None:
 
 
 def test_last_n_quarters_year_over_year_shows_the_n_quarters_asked() -> None:
-    patch = bind_periods_from_message(
-        SpecPatch(mode="replace"), "Apple revenue last 4 quarters yoy"
-    )
+    message = "Apple revenue last 4 quarters yoy"
+    patch = read(message).bind(SpecPatch(mode="replace"), change_asked(message))
 
     # Each quarter's base is the comparative its own filing reports (ADR 0009).
     assert patch.set_periods is not None and patch.set_periods.count == 4
@@ -349,7 +350,7 @@ def test_since_a_year_is_not_a_named_year(wording: str) -> None:
     from financial_analyst_agent.period_selection import read
 
     message = f"Apple revenue {wording}"
-    patch = bind_periods_from_message(SpecPatch(mode="replace"), message)
+    patch = read(message).bind(SpecPatch(mode="replace"), change_asked(message))
 
     # Every quarter since that calendar year began, not the fiscal year it names.
     assert read(message).named == ()
@@ -357,7 +358,8 @@ def test_since_a_year_is_not_a_named_year(wording: str) -> None:
 
 
 def test_latest_after_year_over_year_drops_the_change() -> None:
-    patch = bind_periods_from_message(SpecPatch(mode="extend"), "latest")
+    message = "latest"
+    patch = read(message).bind(SpecPatch(mode="extend"), change_asked(message))
 
     assert "year_over_year" in patch.remove_operations
 

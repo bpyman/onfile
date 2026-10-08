@@ -30,6 +30,7 @@ from financial_analyst_agent.guide import (
     suggest_follow_ups,
 )
 from financial_analyst_agent.issuer_index import IssuerIndex
+from financial_analyst_agent.period_selection import read
 from financial_analyst_agent.planner_cascade import unsure_reason
 from financial_analyst_agent.presentation import present_turn
 from financial_analyst_agent.ranking import SnapshotRanking
@@ -37,7 +38,7 @@ from financial_analyst_agent.request_wording import (
     OVERVIEW_METRICS,
     OVERVIEW_PLAN,
     bind_metrics_from_message,
-    bind_periods_from_message,
+    change_asked,
     refine_patch_from_message,
 )
 from financial_analyst_agent.rules_planner import (
@@ -185,9 +186,8 @@ def test_the_rules_planner_plans_the_overview_for_overview_words() -> None:
 
 
 def test_growth_wording_asks_for_year_over_year() -> None:
-    patch = bind_periods_from_message(
-        SpecPatch(mode="replace"), "How has Tesla's revenue changed over the last year?"
-    )
+    message = "How has Tesla's revenue changed over the last year?"
+    patch = read(message).bind(SpecPatch(mode="replace"), change_asked(message))
 
     # A change over "the last year" is over that year's four quarters (README's
     # growth row, probe-round-3-gaps ticket 07), not the five of growth with no period.
@@ -711,7 +711,8 @@ def test_a_window_of_several_metrics_reads_one_row_per_quarter_and_change() -> N
     ],
 )
 def test_quarter_window_is_kept_between_one_and_ten_years(wording: str, count: int) -> None:
-    patch = bind_periods_from_message(SpecPatch(mode="replace"), f"Apple revenue {wording}")
+    message = f"Apple revenue {wording}"
+    patch = read(message).bind(SpecPatch(mode="replace"), change_asked(message))
 
     assert patch.set_periods == PeriodSelection(kind="last_n_quarters", count=count)
 

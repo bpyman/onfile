@@ -3082,3 +3082,40 @@ Blockers / next:
 - None. 2,434 tests pass (32 new); ruff and mypy clean; compare_answers reports `0 of 893
   conversations differ from master`. Tickets 03 (bind and rebase) and 04 (dating) are next on
   the frontier; 03 can take `LATEST`, `YEAR_BASE` and `MAX_SINCE_QUARTERS` private again.
+
+2026-10-08
+
+Task completed: `docs/process/tickets/period-selection/issues/03-bind-and-rebase-the-period-part-of-a-patch.md`
+
+Key decisions:
+- `ChangeAsked` (seven flags, `NONE`) is declared in `period_selection`; `request_wording.change_asked`
+  builds it from `comparison_asked`, `YOY`, `_SEQUENTIAL`, `names_both_bases`, `EXPLICIT_YOY`, `_CHANGE`
+  and `drops_comparison`, each the raw match over the message. The `_asks_change` rule (change words
+  with no base are a change over a window or with at most one named period) is applied inside
+  `Words.bind` from `names_a_window` and `named`; `comparison_asked` keeps its copy for its `None`.
+- `Words.bind` and `Words.rebase` are `bind_periods_from_message` and `_keep_window_for_change`
+  moved branch for branch; `_operations_with_change` and `_sequential_on` are the old private
+  helpers. `_YOY_WINDOW`, `_GROWTH_WINDOW` (the literal 5), `_CHANGE_OPERATIONS`, `_with_operations`
+  and `MAX_SINCE_QUARTERS` moved with them; `LATEST` and `YEAR_BASE` are private again.
+- `refine_patch_from_message` is the design's composition: `change_asked` once, `bind` before
+  `_refine_against`, `rebase` after. `clarify._read_metric` and `ask_again` call
+  `read(message).bind(..., change_asked(message))`; the `!=` identity check is unchanged.
+- Module tests use hand-built `ChangeAsked` values; the wording tests in the other files compose
+  `read(message).bind(patch, change_asked(message))`, since their subject is the change wording.
+  A seven-flag table pins `change_asked`.
+- Two files outside the ticket's list changed by one import each (`answer_notes.py` for
+  `MAX_SINCE_QUARTERS`; `tests/unit/test_planner_window.py` called the deleted function).
+  Recorded in rules-to-review.
+
+Files changed:
+- `src/financial_analyst_agent/period_selection.py`, `request_wording.py`, `graph/clarify.py`,
+  `answer_notes.py`
+- `tests/unit/test_period_selection.py`, `test_planner_wording.py`, `test_planner_rules.py`,
+  `test_planner_understanding.py`, `test_planner_window.py`, `test_window_copy.py`,
+  `test_derived_and_named_periods.py`
+- the ticket, `docs/process/progress.txt`, `docs/process/rules-to-review.md`
+
+Blockers / next:
+- None. 2,489 tests pass (55 new); ruff and mypy clean; compare_answers reports `0 of 893
+  conversations differ from master`; the rules planner's evaluation matches a fresh master run case
+  for case (99% over 445). Tickets 04 (dating) is next on the frontier; 05 and 06 follow.

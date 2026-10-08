@@ -138,3 +138,10 @@ Each entry: date, ticket, where, the rule, why it looks wrong, what the agent di
 - **The rule:** a step that needs a file outside the ticket's list is left undone.
 - **Why it looks wrong:** `graph/clarify.py` imports `read_window` and `WindowReading` from `request_wording`, and `tests/test_says_what_it_cannot_do.py` monkeypatches `request_wording.date` for the "N years ago" reading; neither file is on the list. Leaving them would fail `pytest` and step 6 (no re-exports), which the same ticket requires. `tests/unit/services/test_metric_phrase.py` imports `TRAILING_YEAR` the same way.
 - **What you did:** changed the three files by one import (and, in `clarify`, two `read(...).reading` calls) each, and said so in the Answer. The design record's call-site list has `clarify` changing in ticket 03 (`words.bind`), so its import line is the only part done early.
+
+## 2026-10-08 — period-selection 03: the file list leaves out a caller and a test of the moved names
+
+- **Where:** `docs/process/tickets/period-selection/issues/03-bind-and-rebase-the-period-part-of-a-patch.md`, **Files (this ticket only)** and the last sentence of Acceptance ("If a step would ... need a file outside this ticket's list, leave it and say so in the Answer").
+- **The rule:** a step that needs a file outside the ticket's list is left undone.
+- **Why it looks wrong:** `answer_notes.py` imports `MAX_SINCE_QUARTERS` from `request_wording`, where it sat beside the binding. The binding moves into `period_selection` and needs it; the module may import nothing from `request_wording`; and leaving a second definition behind in `request_wording` is the duplicate the no-re-export rule exists to prevent. `tests/unit/test_planner_window.py` calls `bind_periods_from_message` in two tests, which the ticket deletes, so leaving it fails `pytest`.
+- **What you did:** changed each by one import (and, in the test, the two calls), and said so in the Answer, as ticket 02 did for `clarify.py`. Ticket 06 moves the since notes into the module, after which `answer_notes` would import it from there anyway.

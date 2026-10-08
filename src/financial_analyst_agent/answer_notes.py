@@ -28,17 +28,12 @@ from financial_analyst_agent.guide import (
     short_name,
 )
 from financial_analyst_agent.period_selection import (
+    MAX_SINCE_QUARTERS,
     YEAR_OF_QUARTERS,
     YEAR_TO_DATE,
     WindowReading,
 )
-from financial_analyst_agent.request_wording import (
-    EXPLICIT_YOY,
-    GROWTH,
-    MAX_SINCE_QUARTERS,
-    WHY_CHANGE,
-    YOY,
-)
+from financial_analyst_agent.request_wording import EXPLICIT_YOY, GROWTH, WHY_CHANGE, YOY
 from financial_analyst_agent.services.filing_selector import FISCAL_WEEK_TOLERANCE
 from financial_analyst_agent.services.fiscal_periods import (
     adjacent_quarters,
