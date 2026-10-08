@@ -27,7 +27,12 @@ from financial_analyst_agent.graph.state import (
     StructuredRequest,
 )
 from financial_analyst_agent.issuer_index import CompanyNames
-from financial_analyst_agent.request_wording import bind_periods_from_message, is_removal
+from financial_analyst_agent.request_wording import (
+    WindowReading,
+    bind_periods_from_message,
+    is_removal,
+    read_window,
+)
 from financial_analyst_agent.services.metric_catalog import resolve_metric_phrase
 
 _NEW_QUESTION = re.compile(r"\b(?:what|which|how|compare|versus|vs)\b|['’]s\b", re.IGNORECASE)
@@ -283,7 +288,15 @@ def _resume_metric(
             patch = patch.model_copy(update={"mode": "replace", "remove_companies": ()})
     if patch.mode is None and current_spec is None:
         patch = patch.model_copy(update={"mode": "replace"})
-    return StructuredRequest(patch=patch, wording=wording, question=pending.question or message)
+    # The window was asked in the held question ("margin over the past few
+    # quarters"); a reply naming only the metric keeps it, one naming a window
+    # of its own is read as the other resumes read theirs.
+    window = read_window(wording)
+    if pending.question and window == WindowReading():
+        window = read_window(pending.question)
+    return StructuredRequest(
+        patch=patch, wording=wording, question=pending.question or message, window=window
+    )
 
 
 def _resume_comparison(
