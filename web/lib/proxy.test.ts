@@ -3,8 +3,10 @@ import {
   CLIENT_IP_HEADER,
   MAX_BODY_BYTES,
   PROXY_TOKEN_HEADER,
+  TOO_LARGE,
   clientAddress,
   clientResponseHeaders,
+  hasBody,
   passesThrough,
   readLimitedBody,
   refusal,
@@ -126,8 +128,21 @@ describe("refusal", () => {
     expect(refusal(read, ["health"])).toBeNull();
   });
 
-  it("refuses a declared body over the limit", () => {
-    expect(refusal(post({ "content-length": String(MAX_BODY_BYTES + 1) }), ["threads"])?.status).toBe(413);
+  it("refuses a declared body over the limit, with the words the route uses for an undeclared one", () => {
+    expect(refusal(post({ "content-length": String(MAX_BODY_BYTES + 1) }), ["threads"])).toEqual({
+      status: 413,
+      detail: TOO_LARGE,
+    });
+    expect(TOO_LARGE).toBe("That request is too large for the analysis service.");
+  });
+});
+
+describe("hasBody", () => {
+  it("is false for the two methods that carry none, whatever the browser attached", () => {
+    expect(hasBody(browserRequest())).toBe(false);
+    expect(hasBody(browserRequest({ method: "HEAD" }))).toBe(false);
+    expect(hasBody(browserRequest({ method: "POST", body: "{}" }))).toBe(true);
+    expect(hasBody(browserRequest({ method: "DELETE" }))).toBe(true);
   });
 });
 

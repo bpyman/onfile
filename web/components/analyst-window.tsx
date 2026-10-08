@@ -22,6 +22,7 @@ import {
   startThread,
   waitForTurn,
   whenFree,
+  type KeyValueStore,
   type ThreadApi,
 } from "@/lib/browser-thread";
 import { loadDemoAnswers } from "@/lib/demo-answers";
@@ -63,6 +64,12 @@ type Notice = { kind: "info" | "error"; text: string };
 function errorText(error: unknown): string {
   if (error instanceof ApiError) return error.message;
   return UNREACHABLE;
+}
+
+/** The thread as the server has it, or null when this browser has moved on to another since. */
+async function loadIfCurrent(store: KeyValueStore, threadId: string): Promise<ThreadView | null> {
+  const latest = await getThread(threadId);
+  return isCurrentThread(store, threadId) ? latest : null;
 }
 
 /** The audience window: one thread per browser, bound to one runtime (ADR 0006). */
@@ -220,10 +227,8 @@ export function AnalystWindow() {
     startOverIfLocked(threadApi, store, view, locked)
       .then((started) => {
         if (!started) return;
-        shownTurns.current = 0;
         dispatch({ type: "reset" });
-        setView(started.view);
-        if (started.notice) setNotice({ kind: "info", text: started.notice });
+        showThread(started.view, started.notice);
       })
       .catch((error: unknown) => {
         setView(null);
@@ -288,19 +293,14 @@ export function AnalystWindow() {
     const follow = (event: StorageEvent) => {
       if (event.key !== THREAD_STORAGE_KEY || inFlight.current) return;
       if (event.newValue === (view?.thread_id ?? null)) return;
-      shownTurns.current = 0;
       dispatch({ type: "reset" });
       if (!event.newValue) {
-        setView(null);
-        setNotice({ kind: "info", text: OTHER_TAB_NOTICE });
+        showThread(null, OTHER_TAB_NOTICE);
         return;
       }
-      getThread(event.newValue)
+      loadIfCurrent(store, event.newValue)
         .then((latest) => {
-          if (isCurrentThread(store, latest.thread_id)) {
-            setView(latest);
-            setNotice({ kind: "info", text: OTHER_TAB_NOTICE });
-          }
+          if (latest) showThread(latest, OTHER_TAB_NOTICE);
         })
         .catch(() => undefined);
     };
@@ -319,6 +319,19 @@ export function AnalystWindow() {
     return () => window.removeEventListener("keydown", dismiss);
   }, [notice, resumeFailed]);
 
+  /** Shows another thread (or none) from its top, with the notice that explains the change. */
+  function showThread(next: ThreadView | null, notice?: string | null) {
+    shownTurns.current = 0;
+    setView(next);
+    if (notice) setNotice({ kind: "info", text: notice });
+  }
+
+  /** Loads the saved thread again after a failed resume. */
+  function retryResume() {
+    setBooted(false);
+    setResumeAttempt((attempt) => attempt + 1);
+  }
+
   /** Takes a question if the window can ask it now; false leaves it in the box. */
   function send(text: string): boolean {
     const message = text.trim();
@@ -328,7 +341,6 @@ export function AnalystWindow() {
   }
 
   /** Asks `message` on the thread on screen, or on `fresh` when Start over just made one. */
-  /** Ask a question; the thread as its answer left it, or null when there is none. */
   async function ask(message: string, fresh?: ThreadView): Promise<ThreadView | null> {
     inFlight.current = true;
     const controller = new AbortController();
@@ -364,10 +376,8 @@ export function AnalystWindow() {
         shown?.runtime ?? chosenRuntime ?? undefined,
         (started) => {
           // The server lost the thread while the window sat open.
-          shownTurns.current = 0;
-          setView(started.view);
+          showThread(started.view, started.notice);
           threadId = started.view.thread_id;
-          if (started.notice) setNotice({ kind: "info", text: started.notice });
         },
       );
       for await (const event of asked) {
@@ -403,13 +413,10 @@ export function AnalystWindow() {
     if (answered) setAnnouncement(ANSWER_READY);
     if (moved) {
       // Another tab's Start over replaced this thread: show that one, and hand the question back.
-      const movedId = moved;
-      getThread(movedId)
+      loadIfCurrent(store, moved)
         .then((latest) => {
-          if (!isCurrentThread(store, movedId)) return;
-          shownTurns.current = 0;
-          setView(latest);
-          setNotice({ kind: "info", text: MOVED_NOTICE });
+          if (!latest) return;
+          showThread(latest, MOVED_NOTICE);
           composer.current?.fill(message);
         })
         .catch((error: unknown) => setNotice({ kind: "error", text: errorText(error) }));
@@ -425,9 +432,9 @@ export function AnalystWindow() {
    * unless the analyst has started over since.
    */
   function refresh(threadId: string) {
-    getThread(threadId)
+    loadIfCurrent(store, threadId)
       .then((latest) => {
-        if (isCurrentThread(store, threadId)) setView(latest);
+        if (latest) setView(latest);
       })
       .catch(() => undefined);
   }
@@ -473,21 +480,16 @@ export function AnalystWindow() {
     try {
       const previous = keepPrevious ? null : (view?.thread_id ?? store.getItem(THREAD_STORAGE_KEY));
       const started = await startThread(threadApi, store, next ?? undefined, previous);
-      shownTurns.current = 0;
       setChosenRuntime(next);
-      setView(started.view);
+      showThread(started.view, started.notice);
       composer.current?.clear();
       window.scrollTo({ top: 0 });
-      if (started.notice) setNotice({ kind: "info", text: started.notice });
       return started.view;
     } catch (error) {
       // Nothing was cleared: keep the conversation and say why no new one started.
       setNotice({ kind: "error", text: errorText(error) });
       if (hadResumeFailed) setResumeFailed(true);
-      else if (wasResuming) {
-        setBooted(false);
-        setResumeAttempt((attempt) => attempt + 1);
-      }
+      else if (wasResuming) retryResume();
       if (dropped) refresh(dropped);
       return null;
     } finally {
@@ -567,10 +569,7 @@ export function AnalystWindow() {
                   <button
                     type="button"
                     disabled={resuming}
-                    onClick={() => {
-                      setBooted(false);
-                      setResumeAttempt((attempt) => attempt + 1);
-                    }}
+                    onClick={retryResume}
                     className="rounded text-sm font-medium underline underline-offset-4 disabled:opacity-50"
                   >
                     Try again

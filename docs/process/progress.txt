@@ -2963,3 +2963,41 @@ Blockers / next:
 - None. 2,401 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 893
   conversations differ from HEAD` (phrase coverage replayed, so 555 of 555). Ticket 12 in
   simplify-pass-2 remains.
+
+2026-10-08
+
+Task completed: `docs/process/tickets/simplify-pass-2/issues/12-web-window-and-popover-helpers.md`
+
+Key decisions:
+- analyst-window.tsx: `showThread(next, notice?)` is the one `shownTurns.current = 0; setView;
+  info notice` sequence (locked-runtime restart, both branches of the other-tab follow, the
+  lost-thread restart inside `ask`, the moved-thread branch, `startOver`); `retryResume()` the one
+  `setBooted(false); setResumeAttempt(+1)` (startOver's failure path, the Try again button).
+  `loadIfCurrent(store, threadId)` is `getThread` plus the `isCurrentThread` check (the follow,
+  the moved branch, `refresh`); it is module-level and takes the store because a component-scoped
+  closure made `react-hooks/exhaustive-deps` ask for it as a dependency of the storage-listener
+  effect. The stale first doc comment on `ask()` is deleted.
+- lib/browser.ts: `useAnchoredPopover(place)` returns `{id, button, panel, onBeforeToggle, close}`;
+  `PhoneMenu` passes its right-edge placement, `AddMenu` `placeBelow(menu, anchor, 288, 6)`,
+  `RuntimeGuide` `placeBelow(panel, anchor, PANEL_WIDTH, 8, GUTTER)`. Each panel keeps its native
+  `popover="auto"`, role and placement call.
+- lib/api.ts: `textRows(value)` reads `raw` and `raw_percent`; `recordOf(value, guard)` reads a
+  line chart's `amounts` (with `isText`) and `evidence` (with `isIndex`). `rows`, `numbers` and the
+  conditional spreads are as they were.
+- lib/proxy.ts, route.ts: `hasBody(request)` and `TOO_LARGE` exported and used in
+  `upstreamRequestHeaders`, `refusal` and the route's chunked-body refusal.
+
+Files changed:
+- `web/components/analyst-window.tsx`, `header.tsx`, `status-line.tsx`, `runtime-guide.tsx`,
+  `web/lib/browser.ts`, `api.ts`, `proxy.ts`, `web/app/api/[...path]/route.ts`
+- `web/lib/browser.test.tsx` (new, +3), `web/lib/proxy.test.ts` (+1, the 413 case pins
+  `TOO_LARGE`), `web/lib/api.test.ts` (+2)
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. In web/: vitest 219 pass, lint and `tsc --noEmit` clean, `next build` ok, Playwright
+  46 pass. Python unchanged: 2,401 tests pass, ruff and mypy pass, compare_answers `0 of 893
+  conversations differ from HEAD`. The by-hand pass of the three menus by click and keyboard was
+  not done (unattended run). Note for this machine: `next build` fails under the agent's Git
+  Bash shell with a Turbopack worker spawn error (0xc0000142) and succeeds from PowerShell.
+  simplify-pass-2 is complete: all twelve tickets are resolved.

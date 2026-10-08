@@ -1,12 +1,11 @@
 "use client";
 
 import { CalendarClock, Plus, X } from "lucide-react";
-import { useId, useRef, type ToggleEvent } from "react";
 import { cn, splitBanner } from "@/lib/format";
 import { turnCounterLabel } from "@/lib/turn-state";
 import type { ChipEdit, QuickAction, QuickActions, RuntimeGuide as Guide, RuntimeKind } from "@/lib/types";
 import { RuntimeGuide } from "./runtime-guide";
-import { placeBelow } from "@/lib/browser";
+import { placeBelow, useAnchoredPopover } from "@/lib/browser";
 
 const SNAPSHOT_HELP =
   "Rankings read this dated list of US-listed operating companies (the universe snapshot); lookups do not need it.";
@@ -216,19 +215,13 @@ function AddMenu({
   onEdit?: (message: string) => void;
   onDraft?: (text: string) => void;
 }) {
-  const id = useId();
-  const button = useRef<HTMLButtonElement>(null);
-  const panel = useRef<HTMLDivElement>(null);
-
-  function place(event: ToggleEvent<HTMLDivElement>) {
-    if (event.newState !== "open" || !button.current) return;
-    placeBelow(event.currentTarget, button.current.getBoundingClientRect(), 288, 6);
-  }
-
-  function choose(run: () => void) {
-    panel.current?.hidePopover();
-    run();
-  }
+  const {
+    id,
+    button,
+    panel,
+    onBeforeToggle,
+    close: choose,
+  } = useAnchoredPopover((menu, anchor) => placeBelow(menu, anchor, 288, 6));
 
   return (
     <>
@@ -249,7 +242,7 @@ function AddMenu({
         popover="auto"
         role="menu"
         aria-label="Add to the analysis"
-        onBeforeToggle={place}
+        onBeforeToggle={onBeforeToggle}
         className="fixed inset-auto m-0 max-h-[calc(100dvh-8rem)] overflow-y-auto rounded-xl border border-border-strong bg-surface p-1.5 text-[13px] text-fg shadow-xl shadow-black/25"
       >
         {GROUPS.map(({ key, title, draft }) =>
