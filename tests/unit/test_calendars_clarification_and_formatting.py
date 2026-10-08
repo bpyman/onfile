@@ -410,3 +410,20 @@ def test_a_company_answer_names_the_one_offered_company_holding_its_words(
     )
     reply = clarification_reply(pending, answer)
     assert (reply.chosen if reply is not None else None) == chosen
+
+
+def test_a_metric_answer_keeps_the_held_questions_window() -> None:
+    from financial_analyst_agent.graph.clarify import resumed_request
+
+    held = PendingClarification(
+        kind="ambiguous_metric",
+        candidates=("gross_margin", "net_margin"),
+        patch=SpecPatch(mode="replace", add_companies=("Apple",)),
+        question="Apple margin over the past few quarters",
+    )
+    resumed = resumed_request(held, ("gross_margin",), "gross margin", None)
+    assert resumed.window == read_window(held.question)
+    assert resumed.window.asked_quarters == 4 and resumed.window.interpretation_notes
+    # A reply naming a window of its own is read, as the wording it resolves.
+    own = resumed_request(held, ("gross_margin",), "gross margin last 6 quarters", None)
+    assert own.window.asked_quarters == 6
