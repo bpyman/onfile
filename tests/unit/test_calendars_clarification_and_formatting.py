@@ -18,8 +18,7 @@ from financial_analyst_agent.graph.analysis_spec import (
     compile_tasks,
 )
 from financial_analyst_agent.graph.clarify import clarification_reply
-from financial_analyst_agent.graph.spec_turn import materialize_period_dates
-from financial_analyst_agent.period_selection import read
+from financial_analyst_agent.period_selection import Periods, read
 from financial_analyst_agent.presentation import format_usd, present_turn
 from financial_analyst_agent.services.fiscal_periods import FiscalPeriod
 from financial_analyst_agent.thread_store import PendingClarification
@@ -49,11 +48,10 @@ def test_a_new_question_naming_a_candidate_is_not_an_answer() -> None:
     assert clarification_reply(_pending(), "compare Apple and Microsoft net income") is None
 
 
-class _Runtime:
-    def __init__(self) -> None:
-        self.facts = ListedFilings(
-            {"Microsoft": _MSFT, "Apple": _AAPL, "Nvidia": _NVDA}, failing=("Missing",)
-        )
+def _facts() -> ListedFilings:
+    return ListedFilings(
+        {"Microsoft": _MSFT, "Apple": _AAPL, "Nvidia": _NVDA}, failing=("Missing",)
+    )
 
 
 def _window(*queries: str) -> AnalysisSpec:
@@ -65,9 +63,9 @@ def _window(*queries: str) -> AnalysisSpec:
 
 
 def test_each_fiscal_calendar_asks_for_its_own_quarters() -> None:
-    runtime = _Runtime()
+    facts = _facts()
 
-    spec = materialize_period_dates(_window("Microsoft", "Apple", "Nvidia"), runtime)  # type: ignore[arg-type]
+    spec = Periods(_window("Microsoft", "Apple", "Nvidia")).dated(facts).spec
     tasks = compile_tasks(spec)
 
     # Apple's quarters sit on Microsoft's calendar grid, so they share its dates;
@@ -127,23 +125,21 @@ def _since(year: int, *queries: str) -> AnalysisSpec:
 
 
 def test_a_since_window_is_every_quarter_ended_on_or_after_that_january() -> None:
-    runtime = _Runtime()
-    runtime.facts = _long_listing()
+    facts = _long_listing()
 
-    spec = materialize_period_dates(_since(2024, "Apple"), runtime)  # type: ignore[arg-type]
+    spec = Periods(_since(2024, "Apple")).dated(facts).spec
 
     # The cap is the listing's limit; the window is the quarters since 1 January 2024.
-    assert runtime.facts.listed == [("Apple", 40)]
+    assert facts.listed == [("Apple", 40)]
     assert spec.periods.report_dates == _AAPL_SINCE[:10]
     assert (spec.periods.count, spec.periods.since_year) == (10, 2024)
     assert spec.periods.asked is None
 
 
 def test_each_company_keeps_its_own_quarters_since_that_january() -> None:
-    runtime = _Runtime()
-    runtime.facts = _long_listing()
+    facts = _long_listing()
 
-    spec = materialize_period_dates(_since(2024, "Apple", "Walmart"), runtime)  # type: ignore[arg-type]
+    spec = Periods(_since(2024, "Apple", "Walmart")).dated(facts).spec
 
     own = dict(spec.periods.company_report_dates)
     assert own["Walmart"] == _WMT_SINCE[:10]
@@ -151,10 +147,9 @@ def test_each_company_keeps_its_own_quarters_since_that_january() -> None:
 
 
 def test_a_since_window_with_no_quarter_yet_shows_the_latest() -> None:
-    runtime = _Runtime()
-    runtime.facts = _long_listing()
+    facts = _long_listing()
 
-    spec = materialize_period_dates(_since(2027, "Apple"), runtime)  # type: ignore[arg-type]
+    spec = Periods(_since(2027, "Apple")).dated(facts).spec
 
     assert spec.periods.report_dates == _AAPL_SINCE[:1]
 
@@ -217,10 +212,9 @@ def _since_fiscal(year: int, *queries: str) -> AnalysisSpec:
 
 
 def test_since_a_fiscal_year_counts_from_each_companys_own_fiscal_year() -> None:
-    runtime = _Runtime()
-    runtime.facts = _fiscal_listing()
+    facts = _fiscal_listing()
 
-    spec = materialize_period_dates(_since_fiscal(2025, "Apple", "Microsoft"), runtime)  # type: ignore[arg-type]
+    spec = Periods(_since_fiscal(2025, "Apple", "Microsoft")).dated(facts).spec
 
     # Read where the fiscal periods are listed, as a named fiscal year is
     # (probe-round-3-gaps ticket 06): Apple's from December 2024, Microsoft's
@@ -228,16 +222,15 @@ def test_since_a_fiscal_year_counts_from_each_companys_own_fiscal_year() -> None
     assert spec.periods.report_dates == tuple(period.end for period in _AAPL_FISCAL[:7])
     own = dict(spec.periods.company_report_dates)
     assert own["Microsoft"] == tuple(period.end for period in _MSFT_FISCAL[:8])
-    assert runtime.facts.listed == [("Apple", None), ("Microsoft", None)]
+    assert facts.listed == [("Apple", None), ("Microsoft", None)]
     # The filings hold every quarter of both spans: nothing more was asked for.
     assert (spec.periods.count, spec.periods.since_fiscal, spec.periods.asked) == (7, True, None)
 
 
 def test_since_a_fiscal_year_the_filings_do_not_reach_carries_the_span_asked() -> None:
-    runtime = _Runtime()
-    runtime.facts = _fiscal_listing()
+    facts = _fiscal_listing()
 
-    spec = materialize_period_dates(_since_fiscal(2015, "Apple"), runtime)  # type: ignore[arg-type]
+    spec = Periods(_since_fiscal(2015, "Apple")).dated(facts).spec
 
     # Q1 of fiscal 2015 to Q3 of fiscal 2026 is 47 quarters on Apple's own
     # labels; the filings hold nine, so the note can say how many are missing.
@@ -246,10 +239,9 @@ def test_since_a_fiscal_year_the_filings_do_not_reach_carries_the_span_asked() -
 
 
 def test_since_a_fiscal_year_is_capped_at_the_window_cap() -> None:
-    runtime = _Runtime()
-    runtime.facts = _fiscal_listing()
+    facts = _fiscal_listing()
 
-    spec = materialize_period_dates(_since_fiscal(2014, "Long"), runtime)  # type: ignore[arg-type]
+    spec = Periods(_since_fiscal(2014, "Long")).dated(facts).spec
 
     # Fifty quarters since Q3 of fiscal 2014 would be held, but the window shows
     # the latest forty; the span asked is the fifty, from Q1 of that year: 52.
@@ -258,25 +250,24 @@ def test_since_a_fiscal_year_is_capped_at_the_window_cap() -> None:
 
 
 def test_since_a_fiscal_year_ahead_of_the_filings_shows_the_latest() -> None:
-    runtime = _Runtime()
-    runtime.facts = _fiscal_listing()
+    facts = _fiscal_listing()
 
-    spec = materialize_period_dates(_since_fiscal(2027, "Apple"), runtime)  # type: ignore[arg-type]
+    spec = Periods(_since_fiscal(2027, "Apple")).dated(facts).spec
 
     assert spec.periods.report_dates == (date(2026, 6, 27),)
     assert spec.periods.asked is None
 
 
 def test_adding_a_company_lists_only_that_company() -> None:
-    runtime = _Runtime()
-    spec = materialize_period_dates(_window("Microsoft"), runtime)  # type: ignore[arg-type]
+    facts = _facts()
+    spec = Periods(_window("Microsoft")).dated(facts).spec
     grown = spec.model_copy(
         update={"companies": (*spec.companies, _company("Nvidia"), _company("Missing"))}
     )
 
-    spec = materialize_period_dates(grown, runtime)  # type: ignore[arg-type]
+    spec = Periods(grown).dated(facts).spec
 
-    assert runtime.facts.listed == [("Microsoft", 3), ("Nvidia", 3), ("Missing", 3)]
+    assert facts.listed == [("Microsoft", 3), ("Nvidia", 3), ("Missing", 3)]
     # Keyed by the company's CIK (here its query stands in for one).
     assert dict(spec.periods.company_report_dates)["Nvidia"] == _NVDA
     # A company that cannot be listed falls back to the shared window.
@@ -285,7 +276,7 @@ def test_adding_a_company_lists_only_that_company() -> None:
 
 
 def test_one_calendar_compiles_as_before() -> None:
-    spec = materialize_period_dates(_window("Microsoft", "Apple"), _Runtime())  # type: ignore[arg-type]
+    spec = Periods(_window("Microsoft", "Apple")).dated(_facts()).spec
 
     assert [task.report_date for task in compile_tasks(spec)] == list(_MSFT)
     message = "revenue"

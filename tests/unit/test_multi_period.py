@@ -167,7 +167,7 @@ def test_period_window_reruns_metrics_across_quarters(tmp_path: Path) -> None:
     assert all(row.reason is None for row in turn.result.table_rows)
 
 
-def test_period_materialization_refusal_keeps_provider_error_details(tmp_path: Path) -> None:
+def test_a_period_dating_refusal_keeps_provider_error_details(tmp_path: Path) -> None:
     from financial_analyst_agent.contracts import RendererKind
     from financial_analyst_agent.conversation import run_conversation_turn
     from financial_analyst_agent.domain.errors import ProviderError

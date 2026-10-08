@@ -24,12 +24,8 @@ from financial_analyst_agent.graph.analysis_spec import (
     SpecPatch,
     compile_tasks,
 )
-from financial_analyst_agent.graph.spec_turn import (
-    drop_annual_filers,
-    drop_funds,
-    materialize_period_dates,
-)
-from financial_analyst_agent.period_selection import read
+from financial_analyst_agent.graph.spec_turn import drop_annual_filers, drop_funds
+from financial_analyst_agent.period_selection import Periods, read
 from financial_analyst_agent.presentation import long_quarter_banner
 from financial_analyst_agent.ranking import SnapshotRanking
 from financial_analyst_agent.request_wording import refine_patch_from_message
@@ -69,9 +65,7 @@ def _window(*companies: ResolvedCompany) -> AnalysisSpec:
 
 
 def test_a_retailer_ten_days_off_another_calendar_keeps_its_own_quarters() -> None:
-    spec = materialize_period_dates(
-        _window(_company("Costco"), _company("Walmart")), _runtime()
-    )
+    spec = Periods(_window(_company("Costco"), _company("Walmart"))).dated(_Facts()).spec
 
     asked = {(task.issuers, task.report_date) for task in compile_tasks(spec)}
 
@@ -84,7 +78,7 @@ def test_a_retailer_ten_days_off_another_calendar_keeps_its_own_quarters() -> No
 
 
 def test_a_sixteen_week_fourth_quarter_is_not_a_skipped_quarter() -> None:
-    spec = materialize_period_dates(_window(_company("Costco")), _runtime())
+    spec = Periods(_window(_company("Costco"))).dated(_Facts()).spec
 
     message = "Costco revenue"
     assert FISCAL_Q4_GAP_BANNER not in period_notes(

@@ -3,18 +3,24 @@
 from __future__ import annotations
 
 import dataclasses
+from datetime import date
 
 import pytest
 
+from financial_analyst_agent.domain.errors import CompanyNotFoundError, SessionQuotaError
 from financial_analyst_agent.graph.analysis_spec import (
     AnalysisSpec,
     NamedPeriodSpec,
     PeriodSelection,
+    RankedSet,
+    ResolvedCompany,
     SpecPatch,
 )
-from financial_analyst_agent.period_selection import ChangeAsked, WindowReading, read
+from financial_analyst_agent.period_selection import ChangeAsked, Periods, WindowReading, read
 from financial_analyst_agent.phrase_coverage import cases
 from financial_analyst_agent.rules_planner import issuer_index
+from financial_analyst_agent.services.fiscal_periods import FiscalPeriod
+from helpers import ListedFilings
 
 
 @pytest.mark.parametrize(
@@ -587,3 +593,234 @@ def test_rebase_both_bases_keep_the_screen_and_show_both_changes() -> None:
     assert rebased.set_periods == _window(7, asked=6)
     assert rebased.add_operations == _EVERY_CHANGE
     assert rebased.remove_operations == ()
+
+
+# --- Dating the periods for each company ------------------------------------
+
+
+def _company(query: str) -> ResolvedCompany:
+    return ResolvedCompany(cik=query, name=query, ticker=query.upper(), query=query)
+
+
+def _spec(periods: PeriodSelection, *queries: str) -> AnalysisSpec:
+    return AnalysisSpec(
+        companies=tuple(_company(query) for query in queries),
+        metrics=("revenue",),
+        periods=periods,
+    )
+
+
+_MSFT = (date(2026, 3, 31), date(2025, 12, 31), date(2025, 9, 30))
+_NVDA = (date(2026, 4, 26), date(2026, 1, 25), date(2025, 10, 26))
+
+
+def _fiscal(end: date, year: int, quarter: int) -> FiscalPeriod:
+    return FiscalPeriod(
+        end=end, fiscal_year=year, quarter=quarter, form="10-K" if quarter == 4 else "10-Q"
+    )
+
+
+# Microsoft's fiscal 2026 ran from July 2025; Apple's from late September 2025.
+_MSFT_FISCAL = (
+    _fiscal(date(2026, 3, 31), 2026, 3),
+    _fiscal(date(2025, 12, 31), 2026, 2),
+    _fiscal(date(2025, 9, 30), 2026, 1),
+    _fiscal(date(2025, 6, 30), 2025, 4),
+    _fiscal(date(2025, 3, 31), 2025, 3),
+)
+_AAPL_FISCAL = (
+    _fiscal(date(2026, 3, 28), 2026, 2),
+    _fiscal(date(2025, 12, 27), 2026, 1),
+    _fiscal(date(2025, 9, 27), 2025, 4),
+    _fiscal(date(2025, 6, 28), 2025, 3),
+)
+
+
+@pytest.mark.parametrize(
+    "periods",
+    [
+        PeriodSelection(),
+        # Dated for every company: nothing is listed again.
+        _window(3, report_dates=_MSFT, company_report_dates=(("Microsoft", _MSFT),)),
+        _named(
+            NamedPeriodSpec(year=2026, quarter=1),
+            report_dates=_MSFT[1:2],
+            count=1,
+            company_report_dates=(("Microsoft", _MSFT[1:2]),),
+        ),
+    ],
+)
+def test_dating_a_latest_quarter_or_already_dated_spec_returns_the_same_spec(
+    periods: PeriodSelection,
+) -> None:
+    facts = ListedFilings({"Microsoft": _MSFT})
+    spec = _spec(periods, "Microsoft")
+
+    dated = Periods(spec).dated(facts)
+
+    assert dated.spec is spec
+    assert dated.refusal is None
+    assert facts.listed == []
+    assert dated.periods.spec is spec
+
+
+def test_dating_a_window_lists_the_first_company_alone_and_the_rest_after_it() -> None:
+    facts = ListedFilings({"Microsoft": _MSFT, "Nvidia": _NVDA, "Apple": _MSFT})
+
+    dated = Periods(_spec(_window(3), "Microsoft", "Nvidia", "Apple")).dated(facts)
+
+    assert dated.refusal is None
+    assert facts.listed == [("Microsoft", 3), ("Nvidia", 3), ("Apple", 3)]
+    periods = dated.spec.periods
+    assert periods.report_dates == _MSFT
+    assert (periods.count, periods.asked) == (3, None)
+    assert periods.company_report_dates == (
+        ("Microsoft", _MSFT),
+        ("Nvidia", _NVDA),
+        ("Apple", _MSFT),
+    )
+
+
+def test_a_window_the_filings_cannot_fill_says_how_many_were_asked_for() -> None:
+    facts = ListedFilings({"Microsoft": _MSFT})
+
+    periods = Periods(_spec(_window(6), "Microsoft")).dated(facts).spec.periods
+
+    assert periods.report_dates == _MSFT
+    assert (periods.count, periods.asked, periods.shown) == (3, 6, 3)
+
+
+def test_the_first_companys_listing_error_is_raised_and_another_companys_swallowed() -> None:
+    facts = ListedFilings({"Microsoft": _MSFT}, failing=("Missing",))
+
+    with pytest.raises(CompanyNotFoundError):
+        Periods(_spec(_window(3), "Missing", "Microsoft")).dated(facts)
+
+    dated = Periods(_spec(_window(3), "Microsoft", "Missing")).dated(facts)
+    assert dated.refusal is None
+    # The company that could not be listed shares the window's dates.
+    assert dated.spec.periods.company_report_dates == (("Microsoft", _MSFT),)
+    assert facts.listed[-2:] == [("Microsoft", 3), ("Missing", 3)]
+
+
+def test_a_spent_session_budget_stops_the_dating_from_any_company() -> None:
+    class _Spent(ListedFilings):
+        def list_quarterly_report_dates(self, company: str, *, limit: int) -> tuple[date, ...]:
+            if company == "Nvidia":
+                raise SessionQuotaError("spent")
+            return super().list_quarterly_report_dates(company, limit=limit)
+
+    facts = _Spent({"Microsoft": _MSFT})
+
+    with pytest.raises(SessionQuotaError):
+        Periods(_spec(_window(3), "Microsoft", "Nvidia")).dated(facts)
+
+
+def test_a_window_no_filing_dates_is_returned_undated_with_the_refusal() -> None:
+    spec = _spec(_window(3), "Microsoft")
+
+    dated = Periods(spec).dated(ListedFilings({"Microsoft": ()}))
+
+    assert dated.spec is spec
+    assert dated.refusal == "Could not determine quarterly report dates for the requested window"
+
+
+def test_a_window_with_no_company_at_all_is_undated_and_refused() -> None:
+    spec = AnalysisSpec(metrics=("revenue",), periods=_window(3))
+    facts = ListedFilings()
+
+    dated = Periods(spec).dated(facts)
+
+    assert dated.spec is spec and facts.listed == []
+    assert dated.refusal == "Could not determine quarterly report dates for the requested window"
+
+
+def test_a_ranked_sets_first_member_dates_the_window() -> None:
+    constituents = RankedSet(industry="software", limit=2, members=(_company("Microsoft"),))
+    spec = AnalysisSpec(constituents=constituents, metrics=("revenue",), periods=_window(3))
+    facts = ListedFilings({"Microsoft": _MSFT})
+
+    dated = Periods(spec).dated(facts)
+
+    assert facts.listed == [("Microsoft", 3)]
+    assert dated.spec.periods.report_dates == _MSFT
+    # Only named companies keep their own quarters.
+    assert dated.spec.periods.company_report_dates == ()
+
+
+def test_named_periods_are_each_companys_own_quarters() -> None:
+    facts = ListedFilings(fiscal={"Microsoft": _MSFT_FISCAL, "Apple": _AAPL_FISCAL})
+    named = _named(NamedPeriodSpec(year=2026, quarter=1))
+
+    dated = Periods(_spec(named, "Microsoft", "Apple")).dated(facts)
+
+    assert dated.refusal is None
+    assert facts.listed == [("Microsoft", None), ("Apple", None)]
+    periods = dated.spec.periods
+    assert periods.report_dates == (date(2025, 9, 30),)
+    assert periods.count == 1
+    assert periods.company_report_dates == (
+        ("Microsoft", (date(2025, 9, 30),)),
+        ("Apple", (date(2025, 12, 27),)),
+    )
+    assert periods.company_base_dates is None
+
+
+def test_a_sequential_named_period_reads_the_quarter_before_each_named_quarter() -> None:
+    facts = ListedFilings(fiscal={"Microsoft": _MSFT_FISCAL})
+    named = _named(
+        NamedPeriodSpec(year=2026, quarter=3),
+        NamedPeriodSpec(year=2026, quarter=2),
+        company_base_dates=(),
+    )
+
+    periods = Periods(_spec(named, "Microsoft")).dated(facts).spec.periods
+
+    assert periods.report_dates == (date(2026, 3, 31), date(2025, 12, 31))
+    # Q2's quarter before is Q1, read as its base; Q3's is Q2, itself shown.
+    assert periods.company_base_dates == (("Microsoft", (date(2025, 9, 30),)),)
+
+
+def test_a_named_period_after_the_latest_filing_is_refused_as_not_yet_reported() -> None:
+    facts = ListedFilings(fiscal={"Microsoft": _MSFT_FISCAL})
+    spec = _spec(_named(NamedPeriodSpec(year=2026, quarter=4)), "Microsoft")
+
+    dated = Periods(spec).dated(facts)
+
+    assert dated.spec.periods.report_dates == ()
+    assert dated.refusal == "No filings found for Q4 FY2026: it has not been reported yet."
+    # The first company's fiscal periods are listed again to tell "not yet" from "too old".
+    assert facts.listed == [("Microsoft", None), ("Microsoft", None)]
+
+
+def test_a_named_period_in_a_year_still_to_come_is_not_yet_reported_without_a_listing() -> None:
+    facts = ListedFilings(fiscal={"Microsoft": _MSFT_FISCAL})
+    year = date.today().year + 1
+    spec = _spec(_named(NamedPeriodSpec(year=year)), "Microsoft")
+
+    dated = Periods(spec).dated(facts)
+
+    assert dated.refusal == f"No filings found for Fiscal {year}: it has not been reported yet."
+    assert facts.listed == [("Microsoft", None)]
+
+
+def test_a_named_period_the_filings_no_longer_hold_is_refused_as_too_old() -> None:
+    facts = ListedFilings(fiscal={"Microsoft": _MSFT_FISCAL})
+    spec = _spec(_named(NamedPeriodSpec(year=2014, quarter=2)), "Microsoft")
+
+    dated = Periods(spec).dated(facts)
+
+    assert dated.refusal == (
+        "No filings found for Q2 FY2014. Periods are fiscal years as each company names "
+        "them; filings older than about ten years may not be available."
+    )
+
+
+def test_a_named_period_with_no_company_is_neither_listed_nor_refused() -> None:
+    spec = AnalysisSpec(metrics=("revenue",), periods=_named(NamedPeriodSpec(year=2026)))
+    facts = ListedFilings()
+
+    dated = Periods(spec).dated(facts)
+
+    assert dated.spec is spec and facts.listed == []
+    assert dated.refusal is None

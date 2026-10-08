@@ -3119,3 +3119,37 @@ Blockers / next:
 - None. 2,489 tests pass (55 new); ruff and mypy clean; compare_answers reports `0 of 893
   conversations differ from master`; the rules planner's evaluation matches a fresh master run case
   for case (99% over 445). Tickets 04 (dating) is next on the frontier; 05 and 06 follow.
+
+2026-10-08
+
+Task completed: `docs/process/tickets/period-selection/issues/04-date-the-periods-for-each-company.md`
+
+Key decisions:
+- `Periods(spec)` is born in `period_selection` with `dated(facts) -> Dated`, `materialize_period_dates`
+  moved branch for branch with its eight helpers (`_window_dated`, `_named_periods_dated`,
+  `_window_dates`, `_fiscal_window_dates`, `_span_asked`, `_not_yet_listed`, `_named_dates`,
+  `_quarters_before`, `_after_latest_filing`); the facts port is the argument, never `Runtime`.
+- `Dated(spec, refusal)` folds the two period refusals of `resolve_request` into finished text,
+  the messages unchanged. An undated window is returned undated with the refusal set, not raised,
+  so `_window_levels` (overview trend, earlier quarters) compiles it through `.spec` as before.
+- The after-latest-filing check still re-lists the first company's fiscal periods (not shown safe
+  to reuse the listing); a test asserts the second listing.
+- `_or_none` stays in `spec_turn` for `drop_annual_filers`, as the ticket allows; the module has
+  its own copy.
+- Tests: a dating section in `test_period_selection.py` (same-object cases, listing order and
+  limits, `asked`/`shown`, the error asymmetry with `CompanyNotFoundError` and
+  `SessionQuotaError`, refusals, a ranked set, named periods and base quarters); the old
+  `materialize_period_dates` tests rewritten against `Periods(...).dated(facts).spec`;
+  `test_public_errors.py` patches `Periods.dated`.
+
+Files changed:
+- `src/financial_analyst_agent/period_selection.py`, `src/financial_analyst_agent/graph/spec_turn.py`
+- `tests/unit/test_period_selection.py`, `test_calendars_clarification_and_formatting.py`,
+  `test_filers_rankings_and_narrowing.py`, `test_public_errors.py`, `test_multi_period.py`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. 2,505 tests pass (16 new); ruff and mypy clean; compare_answers reports `0 of 893
+  conversations differ from master`; phrase coverage 555 of 555. Every file changed is on the
+  ticket's list. Ticket 05 (`Periods.groups` and `shown`) is next; it can move `compile_tasks`
+  beside its caller and `calendar_groups` into the module.
