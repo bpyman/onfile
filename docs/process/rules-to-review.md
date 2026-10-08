@@ -145,3 +145,11 @@ Each entry: date, ticket, where, the rule, why it looks wrong, what the agent di
 - **The rule:** a step that needs a file outside the ticket's list is left undone.
 - **Why it looks wrong:** `answer_notes.py` imports `MAX_SINCE_QUARTERS` from `request_wording`, where it sat beside the binding. The binding moves into `period_selection` and needs it; the module may import nothing from `request_wording`; and leaving a second definition behind in `request_wording` is the duplicate the no-re-export rule exists to prevent. `tests/unit/test_planner_window.py` calls `bind_periods_from_message` in two tests, which the ticket deletes, so leaving it fails `pytest`.
 - **What you did:** changed each by one import (and, in the test, the two calls), and said so in the Answer, as ticket 02 did for `clarify.py`. Ticket 06 moves the since notes into the module, after which `answer_notes` would import it from there anyway.
+
+## 2026-10-08 — period-selection 05: the file list leaves out the notes' caller of `calendar_groups`
+
+- **Where:** `docs/process/tickets/period-selection/issues/05-group-calendars-and-hide-base-quarters.md`, **Files (this ticket only)** and the last sentence of Acceptance ("If a step would ... need a file outside this ticket's list, leave it and say so in the Answer").
+- **The rule:** a step that needs a file outside the ticket's list is left undone.
+- **Why it looks wrong:** `answer_notes.period_notes` calls `calendar_groups` for the calendars-differ and fiscal-Q4 notes. The same ticket says `calendar_groups` no longer exists and that `Periods.groups` is the one place that groups companies "for compilation, notes and row hiding", so leaving `answer_notes` alone fails `pytest` and the Acceptance.
+- **What you did:** changed `answer_notes.py` by one import and one line (`Periods(spec).groups`), and said so in the Answer, as tickets 02 and 03 did. Ticket 06 moves these notes into the module.
+

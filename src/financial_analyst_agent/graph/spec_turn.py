@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
 from functools import partial
-from typing import Any
+from typing import Any, Literal
 
 from financial_analyst_agent.answer_notes import (
     already_present_notes,
@@ -76,8 +76,6 @@ from financial_analyst_agent.graph.analysis_spec import (
     SpecPatch,
     SpecRejection,
     apply_patch,
-    calendar_groups,
-    compile_tasks,
     emptied_by,
     metric_rejection,
     ranked_window_asked,
@@ -923,6 +921,84 @@ def resolve_request(
     )
 
 
+def _base_tasks(spec: AnalysisSpec) -> tuple[CompiledTask, ...]:
+    if spec.constituents is not None:
+        if not spec.metrics:
+            return (
+                CompiledTask(
+                    kind="rank",
+                    industry=spec.constituents.industry,
+                    limit=spec.constituents.limit,
+                    ranked=spec.constituents.table,
+                ),
+            )
+        return tuple(
+            CompiledTask(
+                kind="rank_and_lookup",
+                industry=spec.constituents.industry,
+                limit=spec.constituents.limit,
+                metric=metric,
+                ranked=spec.constituents.table,
+            )
+            for metric in spec.metrics
+        )
+
+    issuers = tuple(company.handle for company in spec.companies)
+    if not issuers or not spec.metrics:
+        return ()
+    kind: Literal["lookup", "compare"] = "lookup" if len(issuers) == 1 else "compare"
+    return tuple(
+        CompiledTask(kind=kind, issuers=issuers, metric=metric) for metric in spec.metrics
+    )
+
+
+def compile_tasks(spec: AnalysisSpec) -> tuple[CompiledTask, ...]:
+    """Compile a resolved spec into typed tasks without executing providers.
+
+    Each metric becomes an independent task so multi-metric analyses compose
+    without a special-cased multi-metric workflow. A last_n_quarters window with
+    concrete report_dates fans out one task per period.
+    """
+    base = _base_tasks(spec)
+    if (
+        spec.periods.kind not in ("last_n_quarters", "named")
+        or not spec.periods.report_dates
+        or not base
+    ):
+        return base
+    # Rank workflows are snapshot-dated, not filing-period windows.
+    expandable = tuple(
+        task for task in base if task.kind in {"lookup", "compare"}
+    )
+    if not expandable:
+        return base
+    groups = Periods(spec).groups
+    # A named period leaves out a company with no filing for it; asking that
+    # company for another company's date would answer with its own other quarter.
+    named = spec.periods.kind == "named"
+    if named or len(groups) > 1 or (groups and groups[0][1] != spec.periods.report_dates):
+        # Each calendar asks for its own quarter ends; one shared date would
+        # miss every quarter of a company whose fiscal quarters end elsewhere.
+        longest = max(len(dates) for _, dates in groups)
+        return tuple(
+            CompiledTask(
+                kind="compare" if len(spec.companies) > 1 else task.kind,
+                issuers=issuers,
+                metric=task.metric,
+                report_date=dates[index],
+            )
+            for index in range(longest)
+            for task in expandable
+            for issuers, dates in groups
+            if index < len(dates)
+        )
+    return tuple(
+        task.model_copy(update={"report_date": report_date})
+        for report_date in spec.periods.report_dates
+        for task in expandable
+    )
+
+
 def merge_analysis(compiled: CompiledAnalysis, results: list[TurnResult]) -> TurnResult:
     """One answer from the task results, in task order: deterministic, no fetch."""
     spec = compiled.spec
@@ -935,7 +1011,8 @@ def merge_analysis(compiled: CompiledAnalysis, results: list[TurnResult]) -> Tur
         sequential="year_over_year" not in spec.operations or "sequential" in spec.operations,
         year_over_year="year_over_year" in spec.operations,
     )
-    merged = _one_company_left(_without_base_quarters(merged, spec))
+    merged = merged.model_copy(update={"table_rows": Periods(spec).shown(merged.table_rows)})
+    merged = _one_company_left(merged)
     if len(spec.companies) == 1 and spec.constituents is None:
         merged = _one_company_failure(merged, results)
     merged = _fill_identity(merged, spec)
@@ -949,52 +1026,6 @@ def merge_analysis(compiled: CompiledAnalysis, results: list[TurnResult]) -> Tur
             merged, _ordering_metric(spec), ascending=lowest_first
         )
     return merged
-
-
-def _without_base_quarters(result: TurnResult, spec: AnalysisSpec) -> TurnResult:
-    """Leave out the quarter read only as the oldest shown quarter's sequential base."""
-    if spec.periods.kind == "named":
-        return _without_named_bases(result, spec)
-    shown = spec.periods.shown
-    if spec.periods.kind != "last_n_quarters" or shown is None:
-        return result
-    handles = {company.handle: company for company in spec.companies}
-    oldest: dict[str, date] = {}
-    for issuers, dates in calendar_groups(spec):
-        if len(dates) <= shown:
-            continue
-        for handle in issuers:
-            company = handles[handle]
-            oldest[company.cik or company.name] = dates[shown - 1]
-    if not oldest:
-        return result
-    rows = [
-        row
-        for row in result.table_rows
-        if row.end_date is None
-        or (row.cik or row.company_name) not in oldest
-        or row.end_date >= oldest[row.cik or row.company_name]
-    ]
-    return result.model_copy(update={"table_rows": rows})
-
-
-def _without_named_bases(result: TurnResult, spec: AnalysisSpec) -> TurnResult:
-    """Leave out the quarters read only as a named quarter's sequential base."""
-    bases = dict(spec.periods.company_base_dates or ())
-    hidden = {
-        company.cik or company.name: set(bases[company.key])
-        for company in spec.companies
-        if bases.get(company.key)
-    }
-    if not hidden:
-        return result
-    rows = [
-        row
-        for row in result.table_rows
-        if row.end_date is None
-        or row.end_date not in hidden.get(row.cik or row.company_name, set())
-    ]
-    return result.model_copy(update={"table_rows": rows})
 
 
 def add_history(

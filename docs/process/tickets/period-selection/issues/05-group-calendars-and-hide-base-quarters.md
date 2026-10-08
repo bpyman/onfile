@@ -17,4 +17,14 @@ Spec: `docs/process/tickets/period-selection/design.md`, ADR 0015, ADR 0009 (seq
 
 **Blocked by:** 04 (`Periods` exists)
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped 2026-10-08. Restructure only: `compare_answers.py --against master` reports `0 of 893 conversations differ from master`; phrase coverage 555 of 555.
+
+- `Periods.groups` is `calendar_groups` moved unchanged, with `_quarter_phase` and `_same_grid` (and their `FISCAL_WEEK_TOLERANCE`) as module functions. `compile_tasks`, `answer_notes.period_notes` and `Periods.shown` all group through it, once per call.
+- `compile_tasks` and `_base_tasks` move to `graph/spec_turn.py`, after `resolve_request`. `CompiledTask` stays in `analysis_spec`: `graph/state.py` (`CompiledAnalysis.tasks`) and `turn.py` (the task workflows, which `spec_turn` imports) need it, so moving it would add a cycle or files outside the list. `analysis_spec` no longer imports `FISCAL_WEEK_TOLERANCE`; the only code there that reads `report_dates` is the `PeriodSelection` validator.
+- `Periods.shown(rows)` is `_without_base_quarters` and `_without_named_bases` moved branch for branch (as the private `_shown_window` and `_shown_named`), keyed by `row.cik or row.company_name` (checklist: row identity). It returns a list; `merge_analysis` sets it as the merged result's rows before `_one_company_left`, so where nothing was hidden the result is a copy with the same rows instead of the same object.
+- Tests: a groups-and-rows section in `test_period_selection.py` (one grid, another grid, same month of the grid but different quarters, an undated window, named periods with bases; base quarters hidden for a window, by CIK and by name, unknown companies and undated rows kept; nothing hidden without a base; named bases hidden). There were no direct tests of `calendar_groups` or the `_without_*` helpers; the `compile_tasks` tests import it from `spec_turn`.
+- Outside the file list: `answer_notes.py` called `calendar_groups`, which the ticket deletes, so it now calls `Periods(spec).groups` (one import, one line). Recorded in `docs/process/rules-to-review.md`; ticket 06 moves those notes into the module.

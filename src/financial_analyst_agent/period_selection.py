@@ -10,7 +10,9 @@ period part of a spec patch before the request is stored, binds it when
 the request is resolved, and rebases a change follow-up on the quarters on
 screen. Which change the words ask for is read outside and passed in as a
 ``ChangeAsked``. The view ``Periods`` dates a spec's quarters for each company
-from its own filings, the facts provider passed in.
+from its own filings, the facts provider passed in, groups the companies by
+the quarter grid their dates sit on, and leaves out the rows read only as a
+change's base.
 
 A window's wording is a recency word (or a preposition), a count and a unit:
 "last 4 quarters", "the past six quarters", "previous nine quarters", "most
@@ -50,7 +52,7 @@ from typing import Any, ClassVar, Literal
 
 from pydantic import BaseModel, Field
 
-from financial_analyst_agent.contracts import ComparisonBase, FactsPort
+from financial_analyst_agent.contracts import ComparisonBase, FactsPort, TableRow
 from financial_analyst_agent.domain.errors import SessionQuotaError
 from financial_analyst_agent.fan_out import map_in_order
 from financial_analyst_agent.graph.analysis_spec import (
@@ -62,6 +64,7 @@ from financial_analyst_agent.graph.analysis_spec import (
     SpecPatch,
 )
 from financial_analyst_agent.observability import log_event
+from financial_analyst_agent.services.filing_selector import FISCAL_WEEK_TOLERANCE
 from financial_analyst_agent.services.fiscal_periods import (
     FiscalPeriod,
     adjacent_quarters,
@@ -927,7 +930,7 @@ def read(message: str, *, stored: WindowReading | None = None) -> Words:
     )
 
 
-# --- Dating the periods for each company ------------------------------------
+# --- The view of a spec's periods: dating, groups, rows shown ------------
 
 
 @dataclass(frozen=True)
@@ -959,6 +962,103 @@ class Periods:
         elif spec.periods.kind == "last_n_quarters":
             spec = _window_dated(spec, facts)
         return Dated(spec=spec, refusal=_refusal(spec, facts))
+
+    @property
+    def groups(self) -> list[tuple[tuple[str, ...], tuple[date, ...]]]:
+        """Named companies grouped by the quarter ends their window uses, in spec order.
+
+        A company with no dates of its own, or whose quarters end on the same
+        calendar grid as the first company's (Apple's March 28 beside Microsoft's
+        March 31), shares the window's ``report_dates`` so rows cover the same
+        periods; a company on another grid (Nvidia's April quarter) keeps its own.
+        """
+        periods = self.spec.periods
+        reference = periods.report_dates
+        own = dict(periods.company_report_dates)
+        bases = dict(periods.company_base_dates or ())
+        named = periods.kind == "named"
+        groups: dict[tuple[date, ...], list[str]] = {}
+        for company in self.spec.companies:
+            dates = own.get(company.key, reference)
+            if named:
+                # "Q3 FY2024" is each company's own third quarter, wherever it ends.
+                if not dates:
+                    continue
+                if company.key in bases:
+                    dates = tuple(sorted({*dates, *bases[company.key]}, reverse=True))
+            elif not dates or not reference or _same_grid(dates, reference):
+                dates = reference
+            groups.setdefault(dates, []).append(company.handle)
+        return [(tuple(issuers), dates) for dates, issuers in groups.items()]
+
+    def shown(self, rows: Sequence[TableRow]) -> list[TableRow]:
+        """The rows less the quarters read only as a change's base (ADR 0009).
+
+        A window's sequential change reads the quarter before its oldest shown
+        one; a named quarter's reads the quarter before it. Rows with no end
+        date, or of a company the spec does not name, are kept.
+        """
+        if self.spec.periods.kind == "named":
+            return self._shown_named(rows)
+        return self._shown_window(rows)
+
+    def _shown_window(self, rows: Sequence[TableRow]) -> list[TableRow]:
+        shown = self.spec.periods.shown
+        if self.spec.periods.kind != "last_n_quarters" or shown is None:
+            return list(rows)
+        handles = {company.handle: company for company in self.spec.companies}
+        oldest: dict[str, date] = {}
+        for issuers, dates in self.groups:
+            if len(dates) <= shown:
+                continue
+            for handle in issuers:
+                company = handles[handle]
+                oldest[company.cik or company.name] = dates[shown - 1]
+        return [
+            row
+            for row in rows
+            if row.end_date is None
+            or (row.cik or row.company_name) not in oldest
+            or row.end_date >= oldest[row.cik or row.company_name]
+        ]
+
+    def _shown_named(self, rows: Sequence[TableRow]) -> list[TableRow]:
+        bases = dict(self.spec.periods.company_base_dates or ())
+        hidden = {
+            company.cik or company.name: set(bases[company.key])
+            for company in self.spec.companies
+            if bases.get(company.key)
+        }
+        return [
+            row
+            for row in rows
+            if row.end_date is None
+            or row.end_date not in hidden.get(row.cik or row.company_name, set())
+        ]
+
+
+def _quarter_phase(day: date) -> int:
+    """Month of the quarter grid a period end sits on (0, 1 or 2).
+
+    A 52/53-week quarter ends up to a week either side of a month end, so a
+    date in a month's first half counts as the previous month's end.
+    """
+    month = day.month if day.day >= 15 else day.month - 1
+    return month % 3
+
+
+def _same_grid(dates: tuple[date, ...], reference: tuple[date, ...]) -> bool:
+    """Whether two quarter-end lists name the same quarters, give or take a week.
+
+    Apple's March 28 and Microsoft's March 31 are one quarter. Costco's May 10
+    and Walmart's April 30 sit in the same month of the quarter grid but are
+    different quarters: asking Walmart for May 10 finds no filing.
+    """
+    if _quarter_phase(dates[0]) != _quarter_phase(reference[0]):
+        return False
+    return any(
+        abs(own - shared) <= FISCAL_WEEK_TOLERANCE for own in dates for shared in reference
+    )
 
 
 @dataclass(frozen=True)

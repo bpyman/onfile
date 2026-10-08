@@ -3153,3 +3153,32 @@ Blockers / next:
   conversations differ from master`; phrase coverage 555 of 555. Every file changed is on the
   ticket's list. Ticket 05 (`Periods.groups` and `shown`) is next; it can move `compile_tasks`
   beside its caller and `calendar_groups` into the module.
+
+## 2026-10-08 — period-selection 05: Periods.groups and Periods.shown; compile_tasks beside its caller
+
+Ticket: `docs/process/tickets/period-selection/issues/05-group-calendars-and-hide-base-quarters.md`
+
+Key decisions:
+- `Periods.groups` is `calendar_groups` moved unchanged; `_quarter_phase` and `_same_grid` move with
+  it. `compile_tasks`, `period_notes` and `Periods.shown` group through it.
+- `compile_tasks` and `_base_tasks` move to `graph/spec_turn.py`; `CompiledTask` stays in
+  `analysis_spec` (state.py and turn.py use it). `analysis_spec` reads `report_dates` only in its
+  validator.
+- `Periods.shown(rows)` is `_without_base_quarters` / `_without_named_bases` moved branch for branch,
+  keyed by `row.cik or row.company_name`; `merge_analysis` sets its rows on the merged result.
+- Tests: a groups-and-rows section in `test_period_selection.py`; `compile_tasks` tests import it
+  from `spec_turn`.
+
+Files changed:
+- `src/financial_analyst_agent/period_selection.py`, `graph/analysis_spec.py`, `graph/spec_turn.py`,
+  `answer_notes.py` (outside the list: one import, one line; in rules-to-review)
+- `tests/unit/test_period_selection.py`, `test_analysis_spec.py`,
+  `test_calendars_clarification_and_formatting.py`, `test_derived_and_named_periods.py`,
+  `test_filers_rankings_and_narrowing.py`
+- the ticket, `docs/process/progress.txt`, `docs/process/rules-to-review.md`
+
+Blockers / next:
+- None. 2,513 tests pass (8 new); ruff and mypy clean; compare_answers reports `0 of 893
+  conversations differ from master`; phrase coverage 555 of 555. Ticket 06 (notes, chip and quick
+  actions) is next; its blockers 03 and 05 are resolved.
+

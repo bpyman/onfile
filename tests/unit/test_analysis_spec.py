@@ -278,8 +278,8 @@ def test_compile_tasks_lookup_without_executing() -> None:
         CompiledTask,
         PeriodSelection,
         ResolvedCompany,
-        compile_tasks,
     )
+    from financial_analyst_agent.graph.spec_turn import compile_tasks
 
     spec = AnalysisSpec(
         companies=(
@@ -309,8 +309,8 @@ def test_compile_tasks_compare_for_two_companies() -> None:
         CompiledTask,
         PeriodSelection,
         ResolvedCompany,
-        compile_tasks,
     )
+    from financial_analyst_agent.graph.spec_turn import compile_tasks
 
     spec = AnalysisSpec(
         companies=(
@@ -347,8 +347,8 @@ def test_compile_tasks_one_independent_task_per_metric() -> None:
         CompiledTask,
         PeriodSelection,
         ResolvedCompany,
-        compile_tasks,
     )
+    from financial_analyst_agent.graph.spec_turn import compile_tasks
 
     spec = AnalysisSpec(
         companies=(
@@ -390,8 +390,8 @@ def test_compile_tasks_multi_metric_lookup_is_one_task_per_metric() -> None:
         CompiledTask,
         PeriodSelection,
         ResolvedCompany,
-        compile_tasks,
     )
+    from financial_analyst_agent.graph.spec_turn import compile_tasks
 
     spec = AnalysisSpec(
         companies=(
@@ -474,8 +474,8 @@ def test_compile_tasks_fans_out_last_n_report_dates() -> None:
         CompiledTask,
         PeriodSelection,
         ResolvedCompany,
-        compile_tasks,
     )
+    from financial_analyst_agent.graph.spec_turn import compile_tasks
 
     q2 = date(2025, 6, 30)
     q1 = date(2025, 3, 31)
@@ -519,8 +519,8 @@ def test_compile_tasks_rank_and_lookup_from_constituents() -> None:
         PeriodSelection,
         RankedSet,
         ResolvedCompany,
-        compile_tasks,
     )
+    from financial_analyst_agent.graph.spec_turn import compile_tasks
 
     spec = AnalysisSpec(
         companies=(),
@@ -557,8 +557,8 @@ def test_compile_tasks_rank_without_metric() -> None:
         CompiledTask,
         PeriodSelection,
         RankedSet,
-        compile_tasks,
     )
+    from financial_analyst_agent.graph.spec_turn import compile_tasks
 
     spec = AnalysisSpec(
         constituents=RankedSet(industry="technology", limit=5, members=()),

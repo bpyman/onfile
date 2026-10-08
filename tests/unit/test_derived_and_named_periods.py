@@ -19,8 +19,8 @@ from financial_analyst_agent.graph.analysis_spec import (
     NamedPeriodSpec,
     PeriodSelection,
     ResolvedCompany,
-    compile_tasks,
 )
+from financial_analyst_agent.graph.spec_turn import compile_tasks
 from financial_analyst_agent.period_selection import read
 from financial_analyst_agent.presentation import format_metric_value, present_turn
 from financial_analyst_agent.request_wording import change_asked

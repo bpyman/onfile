@@ -7,6 +7,7 @@ from datetime import date
 
 import pytest
 
+from financial_analyst_agent.contracts import TableRow
 from financial_analyst_agent.domain.errors import CompanyNotFoundError, SessionQuotaError
 from financial_analyst_agent.graph.analysis_spec import (
     AnalysisSpec,
@@ -824,3 +825,132 @@ def test_a_named_period_with_no_company_is_neither_listed_nor_refused() -> None:
 
     assert dated.spec is spec and facts.listed == []
     assert dated.refusal is None
+
+
+# --- Calendar groups and the rows shown --------------------------------------
+
+
+_AAPL = (date(2026, 3, 28), date(2025, 12, 27), date(2025, 9, 27))
+_WMT = (date(2026, 4, 30), date(2026, 1, 31), date(2025, 10, 31))
+_COST = (date(2026, 5, 10), date(2026, 2, 15), date(2025, 11, 23))
+
+
+def _dated_window(*own: tuple[str, tuple[date, ...]], **fields: object) -> PeriodSelection:
+    return _window(3, report_dates=own[0][1], company_report_dates=own, **fields)
+
+
+def test_companies_on_one_quarter_grid_share_the_first_companys_dates() -> None:
+    periods = _dated_window(("Microsoft", _MSFT), ("Apple", _AAPL))
+
+    assert Periods(_spec(periods, "Microsoft", "Apple", "Missing")).groups == [
+        (("Microsoft", "Apple", "Missing"), _MSFT)
+    ]
+
+
+def test_a_company_on_another_quarter_grid_keeps_its_own_dates() -> None:
+    periods = _dated_window(("Microsoft", _MSFT), ("Nvidia", _NVDA), ("Apple", _AAPL))
+
+    assert Periods(_spec(periods, "Microsoft", "Nvidia", "Apple")).groups == [
+        (("Microsoft", "Apple"), _MSFT),
+        (("Nvidia",), _NVDA),
+    ]
+
+
+def test_quarters_in_the_same_month_of_the_grid_are_still_different_quarters() -> None:
+    periods = _dated_window(("Walmart", _WMT), ("Costco", _COST))
+
+    assert Periods(_spec(periods, "Walmart", "Costco")).groups == [
+        (("Walmart",), _WMT),
+        (("Costco",), _COST),
+    ]
+
+
+def test_an_undated_window_is_one_group_with_no_dates() -> None:
+    assert Periods(_spec(_window(3), "Microsoft", "Apple")).groups == [
+        (("Microsoft", "Apple"), ())
+    ]
+
+
+def test_named_periods_group_each_company_by_its_own_quarters_and_bases() -> None:
+    periods = _named(
+        NamedPeriodSpec(year=2026, quarter=3),
+        report_dates=_MSFT[:1],
+        count=1,
+        company_report_dates=(
+            ("Microsoft", _MSFT[:1]),
+            ("Apple", _AAPL[:1]),
+            ("Missing", ()),
+        ),
+        company_base_dates=(("Apple", _AAPL[1:2]),),
+    )
+
+    # A company with no filing for the period is left out, not given another's date.
+    assert Periods(_spec(periods, "Microsoft", "Apple", "Missing")).groups == [
+        (("Microsoft",), _MSFT[:1]),
+        (("Apple",), _AAPL[:2]),
+    ]
+
+
+def _shown_row(company: str, end: date | None, *, cik: str | None = None) -> TableRow:
+    return TableRow(
+        company_name=company,
+        ticker=company.upper(),
+        cik=company if cik is None else cik,
+        metric="revenue",
+        end_date=end,
+    )
+
+
+def test_a_sequential_window_hides_the_base_quarter_before_the_oldest_shown() -> None:
+    four = (*_MSFT, date(2025, 6, 30))
+    nvda = (*_NVDA, date(2025, 7, 27))
+    periods = PeriodSelection(
+        kind="last_n_quarters",
+        count=4,
+        asked=3,
+        report_dates=four,
+        company_report_dates=(("Microsoft", four), ("Nvidia", nvda)),
+    )
+    unknown = ResolvedCompany(cik="", name="Acme Corp", ticker="", query="acme")
+    spec = AnalysisSpec(
+        companies=(_company("Microsoft"), _company("Nvidia"), unknown),
+        metrics=("revenue",),
+        periods=periods,
+    )
+    rows = [
+        _shown_row("Microsoft", four[2]),
+        _shown_row("Microsoft", four[3]),
+        _shown_row("Nvidia", nvda[3]),
+        _shown_row("Nvidia", None),
+        # Keyed by the CIK, or the name where SEC knows none.
+        _shown_row("Acme Corp", four[3], cik=""),
+        _shown_row("Elsewhere", four[3]),
+    ]
+
+    assert Periods(spec).shown(rows) == [rows[0], rows[3], rows[5]]
+
+
+def test_a_window_with_no_base_quarter_shows_every_row() -> None:
+    periods = _dated_window(("Microsoft", _MSFT))
+    rows = [_shown_row("Microsoft", end) for end in _MSFT]
+
+    assert Periods(_spec(periods, "Microsoft")).shown(rows) == rows
+    assert Periods(_spec(PeriodSelection(), "Microsoft")).shown(rows) == rows
+
+
+def test_a_named_period_hides_the_quarters_read_only_as_its_base() -> None:
+    periods = _named(
+        NamedPeriodSpec(year=2026, quarter=2),
+        report_dates=_AAPL[:1],
+        count=1,
+        company_report_dates=(("Apple", _AAPL[:1]),),
+        company_base_dates=(("Apple", _AAPL[1:2]),),
+    )
+    rows = [
+        _shown_row("Apple", _AAPL[0]),
+        _shown_row("Apple", _AAPL[1]),
+        _shown_row("Apple", None),
+        _shown_row("Microsoft", _AAPL[1]),
+    ]
+
+    assert Periods(_spec(periods, "Apple")).shown(rows) == [rows[0], rows[2], rows[3]]

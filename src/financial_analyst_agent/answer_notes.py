@@ -18,7 +18,6 @@ from financial_analyst_agent.graph.analysis_spec import (
     PeriodSelection,
     ResolvedCompany,
     SpecPatch,
-    calendar_groups,
 )
 from financial_analyst_agent.guide import (
     format_date,
@@ -31,6 +30,7 @@ from financial_analyst_agent.period_selection import (
     MAX_SINCE_QUARTERS,
     YEAR_OF_QUARTERS,
     YEAR_TO_DATE,
+    Periods,
     WindowReading,
 )
 from financial_analyst_agent.request_wording import EXPLICIT_YOY, GROWTH, WHY_CHANGE, YOY
@@ -372,7 +372,7 @@ def period_notes(
         return notes
     windows = [spec.periods.report_dates]
     if spec.periods.kind == "last_n_quarters" and spec.companies:
-        groups = calendar_groups(spec)
+        groups = Periods(spec).groups
         windows = [dates for _, dates in groups]
         if len(groups) > 1:
             notes.append(CALENDARS_DIFFER_BANNER)

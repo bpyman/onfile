@@ -15,9 +15,9 @@ from financial_analyst_agent.graph.analysis_spec import (
     PeriodSelection,
     ResolvedCompany,
     SpecPatch,
-    compile_tasks,
 )
 from financial_analyst_agent.graph.clarify import clarification_reply
+from financial_analyst_agent.graph.spec_turn import compile_tasks
 from financial_analyst_agent.period_selection import Periods, read
 from financial_analyst_agent.presentation import format_usd, present_turn
 from financial_analyst_agent.services.fiscal_periods import FiscalPeriod
