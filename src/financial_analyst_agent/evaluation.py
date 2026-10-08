@@ -5,12 +5,13 @@ from __future__ import annotations
 import json
 import statistics
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from financial_analyst_agent.contracts import Intent, RendererKind
+from financial_analyst_agent.contracts import Intent, RendererKind, Runtime
 from financial_analyst_agent.conversation import run_conversation_turn
 from financial_analyst_agent.news import FIXTURE_NEWS_QUERY
 from financial_analyst_agent.presentation import is_derived, present_turn
@@ -339,6 +340,12 @@ def _cases() -> tuple[EvalCase, ...]:
     )
 
 
+def _missing(label: str, wanted: Sequence[Any], have: set[Any]) -> str:
+    """The expected items not in ``have``, as "missing <label> [...]"; "" when all are."""
+    missing = [item for item in wanted if item not in have]
+    return f"missing {label} {missing}" if missing else ""
+
+
 def _check_result(case: EvalCase, result: Any) -> str:
     if case.expect_intent is not None and result.intent is not case.expect_intent:
         return f"intent {result.intent}"
@@ -349,37 +356,25 @@ def _check_result(case: EvalCase, result: Any) -> str:
             return "expected numeral lock extras"
     elif result.numeral_lock_extras:
         return "numeral lock extras"
-    have_tickers = {row.ticker for row in result.table_rows}
-    missing_tickers = [ticker for ticker in case.expect_tickers if ticker not in have_tickers]
-    if missing_tickers:
-        return f"missing tickers {missing_tickers}"
-    have_companies = {row.company_name for row in result.table_rows}
-    missing_companies = [
-        name for name in case.expect_companies if name not in have_companies
-    ]
-    if missing_companies:
-        return f"missing companies {missing_companies}"
-    have_rows = {(row.ticker, str(row.value)) for row in result.table_rows if row.value is not None}
-    missing_rows = [pair for pair in case.expect_rows if pair not in have_rows]
-    if missing_rows:
-        return f"missing rows {missing_rows}"
-    have_values = {str(row.value) for row in result.table_rows if row.value is not None}
-    missing_values = [value for value in case.expect_values if value not in have_values]
-    if missing_values:
-        return f"missing values {missing_values}"
-    have_accessions = {row.accession_number for row in result.table_rows} | {
-        change.older_accession for change in result.disclosure_changes
-    } | {change.newer_accession for change in result.disclosure_changes}
-    missing_accessions = [
-        accession for accession in case.expect_accessions if accession not in have_accessions
-    ]
-    if missing_accessions:
-        return f"missing accessions {missing_accessions}"
-    have_concepts = {row.concept for row in result.table_rows}
-    missing_concepts = [concept for concept in case.expect_concepts if concept not in have_concepts]
-    if missing_concepts:
-        return f"missing concepts {missing_concepts}"
     rows = result.table_rows
+    changes = result.disclosure_changes
+    valued = [row for row in rows if row.value is not None]
+    missing = (
+        _missing("tickers", case.expect_tickers, {row.ticker for row in rows})
+        or _missing("companies", case.expect_companies, {row.company_name for row in rows})
+        or _missing("rows", case.expect_rows, {(row.ticker, str(row.value)) for row in valued})
+        or _missing("values", case.expect_values, {str(row.value) for row in valued})
+        or _missing(
+            "accessions",
+            case.expect_accessions,
+            {row.accession_number for row in rows}
+            | {change.older_accession for change in changes}
+            | {change.newer_accession for change in changes},
+        )
+        or _missing("concepts", case.expect_concepts, {row.concept for row in rows})
+    )
+    if missing:
+        return missing
     if len(rows) < case.min_rows:
         return f"{len(rows)} rows, expected at least {case.min_rows}"
     if case.expect_order:
@@ -429,74 +424,66 @@ def _check_result(case: EvalCase, result: Any) -> str:
     return ""
 
 
+def _run_case(case: EvalCase, runtime: Runtime) -> str:
+    """Run the case's turns on ``runtime`` and check the answer: "" when it passed, else why not."""
+    if case.follow_up:
+        store = EphemeralThreadStore()
+        first = run_conversation_turn("eval", case.query, runtime, store=store)
+        second = run_conversation_turn("eval", case.follow_up, runtime, store=store)
+        detail = _check_result(
+            EvalCase(
+                case.case_id,
+                case.category,
+                case.query,
+                expect_intent=case.expect_intent,
+                expect_renderer=case.expect_renderer,
+            ),
+            first.result,
+        )
+        if detail:
+            return detail
+        if second.result.renderer is RendererKind.REFUSE:
+            return "follow-up refused"
+        if second.analysis_spec is None:
+            return "follow-up dropped spec"
+        return _check_result(
+            EvalCase(
+                case.case_id,
+                case.category,
+                case.follow_up,
+                expect_tickers=case.expect_tickers,
+                expect_companies=case.expect_companies,
+            ),
+            second.result,
+        )
+    if case.turns:
+        store = EphemeralThreadStore()
+        turn = run_conversation_turn("eval", case.query, runtime, store=store)
+        for message in case.turns:
+            turn = run_conversation_turn("eval", message, runtime, store=store)
+        return _check_result(case, turn.result)
+    return _check_result(case, run_turn(case.query, runtime))
+
+
 def run_suite() -> dict[str, Any]:
     runtime = recorded_runtime()
     rows: list[dict[str, Any]] = []
     for case in _cases():
-        started = time.perf_counter()
-        passed = True
-        detail = ""
         case_runtime = (
             replace(runtime, essay=_InventingEssay()) if case.invent_numbers else runtime
         )
+        started = time.perf_counter()
         try:
-            if case.follow_up:
-                store = EphemeralThreadStore()
-                first = run_conversation_turn(
-                    "eval", case.query, case_runtime, store=store
-                )
-                second = run_conversation_turn(
-                    "eval", case.follow_up, case_runtime, store=store
-                )
-                elapsed_ms = int((time.perf_counter() - started) * 1000)
-                detail = _check_result(
-                    EvalCase(
-                        case.case_id,
-                        case.category,
-                        case.query,
-                        expect_intent=case.expect_intent,
-                        expect_renderer=case.expect_renderer,
-                    ),
-                    first.result,
-                )
-                if not detail:
-                    if second.result.renderer is RendererKind.REFUSE:
-                        detail = "follow-up refused"
-                    elif second.analysis_spec is None:
-                        detail = "follow-up dropped spec"
-                    else:
-                        detail = _check_result(
-                            EvalCase(
-                                case.case_id,
-                                case.category,
-                                case.follow_up,
-                                expect_tickers=case.expect_tickers,
-                                expect_companies=case.expect_companies,
-                            ),
-                            second.result,
-                        )
-            elif case.turns:
-                store = EphemeralThreadStore()
-                turn = run_conversation_turn("eval", case.query, case_runtime, store=store)
-                for message in case.turns:
-                    turn = run_conversation_turn("eval", message, case_runtime, store=store)
-                elapsed_ms = int((time.perf_counter() - started) * 1000)
-                detail = _check_result(case, turn.result)
-            else:
-                result = run_turn(case.query, case_runtime)
-                elapsed_ms = int((time.perf_counter() - started) * 1000)
-                detail = _check_result(case, result)
+            detail = _run_case(case, case_runtime)
         except Exception as exc:
-            elapsed_ms = int((time.perf_counter() - started) * 1000)
-            passed = False
             detail = type(exc).__name__
-        if detail:
-            passed = False
+        finally:
+            elapsed_ms = int((time.perf_counter() - started) * 1000)
         rows.append(
             {
                 "id": case.case_id,
                 "category": case.category,
-                "passed": passed,
+                "passed": not detail,
                 "elapsed_ms": elapsed_ms,
                 "detail": detail,
             }

@@ -44,6 +44,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from financial_analyst_agent.domain.enums import PERIODIC_FORMS
 from financial_analyst_agent.filing_change import (
     REVIEWED_SECTIONS,
     _read_filings,
@@ -63,7 +64,6 @@ FIXTURE_SNAPSHOT = FIXTURE_UNIVERSE_SNAPSHOT_PATH
 # Issuers the guided stories and the scorecard name outside the ranking snapshot.
 EXTRA_CIKS = ("0001318605", "0001467858")  # Tesla, General Motors
 MICROSOFT = "0000789019"
-PERIODIC_FORMS = frozenset({"10-Q", "10-Q/A", "10-K", "10-K/A"})
 FACT_FIELDS = ("start", "end", "val", "accn", "fy", "fp", "form", "filed", "frame")
 SEC_INTERVAL_SECONDS = 0.15
 DISPLAY_NAMES: dict[int, str] = {
@@ -93,22 +93,19 @@ def _sync_fixture_snapshot() -> str:
     raw = FIXTURE_SNAPSHOT.read_text()
     fixture = json.loads(raw)
     live = json.loads(LIVE_SNAPSHOT.read_text())
-    caps = {company["cik"]: company["market_cap"] for company in live["companies"]}
-    prices = {company["cik"]: company.get("price") for company in live["companies"]}
-    industries = {company["cik"]: company.get("industry", "") for company in live["companies"]}
-    sectors = {company["cik"]: company.get("sector", "") for company in live["companies"]}
-    # Like write_universe_snapshot, only a False flag is written.
-    foreign = {c["cik"] for c in live["companies"] if c.get("files_quarterly", True) is False}
-    missing = [c["ticker"] for c in fixture["companies"] if c["cik"] not in caps]
+    live_by_cik = {company["cik"]: company for company in live["companies"]}
+    missing = [c["ticker"] for c in fixture["companies"] if c["cik"] not in live_by_cik]
     if missing:
         raise SystemExit(f"The live snapshot has no row for {missing}; update the fixture")
     fixture["as_of"] = live["as_of"]
     for index, company in enumerate(fixture["companies"]):
-        company["market_cap"] = caps[company["cik"]]
-        fixture["companies"][index] = company = _with_price(company, prices[company["cik"]])
-        company["industry"] = industries[company["cik"]]
-        company["sector"] = sectors[company["cik"]]
-        if company["cik"] in foreign:
+        current = live_by_cik[company["cik"]]
+        company["market_cap"] = current["market_cap"]
+        fixture["companies"][index] = company = _with_price(company, current.get("price"))
+        company["industry"] = current.get("industry", "")
+        company["sector"] = current.get("sector", "")
+        # Like write_universe_snapshot, only a False flag is written.
+        if current.get("files_quarterly", True) is False:
             company["files_quarterly"] = False
         else:
             company.pop("files_quarterly", None)

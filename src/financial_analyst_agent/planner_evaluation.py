@@ -53,8 +53,15 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from financial_analyst_agent.contracts import Completer, RendererKind, WorkflowPlan
+from financial_analyst_agent.contracts import (
+    MISSING_FACT,
+    NOT_REPORTED_FOR_QUARTER,
+    Completer,
+    RendererKind,
+    WorkflowPlan,
+)
 from financial_analyst_agent.conversation import ConversationTurn, run_conversation_turn
+from financial_analyst_agent.domain.errors import UnsupportedQuarterlyFactError
 from financial_analyst_agent.graph.analysis_spec import SpecPatch
 from financial_analyst_agent.planner_cascade import CascadeCompleter
 from financial_analyst_agent.ranking import SnapshotRanking
@@ -121,8 +128,10 @@ _ASSUMED_OUTPUT_TOKENS = 120
 # recorded filings: a gap in the data, not in planning. A per-share figure a
 # fiscal fourth quarter reports only for the year is one (ADR 0007).
 _NO_DATA_CODES = frozenset(
-    {"unsupported_quarterly_fact", "missing_fact", "not_reported_for_quarter"}
+    {UnsupportedQuarterlyFactError.code, MISSING_FACT, NOT_REPORTED_FOR_QUARTER}
 )
+# The error a run the budget cut short records; the saved JSON keeps these words.
+_BUDGET_REACHED = "budget reached"
 
 
 @dataclass(frozen=True)
@@ -498,12 +507,18 @@ class CaseRun:
 
     @property
     def passed(self) -> bool:
-        return not self.error and bool(self.checks) and all(self.checks.values())
+        return self.passes(adjudicated=False)
 
-    def passes(self, adjudicated: bool) -> bool:
+    @property
+    def stopped(self) -> bool:
+        """Whether the budget ran out on this run, which is then unscored."""
+        return self.error == _BUDGET_REACHED
+
+    def passes(self, adjudicated: bool = False) -> bool:
+        """Every labelled check right: as labelled, or after adjudication where there is one."""
         checks = self.adjudicated_checks if adjudicated else None
         if checks is None:
-            return self.passed
+            checks = self.checks
         return not self.error and bool(checks) and all(checks.values())
 
 
@@ -552,7 +567,7 @@ def run_planner(
                 assert turn is not None
                 seen = observe(turn)
             except BudgetExceeded:
-                error = "budget reached"
+                error = _BUDGET_REACHED
             except Exception as exc:  # noqa: BLE001 - a failed case is reported, not fatal
                 error = type(exc).__name__
             results.append(
@@ -564,7 +579,7 @@ def run_planner(
                     error=error,
                 )
             )
-            if error == "budget reached":
+            if results[-1].stopped:
                 # A run cut short would be averaged as if complete: keep only the
                 # complete runs, and one marker that says the budget ran out.
                 kept = [result for result in results if result.run != run]
@@ -589,7 +604,7 @@ def summarize(
     prices: Prices | None,
 ) -> dict[str, Any]:
     """Accuracy per split, its spread across runs, field accuracy, agreement, time, cost."""
-    complete = [result for result in results if result.error != "budget reached"]
+    complete = [result for result in results if not result.stopped]
     cost = prices.cost(usage.input_tokens, usage.output_tokens) if prices else None
     return {
         **scores(cases, results),
@@ -615,24 +630,16 @@ def scores(cases: Sequence[PlannerCase], results: Sequence[CaseRun]) -> dict[str
     """Accuracy per split as labelled and after adjudication, and the cases failed."""
     split_of = {case.case_id: case.split for case in cases}
     adjudicated_ids = {case.case_id for case in cases if case.adjudicated is not None}
-    stopped = [result for result in results if result.error == "budget reached"]
-    results = [result for result in results if result.error != "budget reached"]
+    stopped = [result for result in results if result.stopped]
+    results = [result for result in results if not result.stopped]
     runs = sorted({result.run for result in results})
     splits: dict[str, Any] = {}
     for split in (*(name for name, _ in SPLITS), "all"):
         chosen = [r for r in results if split == "all" or split_of[r.case_id] == split]
         if not chosen:
             continue
-        per_run = [
-            statistics.mean(r.passed for r in chosen if r.run == run)
-            for run in runs
-            if any(r.run == run for r in chosen)
-        ]
-        adjudicated_per_run = [
-            statistics.mean(r.passes(adjudicated=True) for r in chosen if r.run == run)
-            for run in runs
-            if any(r.run == run for r in chosen)
-        ]
+        per_run = _accuracy_by_run(chosen, runs)
+        adjudicated_per_run = _accuracy_by_run(chosen, runs, adjudicated=True)
         fields: dict[str, float] = {}
         for name in FIELDS:
             scored = [r.checks[name] for r in chosen if name in r.checks]
@@ -704,11 +711,7 @@ def _held_out_groups(
         chosen = [result for result in results if result.case_id in ids]
         if not chosen:
             continue
-        per_run = [
-            statistics.mean(r.passed for r in chosen if r.run == run)
-            for run in runs
-            if any(r.run == run for r in chosen)
-        ]
+        per_run = _accuracy_by_run(chosen, runs)
         out[label] = {
             "cases": len({r.case_id for r in chosen}),
             "accuracy": statistics.mean(per_run),
@@ -716,11 +719,22 @@ def _held_out_groups(
     return out
 
 
+def _accuracy_by_run(
+    chosen: Sequence[CaseRun], runs: Sequence[int], *, adjudicated: bool = False
+) -> list[float]:
+    """The share of ``chosen`` that passed, one figure for each run that holds any of them."""
+    return [
+        statistics.mean(r.passes(adjudicated) for r in chosen if r.run == run)
+        for run in runs
+        if any(r.run == run for r in chosen)
+    ]
+
+
 def case_passes(results: Sequence[CaseRun], *, adjudicated: bool = False) -> dict[str, bool]:
     """Whether each case passed in at least half of its complete runs."""
     by_case: dict[str, list[bool]] = {}
     for result in results:
-        if result.error != "budget reached":
+        if not result.stopped:
             by_case.setdefault(result.case_id, []).append(result.passes(adjudicated))
     return {case_id: 2 * sum(runs) >= len(runs) for case_id, runs in by_case.items()}
 
@@ -897,85 +911,74 @@ def protocol(held_out: int, held_out_count: int) -> tuple[str, ...]:
         else "66), held out for the run of 5 October 2026 "
         "([findings](held-out-4-findings.md)) and development data since."
     )
-    lines = [
-        line.replace("66), the held-out split here.", fourth).replace(
-            "66 cases detect only large", f"{held_out_count} cases detect only large"
-        )
-        for line in _PROTOCOL
-    ]
-    if held_out >= 5:
-        lines.insert(
-            _FIFTH_AT,
+    fifth = (
+        [
             "5. **Fifth set** ([`planner-cases-held-out-5.json`](planner-cases-held-out-5.json), "
             f"{held_out_count}), the held-out split here. Its brief "
             "([`held-out-5-brief.md`](held-out-5-brief.md)) was tried first on rounds of "
             "throwaway probe questions and frozen before any case existed; the plan for its "
             "run, scoring included, was committed before it "
-            "([`held-out-5-plan.md`](held-out-5-plan.md)).",
-        )
-    return tuple(lines)
-
-
-_PROTOCOL = (
-    "## Protocol",
-    "",
-    "Held-out cases measure how a planner generalises only until someone changing a "
-    "planner reads them. Each set so far was held out once and then became development "
-    "data:",
-    "",
-    "1. **First set** ([`planner-cases.json`](planner-cases.json), 50 development "
-    "cases). Written for the first comparison and labelled before either planner ran. "
-    "The planner changes that followed were diagnosed on them.",
-    "2. **Second set** ([`planner-cases-v2.json`](planner-cases-v2.json), 72). Written by "
-    "a separate session, but its hand-back included the cases, so the engineer saw them "
-    "partway through the planner work. It was never held out.",
-    "3. **Third set** ([`planner-cases-v3.json`](planner-cases-v3.json), 69). Written blind "
-    "by a separate session and held out for the run of 2026-10-03, which scored the rules "
-    "planner 91% and the LLM planner 96%. After that run its results were read, one label "
-    "changed with a product decision (ADR 0004: a question naming two metrics is answered "
-    "with both; recorded in the file's `label_changes`), and the recorded SEC data was "
-    "refreshed. Scores on it since are not blind.",
-    "4. **Fourth set** ([`planner-cases-held-out-4.json`](planner-cases-held-out-4.json), "
-    "66), the held-out split here. Its brief was committed before any case existed "
-    "([`held-out-4-brief.md`](held-out-4-brief.md), commit `54a0e22`). A separate Claude "
-    "session wrote and labelled the cases from it, reading only `README.md`, `CONTEXT.md` "
-    "and ADRs 0004, 0007 and 0008, and the cases were committed (`bc237f0`) before any "
-    "planner ran on them. The engineer checked only their format and counts. The cascade "
-    "and the significance test were committed (`3ce77ea`) before this run, so neither "
-    "was tuned on these cases. A cost estimate just before the run also ran the free "
-    "rules planner on them; only its cost line was read.",
-    "",
-    "Labels are not edited to fit a result. A label found wrong after a run is recorded in "
-    "the case file's `label_changes` with the reason, and this report scores the labels as "
-    "committed.",
-    "",
-    "Each planner gets two scores. **As labelled** is the primary one, and the only one "
-    "compared across sets. **After adjudication** replaces a label field that disagrees with "
-    "a product rule: a rule in the README, `CONTEXT.md` or an ADR as committed before the "
-    "case was written, quoted with where it is. A label is not adjudicated because a result "
-    "disagrees with it, because a rule was decided after the run, or because every planner "
-    "failed it: a shared defect is a failure. Adjudications live in the case file's "
-    "`adjudications`, beside the label they replace, and a report lists each one under "
-    "Adjudicated labels. Each adjudication names the file and the full commit that hold its "
-    "rule, and a case file with adjudications names the commit that added its cases; a unit "
-    "test checks, in a full clone, that the rule's commit comes before the cases' and that "
-    "the rule is quoted as that commit has it. Each case run's observation is saved, so an "
-    "adjudication made after a paid run is scored with `--from-json` without running a "
-    "planner again.",
-    "",
-    "Two limits. Sets one to four were written by a Claude model, and the rules planner was "
-    "written with Claude-based coding agents, so shared habits of phrasing may favour the "
-    "rules planner; the LLM planner is an OpenAI model. A held-out case may name its "
-    "`writer`, and the report then scores the set by writer. And 66 cases detect only large "
-    "differences: McNemar's test needs about six cases passed by one planner alone, and "
-    "none by the other, before p falls below 0.05.",
-    "",
-)
-_FIFTH_AT = next(
-    index
-    for index, line in enumerate(_PROTOCOL)
-    if line == "" and _PROTOCOL[index - 1].endswith("only its cost line was read.")
-)
+            "([`held-out-5-plan.md`](held-out-5-plan.md))."
+        ]
+        if held_out >= 5
+        else []
+    )
+    return (
+        "## Protocol",
+        "",
+        "Held-out cases measure how a planner generalises only until someone changing a "
+        "planner reads them. Each set so far was held out once and then became development "
+        "data:",
+        "",
+        "1. **First set** ([`planner-cases.json`](planner-cases.json), 50 development "
+        "cases). Written for the first comparison and labelled before either planner ran. "
+        "The planner changes that followed were diagnosed on them.",
+        "2. **Second set** ([`planner-cases-v2.json`](planner-cases-v2.json), 72). Written by "
+        "a separate session, but its hand-back included the cases, so the engineer saw them "
+        "partway through the planner work. It was never held out.",
+        "3. **Third set** ([`planner-cases-v3.json`](planner-cases-v3.json), 69). Written blind "
+        "by a separate session and held out for the run of 2026-10-03, which scored the rules "
+        "planner 91% and the LLM planner 96%. After that run its results were read, one label "
+        "changed with a product decision (ADR 0004: a question naming two metrics is answered "
+        "with both; recorded in the file's `label_changes`), and the recorded SEC data was "
+        "refreshed. Scores on it since are not blind.",
+        "4. **Fourth set** ([`planner-cases-held-out-4.json`](planner-cases-held-out-4.json), "
+        f"{fourth} Its brief was committed before any case existed "
+        "([`held-out-4-brief.md`](held-out-4-brief.md), commit `54a0e22`). A separate Claude "
+        "session wrote and labelled the cases from it, reading only `README.md`, `CONTEXT.md` "
+        "and ADRs 0004, 0007 and 0008, and the cases were committed (`bc237f0`) before any "
+        "planner ran on them. The engineer checked only their format and counts. The cascade "
+        "and the significance test were committed (`3ce77ea`) before this run, so neither "
+        "was tuned on these cases. A cost estimate just before the run also ran the free "
+        "rules planner on them; only its cost line was read.",
+        *fifth,
+        "",
+        "Labels are not edited to fit a result. A label found wrong after a run is recorded in "
+        "the case file's `label_changes` with the reason, and this report scores the labels as "
+        "committed.",
+        "",
+        "Each planner gets two scores. **As labelled** is the primary one, and the only one "
+        "compared across sets. **After adjudication** replaces a label field that disagrees with "
+        "a product rule: a rule in the README, `CONTEXT.md` or an ADR as committed before the "
+        "case was written, quoted with where it is. A label is not adjudicated because a result "
+        "disagrees with it, because a rule was decided after the run, or because every planner "
+        "failed it: a shared defect is a failure. Adjudications live in the case file's "
+        "`adjudications`, beside the label they replace, and a report lists each one under "
+        "Adjudicated labels. Each adjudication names the file and the full commit that hold its "
+        "rule, and a case file with adjudications names the commit that added its cases; a unit "
+        "test checks, in a full clone, that the rule's commit comes before the cases' and that "
+        "the rule is quoted as that commit has it. Each case run's observation is saved, so an "
+        "adjudication made after a paid run is scored with `--from-json` without running a "
+        "planner again.",
+        "",
+        "Two limits. Sets one to four were written by a Claude model, and the rules planner was "
+        "written with Claude-based coding agents, so shared habits of phrasing may favour the "
+        "rules planner; the LLM planner is an OpenAI model. A held-out case may name its "
+        f"`writer`, and the report then scores the set by writer. And {held_out_count} cases "
+        "detect only large differences: McNemar's test needs about six cases passed by one "
+        "planner alone, and none by the other, before p falls below 0.05.",
+        "",
+    )
 
 
 def render_markdown(report: dict[str, Any]) -> str:
@@ -1189,19 +1192,22 @@ def _llm_completer(usage: Usage, prices: Prices, budget: float) -> Any:
     from financial_analyst_agent.planner import OpenAIStructuredCompleter
 
     settings = get_settings()
+    model = settings.require_openai_model()
     base_url = settings.openai_base_url.strip() or None
     client = openai.OpenAI(api_key=settings.require_openai_api_key(), base_url=base_url)
-    planner = OpenAIStructuredCompleter(
-        MeteredOpenAIClient(client, usage), settings.require_openai_model()
-    )
+    planner = OpenAIStructuredCompleter(MeteredOpenAIClient(client, usage), model)
 
     def check_budget() -> None:
         if prices.cost(usage.input_tokens, usage.output_tokens) >= budget:
             raise BudgetExceeded(f"spent ${budget:.2f}")
 
-    return MeteredCompleter(
-        planner, usage, before_call=check_budget
-    ), settings.require_openai_model()
+    return MeteredCompleter(planner, usage, before_call=check_budget), model
+
+
+def _write(report: dict[str, Any]) -> None:
+    """The report as Markdown and, with every observation, as JSON."""
+    REPORT_PATH.write_text(render_markdown(report), encoding="utf-8")
+    REPORT_JSON_PATH.write_text(json.dumps(report, indent=2, default=str) + "\n", encoding="utf-8")
 
 
 def main(argv: Sequence[str] | None = None) -> None:
@@ -1231,11 +1237,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     )
     args = parser.parse_args(argv)
     if args.from_json:
-        saved = rescore(json.loads(REPORT_JSON_PATH.read_text(encoding="utf-8")), load_cases())
-        REPORT_PATH.write_text(render_markdown(saved), encoding="utf-8")
-        REPORT_JSON_PATH.write_text(
-            json.dumps(saved, indent=2, default=str) + "\n", encoding="utf-8"
-        )
+        _write(rescore(json.loads(REPORT_JSON_PATH.read_text(encoding="utf-8")), load_cases()))
         return
 
     cases = load_cases()
@@ -1272,28 +1274,48 @@ def main(argv: Sequence[str] | None = None) -> None:
         report["paid_split"] = dict(SPLITS)[args.paid_split]
     runtime = recorded_runtime()
     results_by_planner: dict[str, list[CaseRun]] = {}
+
+    def _scored(
+        name: str,
+        label: str,
+        cases: Sequence[PlannerCase],
+        completer: Any,
+        usage: Usage,
+        prices: Prices | None,
+        *,
+        llm_usage: Usage | None = None,
+    ) -> None:
+        """Run ``completer`` on ``cases`` and record its results and summary as ``name``."""
+        results = run_planner(cases, completer, runs=args.runs, runtime=runtime)
+        extra: dict[str, Any] = {}
+        if llm_usage is not None:
+            # Time is the whole cascade's; tokens and dollars are its LLM calls'.
+            usage = replace(
+                usage,
+                input_tokens=llm_usage.input_tokens,
+                output_tokens=llm_usage.output_tokens,
+                reasoning_tokens=llm_usage.reasoning_tokens,
+            )
+            extra["llm_calls"] = llm_usage.calls
+        results_by_planner[name] = results
+        report["planners"][name] = {
+            "label": label,
+            **extra,
+            **summarize(cases, results, usage, prices),
+        }
+
     spent = 0.0
     if "rules" in planners:
         usage = Usage()
-        results = run_planner(
-            cases, MeteredCompleter(runtime.completer, usage), runs=args.runs, runtime=runtime
+        _scored(
+            "rules", "Rules planner", cases, MeteredCompleter(runtime.completer, usage), usage, None
         )
-        results_by_planner["rules"] = results
-        report["planners"]["rules"] = {
-            "label": "Rules planner",
-            **summarize(cases, results, usage, None),
-        }
     if "llm" in planners:
         assert prices is not None and args.budget_usd
         usage = Usage()
         completer, model = _llm_completer(usage, prices, args.budget_usd)
-        results = run_planner(paid_cases, completer, runs=args.runs, runtime=runtime)
+        _scored("llm", f"LLM planner (`{model}`)", paid_cases, completer, usage, prices)
         spent += prices.cost(usage.input_tokens, usage.output_tokens)
-        results_by_planner["llm"] = results
-        report["planners"]["llm"] = {
-            "label": f"LLM planner (`{model}`)",
-            **summarize(paid_cases, results, usage, prices),
-        }
     else:
         report["planners"]["llm"] = {
             "label": "LLM planner",
@@ -1307,30 +1329,24 @@ def main(argv: Sequence[str] | None = None) -> None:
         assert isinstance(ranking, SnapshotRanking)
         usage = Usage()
         cascade = CascadeCompleter(runtime.completer, llm, ranking.knows_industry)
-        results = run_planner(
-            paid_cases, MeteredCompleter(cascade, usage), runs=args.runs, runtime=runtime
+        _scored(
+            "cascade",
+            f"Cascade (rules planner, then `{model}` where it is unsure)",
+            paid_cases,
+            MeteredCompleter(cascade, usage),
+            usage,
+            prices,
+            llm_usage=llm_usage,
         )
-        # Time is the whole cascade's; tokens and dollars are its LLM calls'.
-        usage.input_tokens = llm_usage.input_tokens
-        usage.output_tokens = llm_usage.output_tokens
-        usage.reasoning_tokens = llm_usage.reasoning_tokens
-        results_by_planner["cascade"] = results
-        report["planners"]["cascade"] = {
-            "label": f"Cascade (rules planner, then `{model}` where it is unsure)",
-            "llm_calls": llm_usage.calls,
-            **summarize(paid_cases, results, usage, prices),
-        }
     report["paired"] = _pairs(report, cases, results_by_planner)
     report["adjudications"] = adjudication_rows(cases)
     if args.estimate:
         report["estimate"] = estimate(cases, args.runs, prices)
 
-    markdown = render_markdown(report)
     if args.no_write:
-        print(markdown)
+        print(render_markdown(report))
         return
-    REPORT_PATH.write_text(markdown, encoding="utf-8")
-    REPORT_JSON_PATH.write_text(json.dumps(report, indent=2, default=str) + "\n", encoding="utf-8")
+    _write(report)
     for name, planner in report["planners"].items():
         if "splits" in planner:
             overall = planner["splits"]["all"]

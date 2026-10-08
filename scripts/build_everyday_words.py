@@ -15,7 +15,6 @@ market-cap ranks (fetched once into .cache/sec-corpus/, SEC_USER_AGENT needed).
 from __future__ import annotations
 
 import argparse
-import json
 import re
 from collections import Counter
 from pathlib import Path
@@ -23,7 +22,11 @@ from pathlib import Path
 from financial_analyst_agent.config import get_settings
 from financial_analyst_agent.filing_change import html_to_text
 from financial_analyst_agent.providers.sec.client import SECClient
-from financial_analyst_agent.universe import DEFAULT_SNAPSHOT_PATH
+from financial_analyst_agent.universe import (
+    DEFAULT_SNAPSHOT_PATH,
+    UniverseCompany,
+    load_universe_snapshot,
+)
 
 ROOT = Path(__file__).resolve().parent.parent
 SNAPSHOT = DEFAULT_SNAPSHOT_PATH
@@ -38,9 +41,9 @@ _WORD = re.compile(r"[A-Za-z]+(?:'[A-Za-z]+)?")
 _SENTENCE_END = re.compile(r"[.!?:;•]\s*$")
 
 
-def _sample(size: int) -> list[dict[str, str]]:
-    companies = json.loads(SNAPSHOT.read_text(encoding="utf-8"))["companies"]
-    ranked = sorted(companies, key=lambda company: float(company["market_cap"]), reverse=True)
+def _sample(size: int) -> list[UniverseCompany]:
+    companies = load_universe_snapshot(SNAPSHOT).companies
+    ranked = sorted(companies, key=lambda company: company.market_cap, reverse=True)
     step = max(1, len(ranked) // size)
     return ranked[::step][:size]
 
@@ -95,9 +98,9 @@ def main(size: int) -> None:
     try:
         for company in _sample(size):
             try:
-                html = _fetch(client, company["cik"])
+                html = _fetch(client, company.cik)
             except Exception as error:  # noqa: BLE001 - a filer without a usable 10-Q is skipped
-                print(f"skip {company['ticker']}: {error}")
+                print(f"skip {company.ticker}: {error}")
                 continue
             if html is not None:
                 texts.append(html_to_text(html))

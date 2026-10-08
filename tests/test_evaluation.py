@@ -39,3 +39,11 @@ def test_a_wrong_expectation_fails_its_case() -> None:
         EvalCase(**{**base.__dict__, "expect_order": ("AMD", "NVDA")}), result
     )
     assert "chart" in _check_result(EvalCase(**{**base.__dict__, "expect_chart": "Growth"}), result)
+    assert (
+        _check_result(EvalCase(**{**base.__dict__, "expect_tickers": ("NVDA", "ZZZ")}), result)
+        == "missing tickers ['ZZZ']"
+    )
+    assert (
+        _check_result(EvalCase(**{**base.__dict__, "expect_values": ("1", "2")}), result)
+        == "missing values ['1', '2']"
+    )

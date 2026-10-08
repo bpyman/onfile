@@ -226,6 +226,14 @@ def test_a_run_cut_short_by_the_budget_is_left_out_and_said_so() -> None:
     assert all(failure["error"] != "budget reached" for failure in summary["failures"])
 
 
+def test_a_run_the_budget_cut_short_is_stopped_and_passes_nothing() -> None:
+    stopped = CaseRun("lookup_msft_pretax", 1, {}, None, 1.0, error="budget reached")
+    complete = CaseRun("lookup_msft_pretax", 0, {"outcome": True}, _seen().signature(), 1.0)
+
+    assert stopped.stopped and not stopped.passed
+    assert not complete.stopped and complete.passed
+
+
 def test_agreement_counts_cases_whose_runs_all_saw_the_same() -> None:
     cases = [
         _MSFT_PRETAX,
@@ -282,6 +290,24 @@ _GROWTH_ADJUDICATED = PlannerCase(
     ),
 )
 _FIVE_QUARTERS = _seen(tickers=frozenset({"NVDA"}), periods=("last_n_quarters", 5))
+
+
+def test_passed_is_the_pass_as_labelled() -> None:
+    run = CaseRun(
+        "growth",
+        0,
+        {"periods": False},
+        _FIVE_QUARTERS.signature(),
+        1.0,
+        adjudicated_checks={"periods": True},
+    )
+
+    assert run.passes() is run.passed is False
+    assert run.passes(adjudicated=True) is True
+    # A turn that raised passes neither way, and an unadjudicated run scores as labelled.
+    raised = CaseRun("growth", 0, {"periods": True}, None, 1.0, error="ValueError")
+    assert raised.passes() is raised.passes(adjudicated=True) is False
+    assert CaseRun("growth", 0, {"periods": True}, None, 1.0).passes(adjudicated=True) is True
 
 
 def test_the_committed_adjudications_replace_a_field_and_keep_the_label() -> None:

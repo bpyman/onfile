@@ -32,4 +32,65 @@ From a parallel `/simplify` review of the whole codebase (7 October 2026): seven
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped 7 October 2026. Cleanup only: the planner comparison's Markdown and JSON, the held-out
+overlap report, the fixture snapshot sync, the trimmer's output, the protocol text, the printed
+figures and the recorded demo answers are byte for byte as before (each compared against a
+baseline captured at the previous commit).
+
+1. **protocol()** writes its lines directly: the fourth set's clause is `{fourth}` inside the
+   item, the "Two limits" count is `{held_out_count}`, and the fifth-set item is spliced in
+   after the fourth with `*fifth` when `held_out >= 5`. `_PROTOCOL` and `_FIFTH_AT` are gone.
+   `protocol(4, 66)`, `protocol(5, 160)` and `protocol(5, 66)` are identical to before;
+   `test_the_protocol_names_the_set_held_out` still pins the wording and a new test pins the
+   layout (one more line, right after the fourth set).
+2. **`_accuracy_by_run(chosen, runs, *, adjudicated=False)`** is the one accuracy-per-run figure,
+   used twice in `scores` and once in `_held_out_groups`. `CaseRun.passes(adjudicated=False)`
+   holds the one all-checks-right test and `passed` returns `passes(adjudicated=False)`.
+3. **`_BUDGET_REACHED = "budget reached"`** is written once in `run_planner`, and
+   `CaseRun.stopped` (`error == _BUDGET_REACHED`) is read at the five sites. The saved JSON keeps
+   the same words.
+4. **`main`**: `_write(report)` writes the Markdown and JSON for both the run and `--from-json`;
+   `_scored(name, label, cases, completer, usage, prices, *, llm_usage=None)` is a closure in
+   `main` that runs a planner and records `results_by_planner[name]` and
+   `report["planners"][name]`. It takes `llm_usage` rather than `**extra` because the cascade's
+   `llm_calls` and its three token counts are known only after the run; with it, the counts are
+   copied with `dataclasses.replace` and `llm_calls` is added before the summary, in the same key
+   order as before. `_llm_completer` reads `settings.require_openai_model()` once.
+5. **`_NO_DATA_CODES`** is built from `UnsupportedQuarterlyFactError.code`, `MISSING_FACT` and
+   `NOT_REPORTED_FOR_QUARTER`; the values are unchanged.
+6. **evaluation.py**: `_missing(label, wanted, have)` chains the six checks; the wording
+   (`missing tickers ['ZZZ']`) is unchanged and now tested. `_run_case(case, runtime)` runs a
+   case's turns and returns the check's detail; `run_suite` times it once with `try/finally` and
+   sets `passed = not detail` (an exception sets `detail` to its class name, so the two agreed
+   before). The timing now includes the check itself, a few milliseconds the scorecard rewrites
+   on every run anyway.
+7. **held_out_overlap.py**: `_earlier(source, turns, companies)` builds the three `Earlier`
+   kinds; `earlier_data` calls `load_cases()` with no arguments (its default is the same
+   `CASE_PATHS` filter) and the `CASE_PATHS` import is gone; the nearest match's similarity is
+   computed once over `scored` pairs with `max(key=lambda pair: pair[0])`, which keeps the first
+   of equals (tested).
+8. **Scripts**: `record_sec_fixtures` and `trim_sec_test_fixture` import `PERIODIC_FORMS` from
+   `domain.enums` (tested as the same object); `_sync_fixture_snapshot` builds `live_by_cik`
+   once (tested on a two-company snapshot, key order included); `build_everyday_words._sample`
+   reads the snapshot through `load_universe_snapshot(SNAPSHOT).companies` sorted by
+   `company.market_cap` and returns `UniverseCompany` rows, so `main` reads `company.cik` and
+   `company.ticker` (tested against the live snapshot).
+
+Checks: 2,366 tests pass; ruff and mypy are clean; `compare_answers` reports 0 of 375
+conversations differ. `--from-json` on the committed `planner-comparison.json` (written to a
+scratch copy) gives the same Markdown and JSON before and after. The overlap report could not be
+re-run with the committed report's probe file (another session's scratchpad, gone), so
+`overlap_report()` without probes was compared before and after: identical, 52 of 160 familiar.
+No cached SEC pair matches a committed test fixture, so the trimmer was run on the cached Exxon
+pair before and after instead: identical output. The fixture snapshot sync, run into a scratch
+copy, leaves the committed file as it is.
+
+Files: `src/financial_analyst_agent/planner_evaluation.py`, `evaluation.py`,
+`held_out_overlap.py`; `scripts/record_sec_fixtures.py`, `trim_sec_test_fixture.py`,
+`build_everyday_words.py`; `tests/unit/test_planner_evaluation.py` (+2),
+`tests/unit/test_held_out_set.py` (+2), `tests/unit/test_script_constants.py` (+3),
+`tests/test_evaluation.py` (two assertions).

@@ -31,12 +31,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from financial_analyst_agent.planner_evaluation import (
-    CASE_PATHS,
-    FIELDS,
-    current_held_out,
-    load_cases,
-)
+from financial_analyst_agent.planner_evaluation import FIELDS, current_held_out, load_cases
 from financial_analyst_agent.rules_planner import FIXTURE_UNIVERSE_SNAPSHOT_PATH
 
 THRESHOLD = 0.8
@@ -98,35 +93,25 @@ class Earlier:
     words: frozenset[str]
 
 
+def _earlier(source: str, turns: Sequence[str], companies: frozenset[str]) -> Earlier:
+    return Earlier(source, " → ".join(turns), template(" ".join(turns), companies))
+
+
 def earlier_data(probe_files: Sequence[Path], companies: frozenset[str]) -> list[Earlier]:
     """Every development case, every phrase-coverage phrasing, and the probes given."""
     from financial_analyst_agent.phrase_coverage import cases as phrase_cases
 
     found = [
-        Earlier(
-            f"case {case.case_id}",
-            " → ".join(case.turns),
-            template(" ".join(case.turns), companies),
-        )
-        for case in load_cases(*(path for path in CASE_PATHS if path.exists()))
+        _earlier(f"case {case.case_id}", case.turns, companies)
+        for case in load_cases()
         if case.split != "held_out"
     ]
     found += [
-        Earlier(
-            f"coverage {case.case_id}",
-            " → ".join(case.turns),
-            template(" ".join(case.turns), companies),
-        )
-        for case in phrase_cases()
+        _earlier(f"coverage {case.case_id}", case.turns, companies) for case in phrase_cases()
     ]
     for path in probe_files:
         for raw in json.loads(path.read_text(encoding="utf-8"))["cases"]:
-            turns = list(raw["turns"])
-            found.append(
-                Earlier(
-                    f"probe {raw['id']}", " → ".join(turns), template(" ".join(turns), companies)
-                )
-            )
+            found.append(_earlier(f"probe {raw['id']}", list(raw["turns"]), companies))
     return found
 
 
@@ -139,8 +124,9 @@ def overlap_report(probe_files: Sequence[Path] = ()) -> dict[str, Any]:
     familiar = []
     for case in held_out:
         words = template(" ".join(case.turns), companies)
-        nearest = max(earlier, key=lambda item: _similarity(words, item.words))
-        score = _similarity(words, nearest.words)
+        scored = [(_similarity(words, item.words), item) for item in earlier]
+        # The first of equally near questions, as max(key=...) keeps the first maximum.
+        score, nearest = max(scored, key=lambda pair: pair[0])
         if score >= THRESHOLD:
             familiar.append(
                 {

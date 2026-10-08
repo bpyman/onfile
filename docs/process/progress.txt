@@ -2826,3 +2826,39 @@ Blockers / next:
   only in class order and the link icon's `shrink-0`. Python: 2,359 tests, ruff, mypy,
   compare_answers `0 of 375 conversations differ`. Tickets 08-12 in simplify-pass-2 remain;
   status-line.tsx still holds its own `SNAPSHOT_HELP` copy (outside this ticket's files).
+
+2026-10-07
+
+Task completed: `docs/process/tickets/simplify-pass-2/issues/08-evaluation-harness-cleanups.md`
+
+Key decisions:
+- planner_evaluation.py: `protocol()` writes its lines directly (the fourth set's clause and
+  the count as f-strings, the fifth-set item spliced in with `*fifth`); `_PROTOCOL` and
+  `_FIFTH_AT` deleted. `_accuracy_by_run` is the one accuracy-per-run figure;
+  `CaseRun.passes(adjudicated=False)` the one pass test, `passed` reads it; `_BUDGET_REACHED`
+  written once and `CaseRun.stopped` read at the five sites. `_NO_DATA_CODES` built from
+  `UnsupportedQuarterlyFactError.code` and the contracts constants. `main`: `_write(report)`
+  for both writes, `_scored(name, label, cases, completer, usage, prices, *, llm_usage=None)`
+  runs and records a planner (the cascade's token counts copied with `dataclasses.replace`
+  and `llm_calls` added, both known only after the run); `_llm_completer` reads the model once.
+- evaluation.py: `_missing(label, wanted, have)` chains the six checks; `_run_case` runs a
+  case's turns and `run_suite` times it once (`try/finally`), `passed = not detail`.
+- held_out_overlap.py: `_earlier` for the three constructors; `load_cases()` with no arguments;
+  the nearest match scored once with `max(key=...)`, first of equals kept.
+- scripts: `PERIODIC_FORMS` from `domain.enums`; `_sync_fixture_snapshot` builds `live_by_cik`
+  once; `build_everyday_words._sample` reads the snapshot through `load_universe_snapshot`.
+
+Files changed:
+- `src/financial_analyst_agent/planner_evaluation.py`, `evaluation.py`, `held_out_overlap.py`
+- `scripts/record_sec_fixtures.py`, `trim_sec_test_fixture.py`, `build_everyday_words.py`
+- `tests/unit/test_planner_evaluation.py` (+2), `tests/unit/test_held_out_set.py` (+2),
+  `tests/unit/test_script_constants.py` (+3), `tests/test_evaluation.py`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. 2,366 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 375
+  conversations differ from HEAD`; `--from-json`, the overlap report, the protocol text, the
+  fixture sync and the trimmer give byte-identical output before and after (the committed
+  overlap report's probe file no longer exists, so the report was compared without probes).
+  Tickets 09-12 in simplify-pass-2 remain. The committed planner-comparison.md predates set
+  5's findings flag, so a `--from-json` regeneration would add one sentence; not regenerated.

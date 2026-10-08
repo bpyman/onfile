@@ -159,3 +159,43 @@ def test_the_report_shows_the_held_out_groups(two_sets: tuple[Path, Path]) -> No
 
     assert "Held out, by group: written by claude 100% (1 cases)" in markdown
     assert "familiar 100% (1 cases), novel 100% (1 cases)" in markdown
+
+
+def test_the_protocol_adds_the_fifth_set_after_the_fourth() -> None:
+    fourth = protocol(4, 66)
+    fifth = protocol(5, 160)
+
+    assert len(fifth) == len(fourth) + 1
+    at = next(index for index, line in enumerate(fifth) if line.startswith("4. **Fourth set**"))
+    assert fourth[at] == fifth[at].replace(
+        "66), held out for the run of 5 October 2026 ([findings](held-out-4-findings.md)) "
+        "and development data since.",
+        "66), the held-out split here.",
+    )
+    assert fifth[at + 1].startswith("5. **Fifth set** (")
+    assert fifth[at + 2] == fourth[at + 1] == ""
+    assert fourth[-1] == "" and fourth[-2].startswith("Two limits.")
+
+
+def test_the_nearest_earlier_question_is_the_first_of_equals(
+    two_sets: tuple[Path, Path], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from financial_analyst_agent import held_out_overlap
+    from financial_analyst_agent.held_out_overlap import Earlier, overlap_report
+
+    companies = _company_words()
+    earlier = [
+        Earlier(f"case {name}", question, template(question, companies))
+        for name, question in (
+            ("first", "Microsoft revenue last 8 quarters"),
+            ("second", "Nvidia revenue last 2 quarters"),
+        )
+    ]
+    monkeypatch.setattr(held_out_overlap, "earlier_data", lambda probes, companies: earlier)
+
+    report = overlap_report()
+
+    (row,) = report["familiar"]
+    assert (row["id"], row["nearest"], row["similarity"]) == ("h5_claude", "case first", 1.0)
+    assert row["nearest_question"] == "Microsoft revenue last 8 quarters"
+    assert (report["cases"], report["earlier"]) == (2, 2)
