@@ -38,4 +38,21 @@ Not in this ticket: answer_notes.py's two `row.cik or row.company_name` sites (1
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped 7 October 2026. Every answer is unchanged: compare_answers reports `0 of 375 conversations differ from HEAD`; 2,335 tests pass (3 new); ruff and mypy are clean; phrase coverage stays 555 of 555; the rules planner passes all 160 held-out set 5 cases.
+
+1. **Phrase matching runs once per message** (`metric_catalog.py`). Each phrase's `\b...\b` pattern is compiled at import into `_UNIQUE_PATTERNS` (with its `_NOT_FOLLOWED_BY` exclusion beside it), `_UNKNOWN_PATTERNS` and `_AMBIGUOUS_PATTERNS`; `_phrase_spans` takes the compiled pattern. `resolve_metric_phrases`, `resolve_metric_phrase` and `without_trailing_year_words` carry `@lru_cache(maxsize=256)`, as asked, and so do the two readings under them: `_longest_phrases`, the one scan of every unique phrase and unknown measure, which the full reading and the trailing-year words both start from, and `_phrase_matches`, the full reading. Both return tuples. `resolve_metric_phrase` reads the matches once and hands them to `_with_prefixed_metric`, which no longer scans. No test monkeypatches the phrase tables. A profile of six recorded turns (a four-quarter lookup, a two-company comparison, a ranking, a TTM figure, and a lookup with a segment follow-up) shows each of the seven distinct messages scanned exactly once: 1,925 `_phrase_spans` calls against the 9,760 the review measured.
+2. **Trailing-year words spelled once.** `TRAILING_YEAR_WORDS` in `metric_catalog.py` is the alternation; `_TRAILING_YEAR_WORDS` and request_wording's `TRAILING_YEAR` are compiled from it, and a test holds `TRAILING_YEAR.pattern` to the literal it was.
+3. **`bind_periods_from_message`** computes `base = comparison_asked(message)` once and builds its operations with `_change_operations(operations, *, across, base, both)` at all three sites, the named branch with `across=yoy or sequential or len(quarters) >= 2`.
+4. **`parse_named_periods`** defines `free` before the half-year loop and uses it there; `_full_year(raw)` reads the two-digit years at both sites.
+5. **`_keep_window_for_change`** checks `_names_a_window(message) or parse_named_periods(message)`.
+6. **`_refine_against`** strips the message once; `_metrics_in_place(patch, metrics, current_spec)` builds the "these metrics in place of the ones on screen" patch for the `_SWITCH_TO_EDIT` branch and `_metric_swap`.
+7. **`WindowReading.year_of_quarters`** is read in `read_window` from the raw message before the `window_words()` reassignment; `bind_periods_from_message` and `period_notes` read it from the window. A test on `read_window` covers "last year", "annual", a counted window and TTM.
+8. **answer_notes.py.** `_shown_name(company)` replaces the five `short_name(company.name) or company.query` sites; `_named_period_notes` iterates `dated` in its elif and the always-true `if ends:` is gone.
+
+**Left undone: the `missing_component_notes` rewrite (step 8, first bullet).** The step asked first to confirm that no snapshot short name ends in ")". Eleven do ("Telefonaktiebolaget LM Ericsson (publ)", "Jerash Holdings (US)", "ZTO Express (Cayman)", "Banco Santander (Brasil) S.A." among them), and for one of them alone today's parse-back reads the parenthesis as dates ("Jerash Holdings' EBITDA is missing for US: ... for that quarter"). The tuple form would correct that note, so it changes behaviour, and per this ticket it is left for a person: see `docs/process/rules-to-review.md`, entry of 2026-10-07 for this ticket.
+
+Not touched, as the ticket says: answer_notes.py's two `row.cik or row.company_name` sites wait for ticket 06.

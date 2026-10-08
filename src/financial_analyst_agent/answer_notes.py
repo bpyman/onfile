@@ -16,6 +16,7 @@ from financial_analyst_agent.graph.analysis_spec import (
     MAX_RANKED_COMPANIES,
     AnalysisSpec,
     PeriodSelection,
+    ResolvedCompany,
     SpecPatch,
     calendar_groups,
 )
@@ -262,7 +263,7 @@ def already_present_notes(
     if len(spec.companies) > len(current.companies):
         return []
     names = [
-        short_name(company.name) or company.query
+        _shown_name(company)
         for company in spec.companies
         if company.cik in before
         and any(
@@ -276,36 +277,32 @@ def already_present_notes(
     return [f"{' and '.join(names)} {'is' if len(names) == 1 else 'are'} already in this analysis."]
 
 
+def _shown_name(company: ResolvedCompany) -> str:
+    """The name a note calls a company by: its short name, or the words that named it."""
+    return short_name(company.name) or company.query
+
+
 def _named_period_notes(spec: AnalysisSpec) -> list[str]:
     """Say which quarter ends a named fiscal period stands for, and who has none."""
     notes: list[str] = []
     periods = spec.periods
     own = dict(periods.company_report_dates)
     label = periods.label
-    missing = [
-        short_name(company.name) or company.query
-        for company in spec.companies
-        if not own.get(company.key)
-    ]
+    missing = [_shown_name(company) for company in spec.companies if not own.get(company.key)]
     single = len(periods.named) == 1 and periods.named[0].quarter is not None
     dated = [company for company in spec.companies if own.get(company.key)]
     if single and not periods.named[0].calendar and len(dated) == 1:
         company = dated[0]
         notes.append(
-            f"{possessive(short_name(company.name) or company.query)} {label} ended "
+            f"{possessive(_shown_name(company))} {label} ended "
             f"{format_date(own[company.key][0])}."
         )
     elif single and not periods.named[0].calendar and dated:
         ends = [
-            f"{possessive(short_name(company.name) or company.query)} ended "
-            f"{format_date(own[company.key][0])}"
-            for company in spec.companies
-            if own.get(company.key)
+            f"{possessive(_shown_name(company))} ended {format_date(own[company.key][0])}"
+            for company in dated
         ]
-        if ends:
-            notes.append(
-                f"{label} is each company's own fiscal quarter: " + "; ".join(ends) + "."
-            )
+        notes.append(f"{label} is each company's own fiscal quarter: " + "; ".join(ends) + ".")
     if missing and len(missing) < len(spec.companies):
         notes.append(f"No filing for {label} from {', '.join(missing)}.")
     # "Apple revenue 2024" is four quarters; say when the filings here hold fewer.
@@ -313,10 +310,10 @@ def _named_period_notes(spec: AnalysisSpec) -> list[str]:
     for company in dated:
         held = len(own[company.key])
         if held < expected:
-            name = short_name(company.name) or company.query
             notes.append(
                 f"The filings here hold {held} of the {expected} quarters in "
-                f"{joined([period.label() for period in periods.named])} for {name}."
+                f"{joined([period.label() for period in periods.named])} for "
+                f"{_shown_name(company)}."
             )
     return notes
 

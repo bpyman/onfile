@@ -395,3 +395,12 @@ def test_a_since_fiscal_window_note_counts_the_span_on_the_companys_own_labels()
         )
     )
     assert period_notes(message, whole, window=read_window(message)) == []
+
+
+def test_the_window_reading_says_whether_a_year_of_quarters_was_asked() -> None:
+    # simplify-pass-2 ticket 02: "last year" is read once, into the WindowReading
+    # that compilation and the answer's notes share.
+    assert read_window("Apple revenue last year").year_of_quarters
+    assert read_window("Apple annual revenue").year_of_quarters
+    assert not read_window("Apple revenue last 4 quarters").year_of_quarters
+    assert not read_window("Apple TTM revenue").year_of_quarters

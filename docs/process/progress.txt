@@ -2631,3 +2631,35 @@ Files changed:
 Blockers / next:
 - None. All 2,332 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 375
   conversations differ from HEAD`. Tickets 02-12 in simplify-pass-2 remain.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/simplify-pass-2/issues/02-match-metric-phrases-once.md`
+
+Key decisions:
+- metric_catalog.py: each phrase's pattern compiled at import (`_UNIQUE_PATTERNS`,
+  `_UNKNOWN_PATTERNS`, `_AMBIGUOUS_PATTERNS`); `_longest_phrases` (the one scan) and
+  `_phrase_matches` (the full reading) cached and returning tuples, beside the asked-for
+  caches on `resolve_metric_phrases`, `resolve_metric_phrase` and
+  `without_trailing_year_words`; `_with_prefixed_metric` takes the matches already read.
+  `TRAILING_YEAR_WORDS` is the one spelling of the trailing-year alternation.
+- request_wording.py: `TRAILING_YEAR` built from it; `WindowReading.year_of_quarters` read
+  once in `read_window` from the raw message; `_change_operations`, `_full_year`,
+  `_metrics_in_place`; `_refine_against` strips once; `_keep_window_for_change` uses the
+  shorter check.
+- answer_notes.py: `_shown_name(company)` at the five sites; `_named_period_notes` iterates
+  `dated`. The `missing_component_notes` rewrite is left: eleven snapshot short names end in
+  ")", so it would change (correct) their one-company note; recorded in rules-to-review.md.
+
+Files changed:
+- `src/financial_analyst_agent/services/metric_catalog.py`, `request_wording.py`,
+  `answer_notes.py`
+- `tests/unit/services/test_metric_phrase.py` (+2 tests), `tests/unit/test_window_copy.py` (+1)
+- `docs/process/rules-to-review.md`, the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,335 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 375
+  conversations differ from HEAD`; phrase coverage 555 of 555 (report not regenerated); the
+  rules planner passes 160 of 160 held-out set 5 cases. A profile of six recorded turns shows
+  each message scanned for phrases once. Tickets 03-12 in simplify-pass-2 remain.
+- For a person: whether to fix the garbled missing-component note for the eleven ")" names.
