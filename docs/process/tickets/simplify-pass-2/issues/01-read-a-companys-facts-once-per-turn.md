@@ -33,4 +33,19 @@ Not in this ticket: walking the payload once for `fiscal_labels` and `filings_fr
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped 7 October 2026. All eight steps, no answer changed: `compare_answers` reports 0 of 375 conversations differ; 2,332 Python tests pass (four new); ruff and mypy are clean; phrase coverage stays 555 of 555 (asserted by `tests/unit/test_phrase_coverage.py`).
+
+1. `SecFactLookup._records(cik, concepts, unit)` parses a company's records once a turn per concept set, keyed by (cik, concepts tuple, unit), and returns the cached lists without copies. `_reader(cik)` binds it as a `Records` callable (`records(concepts_or_metric, unit)`), which `_select_with_fallbacks`, `_plausible_revenue`, `_depreciation_plus_amortization`, `_total_revenue`, `_bank_revenue`, `_revenue_checks`, `_with_diluted_shares` and `_on_latest_basis` now take in place of the payload plus a parse function. `_revenue_checks`' concept list is the module constant `_REVENUE_CHECK_LINES`. `parse_company_facts` is no longer imported; `_reports_excluding_costs` still reads the concepts dict, as it counts raw entries in every unit.
+2. `CachingSECDataSource.facts_digest_stamp(cik)` (cache.py) stats a fresh digest without reading it; `company_facts_stamp` shares its `_fresh_stamp`. `_parsed_from_disk` looks the stamp up in `_PARSED_FACTS` first and reads and gunzips the digest only on a miss.
+3. `_filings(cik)` is memoised in `_filings_by_cik`; `_read_filings` builds it. The merge-then-sort both sites wrote out is the module helper `_merged(filings, extra)`. It returns `filings` as given when nothing is added, where the predecessor branch used to re-sort; every reader (`get_candidate_filings`, `get_annual_filings`, `latest_period_end`, `list_quarterly_report_dates`, `periods_from_filings`) sorts or takes a max itself, and the comparison shows no difference.
+4. `_parsed(cik) -> _ParsedFacts`, filled through `_remembering_failure(f"facts:{cik}", ...)`, replaces `_company_facts_by_cik`, `_fiscal_labels_by_cik`, `_facts_filings_by_cik`, the None sentinel, `_cached_company_facts`, `_parsed_facts` and `_fiscal_labels`. Confirmed before removing the sentinel: `get_financials`, `fiscal_periods`, `_with_predecessor_facts` and `_with_facts_filings` branch on `status_code == 404` only; a repeated 404 now re-raises the remembered exception instead of a fresh one with a fixed message, and no caller reads the message (the refusal `get_financials` raises has its own).
+5. `get_financials` hoists `predecessor`, `name` and `targets` above the per-CIK loop and is 50 lines shorter; `_first_available(...)` walks the pending / year-only step-back and returns the fact or the last failure (`_LookupFailure`). `_period_in_xbrl` was in fact evaluated at most once per failed period already (the two sites were exclusive on `report_date`); the walk now evaluates it once in one place. `latest_period_end` was computed and never used when `report_date` was None (`targets` overwrote it), so it is gone from the module.
+6. `_select_or_derive_in_unit` loops over `quarterly` and calls `select_quarterly_fact` per filing, keeping the last filing's `UnsupportedQuarterlyFactError`. `select_quarterly_fact_with_filing_fallback` stays in fact_selector.py for its tests, unchanged.
+7. `facts_file`, `digest_file`, `missing_file` and `submissions_file` (cache.py) name a company's files at every site, including `company_needs_warming` (runtime.py).
+8. `_snapshot_version(path)` serves `_snapshot_maps` and `_snapshot_ranking`; `_member_ticker` takes the `SnapshotRanking`; `_facts_lookup(client, path, ranking)` wires the lookup for both runtimes.
+
+Tests: `tests/unit/providers/test_facts_read_once.py` checks that a turn over a parse in memory reads no digest file, that a digest on disk is read once when memory holds no parse, that `facts_digest_stamp` is the stamp the digest reads back with, and that a turn parses each concept set of a company once across repeated metrics and the gross-profit fallback.

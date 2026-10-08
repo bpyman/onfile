@@ -2607,3 +2607,27 @@ Files changed:
 Blockers / next:
 - None. All 2,328 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 375
   conversations differ from HEAD`. Every ticket in held-out-5-findings is resolved.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/simplify-pass-2/issues/01-read-a-companys-facts-once-per-turn.md`
+
+Key decisions:
+- `SecFactLookup` reads a company once a turn: `_parsed(cik)` (one `_ParsedFacts` through
+  `_remembering_failure`), `_records(cik, concepts, unit)` keyed by concept set, and a bound
+  `Records` callable the module helpers read with; `_filings(cik)` memoised; `_merged`
+  helper; `_first_available` holds the latest-quarter step-back.
+- `CachingSECDataSource.facts_digest_stamp` finds a parse in memory without reading the
+  digest; `facts_file` / `digest_file` / `missing_file` / `submissions_file` name the files.
+- runtime.py: `_snapshot_version`, `_member_ticker(ranking)`, `_facts_lookup`.
+- Cleanup only; `_merged` returns the filings as given when a predecessor's page adds
+  nothing (the old code re-sorted), and every reader sorts for itself.
+
+Files changed:
+- `src/financial_analyst_agent/sec_facts.py`, `providers/sec/cache.py`, `runtime.py`
+- `tests/unit/providers/test_facts_read_once.py` (+4 tests)
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,332 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 375
+  conversations differ from HEAD`. Tickets 02-12 in simplify-pass-2 remain.

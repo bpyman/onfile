@@ -28,6 +28,28 @@ from financial_analyst_agent.providers.sec.filing_watch import FilingWatch
 from financial_analyst_agent.session import SessionBudget
 
 _JSON_FRESH_SECONDS = 3600
+
+
+def facts_file(cik: str) -> str:
+    """A company's facts file, as SEC sent it."""
+    return f"facts-{cik}.json"
+
+
+def digest_file(cik: str) -> str:
+    """What a lookup keeps of a company's facts file (``read_facts_digest``)."""
+    return f"digest-{cik}.json.gz"
+
+
+def missing_file(cik: str) -> str:
+    """The marker that SEC keeps no facts for the company."""
+    return f"facts-{cik}.missing"
+
+
+def submissions_file(cik: str) -> str:
+    """A company's first submissions page."""
+    return f"submissions-{cik}.json"
+
+
 # A company's files: its facts and their digest, its no-facts marker, its submissions
 # and their older pages.
 _COMPANY_FILE = re.compile(r"(?:facts|submissions|digest)-(?:CIK)?(\d{10})")
@@ -202,12 +224,20 @@ class CachingSECDataSource:
         else:
             # Older pages are read here, one cached and charged request each.
             fetch = lambda: self._inner.get_submissions(cik, with_history=False)  # noqa: E731
-        payload = self._json(f"submissions-{cik}.json", fetch)
+        payload = self._json(submissions_file(cik), fetch)
         if not with_history or not callable(page):
             return payload
         return with_older_pages(
             payload, lambda name: self._json(f"submissions-{name}", lambda: page(name))
         )
+
+    def facts_digest_stamp(self, cik: str) -> tuple[str, int, int] | None:
+        """Which copy of a company's facts digest is on disk: its path, modified time and size.
+
+        None without a fresh digest. A lookup that holds the parse for this stamp
+        in memory need not read the digest (``read_facts_digest``).
+        """
+        return self._fresh_stamp(self._dir / digest_file(cik))
 
     def read_facts_digest(self, cik: str) -> tuple[tuple[str, int, int], bytes] | None:
         """A company's facts digest and its stamp, when a fresh one is on disk.
@@ -216,7 +246,7 @@ class CachingSECDataSource:
         tenth of the facts file's size, and decoded in milliseconds. It is as
         fresh as the facts file it was made from, by the same rule.
         """
-        path = self._dir / f"digest-{cik}.json.gz"
+        path = self._dir / digest_file(cik)
         if not self._json_is_fresh(path):
             return None
         try:
@@ -234,7 +264,7 @@ class CachingSECDataSource:
         ``fetched`` is when the facts file was fetched: the digest is dated then,
         so a filing between the fetch and this write still makes it out of date.
         """
-        path = self._dir / f"digest-{cik}.json.gz"
+        path = self._dir / digest_file(cik)
         # Level 6 compresses a digest nearly as well as 9, at a fraction of the CPU.
         if not self._write(path, gzip.compress(data, compresslevel=6)):
             return None
@@ -245,7 +275,7 @@ class CachingSECDataSource:
             _unlink_quietly(path)
             return None
         # The digest is all a lookup reads of the facts file, at a tenth of its size.
-        _unlink_quietly(self._dir / f"facts-{cik}.json")
+        _unlink_quietly(self._dir / facts_file(cik))
         return (str(path.resolve()), info.st_mtime_ns, info.st_size)
 
     def company_written(self, name: str) -> float | None:
@@ -261,8 +291,13 @@ class CachingSECDataSource:
         None without a fresh file on disk (none yet, expired, or held in memory
         after a failed write). A refresh rewrites the file, so its stamp changes.
         """
-        path = self._dir / f"facts-{cik}.json"
-        if cik in self._held or not self._json_is_fresh(path):
+        if cik in self._held:
+            return None
+        return self._fresh_stamp(self._dir / facts_file(cik))
+
+    def _fresh_stamp(self, path: Path) -> tuple[str, int, int] | None:
+        """``path``'s stamp (path, modified time, size) while it is fresh, else None."""
+        if not self._json_is_fresh(path):
             return None
         try:
             info = path.stat()
@@ -276,7 +311,7 @@ class CachingSECDataSource:
         The network part of a facts read, so a caller can do it before taking a
         parse slot and never hold one across a slow download.
         """
-        path = self._dir / f"facts-{cik}.json"
+        path = self._dir / facts_file(cik)
         if cik in self._held or self._json_is_fresh(path):
             return
         self._raise_if_missing(cik)
@@ -292,14 +327,14 @@ class CachingSECDataSource:
                     # Many filers (funds, trusts, predecessor CIKs) have no
                     # companyfacts at all; remember that as long as the company's
                     # other files last (the hour, or ADR 0013's rule).
-                    self._write(self._dir / f"facts-{cik}.missing", b"")
+                    self._write(self._dir / missing_file(cik), b"")
                 raise
             if not self._write(path, document):
                 self._held[cik] = document
 
     def get_company_facts(self, cik: str) -> dict[str, Any]:
         self._raise_if_missing(cik)
-        path = self._dir / f"facts-{cik}.json"
+        path = self._dir / facts_file(cik)
         for _attempt in range(2):
             self.prefetch_company_facts(cik)
             payload = self._load_facts(cik, path)
@@ -371,7 +406,7 @@ class CachingSECDataSource:
         return payload if isinstance(payload, dict) else None
 
     def _raise_if_missing(self, cik: str) -> None:
-        if self._json_is_fresh(self._dir / f"facts-{cik}.missing"):
+        if self._json_is_fresh(self._dir / missing_file(cik)):
             raise ProviderError(
                 "No SEC companyfacts response exists for the issuer",
                 details={"cik": cik, "status_code": 404},
