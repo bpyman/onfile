@@ -23,7 +23,7 @@ from financial_analyst_agent.presentation import format_usd, present_turn
 from financial_analyst_agent.request_wording import read_window
 from financial_analyst_agent.services.fiscal_periods import FiscalPeriod
 from financial_analyst_agent.thread_store import PendingClarification
-from helpers import FakeFacts
+from helpers import ListedFilings
 
 _MSFT = (date(2026, 3, 31), date(2025, 12, 31), date(2025, 9, 30))
 _AAPL = (date(2026, 6, 27), date(2026, 3, 28), date(2025, 12, 27))
@@ -49,20 +49,11 @@ def test_a_new_question_naming_a_candidate_is_not_an_answer() -> None:
     assert clarification_reply(_pending(), "compare Apple and Microsoft net income") is None
 
 
-class _Listing(FakeFacts):
-    def __init__(self) -> None:
-        self.listed: list[str] = []
-
-    def list_quarterly_report_dates(self, company: str, *, limit: int) -> tuple[date, ...]:
-        self.listed.append(company)
-        if company == "Missing":
-            raise LookupError("no such company")
-        return {"Microsoft": _MSFT, "Apple": _AAPL, "Nvidia": _NVDA}[company][:limit]
-
-
 class _Runtime:
     def __init__(self) -> None:
-        self.facts = _Listing()
+        self.facts = ListedFilings(
+            {"Microsoft": _MSFT, "Apple": _AAPL, "Nvidia": _NVDA}, failing=("Missing",)
+        )
 
 
 def _window(*queries: str) -> AnalysisSpec:
@@ -123,13 +114,8 @@ _WMT_SINCE = (
 )
 
 
-class _LongListing(FakeFacts):
-    def __init__(self) -> None:
-        self.limits: list[int] = []
-
-    def list_quarterly_report_dates(self, company: str, *, limit: int) -> tuple[date, ...]:
-        self.limits.append(limit)
-        return {"Apple": _AAPL_SINCE, "Walmart": _WMT_SINCE}[company][:limit]
+def _long_listing() -> ListedFilings:
+    return ListedFilings({"Apple": _AAPL_SINCE, "Walmart": _WMT_SINCE})
 
 
 def _since(year: int, *queries: str) -> AnalysisSpec:
@@ -142,12 +128,12 @@ def _since(year: int, *queries: str) -> AnalysisSpec:
 
 def test_a_since_window_is_every_quarter_ended_on_or_after_that_january() -> None:
     runtime = _Runtime()
-    runtime.facts = _LongListing()
+    runtime.facts = _long_listing()
 
     spec = materialize_period_dates(_since(2024, "Apple"), runtime)  # type: ignore[arg-type]
 
     # The cap is the listing's limit; the window is the quarters since 1 January 2024.
-    assert runtime.facts.limits == [40]
+    assert runtime.facts.listed == [("Apple", 40)]
     assert spec.periods.report_dates == _AAPL_SINCE[:10]
     assert (spec.periods.count, spec.periods.since_year) == (10, 2024)
     assert spec.periods.asked is None
@@ -155,7 +141,7 @@ def test_a_since_window_is_every_quarter_ended_on_or_after_that_january() -> Non
 
 def test_each_company_keeps_its_own_quarters_since_that_january() -> None:
     runtime = _Runtime()
-    runtime.facts = _LongListing()
+    runtime.facts = _long_listing()
 
     spec = materialize_period_dates(_since(2024, "Apple", "Walmart"), runtime)  # type: ignore[arg-type]
 
@@ -166,7 +152,7 @@ def test_each_company_keeps_its_own_quarters_since_that_january() -> None:
 
 def test_a_since_window_with_no_quarter_yet_shows_the_latest() -> None:
     runtime = _Runtime()
-    runtime.facts = _LongListing()
+    runtime.facts = _long_listing()
 
     spec = materialize_period_dates(_since(2027, "Apple"), runtime)  # type: ignore[arg-type]
 
@@ -214,18 +200,10 @@ _LONG_FISCAL = tuple(
 )
 
 
-class _FiscalListing(FakeFacts):
-    def __init__(self) -> None:
-        self.listed: list[str] = []
-        self.dates_listed: list[str] = []
-
-    def fiscal_periods(self, company: str) -> tuple[FiscalPeriod, ...]:
-        self.listed.append(company)
-        return {"Apple": _AAPL_FISCAL, "Microsoft": _MSFT_FISCAL, "Long": _LONG_FISCAL}[company]
-
-    def list_quarterly_report_dates(self, company: str, *, limit: int) -> tuple[date, ...]:
-        self.dates_listed.append(company)
-        return ()
+def _fiscal_listing() -> ListedFilings:
+    return ListedFilings(
+        fiscal={"Apple": _AAPL_FISCAL, "Microsoft": _MSFT_FISCAL, "Long": _LONG_FISCAL}
+    )
 
 
 def _since_fiscal(year: int, *queries: str) -> AnalysisSpec:
@@ -240,24 +218,24 @@ def _since_fiscal(year: int, *queries: str) -> AnalysisSpec:
 
 def test_since_a_fiscal_year_counts_from_each_companys_own_fiscal_year() -> None:
     runtime = _Runtime()
-    runtime.facts = _FiscalListing()  # type: ignore[assignment]
+    runtime.facts = _fiscal_listing()
 
     spec = materialize_period_dates(_since_fiscal(2025, "Apple", "Microsoft"), runtime)  # type: ignore[arg-type]
 
     # Read where the fiscal periods are listed, as a named fiscal year is
     # (probe-round-3-gaps ticket 06): Apple's from December 2024, Microsoft's
-    # from September 2024.
+    # from September 2024. No report dates were listed.
     assert spec.periods.report_dates == tuple(period.end for period in _AAPL_FISCAL[:7])
     own = dict(spec.periods.company_report_dates)
     assert own["Microsoft"] == tuple(period.end for period in _MSFT_FISCAL[:8])
-    assert runtime.facts.dates_listed == []  # type: ignore[attr-defined]
+    assert runtime.facts.listed == [("Apple", None), ("Microsoft", None)]
     # The filings hold every quarter of both spans: nothing more was asked for.
     assert (spec.periods.count, spec.periods.since_fiscal, spec.periods.asked) == (7, True, None)
 
 
 def test_since_a_fiscal_year_the_filings_do_not_reach_carries_the_span_asked() -> None:
     runtime = _Runtime()
-    runtime.facts = _FiscalListing()  # type: ignore[assignment]
+    runtime.facts = _fiscal_listing()
 
     spec = materialize_period_dates(_since_fiscal(2015, "Apple"), runtime)  # type: ignore[arg-type]
 
@@ -269,7 +247,7 @@ def test_since_a_fiscal_year_the_filings_do_not_reach_carries_the_span_asked() -
 
 def test_since_a_fiscal_year_is_capped_at_the_window_cap() -> None:
     runtime = _Runtime()
-    runtime.facts = _FiscalListing()  # type: ignore[assignment]
+    runtime.facts = _fiscal_listing()
 
     spec = materialize_period_dates(_since_fiscal(2014, "Long"), runtime)  # type: ignore[arg-type]
 
@@ -281,7 +259,7 @@ def test_since_a_fiscal_year_is_capped_at_the_window_cap() -> None:
 
 def test_since_a_fiscal_year_ahead_of_the_filings_shows_the_latest() -> None:
     runtime = _Runtime()
-    runtime.facts = _FiscalListing()  # type: ignore[assignment]
+    runtime.facts = _fiscal_listing()
 
     spec = materialize_period_dates(_since_fiscal(2027, "Apple"), runtime)  # type: ignore[arg-type]
 
@@ -298,7 +276,7 @@ def test_adding_a_company_lists_only_that_company() -> None:
 
     spec = materialize_period_dates(grown, runtime)  # type: ignore[arg-type]
 
-    assert runtime.facts.listed == ["Microsoft", "Nvidia", "Missing"]
+    assert runtime.facts.listed == [("Microsoft", 3), ("Nvidia", 3), ("Missing", 3)]
     # Keyed by the company's CIK (here its query stands in for one).
     assert dict(spec.periods.company_report_dates)["Nvidia"] == _NVDA
     # A company that cannot be listed falls back to the shared window.

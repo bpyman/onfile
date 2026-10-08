@@ -3001,3 +3001,42 @@ Blockers / next:
   not done (unattended run). Note for this machine: `next build` fails under the agent's Git
   Bash shell with a Turbopack worker spawn error (0xc0000142) and succeeds from PowerShell.
   simplify-pass-2 is complete: all twelve tickets are resolved.
+
+2026-10-08
+
+Task completed: `docs/process/tickets/period-selection/issues/01-shared-listing-fake.md`
+
+Key decisions:
+- `tests/helpers.py`: `ListedFilings(FakeFacts)` takes `quarters` and `fiscal` per company
+  plus `failing` and `annual`. A company given only quarters is a calendar-year filer (its
+  fiscal periods carry the calendar year and quarter of each end); one given only fiscal
+  periods lists their ends; one in `failing` raises `CompanyNotFoundError` from either
+  listing; one given neither is a `KeyError`, so a test that forgot a company fails loudly.
+  `listed` records `(company, limit)` for report dates and `(company, None)` for fiscal
+  periods, in call order.
+- The nine local fakes are gone. Fakes that also fetch facts, sleep or count subclass
+  `ListedFilings`; a test keyed by CIK through `named_by_cik` keeps that wrapping as a
+  one-line pass-through to `super()`. `test_follow_up_wording` lists the same eight quarters
+  for every company (asked by name or CIK), so its pass-through maps every name to one key.
+  `test_company_names` keys by the three CIKs its issuer-index ranking resolves (the fixture
+  snapshot `named_by_cik` reads holds neither Lincoln). The two fakes that listed nothing
+  (`test_conversation_edges`, `test_follow_up_wording._NoDates`) just inherit FakeFacts.
+- The calendars tests now assert `listed` literals: `[("Apple", 40)]` for the since window,
+  `[("Apple", None), ("Microsoft", None)]` for since-fiscal (no report dates listed), and
+  `[("Microsoft", 3), ("Nvidia", 3), ("Missing", 3)]` for the added company.
+- Left as the ticket allows: `_Unavailable` in `test_multi_period` still overrides the listing
+  to raise `ProviderError` (a 503), which `failing` cannot express; the refusal test needs the
+  provider code and details. Ticket 04's error-asymmetry tests may want `failing` to carry an
+  exception; decide there.
+
+Files changed:
+- `tests/helpers.py`, `tests/unit/test_calendars_clarification_and_formatting.py`,
+  `test_multi_period.py`, `test_follow_up_wording.py`, `test_clarification_checkpoint.py`,
+  `test_company_names.py`, `test_concurrent_dispatch.py`, `test_conversation_edges.py`,
+  `test_filers_rankings_and_narrowing.py`, `test_resumable_clarification.py`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. No source file changed. 2,402 Python tests pass (same count); ruff and mypy pass;
+  compare_answers reports `0 of 893 conversations differ from master`. Period-selection
+  tickets 02-06 remain; 02 is next on the frontier.

@@ -14,7 +14,7 @@ from types import SimpleNamespace
 from financial_analyst_agent.domain.errors import UnsupportedQuarterlyFactError
 from financial_analyst_agent.runtime import FIXTURE_UNIVERSE_SNAPSHOT_PATH
 from financial_analyst_agent.services.fiscal_periods import FiscalPeriod
-from helpers import FakeFacts, named_by_cik
+from helpers import ListedFilings, named_by_cik
 
 # Resolved companies are asked for by CIK; these fakes answer by name.
 _NAMED = named_by_cik('Microsoft', 'Google')
@@ -29,8 +29,12 @@ FOUR_QUARTERS = (Q4, Q3, Q2, Q1)  # newest first
 FIVE_QUARTERS = (Q4, Q3, Q2, Q1, Q1_PRIOR)
 
 
-class _PeriodFacts(FakeFacts):
-    """Per-(company, metric, report_date) facts; one cell can be missing."""
+class _PeriodFacts(ListedFilings):
+    """Per-(company, metric, report_date) facts; one cell can be missing.
+
+    Microsoft and Google file four calendar quarters unless ``dates_by_company``
+    says otherwise.
+    """
 
     def __init__(
         self,
@@ -39,25 +43,18 @@ class _PeriodFacts(FakeFacts):
         missing: set[tuple[str, str, date]] | None = None,
         dates_by_company: dict[str, tuple[date, ...]] | None = None,
     ) -> None:
+        super().__init__(
+            {"Microsoft": FOUR_QUARTERS, "Google": FOUR_QUARTERS, **(dates_by_company or {})}
+        )
         self.values = values
         self.missing = missing or set()
-        self.dates_by_company = dates_by_company or {}
         self.calls: list[tuple[str, str, date | None]] = []
 
     def list_quarterly_report_dates(self, company: str, *, limit: int) -> tuple[date, ...]:
-        company = _NAMED(company)
-        dates = self.dates_by_company.get(company, FOUR_QUARTERS)
-        return dates[:limit]
+        return super().list_quarterly_report_dates(_NAMED(company), limit=limit)
 
     def fiscal_periods(self, company: str) -> tuple[FiscalPeriod, ...]:
-        # Calendar-year filers: each quarter end names its own calendar quarter.
-        company = _NAMED(company)
-        return tuple(
-            FiscalPeriod(
-                end=end, fiscal_year=end.year, quarter=(end.month - 1) // 3 + 1, form="10-Q"
-            )
-            for end in self.dates_by_company.get(company, FOUR_QUARTERS)
-        )
+        return super().fiscal_periods(_NAMED(company))
 
     def get_financials(
         self, company: str, metric: str, *, report_date: date | None = None
@@ -65,7 +62,7 @@ class _PeriodFacts(FakeFacts):
         company = _NAMED(company)
         self.calls.append((company, metric, report_date))
         if report_date is None:
-            report_date = self.list_quarterly_report_dates(company, limit=1)[0]
+            report_date = self.quarters[company][0]
         if (company, metric, report_date) in self.missing:
             raise UnsupportedQuarterlyFactError(
                 f"no standalone quarter for {company} {metric} {report_date.isoformat()}"
@@ -365,10 +362,12 @@ def test_mismatched_periods_and_zero_denominator_do_not_compute(tmp_path: Path) 
         ("Google", "revenue", Q1): Decimal("200"),  # different period → mismatch path
     }
 
-    class _Facts(FakeFacts):
+    class _Facts(ListedFilings):
+        def __init__(self) -> None:
+            super().__init__({"Microsoft": (Q2,), "Google": (Q2,)})
+
         def list_quarterly_report_dates(self, company: str, *, limit: int) -> tuple[date, ...]:
-            company = _NAMED(company)
-            return (Q2,)[:limit]
+            return super().list_quarterly_report_dates(_NAMED(company), limit=limit)
 
         def get_financials(
             self, company: str, metric: str, *, report_date: date | None = None

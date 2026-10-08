@@ -104,8 +104,7 @@ def test_an_everyday_word_name_is_added_in_lower_case(edit: str) -> None:
     from financial_analyst_agent.contracts import Intent
 
     class _Facts(FakeFacts):
-        def list_quarterly_report_dates(self, company: str, *, limit: int) -> tuple[()]:
-            return ()
+        """No quarters are listed, as FakeFacts has it; no fact is found."""
 
         def get_financials(self, company: str, metric: str, **_: object) -> SimpleNamespace:
             raise LookupError(company)

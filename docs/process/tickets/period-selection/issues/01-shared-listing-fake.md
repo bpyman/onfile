@@ -28,4 +28,29 @@ Spec: `docs/process/tickets/period-selection/design.md` ("Tests").
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped 8 October 2026, tests only; no source file changed.
+
+- `tests/helpers.py` gains `ListedFilings(FakeFacts)` with the signature above. A company
+  given only `quarters` is a calendar-year filer (its fiscal periods carry each end's
+  calendar year and quarter); one given only `fiscal` lists those ends; one in `failing`
+  raises `CompanyNotFoundError` from either listing; one in `annual` files no 10-Qs. A
+  company given neither is a `KeyError`, so a test that forgot a company fails loudly.
+  `listed` records `(company, limit)` for report dates and `(company, None)` for fiscal
+  periods, in call order.
+- All nine local fakes are replaced. Those that also fetch facts, sleep or count subclass
+  it; where a test keys by CIK through `named_by_cik` the subclass keeps that wrapping as a
+  one-line pass-through to `super()`. `test_follow_up_wording` lists the same quarters for
+  every company, so its pass-through maps every name to one key; `test_company_names` keys
+  by the CIKs its issuer-index ranking resolves, since the fixture snapshot behind
+  `named_by_cik` holds neither Lincoln. The two fakes that listed nothing now inherit
+  `FakeFacts` unchanged.
+- Left as the ticket allows: `_Unavailable` in `test_multi_period` still overrides
+  `list_quarterly_report_dates` to raise `ProviderError` with a 503, which `failing` cannot
+  express and the refusal test asserts by code and details. Ticket 04's error-asymmetry
+  tests may want `failing` to carry an exception; decide there.
+- Acceptance: 2,402 tests pass (the count before and after); ruff and mypy clean;
+  `scripts/compare_answers.py --against master` reports `0 of 893 conversations differ`.

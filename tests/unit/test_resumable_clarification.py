@@ -15,10 +15,10 @@ from types import SimpleNamespace
 
 from financial_analyst_agent.contracts import WorkflowPlan
 from financial_analyst_agent.runtime import FIXTURE_EXPLAIN_ESSAY, FIXTURE_UNIVERSE_SNAPSHOT_PATH
-from helpers import FakeFacts, named_by_cik
+from helpers import FakeFacts, ListedFilings, named_by_cik
 
 # Resolved companies are asked for by CIK; these fakes answer by name.
-_NAMED = named_by_cik('Google')
+_NAMED = named_by_cik('Google', 'Apple')
 
 
 class _SilentFacts(FakeFacts):
@@ -27,20 +27,22 @@ class _SilentFacts(FakeFacts):
         raise AssertionError(f"provider must not run while clarifying: {company} {metric}")
 
 
-class _LookupFacts(FakeFacts):
-    def __init__(self) -> None:
-        self.calls: list[tuple[str, str]] = []
+class _LookupFacts(ListedFilings):
+    """Google and Apple file the same five quarters; every fact is Alphabet's."""
 
-    def list_quarterly_report_dates(self, company: str, *, limit: int) -> tuple[date, ...]:
-        company = _NAMED(company)
-        dates = (
+    def __init__(self) -> None:
+        quarters = (
             date(2026, 3, 31),
             date(2025, 12, 31),
             date(2025, 9, 30),
             date(2025, 6, 30),
             date(2025, 3, 31),
         )
-        return dates[:limit]
+        super().__init__({"Google": quarters, "Apple": quarters})
+        self.calls: list[tuple[str, str]] = []
+
+    def list_quarterly_report_dates(self, company: str, *, limit: int) -> tuple[date, ...]:
+        return super().list_quarterly_report_dates(_NAMED(company), limit=limit)
 
     def get_financials(
         self, company: str, metric: str, *, report_date: date | None = None

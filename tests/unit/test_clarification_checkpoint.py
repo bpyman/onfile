@@ -19,7 +19,7 @@ import pytest
 
 from financial_analyst_agent.contracts import WorkflowPlan
 from financial_analyst_agent.runtime import FIXTURE_EXPLAIN_ESSAY, FIXTURE_UNIVERSE_SNAPSHOT_PATH
-from helpers import FakeFacts, named_by_cik
+from helpers import ListedFilings, named_by_cik
 
 # Resolved companies are asked for by CIK; these fakes answer by name.
 _NAMED = named_by_cik('Google')
@@ -27,13 +27,13 @@ _NAMED = named_by_cik('Google')
 PROFIT = ("gross_profit", "operating_income", "net_income")
 
 
-class _Facts(FakeFacts):
+class _Facts(ListedFilings):
     def __init__(self) -> None:
+        super().__init__({"Google": (date(2026, 3, 31), date(2025, 12, 31), date(2025, 9, 30))})
         self.calls: list[tuple[str, str]] = []
 
     def list_quarterly_report_dates(self, company: str, *, limit: int) -> tuple[date, ...]:
-        company = _NAMED(company)
-        return (date(2026, 3, 31), date(2025, 12, 31), date(2025, 9, 30))[:limit]
+        return super().list_quarterly_report_dates(_NAMED(company), limit=limit)
 
     def get_financials(
         self, company: str, metric: str, *, report_date: date | None = None
