@@ -67,7 +67,6 @@ from financial_analyst_agent.domain.errors import (
 )
 from financial_analyst_agent.fan_out import DEFAULT_TASK_MAX_WORKERS, map_in_order
 from financial_analyst_agent.graph.analysis_spec import (
-    MAX_QUARTERS_ASKED,
     AnalysisSpec,
     CompiledTask,
     NamedPeriodSpec,
@@ -88,13 +87,13 @@ from financial_analyst_agent.graph.analysis_spec import (
 )
 from financial_analyst_agent.graph.state import CompiledAnalysis, StructuredRequest
 from financial_analyst_agent.guide import in_sentence, short_name
+from financial_analyst_agent.period_selection import INVALID_QUARTER, read
 from financial_analyst_agent.providers.sec.client import sec_turn_seconds_left
 from financial_analyst_agent.providers.sec.company_resolver import resolve_company
 from financial_analyst_agent.request_wording import (
     COMPARISON_CANDIDATES,
     COMPARISON_LABELS,
     FORECAST,
-    INVALID_QUARTER,
     LOWEST_FIRST,
     OVERVIEW_METRICS,
     bind_metrics_from_message,
@@ -129,19 +128,12 @@ ProgressCallback = Callable[[int, int], None]
 
 
 def plan_to_spec_patch(plan: WorkflowPlan) -> SpecPatch:
-    """Lift a one-shot closed plan into a replace-mode spec patch."""
-    patch = _lifted_plan(plan)
-    window = plan.recent_quarters
-    if window is not None and window >= 1 and plan.intent is not Intent.RANK:
-        # The model's reading of a window: used only where the wording's own
-        # reading finds none (see planner_window).
-        selection = PeriodSelection(kind="last_n_quarters", count=min(window, MAX_QUARTERS_ASKED))
-        patch = patch.model_copy(update={"set_periods": selection})
-    return patch
+    """Lift a one-shot closed plan into a replace-mode spec patch.
 
-
-def _lifted_plan(plan: WorkflowPlan) -> SpecPatch:
-    """The plan's companies, metric and ranking as a replace patch."""
+    The plan's companies, metric and ranking; its window is proposed by the
+    words (``period_selection.Words.propose``), which keep it only where the
+    wording asks about time but names no count.
+    """
     intent = plan.intent
     metrics = (plan.metric,) if plan.metric else ()
     if intent is Intent.LOOKUP:
@@ -997,7 +989,7 @@ def resolve_request(
     """
     message = request.wording
     patch = request.patch
-    window = request.window
+    words = read(message, stored=request.window)
     intent = request.intent
 
     def answered(result: TurnResult, spec: AnalysisSpec | None) -> Resolution:
@@ -1020,7 +1012,7 @@ def resolve_request(
         message,
         current_spec,
         index=getattr(runtime.ranking, "index", None),
-        window=window,
+        words=words,
     )
     if request.company_choice is not None:
         # The held wording reads "Lincoln" again; the analyst already chose which.
@@ -1143,7 +1135,7 @@ def resolve_request(
             tasks=tasks,
             patch=patch,
             wording=message,
-            window=window,
+            window=words.reading,
             prior_spec=current_spec,
             notes=request.notes,
             annual_filers=tuple(annual_filers),

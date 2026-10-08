@@ -19,8 +19,8 @@ from financial_analyst_agent.graph.analysis_spec import (
 )
 from financial_analyst_agent.graph.clarify import clarification_reply
 from financial_analyst_agent.graph.spec_turn import materialize_period_dates
+from financial_analyst_agent.period_selection import read
 from financial_analyst_agent.presentation import format_usd, present_turn
-from financial_analyst_agent.request_wording import read_window
 from financial_analyst_agent.services.fiscal_periods import FiscalPeriod
 from financial_analyst_agent.thread_store import PendingClarification
 from helpers import ListedFilings
@@ -79,7 +79,7 @@ def test_each_fiscal_calendar_asks_for_its_own_quarters() -> None:
     }
     message = "revenue"
     assert CALENDARS_DIFFER_BANNER in period_notes(
-        message, spec, window=read_window(message)
+        message, spec, window=read(message).reading
     )
 
 
@@ -290,7 +290,7 @@ def test_one_calendar_compiles_as_before() -> None:
     assert [task.report_date for task in compile_tasks(spec)] == list(_MSFT)
     message = "revenue"
     assert CALENDARS_DIFFER_BANNER not in period_notes(
-        message, spec, window=read_window(message)
+        message, spec, window=read(message).reading
     )
 
 
@@ -400,7 +400,7 @@ def test_a_metric_answer_keeps_the_held_questions_window() -> None:
         question="Apple margin over the past few quarters",
     )
     resumed = resumed_request(held, ("gross_margin",), "gross margin", None)
-    assert resumed.window == read_window(held.question)
+    assert resumed.window == read(held.question).reading
     assert resumed.window.asked_quarters == 4 and resumed.window.interpretation_notes
     # A reply naming a window of its own is read, as the wording it resolves.
     own = resumed_request(held, ("gross_margin",), "gross margin last 6 quarters", None)

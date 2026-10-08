@@ -346,13 +346,13 @@ def test_last_n_quarters_year_over_year_shows_the_n_quarters_asked() -> None:
     ],
 )
 def test_since_a_year_is_not_a_named_year(wording: str) -> None:
-    from financial_analyst_agent.request_wording import parse_named_periods
+    from financial_analyst_agent.period_selection import read
 
     message = f"Apple revenue {wording}"
     patch = bind_periods_from_message(SpecPatch(mode="replace"), message)
 
     # Every quarter since that calendar year began, not the fiscal year it names.
-    assert parse_named_periods(message) == ()
+    assert read(message).named == ()
     assert patch.set_periods is not None and patch.set_periods.kind == "last_n_quarters"
 
 

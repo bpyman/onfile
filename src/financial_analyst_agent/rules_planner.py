@@ -26,6 +26,7 @@ from financial_analyst_agent.filing_change import (
 from financial_analyst_agent.graph.analysis_spec import AnalysisSpec, RankedRequest, SpecPatch
 from financial_analyst_agent.guide import short_display_name
 from financial_analyst_agent.issuer_index import CompanyMention, IssuerIndex, normalize
+from financial_analyst_agent.period_selection import read
 from financial_analyst_agent.providers.sec.submissions import ACCESSION_PATTERN
 from financial_analyst_agent.ranked_wording import (
     GROUP_COUNT,
@@ -44,7 +45,6 @@ from financial_analyst_agent.request_wording import (
     asks_speculatively,
     asks_to_swap,
     implied_metrics,
-    parse_named_periods,
     takes_out_or_swaps,
 )
 from financial_analyst_agent.services.metric_catalog import (
@@ -541,7 +541,7 @@ class DemoCompleter:
             metric = "revenue"
         # "Meta margin Q2 2026 vs Q2 2025" compares periods of one company.
         compare_words = re.search(r"\b(?:compare|vs|versus)\b", normalized) and not (
-            len(companies) == 1 and len(parse_named_periods(normalized)) >= 2
+            len(companies) == 1 and len(read(normalized).named) >= 2
         )
         if len(companies) >= 2 or compare_words:
             if metric == "unknown" and len(companies) >= 2 and _names_only(query, mentions):

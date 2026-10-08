@@ -382,9 +382,9 @@ def test_since_a_year_followed_by_a_change_word_names_the_year_not_a_count(
 ) -> None:
     """"since 2025 year over year" is the window since 2025 began, not 2025 years
     (probe-round-3-gaps ticket 10)."""
-    from financial_analyst_agent.request_wording import read_window
+    from financial_analyst_agent.period_selection import read
 
-    window = read_window(message)
+    window = read(message).reading
 
     assert (window.since_year, window.since_fiscal) == (year, fiscal)
     assert (window.asked_quarters, window.counted_window) == (None, False)

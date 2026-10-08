@@ -228,14 +228,14 @@ def test_since_a_year_counts_the_quarters_filed_not_the_calendar(runtime) -> Non
 
 @pytest.mark.parametrize("today", [date(2026, 10, 6), date(2027, 4, 1)])
 def test_since_a_year_reads_the_same_whatever_today_is(runtime, monkeypatch, today) -> None:  # type: ignore[no-untyped-def]
-    from financial_analyst_agent import request_wording
+    from financial_analyst_agent import period_selection
 
     class _Today(date):
         @classmethod
         def today(cls) -> date:  # type: ignore[override]
             return today
 
-    monkeypatch.setattr(request_wording, "date", _Today)
+    monkeypatch.setattr(period_selection, "date", _Today)
 
     (answer,) = ask(runtime, "Apple revenue since 2024")
 

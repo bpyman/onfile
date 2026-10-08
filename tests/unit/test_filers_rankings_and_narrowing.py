@@ -29,9 +29,10 @@ from financial_analyst_agent.graph.spec_turn import (
     drop_funds,
     materialize_period_dates,
 )
+from financial_analyst_agent.period_selection import read
 from financial_analyst_agent.presentation import long_quarter_banner
 from financial_analyst_agent.ranking import SnapshotRanking
-from financial_analyst_agent.request_wording import read_window, refine_patch_from_message
+from financial_analyst_agent.request_wording import refine_patch_from_message
 from financial_analyst_agent.runtime import FIXTURE_UNIVERSE_SNAPSHOT_PATH
 from helpers import ListedFilings
 
@@ -87,7 +88,7 @@ def test_a_sixteen_week_fourth_quarter_is_not_a_skipped_quarter() -> None:
 
     message = "Costco revenue"
     assert FISCAL_Q4_GAP_BANNER not in period_notes(
-        message, spec, window=read_window(message)
+        message, spec, window=read(message).reading
     )
 
 

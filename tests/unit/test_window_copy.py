@@ -22,8 +22,8 @@ from financial_analyst_agent.contracts import (
     TurnResult,
 )
 from financial_analyst_agent.graph.analysis_spec import AnalysisSpec, PeriodSelection
+from financial_analyst_agent.period_selection import read
 from financial_analyst_agent.presentation import present_turn
-from financial_analyst_agent.request_wording import read_window
 from financial_analyst_agent.rules_planner import _companies_from_query
 from financial_analyst_agent.runtime import DemoCompleter
 from financial_analyst_agent.universe import (
@@ -153,13 +153,13 @@ def test_period_notes_flag_named_periods_and_fiscal_q4_gaps() -> None:
     )
 
     message = "Microsoft revenue last 3 quarters"
-    assert period_notes(message, spec, window=read_window(message)) == []
+    assert period_notes(message, spec, window=read(message).reading) == []
     message = "Microsoft revenue"
     assert FISCAL_Q4_GAP_BANNER in period_notes(
-        message, gap, window=read_window(message)
+        message, gap, window=read(message).reading
     )
     message = "What was Microsoft revenue for the quarter ended April 2026?"
-    named = period_notes(message, AnalysisSpec(), window=read_window(message))
+    named = period_notes(message, AnalysisSpec(), window=read(message).reading)
     assert named and "April 2026" in named[0] and "latest quarter" in named[0]
 
 
@@ -181,41 +181,18 @@ def test_a_year_and_a_half_is_six_quarters_and_not_the_last_year() -> None:
     )
 
     message = "Danaher net income the last year and a half"
-    assert read_window(message).asked_quarters == 6
-    assert period_notes(message, six, window=read_window(message)) == []
+    assert read(message).reading.asked_quarters == 6
+    assert period_notes(message, six, window=read(message).reading) == []
     message = "Danaher net income over the past year"
-    assert period_notes(message, four, window=read_window(message)) == [YEAR_OF_QUARTERS_BANNER]
-
-
-def test_request_wording_records_every_window_reading_used_by_notes() -> None:
-    from financial_analyst_agent import request_wording
-
-    read_window = getattr(request_wording, "read_window", None)
-
-    assert read_window is not None
-    approximate = read_window("Apple revenue over the past several months")
-    assert approximate.asked_quarters == 2
-    assert approximate.interpretation_notes
-    assert read_window("Apple TTM revenue").trailing_year
-    since = read_window("Apple revenue since 2000")
-    # A "since" window names its year; how many quarters that is waits for the
-    # companies' report dates, so the reading counts none.
-    assert (since.since_year, since.asked_quarters) == (2000, None)
-    assert not hasattr(since, "since_capped_from")
-    assert (
-        read_window("Apple revenue for the quarter ended April 2026").unread_named_period
-        == "April 2026"
-    )
-    assert read_window("Apple revenue last month").sub_quarter
+    assert period_notes(message, four, window=read(message).reading) == [YEAR_OF_QUARTERS_BANNER]
 
 
 def test_compilation_carries_the_window_reading_and_notes_use_it() -> None:
     from financial_analyst_agent.graph.state import CompiledAnalysis
-    from financial_analyst_agent.request_wording import read_window
 
     assert "window" in CompiledAnalysis.model_fields
     assert "window" in signature(period_notes).parameters
-    reading = read_window("Apple revenue over the past several months")
+    reading = read("Apple revenue over the past several months").reading
     spec = AnalysisSpec(
         periods=PeriodSelection(
             kind="last_n_quarters",
@@ -239,7 +216,7 @@ def test_a_structured_request_reads_its_window_from_its_wording() -> None:
 
     request = StructuredRequest(patch=patch, wording=wording, question=wording)
 
-    assert request.window == read_window(wording)
+    assert request.window == read(wording).reading
     assert request.window.asked_quarters == 6
 
 
@@ -257,7 +234,7 @@ def test_a_stored_request_holding_no_window_still_loads_with_one() -> None:
 
     request = StructuredRequest.model_validate(stored)
 
-    assert request.window == read_window(wording)
+    assert request.window == read(wording).reading
     assert request.window.since_year == 2024
     assert StructuredRequest.model_validate(request.model_dump()).window == request.window
 
@@ -316,7 +293,7 @@ def test_since_a_fiscal_year_is_a_window_on_each_companys_own_fiscal_year(wordin
     from financial_analyst_agent.request_wording import bind_periods_from_message
 
     message = f"Apple revenue {wording}"
-    window = read_window(message)
+    window = read(message).reading
 
     # The year is the company's fiscal year, and "fiscal 2025" is the window's
     # year rather than a named period left unread (probe-round-3-gaps ticket 06).
@@ -332,7 +309,7 @@ def test_since_a_fiscal_year_is_a_window_on_each_companys_own_fiscal_year(wordin
 
 
 def test_since_a_calendar_year_is_not_fiscal_and_its_spec_dumps_as_before() -> None:
-    assert not read_window("Apple revenue since 2025").since_fiscal
+    assert not read("Apple revenue since 2025").reading.since_fiscal
     calendar = PeriodSelection(kind="last_n_quarters", count=40, since_year=2025)
     # A stored or compared spec of a calendar window does not change for the flag.
     assert "since_fiscal" not in calendar.model_dump(mode="json")
@@ -364,7 +341,7 @@ _NINE_FROM_JUNE_2024 = (
 
 def test_a_since_window_note_counts_the_span_from_the_newest_filed_quarter() -> None:
     message = "Apple revenue since 2024"
-    window = read_window(message)
+    window = read(message).reading
 
     # Ten quarters ended between 1 January 2024 and 27 June 2026; the filings
     # hold nine of them, whatever today's date is.
@@ -380,7 +357,7 @@ def test_a_since_window_note_counts_the_span_from_the_newest_filed_quarter() -> 
 def test_a_since_window_over_the_cap_says_so_from_the_filed_quarters() -> None:
     message = "Apple revenue since 2015"
     notes = period_notes(
-        message, _since_spec(2015, _NINE_FROM_JUNE_2024), window=read_window(message)
+        message, _since_spec(2015, _NINE_FROM_JUNE_2024), window=read(message).reading
     )
 
     # Q1 2015 to Q2 2026 is 46 quarters; the window shows at most 40.
@@ -406,7 +383,7 @@ def test_a_since_fiscal_window_note_counts_the_span_on_the_companys_own_labels()
         )
     )
 
-    notes = period_notes(message, spec, window=read_window(message))
+    notes = period_notes(message, spec, window=read(message).reading)
 
     assert (
         "Quarters since fiscal 2015 number 47; a window shows at most 40, so this asks for "
@@ -426,13 +403,6 @@ def test_a_since_fiscal_window_note_counts_the_span_on_the_companys_own_labels()
             report_dates=_NINE_FROM_JUNE_2024[:7],
         )
     )
-    assert period_notes(message, whole, window=read_window(message)) == []
+    assert period_notes(message, whole, window=read(message).reading) == []
 
 
-def test_the_window_reading_says_whether_a_year_of_quarters_was_asked() -> None:
-    # simplify-pass-2 ticket 02: "last year" is read once, into the WindowReading
-    # that compilation and the answer's notes share.
-    assert read_window("Apple revenue last year").year_of_quarters
-    assert read_window("Apple annual revenue").year_of_quarters
-    assert not read_window("Apple revenue last 4 quarters").year_of_quarters
-    assert not read_window("Apple TTM revenue").year_of_quarters

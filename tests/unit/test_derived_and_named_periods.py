@@ -21,8 +21,9 @@ from financial_analyst_agent.graph.analysis_spec import (
     ResolvedCompany,
     compile_tasks,
 )
+from financial_analyst_agent.period_selection import read
 from financial_analyst_agent.presentation import format_metric_value, present_turn
-from financial_analyst_agent.request_wording import bind_periods_from_message, parse_named_periods
+from financial_analyst_agent.request_wording import bind_periods_from_message
 from financial_analyst_agent.services.fact_selector import (
     FOURTH_QUARTER_LABEL,
     YEAR_TO_DATE_LABEL,
@@ -299,7 +300,7 @@ def test_per_share_amounts_show_cents_or_the_fractions_filed() -> None:
 def test_named_periods_are_read_from_the_question(
     question: str, expected: list[NamedPeriodSpec]
 ) -> None:
-    assert list(parse_named_periods(question)) == expected
+    assert list(read(question).named) == expected
 
 
 def test_a_named_quarter_year_over_year_reads_its_own_comparative() -> None:
@@ -420,7 +421,6 @@ def test_trailing_twelve_months_shows_the_four_quarters_behind_it() -> None:
 
 def test_trailing_twelve_months_before_net_income_is_one_figure_not_a_window() -> None:
     from financial_analyst_agent.graph.analysis_spec import SpecPatch
-    from financial_analyst_agent.request_wording import read_window
 
     for question in (
         "Apple TTM net income",
@@ -428,7 +428,7 @@ def test_trailing_twelve_months_before_net_income_is_one_figure_not_a_window() -
         "pfizer's last twelve months net income",
         "Apple last 12 months net income",
     ):
-        window = read_window(question)
+        window = read(question).reading
         assert not window.trailing_year
         assert not window.counted_window
         patch = bind_periods_from_message(SpecPatch(mode="replace"), question)

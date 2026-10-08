@@ -421,7 +421,7 @@ def test_a_message_is_read_for_metric_phrases_once() -> None:
 
 
 def test_the_trailing_year_words_are_spelled_once() -> None:
-    from financial_analyst_agent.request_wording import TRAILING_YEAR
+    from financial_analyst_agent.period_selection import TRAILING_YEAR
     from financial_analyst_agent.services.metric_catalog import TRAILING_YEAR_WORDS
 
     # Both patterns stay character for character what they were when each
