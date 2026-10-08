@@ -29,4 +29,17 @@ Spec: ADR 0010, ADR 0011.
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped 7 October 2026. Cleanup only: compare_answers reports `0 of 375 conversations differ from HEAD`.
+
+1. **`ranked_wording.py` (new, next to request_wording.py)** holds the group reading, moved from rules_planner.py with every pattern's text unchanged (each string literal of the moved blocks was checked to appear verbatim): the count words and their patterns, `_count_words_as_digits`, `_whole_counts`, `_without_preamble`, `_group_by_metric`, `_industry_from_query`, `_ranked_industry`, `_clean_group`, `_plural_group`, `_INDUSTRY_WORDS` and `_group_named`. The names the rules planner still uses are public: `RANK_WORDS`, `WHICH_HIGHEST`, `GROUP_COUNT` (for `_limit`), `without_preamble`, `group_by_metric`, `group_named`. `ranked_group` is public there, and turn_graph.py imports it from ranked_wording; nothing under `graph/` imports rules_planner (a test checks).
+2. **One pipeline, one group reading.** `prepared(query)` is the preparation pipeline, called by `complete` and `ranked_group`. `ranking_group(ranking)` is the no-companies group reading; `ranked_group` is `ranking_group(without_preamble(...))` over the prepared, lower-cased words, and `_plan` calls `ranking_group` when `companies` is empty (beside a named company it still reads the ranking words alone, `group_named(ranking, None, None)`, as before). `_plan` keeps its own `which`, `rank_words` and `group_by` to decide whether the question ranks and whether it orders by the metric.
+3. **`_typed_words(mentions)`** in rules_planner.py replaces the four copies of the typed-words comprehension (`complete`, `_unfound_names`, `_unknown_term`, `_names_only`).
+4. **`short_display_name(index, query, fallback)`** in guide.py next to `short_name`, called at the five sites with each site's fallback: guide `_named_company` and `unrecorded_companies`, rules_planner `_mention_note`, `_left_out_of_ranking` and `_ticker_notes`. rules_planner imports it instead of `short_name`.
+5. **guide.py**: `resolve_metric_phrase(s)` imported at the top, the three local imports removed; `_named_company` and `_spec_company` return `str | None`, and the four call sites use the name directly.
+6. **turn_graph.py `request_from_proposal`**: the rank-intent test is written once (`isinstance(proposal, WorkflowPlan) and proposal.intent in _RANK_INTENTS`) with the two industry fixes nested under it in their order and with their conditions.
+
+Checks: 2,349 tests pass (11 new: `tests/unit/test_ranked_wording.py`, and `short_display_name` in `test_planner_rules.py`); ruff and mypy clean; phrase coverage 555 of 555 (report not regenerated); the rules planner passes 160 of 160 held-out set 5 cases (report not regenerated).

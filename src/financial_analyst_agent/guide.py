@@ -22,7 +22,11 @@ from financial_analyst_agent.contracts import (
 )
 from financial_analyst_agent.graph.analysis_spec import AnalysisSpec
 from financial_analyst_agent.issuer_index import CompanyNames, expand_groups
-from financial_analyst_agent.services.metric_catalog import METRIC_DISPLAY
+from financial_analyst_agent.services.metric_catalog import (
+    METRIC_DISPLAY,
+    resolve_metric_phrase,
+    resolve_metric_phrases,
+)
 
 STARTER_QUESTIONS: tuple[str, ...] = (
     "How is Nvidia doing?",
@@ -168,14 +172,12 @@ def _guide(message: str, suggestions: list[str]) -> TurnResult:
     )
 
 
-def _spec_company(spec: AnalysisSpec | None) -> tuple[str, str] | None:
-    """(display name, planner query) of the current analysis's first company."""
-    if spec is None:
+def _spec_company(spec: AnalysisSpec | None) -> str | None:
+    """The display name of the current analysis's first company."""
+    if spec is None or not spec.companies:
         return None
-    if spec.companies:
-        company = spec.companies[0]
-        return short_name(company.name) or company.query, company.query
-    return None
+    company = spec.companies[0]
+    return short_name(company.name) or company.query
 
 
 def guide_reply(
@@ -194,10 +196,9 @@ def guide_reply(
     if _NEVER_MIND.match(text):
         return _guide(NEVER_MIND_MESSAGE, list(STARTER_QUESTIONS[:3]))
     if _ADVICE.search(text):
-        named = _named_company(message, index) or _spec_company(spec)
-        if named is None:
+        name = _named_company(message, index) or _spec_company(spec)
+        if name is None:
             return _guide(STOCK_PICKS_MESSAGE, list(STARTER_QUESTIONS[:3]))
-        name, _query = named
         return _guide(
             ADVICE_MESSAGE.format(subject=possessive(name)),
             [
@@ -227,10 +228,10 @@ def guide_reply(
         return _guide(SMALLEST_MESSAGE, [suggestion])
     unsupported = _unsupported_metrics(text)
     if unsupported:
-        named = _named_company(message, index) or _spec_company(spec)
+        name = _named_company(message, index) or _spec_company(spec)
         suggestions = (
-            [f"How is {named[0]} doing?", f"{named[0]} free cash flow last 4 quarters"]
-            if named is not None
+            [f"How is {name} doing?", f"{name} free cash flow last 4 quarters"]
+            if name is not None
             else list(STARTER_QUESTIONS[:3])
         )
         return _guide(UNSUPPORTED_MESSAGE.format(names=joined(unsupported, "or")), suggestions)
@@ -240,18 +241,15 @@ def guide_reply(
         message, index
     ):
         # "why?" alone gets the guide; "why did revenue drop?" is a change to show.
-        named = _spec_company(spec)
-        if named is None:
+        name = _spec_company(spec)
+        if name is None:
             return _guide(WHY_MESSAGE, list(STARTER_QUESTIONS[3:]))
-        name, _query = named
         return _guide(WHY_MESSAGE, [f"What changed in {name}'s latest 10-Q?"])
     return None
 
 
 def _names_figure(message: str, index: CompanyNames | None) -> bool:
     """Whether a message names a catalog metric or a company: an analysis, not a chat."""
-    from financial_analyst_agent.services.metric_catalog import resolve_metric_phrase
-
     return (
         resolve_metric_phrase(message).kind != "unknown"
         or _named_company(message, index) is not None
@@ -260,8 +258,6 @@ def _names_figure(message: str, index: CompanyNames | None) -> bool:
 
 def _not_english(text: str) -> bool:
     """A question in another language: other scripts, or its finance words, and no metric."""
-    from financial_analyst_agent.services.metric_catalog import resolve_metric_phrase
-
     words = set(re.findall(r"[\w'’]+", text))
     foreign = _NON_LATIN.search(text) is not None or len(words & _FOREIGN_WORDS) >= 2
     return foreign and resolve_metric_phrase(text).kind == "unknown"
@@ -288,11 +284,6 @@ def _unsupported_metrics(text: str) -> list[str]:
     assets"). A catalog metric beside one is answered instead, so "Apple revenue
     and dividend yield" still answers revenue.
     """
-    from financial_analyst_agent.services.metric_catalog import (
-        resolve_metric_phrase,
-        resolve_metric_phrases,
-    )
-
     if resolve_metric_phrase(text).kind != "unknown":
         return []
     named = [phrase.term for phrase in resolve_metric_phrases(text) if phrase.term is not None]
@@ -341,22 +332,20 @@ def unrecorded_companies(
     for mention in outside.find(expand_groups(message)):
         if index.find(mention.typed):
             continue
-        display = outside.display_name(mention.query)
-        name = short_name(display) or mention.typed
+        name = short_display_name(outside, mention.query, mention.typed)
         if name not in missing:
             missing.append(name)
     return missing
 
 
-def _named_company(message: str, index: CompanyNames | None) -> tuple[str, str] | None:
+def _named_company(message: str, index: CompanyNames | None) -> str | None:
+    """The display name of the first company a message names, when an index reads names."""
     if index is None:
         return None
     mentions = index.find(message)
     if not mentions:
         return None
-    query = mentions[0].query
-    display = index.display_name(query)
-    return short_name(display) or query, query
+    return short_display_name(index, mentions[0].query, mentions[0].query)
 
 
 _SUFFIX = re.compile(
@@ -400,6 +389,15 @@ def short_name(name: str) -> str:
     short = _SUFFIX.sub("", name.strip()).strip(" ,.")
     # "The Goldman Sachs Group, Inc." reads as "Goldman Sachs".
     return re.sub(r"^the\s+(?=\S)", "", short, flags=re.IGNORECASE)
+
+
+def short_display_name(index: CompanyNames, query: str, fallback: str) -> str:
+    """The short display name of the company ``query`` names in ``index``, else ``fallback``.
+
+    The fallback is what the analyst typed, or the query itself, for a company
+    whose display name is blank once its legal suffix is dropped.
+    """
+    return short_name(index.display_name(query)) or fallback
 
 
 _METRIC_IDEAS: tuple[str, ...] = ("net_margin", "operating_margin", "revenue", "gross_margin")

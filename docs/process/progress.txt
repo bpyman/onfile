@@ -2696,3 +2696,33 @@ Blockers / next:
   conversations differ from HEAD`; the numeral-lock evaluation reports the same counts;
   phrase coverage 555 of 555 (report not regenerated). Tickets 04-12 in simplify-pass-2
   remain.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/simplify-pass-2/issues/04-shared-ranked-group-reading.md`
+
+Key decisions:
+- `ranked_wording.py` (new) holds the ranking's group reading, moved from rules_planner.py
+  with no pattern text changed; `RANK_WORDS`, `WHICH_HIGHEST`, `GROUP_COUNT`,
+  `without_preamble`, `group_by_metric`, `group_named`, `prepared`, `ranking_group` and
+  `ranked_group` are public. turn_graph.py imports `ranked_group` from it; nothing under
+  `graph/` imports rules_planner (tested).
+- `prepared(query)` is the one preparation pipeline (`complete`, `ranked_group`);
+  `ranking_group(ranking)` is the one no-companies group reading (`_plan`, `ranked_group`),
+  so the group the graph checks cannot drift from the group the plan uses.
+- rules_planner.py: `_typed_words(mentions)` at the four sites; guide.py:
+  `short_display_name(index, query, fallback)` at the five sites, imports moved to the top,
+  `_named_company` / `_spec_company` return `str | None`.
+- turn_graph.py: the rank-intent test written once (`_RANK_INTENTS`), the two industry
+  fixes nested under it in order.
+
+Files changed:
+- `src/financial_analyst_agent/ranked_wording.py` (new), `rules_planner.py`, `guide.py`,
+  `graph/turn_graph.py`
+- `tests/unit/test_ranked_wording.py` (new, +10), `tests/unit/test_planner_rules.py` (+1)
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,349 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 375
+  conversations differ from HEAD`; phrase coverage 555 of 555 and the rules planner 160 of 160
+  held-out set 5 cases (reports not regenerated). Tickets 05-12 in simplify-pass-2 remain.

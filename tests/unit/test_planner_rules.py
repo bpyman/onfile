@@ -23,7 +23,12 @@ from financial_analyst_agent.graph.analysis_spec import (
     resolve_spec,
 )
 from financial_analyst_agent.graph.spec_turn import _order_by_metric, plan_to_spec_patch
-from financial_analyst_agent.guide import guide_reply, short_name, suggest_follow_ups
+from financial_analyst_agent.guide import (
+    guide_reply,
+    short_display_name,
+    short_name,
+    suggest_follow_ups,
+)
 from financial_analyst_agent.issuer_index import IssuerIndex
 from financial_analyst_agent.planner_cascade import unsure_reason
 from financial_analyst_agent.presentation import present_turn
@@ -35,7 +40,11 @@ from financial_analyst_agent.request_wording import (
     bind_periods_from_message,
     refine_patch_from_message,
 )
-from financial_analyst_agent.rules_planner import DemoCompleter, issuer_index
+from financial_analyst_agent.rules_planner import (
+    DemoCompleter,
+    issuer_index,
+    recorded_issuer_index,
+)
 from financial_analyst_agent.runtime import RuntimeKind, recorded_runtime
 from financial_analyst_agent.thread_store import EphemeralThreadStore
 from financial_analyst_agent.universe import (
@@ -499,6 +508,23 @@ def test_short_names_drop_legal_suffixes() -> None:
     assert short_name("JPMorgan Chase & Co.") == "JPMorgan Chase"
     assert short_name("The Goldman Sachs Group, Inc.") == "Goldman Sachs"
     assert short_name("Wells Fargo & Company") == "Wells Fargo"
+
+
+def test_a_mentions_short_display_name_falls_back_to_what_was_typed() -> None:
+    class Blank:
+        def find(self, question: str, *, company_slot: bool = False) -> list[Any]:
+            return []
+
+        def named(self, company: str) -> str | None:
+            return None
+
+        def display_name(self, query: str) -> str:
+            return ""
+
+    recorded = recorded_issuer_index()
+    assert short_display_name(recorded, "GS", "goldman") == "Goldman Sachs"
+    assert short_display_name(recorded, "NVDA", "nvidia") == "NVIDIA"
+    assert short_display_name(Blank(), "AAPL", "aapl") == "aapl"
 
 
 def test_several_metrics_for_one_quarter_read_across_one_row() -> None:

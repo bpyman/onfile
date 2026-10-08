@@ -76,6 +76,7 @@ from financial_analyst_agent.guide import (
 )
 from financial_analyst_agent.issuer_index import CompanyNames
 from financial_analyst_agent.observability import call_provider, log_event
+from financial_analyst_agent.ranked_wording import ranked_group
 from financial_analyst_agent.request_wording import (
     asks_change_without_base,
     asks_for_explanation,
@@ -83,7 +84,6 @@ from financial_analyst_agent.request_wording import (
     planner_window,
     read_window,
 )
-from financial_analyst_agent.rules_planner import ranked_group
 from financial_analyst_agent.services.metric_catalog import resolve_metric_phrase
 from financial_analyst_agent.turn import (
     current_events_answer,
@@ -108,6 +108,7 @@ _QUALITATIVE_NODES: dict[Intent, Node] = {
     Intent.EXPLORATORY_RESEARCH: "exploratory_research",
 }
 _PEER_COUNT = 3
+_RANK_INTENTS = (Intent.RANK, Intent.RANK_AND_LOOKUP)
 
 
 def _answered(result: TurnResult, spec: AnalysisSpec | None) -> dict[str, Any]:
@@ -203,25 +204,20 @@ def request_from_proposal(
         return QualitativeRequest.model_validate(
             {"intent": proposal.intent, "topic": topic if topic and topic.strip() else message}
         )
-    if (
-        isinstance(proposal, WorkflowPlan)
-        and proposal.intent in (Intent.RANK, Intent.RANK_AND_LOOKUP)
-        and not (proposal.industry and proposal.industry.strip())
-    ):
-        # "top 10 companies in AI": a group the words name is read from them when a
-        # planner leaves it out, so one the snapshot does not know is refused;
-        # only words that name no group rank every company.
-        proposal = proposal.model_copy(update={"industry": ranked_group(message)})
-    elif (
-        isinstance(proposal, WorkflowPlan)
-        and proposal.intent in (Intent.RANK, Intent.RANK_AND_LOOKUP)
-        and not _known_group(proposal.industry or "", deps)
-        and ranked_group(message) == WHOLE_MARKET
-    ):
-        # "which companies are worth the most?" proposed as "all US public
-        # companies": a group the snapshot does not know, for words that name
-        # none, is the planner's paraphrase of every company, not the analyst's.
-        proposal = proposal.model_copy(update={"industry": WHOLE_MARKET})
+    if isinstance(proposal, WorkflowPlan) and proposal.intent in _RANK_INTENTS:
+        if not (proposal.industry and proposal.industry.strip()):
+            # "top 10 companies in AI": a group the words name is read from them when
+            # a planner leaves it out, so one the snapshot does not know is refused;
+            # only words that name no group rank every company.
+            proposal = proposal.model_copy(update={"industry": ranked_group(message)})
+        elif (
+            not _known_group(proposal.industry or "", deps)
+            and ranked_group(message) == WHOLE_MARKET
+        ):
+            # "which companies are worth the most?" proposed as "all US public
+            # companies": a group the snapshot does not know, for words that name
+            # none, is the planner's paraphrase of every company, not the analyst's.
+            proposal = proposal.model_copy(update={"industry": WHOLE_MARKET})
     if is_structured_proposal(proposal):
         # A planner's window stands only where the words ask about time.
         window = read_window(message)
