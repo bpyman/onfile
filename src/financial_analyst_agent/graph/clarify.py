@@ -10,7 +10,7 @@ which, deterministically; the model has no say in it.
 from __future__ import annotations
 
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from typing import Literal
 
@@ -64,13 +64,20 @@ class ClarifyReply:
     out_of_range: bool = False
 
 
+def _only_option_holding(words: set[str], options: Iterable[tuple[str, set[str]]]) -> str | None:
+    """The one option whose words hold every answer word; None when none or several do."""
+    holding = [option for option, held in options if words <= held]
+    return holding[0] if len(holding) == 1 else None
+
+
 def _candidate_named_by_word(candidates: tuple[str, ...], message: str) -> str | None:
     """ "net" or "per share" picks the one candidate whose name holds those words."""
     words = set(re.findall(r"[a-z]+", message.casefold())) - _ANSWER_FILLER
     if not words:
         return None
-    named = [candidate for candidate in candidates if words <= set(candidate.split("_"))]
-    return named[0] if len(named) == 1 else None
+    return _only_option_holding(
+        words, ((candidate, set(candidate.split("_"))) for candidate in candidates)
+    )
 
 
 def clarification_reply(
@@ -198,12 +205,13 @@ def _company_named(
     if not words:
         return None
     labels = pending.labels or pending.candidates
-    holding = [
-        ticker
-        for ticker, label in zip(pending.candidates, labels, strict=False)
-        if words <= set(re.findall(r"[a-z0-9]+", label.casefold()))
-    ]
-    return holding[0] if len(holding) == 1 else None
+    return _only_option_holding(
+        words,
+        (
+            (ticker, set(re.findall(r"[a-z0-9]+", label.casefold())))
+            for ticker, label in zip(pending.candidates, labels, strict=False)
+        ),
+    )
 
 
 def _metrics_named(candidates: tuple[str, ...], text: str) -> tuple[str, ...]:

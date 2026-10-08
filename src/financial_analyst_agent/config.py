@@ -210,65 +210,38 @@ class Settings(BaseSettings):
             raise ValueError("MAX_CONCURRENT_TURNS must be at least 1")
         return value
 
-    @field_validator("fmp_base_url")
+    @field_validator("fmp_base_url", "tavily_base_url")
     @classmethod
-    def validate_fmp_base_url(cls, value: str) -> str:
+    def validate_base_url(cls, value: str, info: ValidationInfo) -> str:
         stripped = value.strip().rstrip("/")
         if not stripped:
-            raise ValueError("FMP_BASE_URL must be nonempty")
+            raise ValueError(f"{str(info.field_name).upper()} must be nonempty")
         return stripped
 
-    @field_validator("tavily_base_url")
-    @classmethod
-    def validate_tavily_base_url(cls, value: str) -> str:
-        stripped = value.strip().rstrip("/")
-        if not stripped:
-            raise ValueError("TAVILY_BASE_URL must be nonempty")
-        return stripped
+    def _required(self, field: str, purpose: str) -> str:
+        """The setting ``field`` without surrounding spaces; blank, it says what it is for."""
+        value = str(getattr(self, field)).strip()
+        if not value:
+            name = field.upper()
+            raise ConfigurationError(
+                f"{name} is required {purpose}. Set {name} in the environment or .env file."
+            )
+        return value
 
     def require_user_agent(self) -> str:
-        if not self.sec_user_agent.strip():
-            raise ConfigurationError(
-                "SEC_USER_AGENT is required for live SEC access. "
-                "Set SEC_USER_AGENT in the environment or .env file."
-            )
-        return self.sec_user_agent
+        return self._required("sec_user_agent", "for live SEC access")
 
     def require_fmp_api_key(self) -> str:
-        key = self.fmp_api_key.strip()
-        if not key:
-            raise ConfigurationError(
-                "FMP_API_KEY is required to rebuild the universe snapshot. "
-                "Set FMP_API_KEY in the environment or .env file."
-            )
-        return key
+        return self._required("fmp_api_key", "to rebuild the universe snapshot")
 
     def require_tavily_api_key(self) -> str:
-        key = self.tavily_api_key.strip()
-        if not key:
-            raise ConfigurationError(
-                "TAVILY_API_KEY is required for live news search. "
-                "Set TAVILY_API_KEY in the environment or .env file."
-            )
-        return key
+        return self._required("tavily_api_key", "for live news search")
 
     def require_openai_api_key(self) -> str:
-        key = self.openai_api_key.strip()
-        if not key:
-            raise ConfigurationError(
-                "OPENAI_API_KEY is required for the live planner. "
-                "Set OPENAI_API_KEY in the environment or .env file."
-            )
-        return key
+        return self._required("openai_api_key", "for the live planner")
 
     def require_openai_model(self) -> str:
-        model = self.openai_model.strip()
-        if not model:
-            raise ConfigurationError(
-                "OPENAI_MODEL is required for the live planner. "
-                "Set OPENAI_MODEL in the environment or .env file."
-            )
-        return model
+        return self._required("openai_model", "for the live planner")
 
 
 def get_settings() -> Settings:

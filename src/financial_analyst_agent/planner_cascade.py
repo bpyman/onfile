@@ -15,6 +15,7 @@ from financial_analyst_agent.contracts import Completer, Intent, WorkflowPlan
 from financial_analyst_agent.domain.errors import PlannerError
 from financial_analyst_agent.graph.analysis_spec import SpecPatch
 from financial_analyst_agent.observability import log_event
+from financial_analyst_agent.request_wording import OVERVIEW_PLAN
 from financial_analyst_agent.services.metric_catalog import METRIC_DISPLAY
 
 # Questions about figures: a plan for one needs a catalog metric.
@@ -50,7 +51,7 @@ def unsure_reason(
     named = plan.company or plan.companies
     if follow_up and not named and plan.metric in (None, "unknown"):
         return None
-    if plan.intent in _FIGURE_INTENTS and plan.metric not in (*METRIC_DISPLAY, "overview"):
+    if plan.intent in _FIGURE_INTENTS and plan.metric not in (*METRIC_DISPLAY, OVERVIEW_PLAN):
         return "metric"
     if plan.intent in (Intent.LOOKUP, Intent.COMPARE) and not named:
         return "company"

@@ -20,9 +20,9 @@ from financial_analyst_agent.graph.analysis_spec import (
     RankedRequest,
     SpecPatch,
 )
+from financial_analyst_agent.request_wording import OVERVIEW_PLAN
 
 _PLANNER_FAILED_MESSAGE = "LLM planner failed"
-_OVERVIEW = "overview"
 _SYSTEM_PROMPT = (
     "Map the user's question about US public companies' SEC filings to a Plan. "
     "Code fetches and computes every number; you only choose what to look up. "
@@ -49,7 +49,7 @@ _SYSTEM_PROMPT = (
     "also ask for a summary. "
     'Name companies as the user wrote them ("Nvidia", "JPM"), never CIKs. '
     f"metric is one of: {', '.join(ALLOWED_METRICS)}. "
-    f"Use {_OVERVIEW} when the user asks how a company is doing without naming a metric. "
+    f"Use {OVERVIEW_PLAN} when the user asks how a company is doing without naming a metric. "
     "When the user names a measure the list lacks, set metric to their own words; code "
     "refuses it by name. When the measure is ambiguous (profit, income, margin, earnings), "
     "set metric to the user's word; code asks which they mean. "
@@ -324,7 +324,7 @@ class OpenAIStructuredCompleter:
     ) -> WorkflowPlan | SpecPatch:
         if current_spec is None:
             system = _SYSTEM_PROMPT
-            response_format: type[BaseModel] = Plan
+            response_format: type[Plan] | type[FollowUpPlan] = Plan
         else:
             system = (
                 f"{_FOLLOW_UP_PROMPT}\n\nCurrent analysis spec:\n"
@@ -366,8 +366,7 @@ class OpenAIStructuredCompleter:
         if parsed is None:
             raise PlannerError(_PLANNER_FAILED_MESSAGE, details={"stage": "missing_parsed"})
         if not isinstance(parsed, (Plan, FollowUpPlan)):
-            schema = Plan if current_spec is None else FollowUpPlan
-            parsed = schema.model_validate(parsed)
+            parsed = response_format.model_validate(parsed)
         if isinstance(parsed, FollowUpPlan):
             if isinstance(parsed.action, _SpecPatchAction):
                 return parsed.action.to_spec_patch()

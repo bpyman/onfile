@@ -2928,3 +2928,38 @@ Blockers / next:
   simplify-pass-2 remain. Noticed: the alias key "oil and gas" is never looked up because
   `_normalize_group` singularises "gas" to "ga"; harmless today (the planner writes "oil & gas"),
   pinned as resolving to nothing, left for a ticket that may change behaviour.
+
+2026-10-08
+
+Task completed: `docs/process/tickets/simplify-pass-2/issues/11-thread-view-and-small-module-cleanups.md`
+
+Key decisions:
+- thread_store.py: `_result_or_none(evidence, ref)` is the one unreadable-answer guard;
+  `resolve_results` and `resolve_last_result` go through it. `resolve_result(thread_id, ref)` and
+  `ThreadState.result_refs()` replace the ticket's `(ref, result)` pair generator, so a GET reads
+  only the answers it has not presented.
+- api.py: `present_turn` confirmed to read nothing but the result, so `_PresentedTurns` memoises
+  each stored answer's `presentation` and `candidate_slugs` by `(thread_id, ref)` (both random
+  uuids) in a locked LRU of 256 entries per app; `thread_view(..., presented=)` rebuilds only
+  `index`, `message` and `clarify_enabled`. Forgotten on DELETE and when a GET finds the thread
+  gone; a background purge's entries age out. A 10-turn thread's JSON is byte-identical before
+  and after; a second GET presents nothing (tested).
+- clarify.py: `_only_option_holding(words, options)` serves `_candidate_named_by_word` and the
+  tail of `_company_named`, each keeping its own filler and subject handling.
+- config.py: `validate_base_url` covers both base URLs by `info.field_name`; `_required(field,
+  purpose)` builds the five `ConfigurationError` messages, pinned word for word.
+- planner.py and planner_cascade.py import `OVERVIEW_PLAN` from request_wording; `complete`
+  validates an unparsed response with `response_format.model_validate`.
+
+Files changed:
+- `src/financial_analyst_agent/thread_store.py`, `api.py`, `graph/clarify.py`, `config.py`,
+  `planner.py`, `planner_cascade.py`
+- `tests/unit/test_thread_store.py` (+1), `tests/test_api.py` (+2), `tests/test_config.py` (+3),
+  `tests/unit/test_calendars_clarification_and_formatting.py` (+2), `tests/test_openai_planner.py`
+  (+1), `tests/unit/test_llm_planner.py` (+1)
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. 2,401 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 893
+  conversations differ from HEAD` (phrase coverage replayed, so 555 of 555). Ticket 12 in
+  simplify-pass-2 remains.

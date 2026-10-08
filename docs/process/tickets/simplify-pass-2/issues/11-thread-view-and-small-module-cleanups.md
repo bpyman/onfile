@@ -27,4 +27,47 @@ From a parallel `/simplify` review of the whole codebase (7 October 2026): seven
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped 8 October 2026. Cleanup only: every API response, clarification reading,
+configuration error and plan is as before.
+
+1. **One guard for an unreadable stored answer.** `_result_or_none(evidence, ref)` in
+   thread_store.py is the one `except (KeyError, OSError, ValueError)`. `resolve_results` is a
+   comprehension over it that drops the None results; `resolve_last_result` is one call. The
+   sibling for step 2 is `resolve_result(thread_id, ref)` (one stored answer, or None) beside
+   `ThreadState.result_refs()` (the `result-` refs in turn order), rather than a generator of
+   `(ref, result)` pairs: a pair generator would still read every answer, and the point of the
+   memo is that a GET reads only the answers it has not presented.
+2. **`thread_view` presents each stored turn once.** Checked first: `present_turn` reads nothing
+   but the result (no clock, settings or environment in presentation.py or in the modules it
+   calls: guide, fact_selector, fiscal_periods, filing_selector, metric_catalog, clarify), so the
+   key is `(thread_id, ref)`; both are random uuids, so an entry can never name another answer.
+   `_PresentedTurns` in api.py keeps each answer's `presentation` and `candidate_slugs` in a
+   locked LRU of 256 entries (about ten full threads), one per app; `thread_view` takes it as
+   `presented` and rebuilds only `index`, `message` and `clarify_enabled`. A thread's entries are
+   forgotten on DELETE and when a GET finds the thread gone (expired or deleted); a thread purged
+   in the background ages out. Verified: the JSON of a 10-turn stored thread (lookups, a window,
+   "add Apple", year over year, a ranking, a filing change, a clarification and its answer, an
+   overview, a named quarter) is byte-identical before and after; a second GET calls
+   `present_turn` for no stored turn (tested); a restarted API presents each turn once more.
+3. **One reader of "the one option holding these words".** `_only_option_holding(words,
+   options)` in clarify.py; the metric reader passes each candidate with its `_`-split words, the
+   company reader each ticker with its label's words after its own subject-word subtraction. The
+   filler handling and the unique-match rule of each are unchanged (pinned at the
+   `clarification_reply` seam for both kinds, including a word two labels share).
+4. **config.py.** `validate_base_url` is the one `@field_validator("fmp_base_url",
+   "tavily_base_url")`, naming the field through `info.field_name`; `_required(field, purpose)`
+   strips the setting and raises the shared message; each `require_*` is one call. The five
+   messages are pinned word for word. `require_user_agent` returned the raw field before; the
+   validator already strips it, so the value is the same.
+5. **`OVERVIEW_PLAN`** is imported from request_wording into planner.py and planner_cascade.py;
+   `_OVERVIEW` and the literal are gone (no cycle: request_wording imports neither).
+6. **`complete`** validates an unparsed response with `response_format.model_validate(parsed)`,
+   typed `type[Plan] | type[FollowUpPlan]`; tested for both the first turn and a follow-up.
+
+Checks: 2,401 tests pass (+23); ruff and mypy clean; `compare_answers` reports `0 of 893
+conversations differ from HEAD` (the phrase cases replayed, so coverage stays 555 of 555).
+

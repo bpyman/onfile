@@ -139,3 +139,19 @@ def test_recorded_runtime_still_uses_injected_fake_completer() -> None:
     assert isinstance(runtime.completer, DemoCompleter)
     result = run_turn(GOOGLE_LATEST_QUARTER_NET_INCOME_QUERY, runtime)
     assert result.intent is Intent.LOOKUP
+
+
+def test_a_plan_the_sdk_leaves_unparsed_is_read_against_the_schema_asked_for() -> None:
+    from financial_analyst_agent.graph.analysis_spec import AnalysisSpec, SpecPatch
+
+    first = OpenAIStructuredCompleter(
+        _FakeParseClient({"intent": "lookup", "company": "Google", "metric": "net_income"}),
+        _MODEL,
+    ).complete(GOOGLE_LATEST_QUARTER_NET_INCOME_QUERY)
+    assert first == WorkflowPlan(intent=Intent.LOOKUP, company="Google", metric="net_income")
+
+    follow_up = OpenAIStructuredCompleter(
+        _FakeParseClient({"intent": "spec_patch", "mode": "extend", "add_companies": ["Apple"]}),
+        _MODEL,
+    ).complete("add Apple", current_spec=AnalysisSpec())
+    assert follow_up == SpecPatch(mode="extend", add_companies=("Apple",))

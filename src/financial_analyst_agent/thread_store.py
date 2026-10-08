@@ -94,6 +94,10 @@ class ThreadState(BaseModel):
                 return value.pending
         return None
 
+    def result_refs(self) -> tuple[str, ...]:
+        """The refs of the thread's stored answers, one per finished turn, in order."""
+        return tuple(ref for ref in self.evidence_refs if ref.startswith("result-"))
+
 
 class ThreadStore(Protocol):
     def evidence_for(self, thread_id: str) -> EvidenceStore: ...
@@ -137,31 +141,34 @@ def _checked_id(thread_id: str) -> str:
     return thread_id
 
 
+def _result_or_none(evidence: EvidenceStore, ref: str) -> TurnResult | None:
+    """The stored answer ``ref`` names, or None when it is gone or damaged."""
+    try:
+        return evidence.get_result(ref)
+    except (KeyError, OSError, ValueError):
+        return None
+
+
 class _ResultResolver:
     """Turn results read back from a thread's evidence, shared by both stores."""
 
     def evidence_for(self, thread_id: str) -> EvidenceStore:
         raise NotImplementedError
 
+    def resolve_result(self, thread_id: str, ref: str) -> TurnResult | None:
+        """One of the thread's stored answers, or None when it is gone or damaged."""
+        return _result_or_none(self.evidence_for(thread_id), ref)
+
     def resolve_results(self, state: ThreadState) -> tuple[TurnResult, ...]:
         evidence = self.evidence_for(state.thread_id)
-        results: list[TurnResult] = []
-        for ref in state.evidence_refs:
-            if ref.startswith("result-"):
-                try:
-                    results.append(evidence.get_result(ref))
-                except (KeyError, OSError, ValueError):
-                    # A gone or damaged answer is left out; the rest still show.
-                    continue
-        return tuple(results)
+        results = (_result_or_none(evidence, ref) for ref in state.result_refs())
+        # A gone or damaged answer is left out; the rest still show.
+        return tuple(result for result in results if result is not None)
 
     def resolve_last_result(self, state: ThreadState) -> TurnResult | None:
         if state.last_result_ref is None:
             return None
-        try:
-            return self.evidence_for(state.thread_id).get_result(state.last_result_ref)
-        except (KeyError, OSError, ValueError):
-            return None
+        return self.resolve_result(state.thread_id, state.last_result_ref)
 
 
 class LocalThreadStore(_ResultResolver):
