@@ -2790,3 +2790,39 @@ Blockers / next:
   conversations differ from HEAD`; phrase coverage 555 of 555 (report not regenerated).
   Tickets 07-12 in simplify-pass-2 remain; spec_turn.py and answer_notes.py can now switch
   their `row.cik or row.company_name` sites to `TableRow.company_key`.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/simplify-pass-2/issues/07-web-answer-reads-once.md`
+
+Key decisions:
+- lib/notes.ts: `eachFiling(presentation, label)` is the one walk over the filings an answer
+  read (card, evidence, each change's two sides, each filing once by its hash-free URL); it
+  hands the label function a `FilingSource` (`url`, `company`, `form`, `accession`,
+  `fallback`, `side?`). `answerFilings` and answer-text's `filingLinks` are its two labellings,
+  byte for byte as before. `SNAPSHOT_HELP` lives beside the SNAPSHOT prefix.
+- answer-chart.tsx: `series`, `rows` and `bars` built once per chart in `AnswerChart` and
+  passed to `TrendChart`, `ComparisonChart` and `ChartSummary` (one `<ul>` for either kind).
+  `PeriodTick` and `tickLine` share chart-data's `splitPeriod`.
+- answer.tsx passes `rowOrder` to `DataTable` (`rowOrder ?? identity`) and derives the bars'
+  `order` from it; `sortedRowKeys` deleted.
+- diff-view.ts: `rank` is the one figures check; `ranked` sorts once for `orderChanges` and
+  `splitChanges` (`{substantive, wording}`, cut at the first rewording); `isWordingOnly` is
+  `rank === 2`. `FilingChanges` splits inside its `useMemo`.
+- filing-changes.tsx: `Marked` deleted; `FilingSide` renders `Runs` over `sided` pieces. The
+  phone filing links and data-table's Filing cell are ui.tsx's `ExternalLink` behind
+  `safeHref`; checked in the browser (computed styles and screenshots), same look.
+
+Files changed:
+- `web/lib/notes.ts`, `answer-text.ts`, `chart-data.ts`, `diff-view.ts`, `table-sort.ts`
+- `web/components/answer.tsx`, `answer-chart.tsx`, `data-table.tsx`, `filing-changes.tsx`
+- `web/lib/notes.test.ts` (+2), `interaction.test.ts` (+1), `chart-data.test.ts` (+1),
+  `table-sort.test.ts` (−1)
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. web: 213 vitest, lint, tsc, build and 46 Playwright checks pass; a render harness over
+  the recorded demo answers shows the Markdown and CSV byte-identical and the HTML differing
+  only in class order and the link icon's `shrink-0`. Python: 2,359 tests, ruff, mypy,
+  compare_answers `0 of 375 conversations differ`. Tickets 08-12 in simplify-pass-2 remain;
+  status-line.tsx still holds its own `SNAPSHOT_HELP` copy (outside this ticket's files).

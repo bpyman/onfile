@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { barTicks } from "./chart-data";
-import { changedSentences, isWordingOnly, orderChanges } from "./diff-view";
+import { changedSentences, isWordingOnly, orderChanges, splitChanges } from "./diff-view";
 import { inspectorOrder } from "./inspect";
 import { emphasis, toggleSeries, type LegendState } from "./legend";
 import { pivotTable } from "./pivot";
@@ -126,6 +126,11 @@ describe("filing change order", () => {
     expect(isWordingOnly(added)).toBe(false);
     // A filing leads with its headline figures; a longer edit does not outrank them.
     expect(orderChanges([wording, added, small, big])).toEqual([small, big, added, wording]);
+  });
+
+  it("splits the ordered changes into those worth showing and the rewordings folded away", () => {
+    expect(splitChanges([wording, added, small, big])).toEqual({ substantive: [small, big, added], wording: [wording] });
+    expect(splitChanges([added])).toEqual({ substantive: [added], wording: [] });
   });
 
   it("puts a changed figure ahead of a whole paragraph added or removed with figures in it", () => {

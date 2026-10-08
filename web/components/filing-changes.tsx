@@ -1,11 +1,11 @@
-import { ArrowRight, ArrowUpRight, ChevronDown, FileDiff } from "lucide-react";
+import { ArrowRight, ChevronDown, FileDiff } from "lucide-react";
 import { useMemo, useState } from "react";
-import { changedSentences, isWordingOnly, orderChanges } from "@/lib/diff-view";
+import { changedSentences, splitChanges } from "@/lib/diff-view";
 import { cn, safeHref } from "@/lib/format";
 import type { DisplayDisclosure } from "@/lib/types";
 import { wordDiff, type DiffPiece, type UnifiedPiece } from "@/lib/word-diff";
 import { useRegionName } from "./answer-scope";
-import { Badge, FilingButton, SectionLabel, type Tone } from "./ui";
+import { Badge, ExternalLink, FilingButton, SectionLabel, type Tone } from "./ui";
 
 const KIND_TONE: Record<string, Tone> = {
   added: "positive",
@@ -23,9 +23,7 @@ const FIRST_CHANGES = 4;
  */
 export function FilingChanges({ items }: { items: DisplayDisclosure[] }) {
   const { older_accession: older, newer_accession: newer } = items[0];
-  const ordered = useMemo(() => orderChanges(items), [items]);
-  const substantive = ordered.filter((item) => !isWordingOnly(item));
-  const wording = ordered.filter(isWordingOnly);
+  const { substantive, wording } = useMemo(() => splitChanges(items), [items]);
   const sections = new Set(items.map((item) => item.section_label)).size;
   const [open, setOpen] = useState(false);
   const shown = open ? substantive : substantive.slice(0, FIRST_CHANGES);
@@ -201,25 +199,18 @@ function Unified({ item, pieces }: { item: DisplayDisclosure; pieces: UnifiedPie
         )}
       </div>
       <div className="flex flex-wrap gap-x-4 gap-y-1 border-t border-border bg-surface-2/35 px-4 py-2.5 text-xs">
-        <FilingLink href={item.older_url} label="Previous filing" />
-        <FilingLink href={item.newer_url} label="Current filing" />
+        {safeHref(item.older_url) && (
+          <ExternalLink href={item.older_url} className="gap-0.5 font-medium">
+            Previous filing
+          </ExternalLink>
+        )}
+        {safeHref(item.newer_url) && (
+          <ExternalLink href={item.newer_url} className="gap-0.5 font-medium">
+            Current filing
+          </ExternalLink>
+        )}
       </div>
     </div>
-  );
-}
-
-function FilingLink({ href, label }: { href: string; label: string }) {
-  if (!safeHref(href)) return null;
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer noopener"
-      className="inline-flex items-center gap-0.5 font-medium text-primary underline-offset-4 hover:underline"
-    >
-      {label}
-      <ArrowUpRight className="size-3.5" aria-hidden />
-    </a>
   );
 }
 
@@ -296,9 +287,11 @@ function FilingSide({
         )}
       >
         {text ? (
-          // Filing prose, as filed: "1." or "*" in a 10-Q is not markup.
+          // Filing prose, as filed: "1." or "*" in a 10-Q is not markup. Changed
+          // words are marked by colour alone (red here, green on the current
+          // side), never struck, so the old wording stays easy to read.
           <p className={cn("whitespace-pre-wrap break-words text-[14px] leading-[1.7] text-fg", !current && "text-muted")}>
-            {pieces ? <Marked pieces={pieces} current={current} /> : text}
+            {pieces ? <Runs pieces={pieces.map((piece) => sided(piece, current))} /> : text}
           </p>
         ) : (
           <p className="text-[13px] italic text-subtle">Not in this filing.</p>
@@ -311,26 +304,7 @@ function FilingSide({
   );
 }
 
-/**
- * Changed words marked by colour alone: red on the previous side, green on the
- * current one. No strike-through, so the old wording stays easy to read.
- */
-function Marked({ pieces, current }: { pieces: DiffPiece[]; current: boolean }) {
-  return (
-    <>
-      {pieces.map((piece, index) =>
-        !piece.changed ? (
-          <span key={index}>{piece.text}</span>
-        ) : current ? (
-          <ins key={index} className="rounded-[3px] bg-positive-soft text-fg no-underline ring-1 ring-positive/25">
-            {piece.text}
-          </ins>
-        ) : (
-          <del key={index} className="rounded-[3px] bg-negative-soft text-fg no-underline ring-1 ring-negative/25">
-            {piece.text}
-          </del>
-        ),
-      )}
-    </>
-  );
+/** One side's piece as a run: a changed word is new on the current side and gone on the previous. */
+function sided(piece: DiffPiece, current: boolean): UnifiedPiece {
+  return { text: piece.text, kind: !piece.changed ? "same" : current ? "added" : "removed" };
 }

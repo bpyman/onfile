@@ -1,4 +1,5 @@
-import { filingLabel, filingUrl, safeHref } from "./format";
+import { filingLabel, safeHref } from "./format";
+import { eachFiling } from "./notes";
 import type { DisplayTable, Presentation } from "./types";
 
 /**
@@ -160,28 +161,13 @@ export function safeEssay(essay: string, cited: string[]): string {
     .trim();
 }
 
-
 /**
- * Each filing the answer read, once, with what was taken from it. A link into
- * a passage (#:~:text=) is still the same filing.
+ * Each filing the answer read, once, with what was taken from it: whose it
+ * is and its accession (several figures often share one), or what was read
+ * when the filing has no name.
  */
 function filingLinks(presentation: Presentation): string[] {
-  const seen = new Map<string, string>();
-  const add = (url: string, label: string) => {
-    const filing = filingUrl(url);
-    if (filing !== null && !seen.has(filing)) seen.set(filing, plain(label));
-  };
-  // A filing is named by whose it is and its accession; several figures often share one.
-  const filing = (company: string, form: string, accession: string, fallback: string) =>
-    filingLabel(company, form, accession) || fallback;
-  const card = presentation.fact_card;
-  if (card) add(card.source_url, filing(card.company_name, card.form, card.accession_number, card.metric_header));
-  for (const item of presentation.evidence) {
-    add(item.source_url, filing(item.company_name, item.form, item.accession_number, item.label));
-  }
-  for (const change of presentation.disclosures) {
-    add(change.older_url, `Older filing ${change.older_accession}`);
-    add(change.newer_url, `Newer filing ${change.newer_accession}`);
-  }
-  return [...seen].map(([url, label]) => `- [${label || plain(url)}](${destination(url)})`);
+  return eachFiling(presentation, ({ company, form, accession, fallback, side }) =>
+    plain(side ? fallback : filingLabel(company, form, accession) || fallback),
+  ).map(({ url, label }) => `- [${label || plain(url)}](${destination(url)})`);
 }

@@ -15,9 +15,9 @@ import {
 import { createPortal } from "react-dom";
 import type { ClarifyChoice } from "@/lib/clarify";
 import { inspectorOrder } from "@/lib/inspect";
-import { answerFilings, splitNotes, type FilingLink } from "@/lib/notes";
+import { answerFilings, SNAPSHOT_HELP, splitNotes, type FilingLink } from "@/lib/notes";
 import { pivotTable, type ShownTable } from "@/lib/pivot";
-import { sortDescription, sortedRowIndices, sortedRowKeys, type TableSort } from "@/lib/table-sort";
+import { sortDescription, sortedRowIndices, type TableSort } from "@/lib/table-sort";
 import { cn, hardBreaks, parseLink, safeHref } from "@/lib/format";
 import type {
   DisplayTrace,
@@ -93,7 +93,11 @@ function AnswerComponent({
   // Memoised on the table and the sort: a new array each render would also undo
   // the inspector's own memo below.
   const rowOrder = useMemo(() => (shown && sort ? sortedRowIndices(shown, sort) : null), [shown, sort]);
-  const order = useMemo(() => (shown && !pivoted ? sortedRowKeys(shown, sort) : null), [shown, pivoted, sort]);
+  // The bars follow the sorted rows by company key; a pivoted table's rows are quarters, which bars do not follow.
+  const order = useMemo(
+    () => (!pivoted && rowOrder && shown?.row_keys?.length ? rowOrder.map((row) => shown.row_keys?.[row] ?? "") : null),
+    [shown, pivoted, rowOrder],
+  );
   const sortNote = useMemo(() => (shown && sort ? sortDescription(shown, sort) : null), [shown, sort]);
   const { footnotes, snapshot, notes } = splitNotes(banners);
   const filings = useMemo(() => answerFilings(presentation), [presentation]);
@@ -147,7 +151,7 @@ function AnswerComponent({
             )}
             {shown && shown.rows.length > 0 && (
               <div className="border-t border-border first:border-t-0">
-                <DataTable table={shown} sort={sort} onSort={setSort} bare pivoted={pivoted} />
+                <DataTable table={shown} sort={sort} rowOrder={rowOrder} onSort={setSort} bare pivoted={pivoted} />
               </div>
             )}
             {(footnotes.length > 0 || (snapshot && !chart)) && (
@@ -291,9 +295,6 @@ function CompactNotes({ notes, spaced = true }: { notes: string[]; spaced?: bool
     </p>
   );
 }
-
-const SNAPSHOT_HELP =
-  "The universe snapshot is a dated list of US-listed operating companies with their market caps. Rankings read it; it is not rescreened live.";
 
 export function SnapshotNote({ text }: { text: string }) {
   return (

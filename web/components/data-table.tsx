@@ -1,15 +1,15 @@
 "use client";
 
-import { ArrowDown, ArrowUp, ArrowUpDown, ArrowUpRight, RotateCcw, Table2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, RotateCcw, Table2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn, safeHref } from "@/lib/format";
 import type { ShownTable } from "@/lib/pivot";
-import { nextSort, sortedRowIndices, type TableSort } from "@/lib/table-sort";
+import { nextSort, type TableSort } from "@/lib/table-sort";
 import { hasProvenance, soleCompany, tableColumns, type TableColumn, type TableMode } from "@/lib/table-view";
 import { useRegionName } from "./answer-scope";
 import { CopyButton } from "./copy-button";
 import { useInspect } from "./inspect-context";
-import { Badge } from "./ui";
+import { Badge, ExternalLink } from "./ui";
 
 const MODES: { mode: TableMode; label: string }[] = [
   { mode: "compact", label: "Compact" },
@@ -27,12 +27,15 @@ const GRID_VALUES = 3;
 export function DataTable({
   table,
   sort = null,
+  rowOrder = null,
   onSort,
   bare = false,
   pivoted = false,
 }: {
   table: ShownTable;
   sort?: TableSort | null;
+  /** The rows in the sort's order, as the answer computed them; the server's order when absent. */
+  rowOrder?: number[] | null;
   onSort?: (sort: TableSort | null) => void;
   /** Inside the answer card: no border of its own. */
   bare?: boolean;
@@ -43,7 +46,7 @@ export function DataTable({
   const columns = tableColumns(table, mode);
   const count = table.rows.length;
   const sortable = Boolean(onSort) && count > 1;
-  const order = sortedRowIndices(table, sort);
+  const order = rowOrder ?? table.rows.map((_, index) => index);
   const sortedBy = sort ? columns.find((column) => column.key === sort.key)?.header : undefined;
   const name = useRegionName("Answer table");
   const values = columns.filter((column) => column.kind === "value");
@@ -362,15 +365,9 @@ function Cell({
       return value ? <Badge tone="warning">{value}</Badge> : null;
     case "filing":
       return safeHref(value) ? (
-        <a
-          href={value}
-          target="_blank"
-          rel="noreferrer noopener"
-          className="inline-flex items-center gap-0.5 rounded text-xs font-medium text-primary underline-offset-4 hover:underline"
-        >
+        <ExternalLink href={value} className="gap-0.5 rounded text-xs font-medium">
           Filing
-          <ArrowUpRight className="size-3.5" aria-hidden />
-        </a>
+        </ExternalLink>
       ) : null;
     default:
       return <span className="text-fg">{value}</span>;

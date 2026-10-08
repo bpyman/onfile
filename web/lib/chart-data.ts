@@ -204,10 +204,15 @@ export function barRows(spec: BarChartSpec): BarRow[] {
 /** More periods than this and a narrow axis shows every other label (newest kept). */
 export const DENSE_PERIODS = 5;
 
+/** A period label as its day over its year ("Mar 31, 2026"); one with no year ("FY2025") is one line. */
+export function splitPeriod(period: string): [string, string] {
+  const split = period.lastIndexOf(", ");
+  return split > 0 ? [period.slice(0, split), period.slice(split + 2)] : [period, ""];
+}
+
 /** The longer line of a two-line period tick ("Mar 31" of "Mar 31, 2026"), to measure its width. */
 export function tickLine(period: string): string {
-  const split = period.lastIndexOf(", ");
-  return split > 0 ? period.slice(0, split) : period;
+  return splitPeriod(period)[0];
 }
 
 /**
