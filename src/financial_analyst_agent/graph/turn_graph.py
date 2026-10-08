@@ -138,8 +138,7 @@ def _names_a_company(proposal: WorkflowPlan | SpecPatch) -> bool:
         return bool(proposal.add_companies) or proposal.ranked_request is not None
     if proposal.intent in (Intent.RANK, Intent.RANK_AND_LOOKUP):
         return True
-    company = proposal.company if proposal.company and proposal.company != "unknown" else None
-    return bool(company or proposal.companies)
+    return bool(proposal.named_company or proposal.companies)
 
 
 def _figure_asked(message: str, deps: TurnDeps, *, change: bool = False) -> WorkflowPlan | None:
@@ -180,10 +179,10 @@ def request_from_proposal(
     proposal: WorkflowPlan | SpecPatch, message: str, deps: TurnDeps
 ) -> AnalystRequest:
     """Type the planner's proposal: one of the closed request kinds, or an error."""
-    if isinstance(proposal, WorkflowPlan) and is_filing_change_proposal(proposal):
+    if is_filing_change_proposal(proposal):
         return bind_filing_change(proposal, message)
     speculative = asks_speculatively(message)
-    if isinstance(proposal, WorkflowPlan) and is_qualitative_proposal(proposal) and not speculative:
+    if is_qualitative_proposal(proposal) and not speculative:
         # "Why did NVIDIA's revenue drop?" asks against what, whichever intent a
         # planner proposed, unless it asks for news by name.
         change = asks_change_without_base(message)
@@ -197,7 +196,7 @@ def request_from_proposal(
         # "How might AI change Apple's revenue?": what could happen, even with a
         # company named; the latest figure answers none of it.
         return QualitativeRequest(intent=Intent.EXPLAIN, topic=message)
-    if isinstance(proposal, WorkflowPlan) and is_qualitative_proposal(proposal):
+    if is_qualitative_proposal(proposal):
         topic = proposal.topic
         # Validated: the intent is one of the qualitative three.
         return QualitativeRequest.model_validate(

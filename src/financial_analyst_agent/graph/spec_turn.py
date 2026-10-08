@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
 from functools import partial
-from typing import Any, Literal
+from typing import Any, Literal, TypeGuard
 
 from financial_analyst_agent.answer_notes import (
     already_present_notes,
@@ -65,7 +65,7 @@ from financial_analyst_agent.domain.errors import (
     UnknownIndustryError,
     visitor_message,
 )
-from financial_analyst_agent.fan_out import DEFAULT_TASK_MAX_WORKERS, map_in_order
+from financial_analyst_agent.fan_out import DEFAULT_TASK_MAX_WORKERS, map_in_order, or_none
 from financial_analyst_agent.graph.analysis_spec import (
     AnalysisSpec,
     CompiledTask,
@@ -130,7 +130,7 @@ def plan_to_spec_patch(plan: WorkflowPlan) -> SpecPatch:
     metrics = (plan.metric,) if plan.metric else ()
     if intent is Intent.LOOKUP:
         # A question naming no company names none: "the" or "unknown" is not one.
-        company = plan.company if plan.company and plan.company != "unknown" else None
+        company = plan.named_company
         return SpecPatch(
             mode="replace", add_companies=(company,) if company else (), add_metrics=metrics
         )
@@ -161,21 +161,6 @@ def plan_to_spec_patch(plan: WorkflowPlan) -> SpecPatch:
     )
 
 
-def _or_none[T](read: Callable[[], T]) -> T | None:
-    """``read()``, or None when it fails.
-
-    One company's failure must not refuse the whole window for the companies
-    that do resolve: its cells report it. A spent session budget still stops
-    the turn.
-    """
-    try:
-        return read()
-    except SessionQuotaError:
-        raise
-    except Exception:
-        return None
-
-
 def drop_annual_filers(spec: AnalysisSpec, runtime: Runtime) -> tuple[AnalysisSpec, list[str]]:
     """Leave out named companies that file annual 20-F/40-F reports instead of 10-Qs.
 
@@ -187,7 +172,7 @@ def drop_annual_filers(spec: AnalysisSpec, runtime: Runtime) -> tuple[AnalysisSp
     kept: list[Any] = []
     dropped: list[str] = []
     checks = map_in_order(
-        lambda company: _or_none(lambda: runtime.facts.files_quarterly(company.handle)),
+        lambda company: or_none(lambda: runtime.facts.files_quarterly(company.handle)),
         spec.companies,
     )
     for company, check in zip(spec.companies, checks, strict=True):
@@ -250,11 +235,11 @@ def sec_identity(runtime: Runtime) -> Callable[[str], ResolvedCompany | None] | 
     return identify
 
 
-def is_filing_change_proposal(proposal: WorkflowPlan | SpecPatch) -> bool:
+def is_filing_change_proposal(proposal: WorkflowPlan | SpecPatch) -> TypeGuard[WorkflowPlan]:
     return isinstance(proposal, WorkflowPlan) and proposal.intent is Intent.FILING_CHANGE
 
 
-def is_qualitative_proposal(proposal: WorkflowPlan | SpecPatch) -> bool:
+def is_qualitative_proposal(proposal: WorkflowPlan | SpecPatch) -> TypeGuard[WorkflowPlan]:
     return isinstance(proposal, WorkflowPlan) and proposal.intent in QUALITATIVE_INTENTS
 
 
@@ -506,7 +491,7 @@ def across_period_change_rows(
     for row in levels:
         if row.value is None or row.end_date is None or row.comparison is not None:
             continue
-        by_key.setdefault((row.cik or row.company_name, row.metric), []).append(row)
+        by_key.setdefault((row.company_key, row.metric), []).append(row)
 
     changes: list[TableRow] = []
     for group in by_key.values():
@@ -605,7 +590,7 @@ def _one_company_left(merged: TurnResult) -> TurnResult:
     if merged.intent is not Intent.COMPARE or merged.renderer is not RendererKind.TABLE:
         return merged
     on_screen = {
-        row.cik or row.company_name for row in merged.table_rows if row.reason not in _LEFT_OUT
+        row.company_key for row in merged.table_rows if row.reason not in _LEFT_OUT
     }
     if len(on_screen) != 1:
         return merged
@@ -676,13 +661,13 @@ def _order_companies_by_metric(
 ) -> TurnResult:
     """Order named companies by their latest ``metric``, largest first ("sort by revenue")."""
     valued = [row for row in result.table_rows if row.value is not None]
-    latest = _latest_levels(valued, metric, lambda row: row.cik or row.company_name)
+    latest = _latest_levels(valued, metric, lambda row: row.company_key)
     if not latest:
         return result
-    first_seen = list(dict.fromkeys(row.cik or row.company_name for row in result.table_rows))
+    first_seen = list(dict.fromkeys(row.company_key for row in result.table_rows))
     order = _value_order(latest, ascending, first_seen.index)
     ranking = {company: index for index, company in enumerate(sorted(first_seen, key=order))}
-    rows = sorted(result.table_rows, key=lambda row: ranking[row.cik or row.company_name])
+    rows = sorted(result.table_rows, key=lambda row: ranking[row.company_key])
     return result.model_copy(update={"table_rows": rows, "ordered_lowest_first": ascending})
 
 

@@ -395,9 +395,6 @@ EVERYDAY_GROUP_MEMBERS: dict[str, set[str] | None] = {
     "insurance": INSURANCE,
     "reit": REITS,
     "oil": OIL_AND_GAS,
-    # "oil and gas" is normalised to "oil and ga" ("gas" loses its s), so this
-    # key is never looked up; the planner writes the industry as "oil & gas".
-    "oil and gas": None,
     "oil & gas": OIL_AND_GAS,
     "retailer": RETAIL,
     "retail": RETAIL,

@@ -3231,3 +3231,31 @@ Files changed:
 Blockers / next:
 - None. 2,534 tests pass; ruff and mypy clean; compare_answers reports `0 of 893 conversations
   differ from master`. Ticket 02 (one copy of five small rules) is next; its blocker 01 is resolved.
+
+
+## 2026-10-08 — simplify-leftovers 02: one copy of five small rules
+
+Ticket: `docs/process/tickets/simplify-leftovers/issues/02-one-copy-of-five-small-rules.md`
+
+Key decisions:
+- `TableRow.company_key` at the eleven `row.cik or row.company_name` sites outside presentation;
+  presentation's two casefolded sites stay.
+- `WorkflowPlan.named_company` (None for empty or "unknown") read by `turn_graph`, `spec_turn` and
+  `bind_filing_change`; `_request_refusal` tests `not company`. The refusal wording is unchanged; a
+  planner that read no company now leaves the request's company empty rather than "unknown".
+- `is_filing_change_proposal` / `is_qualitative_proposal` are `TypeGuard[WorkflowPlan]`;
+  `is_structured_proposal` stays `bool` (true for a `SpecPatch` too).
+- `fan_out.or_none` replaces the two `_or_none` copies.
+- The dead `"oil and gas"` alias is deleted; the pin test's dictionary loses that one entry.
+
+Files changed:
+- `src/financial_analyst_agent/contracts.py`, `fan_out.py`, `answer_notes.py`, `filing_change.py`,
+  `period_selection.py`, `universe.py`, `graph/spec_turn.py`, `graph/turn_graph.py`
+- `tests/unit/test_workflow_plan.py` (new), `test_fan_out.py`, `test_filing_change.py`,
+  `test_planner_rules.py`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. 2,536 tests pass (2 new); ruff and mypy clean; compare_answers reports `0 of 893
+  conversations differ from master`; phrase coverage 555 of 555. Ticket 03 (missing-part note keeps
+  the company name) is next; its blocker 02 is resolved.

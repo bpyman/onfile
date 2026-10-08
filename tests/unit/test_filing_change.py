@@ -1069,7 +1069,7 @@ def test_filing_change_requests_it_cannot_compare_say_why(
 
     request = _request(query, company=company, other_companies=others)
 
-    assert expected in _request_refusal(company, "", "", request)
+    assert expected in _request_refusal(request.company, "", "", request)
 
 
 def test_a_10k_question_compares_10ks_and_20f_filers_are_named() -> None:

@@ -54,8 +54,7 @@ from typing import Any, ClassVar, Literal
 from pydantic import BaseModel, Field
 
 from financial_analyst_agent.contracts import ComparisonBase, FactsPort, TableRow
-from financial_analyst_agent.domain.errors import SessionQuotaError
-from financial_analyst_agent.fan_out import map_in_order
+from financial_analyst_agent.fan_out import map_in_order, or_none
 from financial_analyst_agent.graph.analysis_spec import (
     MAX_QUARTERS_ASKED,
     AnalysisSpec,
@@ -1021,8 +1020,8 @@ class Periods:
             row
             for row in rows
             if row.end_date is None
-            or (row.cik or row.company_name) not in oldest
-            or row.end_date >= oldest[row.cik or row.company_name]
+            or row.company_key not in oldest
+            or row.end_date >= oldest[row.company_key]
         ]
 
     def _shown_named(self, rows: Sequence[TableRow]) -> list[TableRow]:
@@ -1036,7 +1035,7 @@ class Periods:
             row
             for row in rows
             if row.end_date is None
-            or row.end_date not in hidden.get(row.cik or row.company_name, set())
+            or row.end_date not in hidden.get(row.company_key, set())
         ]
 
     def notes(
@@ -1375,7 +1374,7 @@ def _window_dated(spec: AnalysisSpec, facts: FactsPort) -> AnalysisSpec:
     count = cap if since is not None else periods.count or 1
     pending = _not_yet_listed(spec.companies, known)
     listed = map_in_order(
-        lambda company: _or_none(partial(listing, company.handle, limit=count)),
+        lambda company: or_none(partial(listing, company.handle, limit=count)),
         pending,
     )
     for company, company_listed in zip(pending, listed, strict=True):
@@ -1447,21 +1446,6 @@ def _span_asked(
     return max(periods.asked or 0, longest)
 
 
-def _or_none[T](read: Callable[[], T]) -> T | None:
-    """``read()``, or None when it fails.
-
-    One company's failure must not refuse the whole window for the companies
-    that do resolve: its cells report it. A spent session budget still stops
-    the turn.
-    """
-    try:
-        return read()
-    except SessionQuotaError:
-        raise
-    except Exception:
-        return None
-
-
 def _not_yet_listed(
     companies: tuple[ResolvedCompany, ...], known: dict[str, Any]
 ) -> list[ResolvedCompany]:
@@ -1511,7 +1495,7 @@ def _named_periods_dated(spec: AnalysisSpec, facts: FactsPort) -> AnalysisSpec:
     bases = dict(periods.company_base_dates or ())
     pending = _not_yet_listed(spec.companies, known)
     listings = map_in_order(
-        lambda company: _or_none(partial(lister, company.handle)), pending
+        lambda company: or_none(partial(lister, company.handle)), pending
     )
     for company, listed in zip(pending, listings, strict=True):
         if listed is not None:
@@ -1545,7 +1529,7 @@ def _after_latest_filing(spec: AnalysisSpec, facts: FactsPort) -> bool:
     """
     if not spec.companies:
         return False
-    listed = _or_none(partial(facts.fiscal_periods, spec.companies[0].handle))
+    listed = or_none(partial(facts.fiscal_periods, spec.companies[0].handle))
     if not listed:
         return False
     latest = max(listed, key=lambda period: period.end)

@@ -85,12 +85,12 @@ def missing_component_notes(rows: Sequence[TableRow]) -> list[str]:
     shown: set[tuple[str, str]] = set()
     # A newest quarter SEC's structured data lacks: the newer-filing banner says so.
     pending: set[tuple[str, date]] = {
-        (row.cik or row.company_name, row.newer_filing_end)
+        (row.company_key, row.newer_filing_end)
         for row in rows
         if row.value is not None and row.newer_filing_end is not None
     }
     for row in rows:
-        company = row.cik or row.company_name
+        company = row.company_key
         if row.missing_components:
             if row.end_date is not None and any(
                 company == other and abs(row.end_date - end) <= FISCAL_WEEK_TOLERANCE

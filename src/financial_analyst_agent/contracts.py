@@ -234,6 +234,11 @@ class WorkflowPlan(BaseModel):
     # Said before the answer: a corrected name, a company left out.
     notes: tuple[str, ...] = ()
 
+    @property
+    def named_company(self) -> str | None:
+        """The company the plan names, or None: a planner that read none writes "unknown"."""
+        return self.company if self.company and self.company != "unknown" else None
+
 
 class Completer(Protocol):
     def complete(

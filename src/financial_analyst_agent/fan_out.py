@@ -4,6 +4,8 @@ from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from contextvars import copy_context
 
+from financial_analyst_agent.domain.errors import SessionQuotaError
+
 # Bound concurrent provider fan-out so a wide window cannot flood SEC/EDGAR.
 DEFAULT_TASK_MAX_WORKERS = 8
 
@@ -33,3 +35,18 @@ def map_in_order[T, R](
         raise
     pool.shutdown(wait=True)
     return results
+
+
+def or_none[T](read: Callable[[], T]) -> T | None:
+    """``read()``, or None when it fails.
+
+    One company's failure must not refuse the whole window for the companies
+    that do resolve: its cells report it. A spent session budget still stops
+    the turn.
+    """
+    try:
+        return read()
+    except SessionQuotaError:
+        raise
+    except Exception:
+        return None

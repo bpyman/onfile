@@ -16,4 +16,45 @@ From the leftovers of simplify pass 2 (`docs/process/tickets/simplify-pass-2/dro
 
 **Blocked by:** 01 (both edit import lines in `answer_notes.py`, `spec_turn.py` and `period_selection.py`)
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped 8 October 2026. Cleanup only; every step kept its site's behaviour.
+
+1. **A row's company key.** `row.cik or row.company_name` is `row.company_key` at all eleven
+   sites: `answer_notes.missing_component_notes` (2), `spec_turn` (`across_period_change_rows`,
+   `_one_company_left`, `_order_companies_by_metric` x3) and `period_selection`'s
+   `Periods._shown_window` / `_shown_named` (4). `presentation.py`'s two casefolded sites are
+   untouched.
+2. **The "unknown" company.** `WorkflowPlan.named_company` (`contracts.py`) returns the plan's
+   company, or None when it is empty or `"unknown"`. `turn_graph._names_a_company` and
+   `spec_turn.plan_to_spec_patch` read it in place of their identical inline checks.
+   `filing_change`'s `company` is the plan's: `bind_filing_change` wrote `plan.company or ""` onto
+   the request and `_request_refusal` later tested `not company or company == "unknown"`, so the
+   binder now writes `plan.named_company or ""` and the refusal tests `not company`. The refusal
+   wording is unchanged; the one difference is that a planner that read no company leaves the
+   request's `company` empty rather than `"unknown"`, which the refused turn's trace records
+   (`compare_answers` finds no recorded conversation that shows it). The refusal test passes the
+   bound request's company instead of the raw `"unknown"` string.
+3. **Typed proposal checks.** `is_filing_change_proposal` and `is_qualitative_proposal` are
+   `TypeGuard[WorkflowPlan]`; `request_from_proposal` lost its three `isinstance` prefixes.
+   `is_structured_proposal` stays `bool`: it is true for a `SpecPatch` too, so a `TypeGuard`
+   would mis-narrow.
+4. **One failed-read guard.** `fan_out.or_none` (public, beside `map_in_order`) replaces the two
+   word-for-word `_or_none` copies; `spec_turn` and `period_selection` import it, and
+   `period_selection` no longer imports `SessionQuotaError`. `fan_out` imports `domain.errors`,
+   a leaf.
+5. **A dead alias.** `"oil and gas"` is gone from `INDUSTRY_GROUP_ALIASES`.
+   `test_oil_and_gas_is_one_industry_in_a_ranking` is unchanged. The pin test
+   `test_each_everyday_group_name_lists_the_same_snapshot_industries` iterates the alias table and
+   compares it to `EVERYDAY_GROUP_MEMBERS`, which listed the key as resolving to nothing; that one
+   entry (and its comment) is removed, nothing else in the test changed.
+
+New tests: `tests/unit/test_workflow_plan.py` (named company, "unknown" and empty) and
+`or_none` in `tests/unit/test_fan_out.py` (a failed read is None; a spent budget still raises).
+
+2,536 tests pass (2 new); ruff and mypy clean; `compare_answers.py --against master` reports
+`0 of 893 conversations differ from master`; phrase coverage 555 of 555. No source file but
+`contracts.py` writes `row.cik or row.company_name` uncasefolded or compares a company to
+`"unknown"`; the guard is defined once. No step needed a file outside the ticket's list.
