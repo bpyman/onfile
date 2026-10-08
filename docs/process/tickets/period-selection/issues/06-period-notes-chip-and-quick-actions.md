@@ -17,4 +17,15 @@ Spec: `docs/process/tickets/period-selection/design.md`, ADR 0015, ADR 0005 (ran
 
 **Blocked by:** 03 (`ChangeAsked`), 05 (`Periods.groups`)
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped 2026-10-08.
+
+- `Periods.notes(reading, change, *, ranked_window=False) -> PeriodNotes` is `period_notes`, `_named_period_notes`, `_window_notes` and `_since_notes` moved branch for branch (now `_named_shown`, `_short_window`, `_since_span` in `period_selection`), with the five banner constants. `PeriodNotes.read` holds the unread-period, trailing-year / year-of-quarters and sub-quarter notes; `.shown` the year-to-date, ranked, named-period, calendars, fiscal Q4 gap and window notes. Every text is unchanged.
+- The growth-is-year-over-year and why-change banners stay in `answer_notes` as `change_banners(message, spec)`; `annotate_analysis` puts them between `period.read` and `period.shown`, so banner order is unchanged. `answer_notes` imports nothing from `period_selection` and no period regex; `change.yoy` replaces its `YOY` search.
+- `Periods.chip` is `_period_chip` without the "as of" and ranked cases, which read only `as_of` / `constituents` and stay in `spec_chip_edits`. `Periods.quick_actions` returns the `(label, message)` pairs; `chip_quick_actions` wraps them in `QuickAction` and keeps the ranked / as-of guard.
+- **Step 2 left partly undone, as the ticket says to when a step would change behaviour.** Reading "last year" and year to date from the stored reading changes a metric reply to a clarification ("Apple margin last year" then "gross margin" would gain the last-year note master does not show). `Periods.notes` reads the reading as designed, but `annotate_analysis` passes a copy whose `year_of_quarters` and `year_to_date` come from `read(compiled.wording)`, as master's search did. Recorded in `rules-to-review.md` (8 October 2026), with a test pinning master's answer.
+- Tests: a notes, chip and quick-actions section in `test_period_selection.py` on dated specs; the `period_notes` tests in `test_window_copy.py`, `test_calendars_clarification_and_formatting.py` and `test_filers_rankings_and_narrowing.py` now go through `Periods.notes`. There were no direct tests of `_period_chip`; the `spec_chip_edits` and `chip_quick_actions` tests are unchanged and pass.
+- 2,531 tests pass; ruff and mypy clean; `compare_answers --against master`: 0 of 893 conversations differ; phrase coverage 555 of 555. Every file changed is on the ticket's list.

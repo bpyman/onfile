@@ -9,11 +9,9 @@ from types import SimpleNamespace
 from typing import Any
 
 from financial_analyst_agent.answer_notes import (
-    FISCAL_Q4_GAP_BANNER,
     annual_filer_note,
     fund_note,
     missing_component_notes,
-    period_notes,
 )
 from financial_analyst_agent.contracts import TableRow
 from financial_analyst_agent.filing_change import diff_paragraphs
@@ -24,10 +22,10 @@ from financial_analyst_agent.graph.analysis_spec import (
     SpecPatch,
 )
 from financial_analyst_agent.graph.spec_turn import compile_tasks, drop_annual_filers, drop_funds
-from financial_analyst_agent.period_selection import Periods, read
+from financial_analyst_agent.period_selection import FISCAL_Q4_GAP_BANNER, Periods, read
 from financial_analyst_agent.presentation import long_quarter_banner
 from financial_analyst_agent.ranking import SnapshotRanking
-from financial_analyst_agent.request_wording import refine_patch_from_message
+from financial_analyst_agent.request_wording import change_asked, refine_patch_from_message
 from financial_analyst_agent.runtime import FIXTURE_UNIVERSE_SNAPSHOT_PATH
 from helpers import ListedFilings
 
@@ -80,9 +78,8 @@ def test_a_sixteen_week_fourth_quarter_is_not_a_skipped_quarter() -> None:
     spec = Periods(_window(_company("Costco"))).dated(_Facts()).spec
 
     message = "Costco revenue"
-    assert FISCAL_Q4_GAP_BANNER not in period_notes(
-        message, spec, window=read(message).reading
-    )
+    notes = Periods(spec).notes(read(message).reading, change_asked(message))
+    assert FISCAL_Q4_GAP_BANNER not in notes.shown
 
 
 def _row(end: date, weeks: int) -> TableRow:

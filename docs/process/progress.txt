@@ -3182,3 +3182,29 @@ Blockers / next:
   conversations differ from master`; phrase coverage 555 of 555. Ticket 06 (notes, chip and quick
   actions) is next; its blockers 03 and 05 are resolved.
 
+
+## 2026-10-08 — period-selection 06: Periods.notes, chip and quick_actions
+
+Ticket: `docs/process/tickets/period-selection/issues/06-period-notes-chip-and-quick-actions.md`
+
+Key decisions:
+- `Periods.notes` -> `PeriodNotes(read, shown)` is `period_notes` and its three helpers moved branch for
+  branch, with the five period banner constants. `answer_notes.change_banners` keeps the growth and
+  why-change banners; `annotate_analysis` splices them between the two lists (banner order unchanged).
+- `Periods.chip` (since, window, named, latest) and `Periods.quick_actions` ((label, message) pairs);
+  the as-of and ranked chip cases and the ranked / as-of quick-action guard stay in presentation.
+- Step 2 kept master's behaviour: reading "last year" and YTD from the stored reading would add notes
+  to a metric reply after a clarification. `annotate_analysis` passes the stored reading with those
+  two fields read from the wording; recorded in rules-to-review, pinned by a test.
+
+Files changed:
+- `src/financial_analyst_agent/period_selection.py`, `answer_notes.py`, `presentation.py`,
+  `graph/spec_turn.py`
+- `tests/unit/test_period_selection.py`, `test_window_copy.py`,
+  `test_calendars_clarification_and_formatting.py`, `test_filers_rankings_and_narrowing.py`
+- the ticket, `docs/process/progress.txt`, `docs/process/rules-to-review.md`
+
+Blockers / next:
+- The clarification-reply notes need a person's decision (rules-to-review, 8 October 2026). Every
+  period-selection ticket is resolved. 2,531 tests pass; ruff and mypy clean; compare_answers
+  reports `0 of 893 conversations differ from master`; phrase coverage 555 of 555.

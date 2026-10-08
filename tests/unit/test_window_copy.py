@@ -8,11 +8,6 @@ from inspect import signature
 
 import pytest
 
-from financial_analyst_agent.answer_notes import (
-    FISCAL_Q4_GAP_BANNER,
-    YEAR_OF_QUARTERS_BANNER,
-    period_notes,
-)
 from financial_analyst_agent.contracts import (
     ComponentProvenance,
     Intent,
@@ -22,8 +17,14 @@ from financial_analyst_agent.contracts import (
     TurnResult,
 )
 from financial_analyst_agent.graph.analysis_spec import AnalysisSpec, PeriodSelection
-from financial_analyst_agent.period_selection import read
+from financial_analyst_agent.period_selection import (
+    FISCAL_Q4_GAP_BANNER,
+    YEAR_OF_QUARTERS_BANNER,
+    Periods,
+    read,
+)
 from financial_analyst_agent.presentation import present_turn
+from financial_analyst_agent.request_wording import change_asked
 from financial_analyst_agent.rules_planner import _companies_from_query
 from financial_analyst_agent.runtime import DemoCompleter
 from financial_analyst_agent.universe import (
@@ -134,7 +135,13 @@ def test_trace_headers_name_the_company_not_its_cik() -> None:
     assert row.cik not in header
 
 
-def test_period_notes_flag_named_periods_and_fiscal_q4_gaps() -> None:
+def _notes(message: str, spec: AnalysisSpec) -> list[str]:
+    """The period notes in the order the answer shows them."""
+    notes = Periods(spec).notes(read(message).reading, change_asked(message))
+    return [*notes.read, *notes.shown]
+
+
+def test_the_notes_flag_unread_periods_and_fiscal_q4_gaps() -> None:
     spec = AnalysisSpec(
         periods=PeriodSelection(
             kind="last_n_quarters",
@@ -153,13 +160,11 @@ def test_period_notes_flag_named_periods_and_fiscal_q4_gaps() -> None:
     )
 
     message = "Microsoft revenue last 3 quarters"
-    assert period_notes(message, spec, window=read(message).reading) == []
+    assert _notes(message, spec) == []
     message = "Microsoft revenue"
-    assert FISCAL_Q4_GAP_BANNER in period_notes(
-        message, gap, window=read(message).reading
-    )
+    assert FISCAL_Q4_GAP_BANNER in _notes(message, gap)
     message = "What was Microsoft revenue for the quarter ended April 2026?"
-    named = period_notes(message, AnalysisSpec(), window=read(message).reading)
+    named = _notes(message, AnalysisSpec())
     assert named and "April 2026" in named[0] and "latest quarter" in named[0]
 
 
@@ -182,16 +187,16 @@ def test_a_year_and_a_half_is_six_quarters_and_not_the_last_year() -> None:
 
     message = "Danaher net income the last year and a half"
     assert read(message).reading.asked_quarters == 6
-    assert period_notes(message, six, window=read(message).reading) == []
+    assert _notes(message, six) == []
     message = "Danaher net income over the past year"
-    assert period_notes(message, four, window=read(message).reading) == [YEAR_OF_QUARTERS_BANNER]
+    assert _notes(message, four) == [YEAR_OF_QUARTERS_BANNER]
 
 
 def test_compilation_carries_the_window_reading_and_notes_use_it() -> None:
     from financial_analyst_agent.graph.state import CompiledAnalysis
 
     assert "window" in CompiledAnalysis.model_fields
-    assert "window" in signature(period_notes).parameters
+    assert "reading" in signature(Periods.notes).parameters
     reading = read("Apple revenue over the past several months").reading
     spec = AnalysisSpec(
         periods=PeriodSelection(
@@ -201,7 +206,7 @@ def test_compilation_carries_the_window_reading_and_notes_use_it() -> None:
         )
     )
 
-    notes = period_notes("Apple revenue", spec, window=reading)
+    notes = Periods(spec).notes(reading, change_asked("Apple revenue")).shown
 
     assert any("Read “past several months” as the latest 2 quarters" in note for note in notes)
     assert "only 1 of the 2 quarters asked for" in notes[-1]
@@ -343,23 +348,22 @@ _NINE_FROM_JUNE_2024 = (
 def test_a_since_window_note_counts_the_span_from_the_newest_filed_quarter() -> None:
     message = "Apple revenue since 2024"
     window = read(message).reading
+    change = change_asked(message)
 
     # Ten quarters ended between 1 January 2024 and 27 June 2026; the filings
     # hold nine of them, whatever today's date is.
-    short = period_notes(message, _since_spec(2024, _NINE_FROM_JUNE_2024), window=window)
+    short = Periods(_since_spec(2024, _NINE_FROM_JUNE_2024)).notes(window, change).shown
     assert "The filings here hold only 9 of the 10 quarters since 2024." in short
     assert not any("asked for" in note for note in short)
 
     whole = (*_NINE_FROM_JUNE_2024, date(2024, 3, 30))
-    full = period_notes(message, _since_spec(2024, whole), window=window)
+    full = Periods(_since_spec(2024, whole)).notes(window, change).shown
     assert not any("hold only" in note for note in full)
 
 
 def test_a_since_window_over_the_cap_says_so_from_the_filed_quarters() -> None:
     message = "Apple revenue since 2015"
-    notes = period_notes(
-        message, _since_spec(2015, _NINE_FROM_JUNE_2024), window=read(message).reading
-    )
+    notes = _notes(message, _since_spec(2015, _NINE_FROM_JUNE_2024))
 
     # Q1 2015 to Q2 2026 is 46 quarters; the window shows at most 40.
     assert (
@@ -384,7 +388,7 @@ def test_a_since_fiscal_window_note_counts_the_span_on_the_companys_own_labels()
         )
     )
 
-    notes = period_notes(message, spec, window=read(message).reading)
+    notes = _notes(message, spec)
 
     assert (
         "Quarters since fiscal 2015 number 47; a window shows at most 40, so this asks for "
@@ -404,6 +408,6 @@ def test_a_since_fiscal_window_note_counts_the_span_on_the_companys_own_labels()
             report_dates=_NINE_FROM_JUNE_2024[:7],
         )
     )
-    assert period_notes(message, whole, window=read(message).reading) == []
+    assert _notes(message, whole) == []
 
 

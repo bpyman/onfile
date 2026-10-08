@@ -24,10 +24,10 @@ from financial_analyst_agent.answer_notes import (
     already_present_notes,
     annual_filer_note,
     capped_ranking_notes,
+    change_banners,
     fund_note,
     metric_reading_notes,
     missing_component_notes,
-    period_notes,
     segment_notes,
     short_ranking_notes,
 )
@@ -95,6 +95,7 @@ from financial_analyst_agent.request_wording import (
     OVERVIEW_METRICS,
     bind_metrics_from_message,
     bind_order_from_message,
+    change_asked,
     comparison_asked,
     refine_patch_from_message,
 )
@@ -1063,6 +1064,22 @@ def annotate_analysis(
     """The answer's notes, and the resolved analysis the thread keeps."""
     spec = compiled.spec
     patch = compiled.patch
+    # A metric reply to a clarification keeps the held question's window, so its
+    # reading can say "last year" or year to date where the reply does not. The
+    # notes have always read those two from the wording; they still do until that
+    # is decided (rules-to-review, 8 October 2026).
+    worded = read(compiled.wording).reading
+    window = compiled.window.model_copy(
+        update={
+            "year_of_quarters": worded.year_of_quarters,
+            "year_to_date": worded.year_to_date,
+        }
+    )
+    period = Periods(spec).notes(
+        window,
+        change_asked(compiled.wording),
+        ranked_window=compiled.ranked_window_asked,
+    )
     # Planner notes first: a corrected company name explains the whole answer.
     notes = [
         *([fund_note(list(compiled.funds))] if compiled.funds else []),
@@ -1070,12 +1087,9 @@ def annotate_analysis(
         *missing_component_notes(merged.table_rows),
         *already_present_notes(patch, compiled.prior_spec, spec),
         *metric_reading_notes(compiled.wording, spec),
-        *period_notes(
-            compiled.wording,
-            spec,
-            window=compiled.window,
-            ranked_window=compiled.ranked_window_asked,
-        ),
+        *period.read,
+        *change_banners(compiled.wording, spec),
+        *period.shown,
         *short_ranking_notes(spec),
         *capped_ranking_notes(patch),
     ]

@@ -7,7 +7,6 @@ from decimal import Decimal
 
 import pytest
 
-from financial_analyst_agent.answer_notes import CALENDARS_DIFFER_BANNER, period_notes
 from financial_analyst_agent.api import _Throttle
 from financial_analyst_agent.contracts import Intent, RendererKind, TableRow, TurnResult
 from financial_analyst_agent.graph.analysis_spec import (
@@ -18,8 +17,9 @@ from financial_analyst_agent.graph.analysis_spec import (
 )
 from financial_analyst_agent.graph.clarify import clarification_reply
 from financial_analyst_agent.graph.spec_turn import compile_tasks
-from financial_analyst_agent.period_selection import Periods, read
+from financial_analyst_agent.period_selection import CALENDARS_DIFFER_BANNER, Periods, read
 from financial_analyst_agent.presentation import format_usd, present_turn
+from financial_analyst_agent.request_wording import change_asked
 from financial_analyst_agent.services.fiscal_periods import FiscalPeriod
 from financial_analyst_agent.thread_store import PendingClarification
 from helpers import ListedFilings
@@ -62,6 +62,12 @@ def _window(*queries: str) -> AnalysisSpec:
     )
 
 
+def _notes(message: str, spec: AnalysisSpec) -> list[str]:
+    """The period notes in the order the answer shows them."""
+    notes = Periods(spec).notes(read(message).reading, change_asked(message))
+    return [*notes.read, *notes.shown]
+
+
 def test_each_fiscal_calendar_asks_for_its_own_quarters() -> None:
     facts = _facts()
 
@@ -76,9 +82,7 @@ def test_each_fiscal_calendar_asks_for_its_own_quarters() -> None:
         *((("Nvidia",), day) for day in _NVDA),
     }
     message = "revenue"
-    assert CALENDARS_DIFFER_BANNER in period_notes(
-        message, spec, window=read(message).reading
-    )
+    assert CALENDARS_DIFFER_BANNER in _notes(message, spec)
 
 
 # Quarter ends back to 2023: a "since 2024" window keeps those on or after 1 January 2024.
@@ -280,9 +284,7 @@ def test_one_calendar_compiles_as_before() -> None:
 
     assert [task.report_date for task in compile_tasks(spec)] == list(_MSFT)
     message = "revenue"
-    assert CALENDARS_DIFFER_BANNER not in period_notes(
-        message, spec, window=read(message).reading
-    )
+    assert CALENDARS_DIFFER_BANNER not in _notes(message, spec)
 
 
 def _row(name: str, end: date, value: str) -> TableRow:
@@ -396,3 +398,28 @@ def test_a_metric_answer_keeps_the_held_questions_window() -> None:
     # A reply naming a window of its own is read, as the wording it resolves.
     own = resumed_request(held, ("gross_margin",), "gross margin last 6 quarters", None)
     assert own.window.asked_quarters == 6
+
+
+@pytest.mark.parametrize("question", ["Apple margin last year", "Apple margin YTD"])
+def test_a_metric_reply_says_last_year_and_year_to_date_only_where_the_reply_does(
+    question: str,
+) -> None:
+    """The held question's window is kept; its last-year and year-to-date notes are not.
+
+    As before the period module: the notes read those two words from the reply
+    (rules-to-review, 8 October 2026).
+    """
+    from financial_analyst_agent.conversation import run_conversation_turn, start_thread
+    from financial_analyst_agent.runtime import RuntimeKind, recorded_runtime
+    from financial_analyst_agent.thread_store import EphemeralThreadStore
+
+    runtime, store = recorded_runtime(), EphemeralThreadStore()
+    start_thread("held-window", RuntimeKind.RECORDED, store=store)
+    asked = run_conversation_turn("held-window", question, runtime, store=store).result
+    assert asked.renderer is RendererKind.CLARIFY
+
+    answer = run_conversation_turn("held-window", "gross margin", runtime, store=store).result
+
+    assert not any(
+        banner.startswith(("The last year:", "Year-to-date")) for banner in answer.banners
+    )

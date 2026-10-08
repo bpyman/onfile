@@ -954,3 +954,163 @@ def test_a_named_period_hides_the_quarters_read_only_as_its_base() -> None:
     ]
 
     assert Periods(_spec(periods, "Apple")).shown(rows) == [rows[0], rows[2], rows[3]]
+
+
+# --- What the answer says about its periods ---------------------------------
+
+
+def _notes(spec: AnalysisSpec, message: str, **fields: object) -> tuple[list[str], list[str]]:
+    reading = read(message).reading.model_copy(update=fields)
+    notes = Periods(spec).notes(reading, ChangeAsked.NONE)
+    return notes.read, notes.shown
+
+
+def test_notes_say_how_the_words_were_read_apart_from_what_is_shown() -> None:
+    spec = _spec(_dated_window(("Microsoft", _MSFT)), "Microsoft")
+
+    read_notes, shown = _notes(spec, "Microsoft revenue YTD last month", trailing_year=True)
+
+    # The change banners sit between the two lists: the reading first, then the shown.
+    assert read_notes == [
+        "Trailing twelve months: these are the four latest quarters, shown one by one "
+        "rather than summed.",
+        "Filings report quarters, not months or weeks, so this shows the last 3 quarters.",
+    ]
+    assert shown == [
+        "Year-to-date totals aren't supported yet, so this shows the last 3 quarters. "
+        "Try “last 4 quarters”."
+    ]
+
+
+def test_a_year_of_quarters_is_said_unless_a_change_is_asked_over_it() -> None:
+    spec = _spec(_dated_window(("Microsoft", _MSFT)), "Microsoft")
+    reading = read("Microsoft revenue last year").reading
+    year = (
+        "The last year: these are the four latest quarters, shown one by one rather "
+        "than summed."
+    )
+
+    assert Periods(spec).notes(reading, ChangeAsked.NONE).read == [year]
+    yoy = dataclasses.replace(ChangeAsked.NONE, yoy=True)
+    assert Periods(spec).notes(reading, yoy).read == []
+
+
+def test_the_notes_read_the_stored_reading_not_the_words_again() -> None:
+    spec = _spec(_dated_window(("Microsoft", _MSFT)), "Microsoft")
+    reading = WindowReading(year_of_quarters=True, year_to_date=True)
+
+    notes = Periods(spec).notes(reading, ChangeAsked.NONE)
+
+    assert len(notes.read) == 1 and notes.read[0].startswith("The last year:")
+    assert len(notes.shown) == 1 and notes.shown[0].startswith("Year-to-date totals")
+
+
+def test_an_unread_period_says_what_is_shown_instead() -> None:
+    spec = _spec(PeriodSelection(), "Microsoft")
+
+    read_notes, shown = _notes(spec, "Microsoft revenue for the quarter ended April 2026")
+
+    assert read_notes == [
+        "I couldn't read “April 2026” as a period; this shows the latest quarter. "
+        "Try “Q3 2024” or “fiscal 2025”."
+    ]
+    assert shown == []
+
+
+def test_a_ranked_list_says_it_shows_the_latest_quarter_only_when_a_window_was_asked() -> None:
+    spec = AnalysisSpec(
+        constituents=RankedSet(limit=5, industry="banks"),
+        metrics=("revenue",),
+        periods=_dated_window(("Microsoft", _MSFT), ("Nvidia", _NVDA)),
+    )
+
+    asked = Periods(spec).notes(WindowReading(), ChangeAsked.NONE, ranked_window=True)
+    assert asked.shown == [
+        "Ranked lists show each company's latest quarter. "
+        "Name the companies to see a multi-quarter window."
+    ]
+    assert Periods(spec).notes(WindowReading(), ChangeAsked.NONE).shown == []
+
+
+def test_calendars_that_differ_and_a_skipped_fiscal_fourth_quarter_are_said() -> None:
+    differ = _spec(_dated_window(("Microsoft", _MSFT), ("Nvidia", _NVDA)), "Microsoft", "Nvidia")
+    gap = _spec(_window(2, report_dates=(date(2025, 9, 30), date(2025, 3, 31))), "Microsoft")
+
+    assert _notes(differ, "revenue")[1] == [
+        "These companies' fiscal quarters end on different dates, "
+        "so each row shows the company's own quarter."
+    ]
+    assert _notes(gap, "revenue")[1] == [
+        "This window skips fiscal fourth quarters: companies report them in the 10-K, "
+        "not a 10-Q, so they have no standalone quarterly fact."
+    ]
+
+
+def test_a_named_quarter_says_where_each_company_s_own_quarter_ended() -> None:
+    periods = _named(
+        NamedPeriodSpec(year=2026, quarter=2),
+        report_dates=_MSFT[1:2],
+        count=1,
+        company_report_dates=(("Microsoft", _MSFT[1:2]), ("Apple", _AAPL[:1]), ("Missing", ())),
+    )
+    spec = _spec(periods, "Microsoft", "Apple", "Missing")
+    label = periods.label
+
+    read_notes, shown = _notes(spec, "revenue")
+
+    assert read_notes == []
+    assert shown == [
+        f"{label} is each company's own fiscal quarter: Microsoft's ended Dec 31, 2025; "
+        "Apple's ended Mar 28, 2026.",
+        f"No filing for {label} from Missing.",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("periods", "chip"),
+    [
+        (PeriodSelection(), ("Latest quarter", False)),
+        (_window(1), ("Last quarter", True)),
+        # A sequential window lists one quarter more than it shows.
+        (_window(5, asked=4), ("Last 4 quarters", True)),
+        (_window(40, since_year=2024), ("Since 2024", True)),
+        (_window(40, since_year=2025, since_fiscal=True), ("Since fiscal 2025", True)),
+        (_named(NamedPeriodSpec(year=2024, quarter=3)), ("Q3 FY2024", True)),
+    ],
+)
+def test_the_period_chip_names_the_quarters_and_whether_x_goes_back_to_the_latest(
+    periods: PeriodSelection, chip: tuple[str, bool]
+) -> None:
+    assert Periods(_spec(periods, "Microsoft")).chip == chip
+
+
+@pytest.mark.parametrize(
+    ("periods", "operations", "messages"),
+    [
+        (
+            PeriodSelection(),
+            (),
+            ["make that the last four quarters", "show year-over-year"],
+        ),
+        (_window(4), ("year_over_year",), ["just the latest quarter"]),
+        (
+            _window(6),
+            (),
+            ["just the latest quarter", "make that the last four quarters", "show year-over-year"],
+        ),
+    ],
+)
+def test_period_quick_actions_offer_what_is_not_already_shown(
+    periods: PeriodSelection, operations: tuple[str, ...], messages: list[str]
+) -> None:
+    spec = _spec(periods, "Microsoft").model_copy(update={"operations": operations})
+
+    actions = Periods(spec).quick_actions
+
+    assert [message for _, message in actions] == messages
+    labels = {
+        "just the latest quarter": "Latest quarter",
+        "make that the last four quarters": "Last four quarters",
+        "show year-over-year": "Year over year",
+    }
+    assert actions == tuple((labels[message], message) for message in messages)

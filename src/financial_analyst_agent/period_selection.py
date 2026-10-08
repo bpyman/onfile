@@ -11,8 +11,9 @@ the request is resolved, and rebases a change follow-up on the quarters on
 screen. Which change the words ask for is read outside and passed in as a
 ``ChangeAsked``. The view ``Periods`` dates a spec's quarters for each company
 from its own filings, the facts provider passed in, groups the companies by
-the quarter grid their dates sit on, and leaves out the rows read only as a
-change's base.
+the quarter grid their dates sit on, leaves out the rows read only as a
+change's base, and writes what the answer says about its periods: the notes,
+the period chip and its quick actions.
 
 A window's wording is a recency word (or a preposition), a count and a unit:
 "last 4 quarters", "the past six quarters", "previous nine quarters", "most
@@ -63,6 +64,7 @@ from financial_analyst_agent.graph.analysis_spec import (
     ResolvedCompany,
     SpecPatch,
 )
+from financial_analyst_agent.guide import format_date, joined, possessive, short_name
 from financial_analyst_agent.observability import log_event
 from financial_analyst_agent.services.filing_selector import FISCAL_WEEK_TOLERANCE
 from financial_analyst_agent.services.fiscal_periods import (
@@ -71,6 +73,7 @@ from financial_analyst_agent.services.fiscal_periods import (
     calendar_quarter,
     dates_for,
     quarters_in_fiscal_span,
+    quarters_in_span,
     quarters_since,
     quarters_since_fiscal_year,
 )
@@ -930,7 +933,7 @@ def read(message: str, *, stored: WindowReading | None = None) -> Words:
     )
 
 
-# --- The view of a spec's periods: dating, groups, rows shown ------------
+# --- The view of a spec's periods: dating, groups, rows, notes, chip -----
 
 
 @dataclass(frozen=True)
@@ -1035,6 +1038,240 @@ class Periods:
             if row.end_date is None
             or row.end_date not in hidden.get(row.cik or row.company_name, set())
         ]
+
+    def notes(
+        self, reading: WindowReading, change: ChangeAsked, *, ranked_window: bool = False
+    ) -> PeriodNotes:
+        """Say plainly when the window shown is not the one the analyst asked for.
+
+        ``reading`` is the request's stored reading, so the notes read no words
+        again; ``change.yoy`` keeps the "last year" note off a year-over-year
+        question. A ranking records its latest quarter; ``ranked_window`` says a
+        window or a named period was asked for it all the same.
+        """
+        spec = self.spec
+        periods = spec.periods
+        read_notes: list[str] = []
+        shown_notes: list[str] = []
+        shown_window = (
+            f"the last {periods.shown} quarters"
+            if periods.kind == "last_n_quarters"
+            else "the latest quarter"
+        )
+        if reading.unread_named_period is not None and periods.kind != "named":
+            read_notes.append(
+                f"I couldn't read “{reading.unread_named_period}” as a period; "
+                f"this shows {shown_window}. "
+                "Try “Q3 2024” or “fiscal 2025”."
+            )
+        if periods.kind == "last_n_quarters" and reading.trailing_year:
+            read_notes.append(TRAILING_YEAR_BANNER)
+        elif (
+            periods.kind == "last_n_quarters"
+            # "the last year and a half" counts its own quarters; "last year" is four.
+            and not reading.counted_window
+            and reading.year_of_quarters
+            and not change.yoy
+        ):
+            read_notes.append(YEAR_OF_QUARTERS_BANNER)
+        if periods.kind != "named" and reading.sub_quarter:
+            read_notes.append(
+                f"Filings report quarters, not months or weeks, so this shows {shown_window}."
+            )
+        if reading.year_to_date:
+            shown_notes.append(
+                f"Year-to-date totals aren't supported yet, so this shows {shown_window}. "
+                "Try “last 4 quarters”."
+            )
+        if spec.constituents is not None:
+            # compile_tasks does not expand ranked lists over a period window; say so.
+            if ranked_window:
+                shown_notes.append(RANKED_LATEST_QUARTER_BANNER)
+            return PeriodNotes(read=read_notes, shown=shown_notes)
+        if periods.kind == "named":
+            shown_notes.extend(_named_shown(spec))
+            return PeriodNotes(read=read_notes, shown=shown_notes)
+        windows = [periods.report_dates]
+        if periods.kind == "last_n_quarters" and spec.companies:
+            groups = self.groups
+            windows = [dates for _, dates in groups]
+            if len(groups) > 1:
+                shown_notes.append(CALENDARS_DIFFER_BANNER)
+        if any(
+            not adjacent_quarters(newer, older)
+            for dates in windows
+            for newer, older in zip(dates, dates[1:], strict=False)
+        ):
+            shown_notes.append(FISCAL_Q4_GAP_BANNER)
+        if periods.kind == "last_n_quarters":
+            shown_notes.extend(_short_window(reading, periods, windows))
+        return PeriodNotes(read=read_notes, shown=shown_notes)
+
+    @property
+    def chip(self) -> tuple[str, bool]:
+        """The period chip's label, and whether its × goes back to the latest quarter."""
+        periods = self.spec.periods
+        if periods.kind == "last_n_quarters" and periods.since_year is not None:
+            # Every filed quarter since that January, or since each company's own
+            # fiscal year: the count is the filings', not asked.
+            year = str(periods.since_year)
+            return f"Since {'fiscal ' if periods.since_fiscal else ''}{year}", True
+        if periods.kind == "last_n_quarters":
+            label = "Last quarter" if periods.shown == 1 else f"Last {periods.shown} quarters"
+            return label, True
+        if periods.kind == "named":
+            return periods.label or "Named period", True
+        return "Latest quarter", False
+
+    @property
+    def quick_actions(self) -> tuple[tuple[str, str], ...]:
+        """The period follow-ups the "+" offers, as (label, message) in the planner's words."""
+        periods = self.spec.periods
+        return tuple(
+            action
+            for action, offered in (
+                (("Latest quarter", "just the latest quarter"), periods.kind != "latest_quarter"),
+                (
+                    ("Last four quarters", "make that the last four quarters"),
+                    periods.kind != "last_n_quarters" or periods.shown != 4,
+                ),
+                (
+                    ("Year over year", "show year-over-year"),
+                    "year_over_year" not in self.spec.operations,
+                ),
+            )
+            if offered
+        )
+
+
+# --- What the answer says about its periods ---------------------------------
+
+
+@dataclass(frozen=True)
+class PeriodNotes:
+    """The period notes, in two lists the change banners sit between.
+
+    ``read`` says how the words were read (a period left unread, the trailing
+    year or a year of quarters, a period shorter than a quarter); ``shown`` says
+    what is shown in place of what was asked.
+    """
+
+    read: list[str]
+    shown: list[str]
+
+
+YEAR_OF_QUARTERS_BANNER = (
+    "The last year: these are the four latest quarters, shown one by one rather "
+    "than summed."
+)
+
+
+TRAILING_YEAR_BANNER = (
+    "Trailing twelve months: these are the four latest quarters, shown one by one "
+    "rather than summed."
+)
+
+
+RANKED_LATEST_QUARTER_BANNER = (
+    "Ranked lists show each company's latest quarter. "
+    "Name the companies to see a multi-quarter window."
+)
+
+
+FISCAL_Q4_GAP_BANNER = (
+    "This window skips fiscal fourth quarters: companies report them in the 10-K, "
+    "not a 10-Q, so they have no standalone quarterly fact."
+)
+
+
+CALENDARS_DIFFER_BANNER = (
+    "These companies' fiscal quarters end on different dates, "
+    "so each row shows the company's own quarter."
+)
+
+
+def _shown_name(company: ResolvedCompany) -> str:
+    """The name a note calls a company by: its short name, or the words that named it."""
+    return short_name(company.name) or company.query
+
+
+def _named_shown(spec: AnalysisSpec) -> list[str]:
+    """Say which quarter ends a named fiscal period stands for, and who has none."""
+    notes: list[str] = []
+    periods = spec.periods
+    own = dict(periods.company_report_dates)
+    label = periods.label
+    missing = [_shown_name(company) for company in spec.companies if not own.get(company.key)]
+    single = len(periods.named) == 1 and periods.named[0].quarter is not None
+    dated = [company for company in spec.companies if own.get(company.key)]
+    if single and not periods.named[0].calendar and len(dated) == 1:
+        company = dated[0]
+        notes.append(
+            f"{possessive(_shown_name(company))} {label} ended "
+            f"{format_date(own[company.key][0])}."
+        )
+    elif single and not periods.named[0].calendar and dated:
+        ends = [
+            f"{possessive(_shown_name(company))} ended {format_date(own[company.key][0])}"
+            for company in dated
+        ]
+        notes.append(f"{label} is each company's own fiscal quarter: " + "; ".join(ends) + ".")
+    if missing and len(missing) < len(spec.companies):
+        notes.append(f"No filing for {label} from {', '.join(missing)}.")
+    # "Apple revenue 2024" is four quarters; say when the filings here hold fewer.
+    expected = sum(4 if period.quarter is None else 1 for period in periods.named)
+    for company in dated:
+        held = len(own[company.key])
+        if held < expected:
+            notes.append(
+                f"The filings here hold {held} of the {expected} quarters in "
+                f"{joined([period.label() for period in periods.named])} for "
+                f"{_shown_name(company)}."
+            )
+    return notes
+
+
+def _short_window(
+    reading: WindowReading, periods: PeriodSelection, windows: list[tuple[date, ...]]
+) -> list[str]:
+    """Say when a window is shorter than asked: capped, or more than the filings hold."""
+    notes = list(reading.interpretation_notes)
+    shown = max((len(dates) for dates in windows), default=0)
+    if reading.since_year is not None and reading.since_fiscal:
+        # The span was counted on the company's own labels where its fiscal
+        # periods were listed; none asked means the filings hold all of it.
+        return [
+            *notes,
+            *_since_span(f"fiscal {reading.since_year}", periods.asked or shown, shown),
+        ]
+    if reading.since_year is not None:
+        newest = max((dates[0] for dates in windows if dates), default=None)
+        if newest is None:
+            return notes
+        span = quarters_in_span(reading.since_year, newest)
+        return [*notes, *_since_span(str(reading.since_year), span, shown)]
+    wanted = reading.asked_quarters
+    if wanted is not None and 0 < shown < wanted:
+        notes.append(f"The filings here hold only {shown} of the {wanted} quarters asked for.")
+    return notes
+
+
+def _since_span(year: str, span: int, shown: int) -> list[str]:
+    """A "since" window's span, counted from the newest filed quarter, not from today.
+
+    The span is capped as any window is; a quarter is missing only when the
+    filings lack one that ended inside the span.
+    """
+    notes: list[str] = []
+    if span > MAX_SINCE_QUARTERS:
+        notes.append(
+            f"Quarters since {year} number {span}; a window shows at most "
+            f"{MAX_SINCE_QUARTERS}, so this asks for the latest {MAX_SINCE_QUARTERS}."
+        )
+    wanted = min(span, MAX_SINCE_QUARTERS)
+    if 0 < shown < wanted:
+        notes.append(f"The filings here hold only {shown} of the {wanted} quarters since {year}.")
+    return notes
 
 
 def _quarter_phase(day: date) -> int:
