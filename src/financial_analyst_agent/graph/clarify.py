@@ -27,7 +27,7 @@ from financial_analyst_agent.graph.state import (
     StructuredRequest,
 )
 from financial_analyst_agent.issuer_index import CompanyNames
-from financial_analyst_agent.period_selection import WindowReading, read
+from financial_analyst_agent.period_selection import ChangeAsked, WindowReading, read
 from financial_analyst_agent.request_wording import change_asked, is_removal
 from financial_analyst_agent.services.metric_catalog import resolve_metric_phrase
 
@@ -270,10 +270,6 @@ def _resume_metric(
     message: str,
     current_spec: AnalysisSpec | None,
 ) -> StructuredRequest:
-    wording = message
-    if resolve_metric_phrase(message).metrics != chosen:
-        # The turn reads its wording too: "2" or "net" names no one metric, the choice does.
-        wording = " and ".join(name.replace("_", " ") for name in chosen)
     if pending.metric_role == "remove":
         patch = pending.patch.model_copy(update={"remove_metrics": chosen, "add_metrics": ()})
     else:
@@ -284,14 +280,31 @@ def _resume_metric(
             patch = patch.model_copy(update={"mode": "replace", "remove_companies": ()})
     if patch.mode is None and current_spec is None:
         patch = patch.model_copy(update={"mode": "replace"})
-    # The window was asked in the held question ("margin over the past few
-    # quarters"); a reply naming only the metric keeps it, one naming a window
-    # of its own is read as the other resumes read theirs.
-    window = read(wording).reading
-    if pending.question and window == WindowReading():
-        window = read(pending.question).reading
+    reply = read(message)
+    if pending.question:
+        # The held question is read again, as every resume reads it, so its window,
+        # its change and its notes are the question's ("Apple margin growth"); the
+        # choice stands for the ambiguous measure. A reply naming periods or a
+        # change of its own ("gross margin last 6 quarters") adds its words, and its
+        # window is the one read.
+        says_more = bool(reply.names_a_window or reply.named) or (
+            change_asked(message) != ChangeAsked.NONE
+        )
+        wording = f"{pending.question} {message}" if says_more else pending.question
+        window = reply.reading if reply.reading != WindowReading() else read(wording).reading
+    else:
+        # A thread saved before the held question was kept reads the reply, or
+        # the choice where the reply names no one metric ("2", "net").
+        wording = message
+        if resolve_metric_phrase(message).metrics != chosen:
+            wording = " and ".join(name.replace("_", " ") for name in chosen)
+        window = read(wording).reading
     return StructuredRequest(
-        patch=patch, wording=wording, question=pending.question or message, window=window
+        patch=patch,
+        wording=wording,
+        question=pending.question or message,
+        window=window,
+        metric_choice=chosen,
     )
 
 

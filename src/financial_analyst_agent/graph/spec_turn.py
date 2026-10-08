@@ -826,7 +826,13 @@ def resolve_request(
                 ),
                 current_spec,
             )
-    patch, early = bind_metrics_from_message(patch, message, intent=intent)
+    # The held wording names the ambiguous measure again; the analyst chose which.
+    metric_words = (
+        " and ".join(name.replace("_", " ") for name in request.metric_choice)
+        if request.metric_choice
+        else message
+    )
+    patch, early = bind_metrics_from_message(patch, metric_words, intent=intent)
     if early is not None:
         return answered(early, current_spec)
     patch = bind_order_from_message(patch, message)

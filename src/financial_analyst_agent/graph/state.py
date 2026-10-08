@@ -86,6 +86,9 @@ class StructuredRequest(BaseModel):
     # A shared name the analyst was asked about, and the ticker they chose
     # ("Lincoln", "LNC"): the held wording names the company again on resume.
     company_choice: tuple[str, str] | None = None
+    # The metrics the analyst chose when asked: the held wording names the
+    # ambiguous measure ("margin") again on resume, so metrics are read from these.
+    metric_choice: tuple[str, ...] | None = None
 
     @model_validator(mode="before")
     @classmethod
