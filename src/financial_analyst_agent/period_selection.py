@@ -188,7 +188,7 @@ _QUARTERS_PER = {"quarter": 1, "qtr": 1, "q": 1, "year": 4, "yr": 4, "decade": 4
 # the start of that year. "since fiscal 2025", "since FY2025": from the start of
 # each company's own fiscal year. The year is no count: "since 2025 year over
 # year" is the window since 2025 began, with a change on it.
-SINCE_YEAR = re.compile(
+_SINCE_YEAR = re.compile(
     r"\bsince\s+(?:the\s+(?:start|beginning)\s+of\s+|early\s+(?:in\s+)?)?"
     r"(?P<fiscal>fy\s*|fiscal\s+(?:year\s+)?)?(?P<y>(?:19|20)\d{2})\b",
     re.I,
@@ -240,7 +240,7 @@ def _count(raw: str) -> tuple[int, bool]:
 
 def _asked_window(message: str) -> _AskedWindow | None:
     """The window the message asks for, or None when it names no count of periods."""
-    since_years = [since.span() for since in SINCE_YEAR.finditer(message)]
+    since_years = [since.span() for since in _SINCE_YEAR.finditer(message)]
     found = [
         match
         for pattern in _WINDOW_PATTERNS
@@ -394,7 +394,7 @@ def _named_periods(message: str) -> tuple[NamedPeriodSpec, ...]:
                 )
             )
     # "since the start of 2023" is a window; its year names no period.
-    taken.extend(match.span() for match in SINCE_YEAR.finditer(message))
+    taken.extend(match.span() for match in _SINCE_YEAR.finditer(message))
     for match in _YEAR_RANGE.finditer(message):
         first, last = sorted((int(match.group("a")), int(match.group("b"))))
         if free(*match.span()) and last - first < _MAX_RANGE_YEARS:
@@ -464,7 +464,7 @@ TRAILING_YEAR = re.compile(rf"\b(?:{TRAILING_YEAR_WORDS})\b", re.I)
 
 
 # "Apple revenue last year", "annual revenue": a year of quarters, like TTM.
-YEAR_OF_QUARTERS = re.compile(
+_YEAR_OF_QUARTERS = re.compile(
     r"\b(?:last|past|previous|prior)\s+year\b|\bannual(?:ly)?\b|\byearly\b|\bfull[\s-]year\b",
     re.I,
 )
@@ -478,11 +478,11 @@ _YEAR_BASE = re.compile(
 )
 
 
-YEAR_TO_DATE = re.compile(r"\b(?:ytd|year[\s-]+to[\s-]+date)\b", re.I)
+_YEAR_TO_DATE = re.compile(r"\b(?:ytd|year[\s-]+to[\s-]+date)\b", re.I)
 
 
 # Periods shorter than a quarter, which no 10-Q reports on its own.
-SUB_QUARTER = re.compile(
+_SUB_QUARTER = re.compile(
     r"\b(?:last|this|past|previous)\s+(?:month|week)\b|\byesterday\b"
     r"|\b(?:in|for|during)\s+(?:january|february|march|april|june|july|august|september"
     r"|october|november|december)\b(?!\s+(?:19|20)\d{2})",
@@ -490,7 +490,7 @@ SUB_QUARTER = re.compile(
 )
 
 
-SPECIFIC_PERIOD = re.compile(
+_SPECIFIC_PERIOD = re.compile(
     r"\b(?:"
     r"q[1-4]\s*(?:fy\s*)?'?\d{2,4}"
     r"|[1-4]q\s*(?:fy\s*)?'?\d{2,4}"
@@ -526,12 +526,12 @@ def _within(outer: re.Match[str], inner: re.Match[str]) -> bool:
 
 def _read_window(message: str) -> WindowReading:
     """Read once the window details that compilation and answer notes both need."""
-    year_of_quarters = YEAR_OF_QUARTERS.search(message) is not None
-    year_to_date = YEAR_TO_DATE.search(message) is not None
+    year_of_quarters = _YEAR_OF_QUARTERS.search(message) is not None
+    year_to_date = _YEAR_TO_DATE.search(message) is not None
     message = _window_words(message)
     window = _asked_window(message)
-    since = SINCE_YEAR.search(message) if window is None else None
-    specific = SPECIFIC_PERIOD.search(message)
+    since = _SINCE_YEAR.search(message) if window is None else None
+    specific = _SPECIFIC_PERIOD.search(message)
     unread = (
         specific.group(0)
         if specific is not None
@@ -549,7 +549,7 @@ def _read_window(message: str) -> WindowReading:
         since_year=int(since.group("y")) if since is not None else None,
         since_fiscal=since is not None and since.group("fiscal") is not None,
         unread_named_period=unread,
-        sub_quarter=SUB_QUARTER.search(message) is not None,
+        sub_quarter=_SUB_QUARTER.search(message) is not None,
         year_to_date=year_to_date,
     )
 
@@ -565,7 +565,7 @@ def _names_a_window(message: str) -> bool:
     return (
         (window is not None and window.quarters > 1)
         or _YEAR_BASE.search(message) is not None
-        or SINCE_YEAR.search(message) is not None
+        or _SINCE_YEAR.search(message) is not None
     )
 
 
@@ -573,7 +573,7 @@ def _names_a_window(message: str) -> bool:
 
 
 # A "since" window is a window: at most as many quarters as any other (README).
-MAX_SINCE_QUARTERS = MAX_QUARTERS_ASKED
+_MAX_SINCE_QUARTERS = MAX_QUARTERS_ASKED
 
 
 # Growth with no window named: four quarters, and the year-earlier base of the
@@ -731,7 +731,7 @@ class Words:
                 update={
                     "set_periods": PeriodSelection(
                         kind="last_n_quarters",
-                        count=MAX_SINCE_QUARTERS,
+                        count=_MAX_SINCE_QUARTERS,
                         since_year=reading.since_year,
                         since_fiscal=reading.since_fiscal,
                     ),
@@ -1263,12 +1263,12 @@ def _since_span(year: str, span: int, shown: int) -> list[str]:
     filings lack one that ended inside the span.
     """
     notes: list[str] = []
-    if span > MAX_SINCE_QUARTERS:
+    if span > _MAX_SINCE_QUARTERS:
         notes.append(
             f"Quarters since {year} number {span}; a window shows at most "
-            f"{MAX_SINCE_QUARTERS}, so this asks for the latest {MAX_SINCE_QUARTERS}."
+            f"{_MAX_SINCE_QUARTERS}, so this asks for the latest {_MAX_SINCE_QUARTERS}."
         )
-    wanted = min(span, MAX_SINCE_QUARTERS)
+    wanted = min(span, _MAX_SINCE_QUARTERS)
     if 0 < shown < wanted:
         notes.append(f"The filings here hold only {shown} of the {wanted} quarters since {year}.")
     return notes
