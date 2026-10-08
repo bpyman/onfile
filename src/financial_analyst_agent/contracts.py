@@ -16,6 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from financial_analyst_agent.domain.errors import UnknownMetricError
 from financial_analyst_agent.domain.models import FinancialFact, SplitAdjustment
 from financial_analyst_agent.domain.serialization import DecimalStr
+from financial_analyst_agent.prose import short_name
 from financial_analyst_agent.services.metric_catalog import METRIC_DISPLAY
 
 if TYPE_CHECKING:
@@ -417,9 +418,6 @@ class TableRow(BaseModel):
     @property
     def short(self) -> str:
         """The company as a sentence names it ("Microsoft"), or its whole name."""
-        # guide imports contracts, so the prose helper is imported where it is used.
-        from financial_analyst_agent.guide import short_name
-
         return short_name(self.company_name) or self.company_name
 
 

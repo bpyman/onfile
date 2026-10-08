@@ -10,8 +10,6 @@ exploring with one tap.
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
-from datetime import date
 from typing import Any
 
 from financial_analyst_agent.contracts import (
@@ -22,6 +20,7 @@ from financial_analyst_agent.contracts import (
 )
 from financial_analyst_agent.graph.analysis_spec import AnalysisSpec
 from financial_analyst_agent.issuer_index import CompanyNames, expand_groups
+from financial_analyst_agent.prose import in_sentence, joined, possessive, short_name
 from financial_analyst_agent.services.metric_catalog import (
     METRIC_DISPLAY,
     resolve_metric_phrase,
@@ -346,49 +345,6 @@ def _named_company(message: str, index: CompanyNames | None) -> str | None:
     if not mentions:
         return None
     return short_display_name(index, mentions[0].query, mentions[0].query)
-
-
-_SUFFIX = re.compile(
-    r"(?:,?\s+(?:inc|incorporated|corp|corporation|co|company|ltd|plc|holdings|group"
-    r"|& co|& company|and company|a/s|ag|s\.?a|n\.?v|se)\.?)+$",
-    re.IGNORECASE,
-)
-
-
-_MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
-
-
-def format_date(value: date) -> str:
-    """ "Mar 31, 2026", the same whatever the locale."""
-    return f"{_MONTHS[value.month - 1]} {value.day}, {value.year}"
-
-
-def joined(words: Sequence[str], conjunction: str = "and") -> str:
-    """Words in prose: "A", "A and B", "A, B and C"."""
-    if len(words) <= 1:
-        return "".join(words)
-    return f"{', '.join(words[:-1])} {conjunction} {words[-1]}"
-
-
-def in_sentence(label: str) -> str:
-    """ "Net margin" → "net margin" mid-sentence; "EBITDA" and "P/E ratio" keep their case."""
-    if len(label) > 1 and (label[1].isupper() or not label[1].isalpha()):
-        return label
-    return label[:1].lower() + label[1:]
-
-
-def possessive(name: str) -> str:
-    """ "Apple's", "Abbott Laboratories'", and "Lowe's" left as it is."""
-    if name.endswith(("'s", "’s")):
-        return name
-    return f"{name}'" if name.endswith("s") else f"{name}'s"
-
-
-def short_name(name: str) -> str:
-    """ "NVIDIA Corporation" → "NVIDIA"; "Eli Lilly and Company" → "Eli Lilly"."""
-    short = _SUFFIX.sub("", name.strip()).strip(" ,.")
-    # "The Goldman Sachs Group, Inc." reads as "Goldman Sachs".
-    return re.sub(r"^the\s+(?=\S)", "", short, flags=re.IGNORECASE)
 
 
 def short_display_name(index: CompanyNames, query: str, fallback: str) -> str:

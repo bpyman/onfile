@@ -3208,3 +3208,26 @@ Blockers / next:
 - The clarification-reply notes need a person's decision (rules-to-review, 8 October 2026). Every
   period-selection ticket is resolved. 2,531 tests pass; ruff and mypy clean; compare_answers
   reports `0 of 893 conversations differ from master`; phrase coverage 555 of 555.
+
+
+## 2026-10-08 — simplify-leftovers 01: prose helpers in a leaf module
+
+Ticket: `docs/process/tickets/simplify-leftovers/issues/01-prose-helpers-in-a-leaf-module.md`
+
+Key decisions:
+- The five helpers, `_SUFFIX` and `_MONTHS` moved as one cut block, so the bodies are verbatim.
+  `prose.py` imports nothing from the package; `contracts.py` now imports `short_name` at the top.
+- `tests/test_presentation.py` imported `format_date` through `presentation`; it now imports it from
+  `prose` (one import line outside the ticket's list).
+- Import order fixed with `ruff check --fix --select I` only (no formatter).
+
+Files changed:
+- `src/financial_analyst_agent/prose.py` (new), `guide.py`, `contracts.py`, `answer_notes.py`,
+  `filing_change.py`, `graph/spec_turn.py`, `period_selection.py`, `presentation.py`,
+  `request_wording.py`, `session.py`
+- `tests/unit/test_planner_rules.py`, `tests/test_presentation.py`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. 2,534 tests pass; ruff and mypy clean; compare_answers reports `0 of 893 conversations
+  differ from master`. Ticket 02 (one copy of five small rules) is next; its blocker 01 is resolved.

@@ -37,9 +37,9 @@ from financial_analyst_agent.domain.errors import (
 )
 from financial_analyst_agent.fan_out import map_in_order
 from financial_analyst_agent.graph.state import FilingChangeRequest, SectionId
-from financial_analyst_agent.guide import format_date, joined, short_name
 from financial_analyst_agent.numeral_lock import numeral_lock_extras
 from financial_analyst_agent.observability import call_provider
+from financial_analyst_agent.prose import format_date, joined, short_name
 from financial_analyst_agent.providers.sec.company_resolver import resolve_company
 from financial_analyst_agent.providers.sec.submissions import (
     ACCESSION_PATTERN,

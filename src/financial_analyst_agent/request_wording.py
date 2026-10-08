@@ -19,9 +19,9 @@ from financial_analyst_agent.contracts import (
     refuse_unknown_metric,
 )
 from financial_analyst_agent.graph.analysis_spec import AnalysisSpec, SpecPatch
-from financial_analyst_agent.guide import short_name
 from financial_analyst_agent.issuer_index import CompanyNames, word_uses
 from financial_analyst_agent.period_selection import ChangeAsked, Words, read
+from financial_analyst_agent.prose import short_name
 from financial_analyst_agent.services.metric_catalog import (
     metric_phrases,
     resolve_metric_phrase,

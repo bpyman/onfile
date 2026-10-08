@@ -83,8 +83,8 @@ from financial_analyst_agent.graph.analysis_spec import (
     validate_spec,
 )
 from financial_analyst_agent.graph.state import CompiledAnalysis, StructuredRequest
-from financial_analyst_agent.guide import in_sentence, short_name
 from financial_analyst_agent.period_selection import INVALID_QUARTER, Periods, read
+from financial_analyst_agent.prose import in_sentence, short_name
 from financial_analyst_agent.providers.sec.client import sec_turn_seconds_left
 from financial_analyst_agent.providers.sec.company_resolver import resolve_company
 from financial_analyst_agent.request_wording import (

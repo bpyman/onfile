@@ -19,13 +19,7 @@ from financial_analyst_agent.graph.analysis_spec import (
     ResolvedCompany,
     SpecPatch,
 )
-from financial_analyst_agent.guide import (
-    format_date,
-    in_sentence,
-    joined,
-    possessive,
-    short_name,
-)
+from financial_analyst_agent.prose import format_date, in_sentence, joined, possessive, short_name
 from financial_analyst_agent.request_wording import EXPLICIT_YOY, GROWTH, WHY_CHANGE
 from financial_analyst_agent.services.filing_selector import FISCAL_WEEK_TOLERANCE
 from financial_analyst_agent.services.metric_catalog import (

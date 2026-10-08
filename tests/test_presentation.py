@@ -16,7 +16,6 @@ from financial_analyst_agent.contracts import (
 )
 from financial_analyst_agent.presentation import (
     format_chart_amount,
-    format_date,
     format_datetime_utc,
     format_field_name,
     format_metric_value,
@@ -27,6 +26,7 @@ from financial_analyst_agent.presentation import (
     present_turn,
     try_parse_datetime,
 )
+from financial_analyst_agent.prose import format_date
 
 
 def test_format_usd_billions_half_up() -> None:

@@ -15,4 +15,20 @@ From the leftovers of simplify pass 2 (`docs/process/tickets/simplify-pass-2/dro
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped 8 October 2026. `prose.py` holds `format_date`, `joined`, `in_sentence`, `possessive`,
+`short_name`, `_SUFFIX` and `_MONTHS` (which `format_date` needs), cut from `guide.py` as one block, so
+every body is verbatim; it imports only `re`, `collections.abc.Sequence` and `datetime.date`.
+`guide.py` imports `in_sentence`, `joined`, `possessive` and `short_name` from `prose` for its own
+replies and re-exports nothing; `short_display_name` stays in the guide. `contracts.py` imports
+`short_name` at module top, and `TableRow.short` lost its function-local import. Every caller
+(`answer_notes`, `filing_change`, `graph/spec_turn`, `period_selection`, `presentation`,
+`request_wording`, `session`) imports from `prose`. `tests/unit/test_planner_rules.py` imports
+`short_name` from `prose`, and `tests/test_presentation.py` imports `format_date` from `prose`
+rather than through `presentation`'s import of it (one import line outside the ticket's list).
+
+2,534 tests pass (unchanged); ruff and mypy clean; `compare_answers.py --against master` reports
+`0 of 893 conversations differ from master`. No step would have changed behaviour.
