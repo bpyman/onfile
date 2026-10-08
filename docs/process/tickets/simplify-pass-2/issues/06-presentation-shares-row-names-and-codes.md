@@ -27,4 +27,17 @@ From a parallel `/simplify` review of the whole codebase (7 October 2026): seven
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped 7 October 2026. Cleanup only: `uv run python scripts/compare_answers.py` reports `0 of 375 conversations differ from HEAD`, 2,359 tests pass (6 new), ruff and mypy are clean, and the phrase-coverage test still passes every case (555 of 555; report not regenerated).
+
+1. `TableRow.company_key` (`self.cik or self.company_name`) in contracts.py, used at the eight presentation.py sites. Lines 377-378 keep their casefolded key. spec_turn.py and answer_notes.py are untouched and can adopt it.
+2. `TableRow.short` (`short_name(self.company_name) or self.company_name`), used at the six sites, in `_names_by_cik`, and `_owner` is `possessive(row.short)`. guide.py imports contracts, so the property imports `short_name` inside its body (the prose-helpers move to a leaf module is the dropped finding in `dropped.md`). The two ticker-fallback sites are as they were.
+3. `present_turn` computes `_names_by_cik(result.table_rows)` once, before `Presentation(...)`.
+4. `_trend_points(rows, *, value, label, series_of, locate)` is the one line-chart builder: bucketing, merged records, amounts, sorted periods, period labels, series and (through `_point_sources`) the series labels, evidence and derived marks. It returns the ChartSpec keyword arguments rather than the ticket's four-tuple, so each caller is one `ChartSpec(...)` call; `_growth_chart` gathers its shared arguments in `growth`. The drift is kept on purpose: a level with no value keeps its key with an empty amount (`label` returns ""), a change with no percent has no amount (`label` returns None). Two tests pin both chart JSONs.
+5. `_quarters_clause(owner, metric, ends) -> (clause, one)` builds the three banner openings; a test pins the singular and plural split banner.
+6. `_friendly_message` compares against the error classes' `.code`; `_REASON_LABELS` is keyed on the contracts constants; `_SOURCE_ERROR_CODES` is built from `ProviderError.code` and `DataIntegrityError.code`; `refuse_unknown_metric` uses `UnknownMetricError.code`. `invalid_metric`, `empty_spec` and `_legacy_refusal` are as they were. A test asserts the error classes' codes equal the reason constants the window labels.
+
+Tests: `tests/unit/test_table_row.py` (new, +3), `tests/unit/test_answer_card.py` (+2), `tests/unit/test_split_adjusted_per_share.py` (+1).

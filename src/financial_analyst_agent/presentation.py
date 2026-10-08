@@ -10,22 +10,38 @@ from typing import Any
 from urllib.parse import urlparse
 
 from financial_analyst_agent.contracts import (
+    AMBIGUOUS_CONCEPT,
+    COMPANY_NOT_FOUND,
     DIFFERENCE_FORMULAS,
     EXPLORATORY_RESEARCH_BANNER,
+    EXTREME_MARGIN,
     FORMULA_METRICS,
+    LATEST_PERIOD_ONLY,
+    LOOKUP_FAILED,
+    MISSING_FACT,
     MODEL_ANALYSIS_BANNER,
     MULTIPLE_FORMULAS,
+    NEGATIVE_EQUITY,
+    NEGATIVE_REVENUE,
     NEWS_SUMMARY_BANNER,
     NO_DIVIDEND_THIS_QUARTER,
+    NOT_IN_SNAPSHOT,
+    NOT_MEANINGFUL,
+    NOT_OPERATING_COMPANY,
+    NOT_REPORTED_FOR_QUARTER,
     PER_SHARE_METRICS,
     PERCENT_FORMULAS,
+    PERIOD_MISMATCH,
+    PRETAX_LOSS,
     REPORTED_METRICS,
     SNAPSHOT_BANNER_PREFIX,
     SNAPSHOT_METRICS,
+    SOURCE_UNAVAILABLE,
     SPLIT_RATIO,
     SUM_FORMULAS,
     TRAILING_YEAR_FIGURES,
     TRAILING_YEAR_FORMULAS,
+    ZERO_DENOMINATOR,
     ComparisonBase,
     ComponentProvenance,
     Intent,
@@ -35,6 +51,19 @@ from financial_analyst_agent.contracts import (
     ToolTrace,
     TurnResult,
     split_between,
+)
+from financial_analyst_agent.domain.errors import (
+    AmbiguousFactError,
+    CompanyNotFoundError,
+    DataIntegrityError,
+    FilingNotFoundError,
+    NoDividendThisQuarterError,
+    PerShareNotDerivableError,
+    ProviderError,
+    ProviderRefusal,
+    UnknownIndustryError,
+    UnknownMetricError,
+    UnsupportedQuarterlyFactError,
 )
 from financial_analyst_agent.graph.analysis_spec import AnalysisSpec
 from financial_analyst_agent.graph.clarify import clarify_prompt
@@ -73,23 +102,23 @@ _FINE_PER_SHARE_BELOW = Decimal("10")
 _TENTH = Decimal("0.1")
 
 _REASON_LABELS = {
-    "missing_fact": "Missing fact",
-    "not_operating_company": "Not an operating company",
-    "period_mismatch": "Period mismatch",
-    "ambiguous_concept": "Ambiguous concept",
-    "zero_denominator": "Not meaningful (zero base)",
-    "source_unavailable": "Source unavailable",
-    "lookup_failed": "Lookup failed",
-    "company_not_found": "Company not found",
-    "not_in_snapshot": "Not in the market snapshot",
-    "not_reported_for_quarter": "Reported for the year only",
-    "no_dividend_this_quarter": "No dividend declared this quarter",
-    "not_meaningful": "Not meaningful (loss)",
-    "negative_equity": "Not meaningful (negative equity)",
-    "negative_revenue": "Not meaningful (negative revenue)",
-    "pretax_loss": "Not meaningful (pretax loss)",
-    "extreme_margin": "Not meaningful (beyond ±1,000%)",
-    "latest_period_only": "Latest period only",
+    MISSING_FACT: "Missing fact",
+    NOT_OPERATING_COMPANY: "Not an operating company",
+    PERIOD_MISMATCH: "Period mismatch",
+    AMBIGUOUS_CONCEPT: "Ambiguous concept",
+    ZERO_DENOMINATOR: "Not meaningful (zero base)",
+    SOURCE_UNAVAILABLE: "Source unavailable",
+    LOOKUP_FAILED: "Lookup failed",
+    COMPANY_NOT_FOUND: "Company not found",
+    NOT_IN_SNAPSHOT: "Not in the market snapshot",
+    NOT_REPORTED_FOR_QUARTER: "Reported for the year only",
+    NO_DIVIDEND_THIS_QUARTER: "No dividend declared this quarter",
+    NOT_MEANINGFUL: "Not meaningful (loss)",
+    NEGATIVE_EQUITY: "Not meaningful (negative equity)",
+    NEGATIVE_REVENUE: "Not meaningful (negative revenue)",
+    PRETAX_LOSS: "Not meaningful (pretax loss)",
+    EXTREME_MARGIN: "Not meaningful (beyond ±1,000%)",
+    LATEST_PERIOD_ONLY: "Latest period only",
 }
 # Labels for the table's own columns; a metric's label is its catalog entry's.
 _FIELD_LABELS = {
@@ -251,7 +280,7 @@ def long_quarter_banner(rows: list[TableRow]) -> str:
             continue
         days = (row.end_date - row.start_date).days + 1
         if days > _LONG_QUARTER_DAYS:
-            name = short_name(row.company_name) or row.company_name
+            name = row.short
             if (row.end_date, days) not in long.get(name, []):
                 long.setdefault(name, []).append((row.end_date, days))
     notes: list[str] = []
@@ -283,11 +312,9 @@ def split_adjusted_banners(rows: list[TableRow]) -> list[str]:
         adjusted.setdefault(key, []).append(format_date(row.end_date))
     notes = []
     for (owner, metric, splits, operation), ends in adjusted.items():
-        one = len(set(ends)) == 1
+        clause, one = _quarters_clause(owner, metric, ends)
         notes.append(
-            f"{owner} {in_sentence(format_field_name(metric))} for the "
-            f"{_plural('quarter', ends)} ended {joined(list(dict.fromkeys(ends)))} "
-            f"{'is' if one else 'are'} shown after {splits}, as the later filings "
+            f"{clause} {'is' if one else 'are'} shown after {splits}, as the later filings "
             f"restate {'it' if one else 'them'}: the figure as first filed {operation}, "
             "by the ratio the company reports. The evidence gives the figure as first filed."
         )
@@ -315,7 +342,7 @@ def restated_banners(rows: list[TableRow]) -> list[str]:
             (
                 level
                 for level in levels
-                if (level.cik or level.company_name) == (row.cik or row.company_name)
+                if level.company_key == row.company_key
                 and level.metric == row.metric
                 and level.end_date is not None
                 and abs(level.end_date - before.end_date) <= FISCAL_WEEK_TOLERANCE
@@ -343,23 +370,21 @@ def restated_banners(rows: list[TableRow]) -> list[str]:
         for newer, older in zip(ordered, ordered[1:], strict=False):
             if split_between(newer, older) and older.end_date is not None:
                 splits.setdefault(key, []).append(format_date(older.end_date))
-    notes = [
-        f"{owner} {in_sentence(format_field_name(metric))} for the "
-        f"{_plural('quarter', ends)} ended {joined(list(dict.fromkeys(ends)))} "
-        f"{'is' if len(set(ends)) == 1 else 'are'} shown as first reported, before a share "
-        "split, so "
-        f"{'it does' if len(set(ends)) == 1 else 'they do'} not compare with later quarters: "
-        "year-over-year changes use the year-earlier figures as the later filings "
-        "restate them, and no quarter-over-quarter change crosses the split."
-        for (owner, metric), ends in splits.items()
-    ]
-    notes.extend(
-        f"{owner} {in_sentence(format_field_name(metric))} for the "
-        f"{_plural('quarter', ends)} ended {joined(list(dict.fromkeys(ends)))} "
-        "is shown as first filed; a later filing restated it, and the year-over-year "
-        "change uses the restated figure that filing reports."
-        for (owner, metric), ends in restated.items()
-    )
+    notes = []
+    for (owner, metric), ends in splits.items():
+        clause, one = _quarters_clause(owner, metric, ends)
+        notes.append(
+            f"{clause} {'is' if one else 'are'} shown as first reported, before a share split, "
+            f"so {'it does' if one else 'they do'} not compare with later quarters: "
+            "year-over-year changes use the year-earlier figures as the later filings "
+            "restate them, and no quarter-over-quarter change crosses the split."
+        )
+    for (owner, metric), ends in restated.items():
+        clause, _ = _quarters_clause(owner, metric, ends)
+        notes.append(
+            f"{clause} is shown as first filed; a later filing restated it, and the "
+            "year-over-year change uses the restated figure that filing reports."
+        )
     return notes
 
 
@@ -406,11 +431,24 @@ def declared_for_year_banners(rows: list[TableRow]) -> list[str]:
 
 
 def _owner(row: TableRow) -> str:
-    return possessive(short_name(row.company_name) or row.company_name)
+    return possessive(row.short)
 
 
 def _plural(word: str, items: list[str]) -> str:
     return word if len(set(items)) == 1 else f"{word}s"
+
+
+def _quarters_clause(owner: str, metric: str, ends: list[str]) -> tuple[str, bool]:
+    """ "NVIDIA's diluted EPS for the quarters ended Apr 28, 2024 and Jan 28, 2024".
+
+    A banner's opening, and whether it names one quarter (so the banner says
+    "is" and "it" rather than "are" and "them").
+    """
+    clause = (
+        f"{owner} {in_sentence(format_field_name(metric))} for the "
+        f"{_plural('quarter', ends)} ended {joined(list(dict.fromkeys(ends)))}"
+    )
+    return clause, len(set(ends)) == 1
 
 
 def newer_filing_banner(rows: list[TableRow]) -> str:
@@ -983,38 +1021,24 @@ def _chart_spec(
             and row.metric == rows[0].metric
             and row.company_name in series_companies
         ]
-        buckets = _fiscal_week_buckets({row.end_date for row in dated if row.end_date})
-        merged: dict[date, dict[str, object]] = {}
-        sources: dict[date, dict[str, TableRow]] = {}
-        for row in dated:
-            if row.end_date is None:
-                continue
-            period = buckets[row.end_date]
-            bucket = merged.setdefault(period, {"Period": period.isoformat()})
-            bucket[row.company_name] = float(row.value) if row.value is not None else None
-            sources.setdefault(period, {})[row.company_name] = row
         metric = rows[0].metric
-        periods = sorted(merged)
-        records = tuple(merged[period] for period in periods)
-        series = tuple(dict.fromkeys(row.company_name for row in rows))
+
+        def level(row: TableRow) -> float | None:
+            return float(row.value) if row.value is not None else None
+
         return ChartSpec(
             kind="line",
             title="Trend",
-            records=records,
             metric=metric,
             value_kind=chart_value_kind(metric),
             metric_label=format_field_name(metric),
-            period_labels=tuple(format_date(period) for period in periods),
-            series=series,
-            amounts=tuple(
-                {
-                    key: format_chart_amount(metric, value)
-                    for key, value in record.items()
-                    if key != "Period"
-                }
-                for record in records
+            **_trend_points(
+                dated,
+                value=level,
+                label=lambda row: format_chart_amount(metric, level(row)),
+                series_of=rows,
+                locate=locate,
             ),
-            **_point_sources(series, [sources[period] for period in periods], rows, locate),
         )
     if len(companies) >= 2:
         ends = {row.end_date for row in rows if row.end_date is not None}
@@ -1047,6 +1071,45 @@ def _chart_spec(
             metric_label=format_field_name(metric),
         )
     return None
+
+
+def _trend_points(
+    rows: list[TableRow],
+    *,
+    value: Callable[[TableRow], float | None],
+    label: Callable[[TableRow], str | None],
+    series_of: list[TableRow],
+    locate: Callable[[TableRow], int | None],
+) -> dict[str, Any]:
+    """A line chart's points: each row a quarter's value for its company.
+
+    Quarter ends within a fiscal week of each other are one period. A record per
+    period holds each company's ``value``; ``amounts`` holds each one's ``label``,
+    leaving out a row whose label is None; the series, their labels, evidence and
+    derived marks follow ``series_of`` (the rows that decide the series order).
+    """
+    buckets = _fiscal_week_buckets({row.end_date for row in rows if row.end_date})
+    merged: dict[date, dict[str, object]] = {}
+    amounts: dict[date, dict[str, str]] = {}
+    sources: dict[date, dict[str, TableRow]] = {}
+    for row in rows:
+        if row.end_date is None:
+            continue
+        period = buckets[row.end_date]
+        merged.setdefault(period, {"Period": period.isoformat()})[row.company_name] = value(row)
+        sources.setdefault(period, {})[row.company_name] = row
+        shown = label(row)
+        if shown is not None:
+            amounts.setdefault(period, {})[row.company_name] = shown
+    periods = sorted(merged)
+    series = tuple(dict.fromkeys(row.company_name for row in series_of))
+    return {
+        "records": tuple(merged[period] for period in periods),
+        "period_labels": tuple(format_date(period) for period in periods),
+        "series": series,
+        "amounts": tuple(amounts.get(period, {}) for period in periods),
+        **_point_sources(series, [sources[period] for period in periods], series_of, locate),
+    }
 
 
 def _point_sources(
@@ -1101,10 +1164,15 @@ def _growth_chart(
     label = _CHANGE_COLUMN_LABELS[kind]
     humanized = format_field_name(metric)
     rest = "".join(f" and {extra}" for extra in extras)
-    metric_label = f"{humanized} growth, {label}"
+    growth: dict[str, Any] = {
+        "title": "Growth",
+        "metric": metric,
+        "value_kind": "percent",
+        "metric_label": f"{humanized} growth, {label}",
+    }
     quarters: dict[str, int] = {}
     for row in rows:
-        company = row.cik or row.company_name
+        company = row.company_key
         quarters[company] = quarters.get(company, 0) + 1
     if len(quarters) == 1:
         if len(rows) < 2 or any(change_percent(row) is None for row in rows):
@@ -1112,7 +1180,6 @@ def _growth_chart(
         ordered = sorted(rows, key=lambda row: row.end_date or date.min)
         return ChartSpec(
             kind="bar",
-            title="Growth",
             records=tuple(
                 _growth_bar(
                     row, name=_month_label(row.end_date), key=_dated_key(row), evidence=locate(row)
@@ -1121,14 +1188,11 @@ def _growth_chart(
             ),
             caption=f"{label} growth in {in_sentence(humanized)}, quarter by quarter; "
             f"the table lists the amounts{rest}.",
-            metric=metric,
-            value_kind="percent",
-            metric_label=metric_label,
+            **growth,
         )
     if all(count == 1 for count in quarters.values()):
         return ChartSpec(
             kind="bar",
-            title="Growth",
             records=tuple(
                 _growth_bar(row, name=_row_key(row), key=_row_key(row), evidence=locate(row))
                 for row in rows
@@ -1136,40 +1200,23 @@ def _growth_chart(
             caption=f"{label} growth in {in_sentence(humanized)} in each company's latest "
             "quarter; "
             f"the table lists the amounts{rest}.",
-            metric=metric,
-            value_kind="percent",
-            metric_label=metric_label,
+            **growth,
         )
-    buckets = _fiscal_week_buckets({row.end_date for row in rows if row.end_date})
-    merged: dict[date, dict[str, object]] = {}
-    shown: dict[date, dict[str, str]] = {}
-    sources: dict[date, dict[str, TableRow]] = {}
-    for row in rows:
-        if row.end_date is None:
-            continue
-        period = buckets[row.end_date]
-        sources.setdefault(period, {})[row.company_name] = row
+
+    def fraction(row: TableRow) -> float | None:
         percent = change_percent(row)
-        merged.setdefault(period, {"Period": period.isoformat()})[row.company_name] = (
-            float(percent) / 100 if percent is not None else None
-        )
-        if percent is not None:
-            shown.setdefault(period, {})[row.company_name] = _percent_label(percent)
-    periods = sorted(merged)
-    series = tuple(dict.fromkeys(row.company_name for row in rows))
+        return float(percent) / 100 if percent is not None else None
+
+    def shown(row: TableRow) -> str | None:
+        percent = change_percent(row)
+        return _percent_label(percent) if percent is not None else None
+
     return ChartSpec(
         kind="line",
-        title="Growth",
-        records=tuple(merged[period] for period in periods),
         caption=f"{label} growth in {in_sentence(humanized)}, quarter by quarter; "
         f"the table lists the amounts{rest}.",
-        period_labels=tuple(format_date(period) for period in periods),
-        series=series,
-        amounts=tuple(shown.get(period, {}) for period in periods),
-        **_point_sources(series, [sources[period] for period in periods], rows, locate),
-        metric=metric,
-        value_kind="percent",
-        metric_label=metric_label,
+        **_trend_points(rows, value=fraction, label=shown, series_of=rows, locate=locate),
+        **growth,
     )
 
 
@@ -1569,6 +1616,7 @@ def present_turn(result: TurnResult) -> Presentation:
         )
     elif result.ordered_lowest_first and result.intent in (Intent.RANK, Intent.RANK_AND_LOOKUP):
         banners.append("Ordered by market cap, lowest first.")
+    names = _names_by_cik(result.table_rows)
     return Presentation(
         intent=result.intent.value,
         intent_label=(
@@ -1583,10 +1631,7 @@ def present_turn(result: TurnResult) -> Presentation:
             else intent_label(result.intent.value)
         ),
         banners=tuple(banners),
-        traces=tuple(
-            _display_trace(trace, names=_names_by_cik(result.table_rows))
-            for trace in result.tool_traces
-        ),
+        traces=tuple(_display_trace(trace, names=names) for trace in result.tool_traces),
         citations=tuple(
             _display_citation(index, hit) for index, hit in enumerate(result.citations, start=1)
         ),
@@ -1690,7 +1735,7 @@ def _friendly_message(message: str | None, refusal: Refusal | None) -> str | Non
         return message
     code = refusal.code
     details = refusal.details
-    if code in ("unknown_metric", "invalid_metric"):
+    if code in (UnknownMetricError.code, "invalid_metric"):
         term = str(details.get("term", ""))
         if term in ("", "unknown"):
             return (
@@ -1708,7 +1753,7 @@ def _friendly_message(message: str | None, refusal: Refusal | None) -> str | Non
             f"I can't look up “{term}” yet. I answer from 10-Q figures such as revenue, "
             "net income, margins, EPS, free cash flow and P/E."
         )
-    if code == "unknown_industry":
+    if code == UnknownIndustryError.code:
         named = str(details.get("industry", "")).strip()
         theme = _THEME_HINTS.get(named.casefold())
         if theme is not None:
@@ -1730,7 +1775,7 @@ def _friendly_message(message: str | None, refusal: Refusal | None) -> str | Non
             f"{covers} You can also name an industry within those, such as "
             "semiconductors, software, pharma or banks."
         )
-    if code == "company_not_found":
+    if code == CompanyNotFoundError.code:
         query = str(details.get("query", ""))
         if query.strip().casefold() in ("", "unknown"):
             return (
@@ -1745,22 +1790,22 @@ def _friendly_message(message: str | None, refusal: Refusal | None) -> str | Non
         return _MISSING_COMPANIES_MESSAGE
     if code == "empty_spec" and details.get("missing") == "metrics":
         return _MISSING_METRICS_MESSAGE
-    if code == "filing_not_found":
+    if code == FilingNotFoundError.code:
         return _NO_QUARTERLY_FILINGS_MESSAGE
-    if code == "no_dividend_this_quarter":
+    if code == NoDividendThisQuarterError.code:
         return _NO_DIVIDEND_MESSAGE
-    if code == "not_reported_for_quarter":
+    if code == PerShareNotDerivableError.code:
         return _PER_SHARE_NOT_DERIVABLE_MESSAGE
-    if code == "ambiguous_fact":
+    if code == AmbiguousFactError.code:
         return _AMBIGUOUS_FACT_MESSAGE
-    if code == "unsupported_quarterly_fact":
+    if code == UnsupportedQuarterlyFactError.code:
         by_reason = {
             "not_reported_or_derivable": _NO_REPORTED_OR_DERIVABLE_MESSAGE,
             "pending_structured_data": _PENDING_STRUCTURED_DATA_MESSAGE,
             "no_standalone_quarter": _NO_STANDALONE_QUARTER_MESSAGE,
         }
         return by_reason.get(str(details.get("reason")), message)
-    if code == "provider_refusal" and (
+    if code == ProviderRefusal.code and (
         details.get("recorded_filing") or {"cik", "accession", "document"} <= details.keys()
     ):
         return _RECORDED_FILING_MESSAGE
@@ -2004,7 +2049,7 @@ def _wide_table(
     cells: dict[tuple[str, date | None, ComparisonBase | None], dict[str, TableRow]] = {}
     for row in rows:
         place: tuple[str, date | None, ComparisonBase | None] = (
-            row.cik or row.company_name,
+            row.company_key,
             row.end_date,
             row.comparison,
         )
@@ -2216,7 +2261,7 @@ def _display_table(
         return wide
     allowed = _RANK_TABLE_KEYS if intent in (Intent.RANK, Intent.RANK_AND_LOOKUP) else _TABLE_KEYS
     keys = [key for key in allowed if any(not _cell_empty(getattr(row, key)) for row in rows)]
-    if len({row.cik or row.company_name for row in rows}) == 1:
+    if len({row.company_key for row in rows}) == 1:
         # One company's table: its CIK and currency are in the evidence, not columns.
         keys = [key for key in keys if key not in ("cik", "currency")]
     metrics = {row.metric for row in rows if row.metric}
@@ -2328,14 +2373,13 @@ def overview_headline(rows: list[TableRow]) -> str | None:
     the table's first row says, in the table's own formatted amounts.
     """
     levels = [row for row in rows if row.comparison is None and row.value is not None]
-    if len({row.cik or row.company_name for row in levels}) != 1:
+    if len({row.company_key for row in levels}) != 1:
         return None
     by_metric = {row.metric: row for row in levels}
     revenue = by_metric.get("revenue")
     if revenue is None or len({row.end_date for row in levels}) != 1 or len(by_metric) < 2:
         return None
-    name = short_name(revenue.company_name) or revenue.company_name
-    owner = possessive(name)
+    owner = possessive(revenue.short)
     sentence = f"{owner} revenue was {_format_cell(revenue, 'value')}"
     if revenue.end_date is not None:
         sentence += f" in the quarter ended {format_date(revenue.end_date)}"
@@ -2365,7 +2409,7 @@ def growth_headline(rows: list[TableRow]) -> str | None:
     for row in rows:
         if row.comparison != "year_over_year" or change_percent(row) is None:
             continue
-        key = row.cik or row.company_name
+        key = row.company_key
         shown = latest.get(key)
         if shown is None or (row.end_date or date.min) > (shown.end_date or date.min):
             latest[key] = row
@@ -2378,8 +2422,7 @@ def growth_headline(rows: list[TableRow]) -> str | None:
     parts: list[str] = []
     for index, row in enumerate(ordered):
         percent = change_percent(row) or Decimal(0)
-        name = short_name(row.company_name) or row.company_name
-        owner = possessive(name)
+        owner = possessive(row.short)
         subject = f"{owner} {label}" if index == 0 else owner
         mark = DERIVED_MARK if is_derived(row) else ""
         if percent == 0:
@@ -2407,7 +2450,7 @@ def comparison_headline(rows: list[TableRow], intent: Intent) -> str | None:
         return None
     latest: dict[str, TableRow] = {}
     for row in levels:
-        key = row.cik or row.company_name
+        key = row.company_key
         if key not in latest or (row.end_date or date.min) > (latest[key].end_date or date.min):
             latest[key] = row
     if len(latest) == 1:
@@ -2423,7 +2466,7 @@ def comparison_headline(rows: list[TableRow], intent: Intent) -> str | None:
         return _format_cell(row, "value")
 
     def name(row: TableRow) -> str:
-        return short_name(row.company_name) or row.company_name
+        return row.short
 
     if metric == "market_cap":
         second = ordered[1]
@@ -2446,7 +2489,7 @@ def comparison_headline(rows: list[TableRow], intent: Intent) -> str | None:
         )
     ratio = metric in (*PERCENT_FORMULAS, *MULTIPLE_FORMULAS, *PER_SHARE_METRICS)
     most, least = ("highest", "lowest") if ratio else ("most", "least")
-    companies = len({row.cik or row.company_name for row in rows})
+    companies = len({row.company_key for row in rows})
     return (
         f"Of these {companies} companies, {name(top)} reported the {most} {label}, "
         f"{amount(top)}, and {name(bottom)} the {least}, {amount(bottom)}{period}."
@@ -2569,13 +2612,13 @@ def _append_trace_field(fields: list[tuple[str, str]], key: str, value: Any) -> 
 
 # A provider's own wording ("SEC server error", a payload's shape) stays in the
 # record; the window says only that the source failed.
-_SOURCE_ERROR_CODES = frozenset({"provider_error", "data_integrity_error"})
+_SOURCE_ERROR_CODES = frozenset({ProviderError.code, DataIntegrityError.code})
 
 
 def _public_trace_error(error: dict[str, Any]) -> str:
     code = str(error.get("code") or "")
     if code in _SOURCE_ERROR_CODES:
-        return _REASON_LABELS["source_unavailable"]
+        return _REASON_LABELS[SOURCE_UNAVAILABLE]
     details = error.get("details")
     refusal = Refusal(code=code, details=details if isinstance(details, dict) else {})
     return _friendly_message(str(error.get("message") or ""), refusal) or ""
@@ -2593,11 +2636,7 @@ def _trace_fields(payload: dict[str, Any]) -> tuple[tuple[str, str], ...]:
 
 def _names_by_cik(rows: list[TableRow]) -> dict[str, str]:
     """Each CIK the turn asked for, by the short name the answer's notes use ("Microsoft")."""
-    return {
-        row.cik: short_name(row.company_name) or row.company_name
-        for row in rows
-        if row.cik and row.company_name
-    }
+    return {row.cik: row.short for row in rows if row.cik and row.company_name}
 
 
 def _display_trace(trace: ToolTrace, *, names: dict[str, str] | None = None) -> DisplayTrace:

@@ -2760,3 +2760,33 @@ Blockers / next:
   conversations differ from HEAD`; phrase coverage 555 of 555 (report not regenerated).
   Tickets 06-12 in simplify-pass-2 remain; ticket 06 can switch spec_turn's
   `row.cik or row.company_name` sites to `TableRow.company_key`.
+
+2026-10-07
+
+Task completed: `docs/process/tickets/simplify-pass-2/issues/06-presentation-shares-row-names-and-codes.md`
+
+Key decisions:
+- contracts.py: `TableRow.company_key` (`cik or company_name`) and `TableRow.short`
+  (`short_name(company_name) or company_name`); `short` imports `short_name` inside the
+  property because guide.py imports contracts. `refuse_unknown_metric` uses
+  `UnknownMetricError.code`.
+- presentation.py: `company_key` at the eight sites (the casefolded key at 377-378 kept),
+  `short` at the six sites and `_names_by_cik`, `_owner` is `possessive(row.short)`;
+  `present_turn` builds the names map once; `_trend_points(rows, *, value, label,
+  series_of, locate)` returns the line chart's ChartSpec keyword arguments for both the
+  level trend and the growth line (a level with no value keeps an empty amount, a change
+  with no percent has none, as before); `_quarters_clause` opens the three banners;
+  `_friendly_message`, `_REASON_LABELS` and `_SOURCE_ERROR_CODES` use the error classes'
+  codes and the contracts constants.
+
+Files changed:
+- `src/financial_analyst_agent/presentation.py`, `contracts.py`
+- `tests/unit/test_table_row.py` (new, +3), `tests/unit/test_answer_card.py` (+2),
+  `tests/unit/test_split_adjusted_per_share.py` (+1)
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. All 2,359 Python tests pass; ruff and mypy pass; compare_answers reports `0 of 375
+  conversations differ from HEAD`; phrase coverage 555 of 555 (report not regenerated).
+  Tickets 07-12 in simplify-pass-2 remain; spec_turn.py and answer_notes.py can now switch
+  their `row.cik or row.company_name` sites to `TableRow.company_key`.
