@@ -27,12 +27,8 @@ from financial_analyst_agent.graph.state import (
     StructuredRequest,
 )
 from financial_analyst_agent.issuer_index import CompanyNames
-from financial_analyst_agent.request_wording import (
-    WindowReading,
-    bind_periods_from_message,
-    is_removal,
-    read_window,
-)
+from financial_analyst_agent.period_selection import WindowReading, read
+from financial_analyst_agent.request_wording import change_asked, is_removal
 from financial_analyst_agent.services.metric_catalog import resolve_metric_phrase
 
 _NEW_QUESTION = re.compile(r"\b(?:what|which|how|compare|versus|vs)\b|['’]s\b", re.IGNORECASE)
@@ -148,7 +144,7 @@ def _read_metric(answer: _Answer) -> ClarifyReply | None:
     chosen = _metrics_named(pending.candidates, plain)
     if chosen:
         return ClarifyReply(chosen=chosen)
-    periods = bind_periods_from_message(SpecPatch(mode="extend"), message)
+    periods = read(message).bind(SpecPatch(mode="extend"), change_asked(message))
     if periods != SpecPatch(mode="extend"):
         return ClarifyReply(period_patch=periods)
     return None
@@ -291,9 +287,9 @@ def _resume_metric(
     # The window was asked in the held question ("margin over the past few
     # quarters"); a reply naming only the metric keeps it, one naming a window
     # of its own is read as the other resumes read theirs.
-    window = read_window(wording)
+    window = read(wording).reading
     if pending.question and window == WindowReading():
-        window = read_window(pending.question)
+        window = read(pending.question).reading
     return StructuredRequest(
         patch=patch, wording=wording, question=pending.question or message, window=window
     )
@@ -357,7 +353,7 @@ def ask_again(
 ) -> Clarification:
     """Keep the open question: a period noted for it, or an option out of range."""
     if reply.period_patch is not None:
-        patch = bind_periods_from_message(pending.patch, message)
+        patch = read(message).bind(pending.patch, change_asked(message))
         note = f"Noted “{message.strip()}”. Pick a metric to see it for that period."
     else:
         patch = pending.patch

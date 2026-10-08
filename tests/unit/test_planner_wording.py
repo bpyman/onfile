@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import dataclasses
+
 import pytest
 
 from financial_analyst_agent.contracts import Intent
@@ -12,11 +14,12 @@ from financial_analyst_agent.graph.analysis_spec import (
     apply_patch,
     resolve_spec,
 )
+from financial_analyst_agent.period_selection import ChangeAsked, read
 from financial_analyst_agent.ranking import SnapshotRanking
 from financial_analyst_agent.request_wording import (
     bind_metrics_from_message,
     bind_order_from_message,
-    bind_periods_from_message,
+    change_asked,
     refine_patch_from_message,
 )
 from financial_analyst_agent.rules_planner import DemoCompleter, issuer_index
@@ -258,7 +261,7 @@ def test_merge_uses_the_specs_ordering_metric_not_the_message() -> None:
 
 def test_over_the_past_year_is_the_years_quarters_not_growth() -> None:
     message = "Compare JPMorgan and Bank of America net income over the past year"
-    patch = bind_periods_from_message(SpecPatch(mode="replace"), message)
+    patch = read(message).bind(SpecPatch(mode="replace"), change_asked(message))
 
     assert patch.set_periods == PeriodSelection(kind="last_n_quarters", count=4)
     assert "year_over_year" not in patch.add_operations
@@ -283,7 +286,7 @@ def test_a_change_over_a_named_window_is_year_over_year_over_that_window(
     message: str, count: int
 ) -> None:
     """README's growth row: "change over the past year" is 4 quarters, each year over year."""
-    patch = bind_periods_from_message(SpecPatch(mode="replace"), message)
+    patch = read(message).bind(SpecPatch(mode="replace"), change_asked(message))
 
     assert patch.set_periods == PeriodSelection(kind="last_n_quarters", count=count)
     assert "across_periods" in patch.add_operations
@@ -346,6 +349,50 @@ def test_what_a_change_is_measured_against(message: str, base: str | None) -> No
     assert comparison_asked(message) == base
 
 
+def _change(**flags: object) -> ChangeAsked:
+    return dataclasses.replace(ChangeAsked.NONE, **flags)
+
+
+@pytest.mark.parametrize(
+    ("message", "change"),
+    [
+        ("Apple revenue last quarter", ChangeAsked.NONE),
+        # Growth is year over year by convention, not named as such.
+        ("Apple revenue growth", _change(base="year_over_year", yoy=True)),
+        (
+            "Apple revenue year over year",
+            _change(base="year_over_year", yoy=True, explicit_yoy=True),
+        ),
+        ("Apple revenue vs last year", _change(base="year_over_year", yoy=True, explicit_yoy=True)),
+        # A change asked in words that name no base.
+        ("How much did Intel's revenue change?", _change(base="unclear", change_words=True)),
+        (
+            "How has Microsoft revenue changed?",
+            _change(base="unclear", yoy=True, change_words=True),
+        ),
+        ("Apple revenue quarter over quarter", _change(base="sequential", sequential=True)),
+        (
+            "Apple revenue sequentially or versus last year",
+            _change(base="sequential", yoy=True, sequential=True, both=True, explicit_yoy=True),
+        ),
+        # One base named to rule the other out is not both.
+        (
+            "Apple revenue quarter over quarter instead of year over year",
+            _change(base="sequential", yoy=True, sequential=True, explicit_yoy=True),
+        ),
+        (
+            "remove year over year",
+            _change(base="year_over_year", yoy=True, explicit_yoy=True, dropped=True),
+        ),
+    ],
+)
+def test_the_change_asked_is_read_into_seven_flags(message: str, change: ChangeAsked) -> None:
+    """The period selection takes the change as input (ADR 0015): growth, explicit
+    year over year, a change with no base, sequential, both and a dropped change
+    each bind differently, so each is its own flag."""
+    assert change_asked(message) == change
+
+
 @pytest.mark.parametrize(
     "message",
     [
@@ -361,7 +408,7 @@ def test_what_a_change_is_measured_against(message: str, base: str | None) -> No
 def test_naming_both_bases_asks_for_both_changes(message: str) -> None:
     """README's changes row: naming both bases shows both changes, wherever the
     bases sit in the question (held-out-5-findings ticket 01)."""
-    patch = bind_periods_from_message(SpecPatch(mode="replace"), message)
+    patch = read(message).bind(SpecPatch(mode="replace"), change_asked(message))
 
     assert patch.set_periods == PeriodSelection(kind="last_n_quarters", count=5)
     assert {"across_periods", "year_over_year", "sequential"} <= set(patch.add_operations)
@@ -382,9 +429,9 @@ def test_since_a_year_followed_by_a_change_word_names_the_year_not_a_count(
 ) -> None:
     """"since 2025 year over year" is the window since 2025 began, not 2025 years
     (probe-round-3-gaps ticket 10)."""
-    from financial_analyst_agent.request_wording import read_window
+    from financial_analyst_agent.period_selection import read
 
-    window = read_window(message)
+    window = read(message).reading
 
     assert (window.since_year, window.since_fiscal) == (year, fiscal)
     assert (window.asked_quarters, window.counted_window) == (None, False)
@@ -411,7 +458,7 @@ def test_a_change_over_a_since_window_is_year_over_year_over_it(
     every quarter since the year began (probe-round-3-gaps ticket 10)."""
     from financial_analyst_agent.graph.analysis_spec import MAX_QUARTERS_ASKED
 
-    patch = bind_periods_from_message(SpecPatch(mode="replace"), message)
+    patch = read(message).bind(SpecPatch(mode="replace"), change_asked(message))
 
     assert patch.set_periods == PeriodSelection(
         kind="last_n_quarters", count=MAX_QUARTERS_ASKED, since_year=year, since_fiscal=fiscal
@@ -423,9 +470,8 @@ def test_a_change_over_a_since_window_is_year_over_year_over_it(
 def test_a_sequential_change_over_a_since_window_keeps_its_quarters() -> None:
     from financial_analyst_agent.graph.analysis_spec import MAX_QUARTERS_ASKED
 
-    patch = bind_periods_from_message(
-        SpecPatch(mode="replace"), "Apple revenue since 2025 quarter over quarter"
-    )
+    message = "Apple revenue since 2025 quarter over quarter"
+    patch = read(message).bind(SpecPatch(mode="replace"), change_asked(message))
 
     # The quarters since the year began, each with its change on the one before;
     # the oldest has no base inside the window, as after "sequential instead".
@@ -477,7 +523,7 @@ def test_an_answer_names_the_base_of_a_change(answer: str, base: str) -> None:
     ],
 )
 def test_removing_year_over_year_takes_the_change_away_and_keeps_the_window(message: str) -> None:
-    patch = bind_periods_from_message(SpecPatch(mode="extend"), message)
+    patch = read(message).bind(SpecPatch(mode="extend"), change_asked(message))
 
     assert patch.set_periods is None
     # A sequential change asked beside year over year goes with it.
@@ -486,7 +532,8 @@ def test_removing_year_over_year_takes_the_change_away_and_keeps_the_window(mess
 
 
 def test_year_over_year_on_its_own_still_asks_for_it() -> None:
-    patch = bind_periods_from_message(SpecPatch(mode="extend"), "year over year")
+    message = "year over year"
+    patch = read(message).bind(SpecPatch(mode="extend"), change_asked(message))
 
     assert "year_over_year" in patch.add_operations
     assert not patch.remove_operations
@@ -498,7 +545,7 @@ def test_year_over_year_on_its_own_still_asks_for_it() -> None:
 def test_year_over_year_spelt_another_way_reads_the_same(spelling: str) -> None:
     def bound(wording: str) -> SpecPatch:
         message = f"is unitedhealth's operating cash flow up {wording}"
-        return bind_periods_from_message(SpecPatch(mode="replace"), message)
+        return read(message).bind(SpecPatch(mode="replace"), change_asked(message))
 
     assert bound(spelling) == bound("year over year")
     assert "year_over_year" in bound(spelling).add_operations
@@ -518,7 +565,7 @@ def test_year_over_year_spelt_another_way_reads_the_same(spelling: str) -> None:
 def test_a_year_earlier_reads_as_year_over_year(wording: str) -> None:
     def bound(base: str) -> SpecPatch:
         message = f"is unitedhealth's operating cash flow up {base}"
-        return bind_periods_from_message(SpecPatch(mode="replace"), message)
+        return read(message).bind(SpecPatch(mode="replace"), change_asked(message))
 
     assert bound(wording) == bound("year over year")
 
@@ -708,7 +755,7 @@ def test_year_over_year_instead_after_a_sequential_window_keeps_the_quarters(
     ],
 )
 def test_one_base_instead_of_the_other_is_that_base_alone(message: str) -> None:
-    patch = bind_periods_from_message(SpecPatch(mode="replace"), message)
+    patch = read(message).bind(SpecPatch(mode="replace"), change_asked(message))
 
     assert patch.set_periods == PeriodSelection(kind="last_n_quarters", count=5)
     assert not {"year_over_year", "sequential"} & set(patch.add_operations)

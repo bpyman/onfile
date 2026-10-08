@@ -8,10 +8,7 @@ and how a follow-up edits the analysis on screen. Nothing here fetches.
 from __future__ import annotations
 
 import re
-from datetime import date
 from typing import Any, Literal
-
-from pydantic import BaseModel
 
 from financial_analyst_agent.contracts import (
     ALLOWED_METRICS,
@@ -21,23 +18,14 @@ from financial_analyst_agent.contracts import (
     TurnResult,
     refuse_unknown_metric,
 )
-from financial_analyst_agent.graph.analysis_spec import (
-    MAX_QUARTERS_ASKED,
-    AnalysisSpec,
-    NamedPeriodSpec,
-    PeriodSelection,
-    SpecPatch,
-)
+from financial_analyst_agent.graph.analysis_spec import AnalysisSpec, SpecPatch
 from financial_analyst_agent.guide import short_name
 from financial_analyst_agent.issuer_index import CompanyNames, word_uses
-from financial_analyst_agent.observability import log_event
-from financial_analyst_agent.period_window import SINCE_YEAR, asked_window
+from financial_analyst_agent.period_selection import ChangeAsked, Words, read
 from financial_analyst_agent.services.metric_catalog import (
-    TRAILING_YEAR_WORDS,
     metric_phrases,
     resolve_metric_phrase,
     segment_companies,
-    without_trailing_year_words,
 )
 
 _ADD_EDIT = re.compile(
@@ -166,87 +154,6 @@ _COMPARE_TO_ISSUER = re.compile(
 )
 
 
-_YEAR = r"'?(?P<y>(?:19|20)\d{2}|\d{2})\b"
-
-
-_FISCAL_WORD = r"(?:(?:fy|fiscal(?:\s+year)?)\s*)?"
-
-
-_CALENDAR_WORD = r"(?P<cal>calendar\s+(?:year\s+)?|cy\s*)?"
-
-
-_QUARTER_WORDS = {
-    "first": 1,
-    "1st": 1,
-    "second": 2,
-    "2nd": 2,
-    "third": 3,
-    "3rd": 3,
-    "fourth": 4,
-    "4th": 4,
-}
-
-
-# Named periods, most specific first: "Q3 2024", "Q3 FY25", "2024 Q3", "third
-# quarter of fiscal 2024", "fiscal 2025", "FY24", "calendar 2025", "in 2024".
-_NAMED_PERIOD_PATTERNS = (
-    re.compile(rf"\b{_CALENDAR_WORD}q(?P<q>[1-4])\s*(?:of\s+)?{_FISCAL_WORD}{_YEAR}", re.I),
-    re.compile(rf"\b{_CALENDAR_WORD}(?P<y>(?:19|20)\d{{2}})\s*q(?P<q>[1-4])\b", re.I),
-    # Sell-side shorthand: "2Q 2026", "3Q25", "4QFY24".
-    re.compile(rf"\b{_CALENDAR_WORD}(?P<q>[1-4])q\s*{_FISCAL_WORD}{_YEAR}", re.I),
-    re.compile(
-        rf"\b{_CALENDAR_WORD}(?P<qw>first|second|third|fourth|1st|2nd|3rd|4th)\s+"
-        rf"(?:fiscal\s+)?quarter\s+(?:of\s+)?{_FISCAL_WORD}{_YEAR}",
-        re.I,
-    ),
-    re.compile(rf"\b(?P<cal>calendar(?:\s+year)?\s+|cy\s*){_YEAR}", re.I),
-    re.compile(rf"\b(?:fy|fiscal(?:\s+year)?)\s*{_YEAR}", re.I),
-    re.compile(r"\b(?:in|for|during)\s+(?P<y>(?:19|20)\d{2})\b", re.I),
-    # A bare year is that fiscal year ("Apple revenue 2024", "2025 vs 2024"), but
-    # "since 2020" is a window and "top 2000" a count.
-    re.compile(
-        r"(?<![\w$.,/-])(?<!since )(?<!top )(?<!last )(?P<y>(?:19|20)\d{2})(?![\w%.,/-])", re.I
-    ),
-)
-
-
-_MONTHS = {
-    "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
-    "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
-}  # fmt: skip
-
-
-_MONTH = r"(?P<m>jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?"
-
-
-# "September quarter 2025", "December 2025 quarter", "quarter ended June 2026":
-# the calendar quarter that month closes. Other months name no calendar quarter.
-_MONTH_QUARTER_PATTERNS = (
-    re.compile(
-        rf"\b(?:quarter|period|three months)\s+(?:ended|ending|to)\s+(?:in\s+)?{_MONTH}\s+"
-        rf"(?:\d{{1,2}},?\s+)?(?P<y>(?:19|20)\d{{2}})\b",
-        re.I,
-    ),
-    re.compile(rf"\b{_MONTH}\s+(?P<y>(?:19|20)\d{{2}})\s+quarter\b", re.I),
-    re.compile(rf"\b{_MONTH}\s+quarter\s+(?:of\s+)?(?P<y>(?:19|20)\d{{2}})\b", re.I),
-)
-
-
-# "from 2022 to 2024": each fiscal year in the range.
-_YEAR_RANGE = re.compile(
-    r"\b(?:from|between)\s+(?:fy\s*)?(?P<a>(?:19|20)\d{2})\s+(?:to|and|through|until|-)\s+"
-    r"(?:fy\s*)?(?P<b>(?:19|20)\d{2})\b",
-    re.I,
-)
-
-
-_MAX_RANGE_YEARS = 10
-
-
-# "20 years ago" names that fiscal year; "a year ago" is a year-over-year change.
-_YEARS_AGO = re.compile(r"\b(?P<n>\d{1,2})\s+years?\s+ago\b", re.I)
-
-
 # "next quarter" asks for a forecast; filings only report what has happened.
 FORECAST = re.compile(
     r"\bnext\s+(?:quarter|year|fiscal\s+year|fy)\b|\bforecasts?\b|\bprojected\b|\bpredict",
@@ -293,44 +200,12 @@ _CHANGE = re.compile(
 GROWTH = re.compile(r"\b(?:grow(?:th|n|ing|s)?|grew|trend(?:s|ing)?)\b", re.IGNORECASE)
 
 
-# "changed over the last year": a change across a year is year over year.
-_YEAR_BASE = re.compile(
-    r"\b(?:over|in|during|across) the (?:last|past|previous|prior)"
-    r" (?:year|twelve months|12 months)\b",
-    re.IGNORECASE,
-)
-
-
 COMPARISON_CANDIDATES: tuple[ComparisonBase, ...] = ("year_over_year", "sequential")
 
 
 COMPARISON_LABELS = (
     "The same quarter a year earlier (year over year)",
     "The quarter before (sequential)",
-)
-
-
-# Four quarters, each with the quarter a year before it.
-_YOY_WINDOW = 8
-
-
-# "Q5 2025" names no quarter; answering the latest one instead would mislead.
-INVALID_QUARTER = re.compile(r"\bQ(0|[5-9]|\d{2,})\s*(?:FY\s*)?'?\d{2,4}\b", re.IGNORECASE)
-
-
-# "latest revenue" after "Apple revenue Q3 2025" asks for the newest quarter again.
-_LATEST = re.compile(
-    r"\b(?:latest|most recent|newest)\b|\b(?:last|this|current) quarter\b", re.IGNORECASE
-)
-
-
-TRAILING_YEAR = re.compile(rf"\b(?:{TRAILING_YEAR_WORDS})\b", re.I)
-
-
-# "Apple revenue last year", "annual revenue": a year of quarters, like TTM.
-YEAR_OF_QUARTERS = re.compile(
-    r"\b(?:last|past|previous|prior)\s+year\b|\bannual(?:ly)?\b|\byearly\b|\bfull[\s-]year\b",
-    re.I,
 )
 
 
@@ -390,39 +265,6 @@ def asks_for_explanation(message: str) -> bool:
         return True
     asked = _WHAT_IS.match(message)
     return asked is not None and asked.group("measure").casefold() in metric_phrases()
-
-
-YEAR_TO_DATE = re.compile(r"\b(?:ytd|year[\s-]+to[\s-]+date)\b", re.I)
-
-
-# A "since" window is a window: at most as many quarters as any other (README).
-MAX_SINCE_QUARTERS = MAX_QUARTERS_ASKED
-
-
-class WindowReading(BaseModel):
-    """The one reading of window wording that compilation and answer notes share."""
-
-    asked_quarters: int | None = None
-    counted_window: bool = False
-    interpretation_notes: tuple[str, ...] = ()
-    trailing_year: bool = False
-    # "last year", "annual": the four latest quarters, shown one by one.
-    year_of_quarters: bool = False
-    # "since 2024": the quarters are every filed quarter since that 1 January,
-    # chosen where the companies' report dates are known, so no count is read.
-    since_year: int | None = None
-    # "since fiscal 2025": the year is each company's own fiscal year.
-    since_fiscal: bool = False
-    unread_named_period: str | None = None
-    sub_quarter: bool = False
-
-
-# "H1 2026", "first half of fiscal 2026": two named quarters.
-_HALF_YEAR = re.compile(
-    rf"\b{_CALENDAR_WORD}(?:h(?P<h>[12])|(?P<hw>first|second|1st|2nd)\s+half(?:\s+of)?)\s*"
-    rf"{_FISCAL_WORD}{_YEAR}",
-    re.I,
-)
 
 
 # Wording that asks for numbers without naming a metric. Each maps to the
@@ -690,87 +532,6 @@ def _companies_in(
     return _company_tokens(text)
 
 
-def parse_named_periods(message: str) -> tuple[NamedPeriodSpec, ...]:
-    """Every period the message names, in the order named, without repeats."""
-    found: list[tuple[int, NamedPeriodSpec]] = []
-    taken: list[tuple[int, int]] = []
-
-    def free(start: int, end: int) -> bool:
-        return not any(start < other_end and end > other_start for other_start, other_end in taken)
-
-    for match in _HALF_YEAR.finditer(message):
-        start, end = match.span()
-        if not free(start, end):
-            continue
-        groups = match.groupdict()
-        year = _full_year(groups["y"])
-        second = groups.get("h") == "2" or (groups.get("hw") or "").casefold() in ("second", "2nd")
-        first_quarter = 3 if second else 1
-        taken.append((start, end))
-        for offset in (0, 1):
-            found.append(
-                (
-                    start + offset,
-                    NamedPeriodSpec(
-                        year=year, quarter=first_quarter + offset, calendar=bool(groups.get("cal"))
-                    ),
-                )
-            )
-    # "since the start of 2023" is a window; its year names no period.
-    taken.extend(match.span() for match in SINCE_YEAR.finditer(message))
-    for match in _YEAR_RANGE.finditer(message):
-        first, last = sorted((int(match.group("a")), int(match.group("b"))))
-        if free(*match.span()) and last - first < _MAX_RANGE_YEARS:
-            taken.append(match.span())
-            found.extend(
-                (match.start() + offset, NamedPeriodSpec(year=year))
-                for offset, year in enumerate(range(last, first - 1, -1))
-            )
-    for pattern in _MONTH_QUARTER_PATTERNS:
-        for match in pattern.finditer(message):
-            month = _MONTHS[match.group("m")[:3].casefold()]
-            if not free(*match.span()):
-                continue
-            taken.append(match.span())
-            if month % 3:
-                # April closes no calendar quarter; the turn says it was not read.
-                continue
-            period = NamedPeriodSpec(year=int(match.group("y")), quarter=month // 3, calendar=True)
-            found.append((match.start(), period))
-    for match in _YEARS_AGO.finditer(message):
-        if int(match.group("n")) >= 2 and free(*match.span()):
-            taken.append(match.span())
-            found.append(
-                (match.start(), NamedPeriodSpec(year=date.today().year - int(match.group("n"))))
-            )
-    for pattern in _NAMED_PERIOD_PATTERNS:
-        for match in pattern.finditer(message):
-            start, end = match.span()
-            if not free(start, end):
-                continue
-            groups = match.groupdict()
-            year = _full_year(groups["y"])
-            quarter = None
-            if groups.get("q"):
-                quarter = int(groups["q"])
-            elif groups.get("qw"):
-                quarter = _QUARTER_WORDS[groups["qw"].casefold()]
-            taken.append((start, end))
-            found.append(
-                (
-                    start,
-                    NamedPeriodSpec(year=year, quarter=quarter, calendar=bool(groups.get("cal"))),
-                )
-            )
-    ordered = [period for _start, period in sorted(found, key=lambda item: item[0])]
-    return tuple(dict.fromkeys(ordered))
-
-
-def _full_year(raw: str) -> int:
-    """ "25" and "2025" are both 2025."""
-    return int(raw) + (2000 if len(raw) == 2 else 0)
-
-
 def comparison_asked(message: str) -> ComparisonBase | Literal["unclear"] | None:
     """What a change the message asks about is measured against.
 
@@ -785,7 +546,7 @@ def comparison_asked(message: str) -> ComparisonBase | Literal["unclear"] | None
     if (
         EXPLICIT_YOY.search(message) is not None
         or GROWTH.search(message) is not None
-        or _names_a_window(message)
+        or read(message).names_a_window
     ):
         return "year_over_year"
     return "unclear"
@@ -829,195 +590,33 @@ def _asks_change(message: str) -> bool:
     is asked about. Over named periods alone, the quarters themselves are the
     answer, so no change is asked.
     """
+    words = read(message)
     return _CHANGE.search(message) is not None and (
-        _names_a_window(message) or not _names_a_span(message)
+        words.names_a_window or len(words.named) <= 1
     )
 
 
-def window_words(message: str) -> str:
-    """The wording a window is read from: "TTM net income" names a figure, not quarters."""
-    return without_trailing_year_words(message)
+def change_asked(message: str) -> ChangeAsked:
+    """Which change the words ask for, as the period selection takes it.
 
-
-def _names_a_window(message: str) -> bool:
-    """Whether the wording names a window of quarters ("over the past 10 quarters",
-    "over the last year", "since 2023").
-
-    A change asked over one, in any wording, is year over year over that window
-    (README's growth row); a "since" window is a window too.
+    Each flag is one of the change patterns read over the raw message; the
+    period selection decides what the flags mean for the quarters (ADR 0015).
     """
-    window = asked_window(window_words(message))
-    return (
-        (window is not None and window.quarters > 1)
-        or _YEAR_BASE.search(message) is not None
-        or SINCE_YEAR.search(message) is not None
+    return ChangeAsked(
+        base=comparison_asked(message),
+        yoy=YOY.search(message) is not None,
+        sequential=_SEQUENTIAL.search(message) is not None,
+        both=names_both_bases(message),
+        explicit_yoy=EXPLICIT_YOY.search(message) is not None,
+        change_words=_CHANGE.search(message) is not None,
+        dropped=drops_comparison(message),
     )
-
-
-def _names_a_span(message: str) -> bool:
-    """Whether the wording names quarters a change runs across: a window or
-    several named periods."""
-    return _names_a_window(message) or len(parse_named_periods(message)) > 1
-
-
-def bind_periods_from_message(
-    patch: SpecPatch, message: str, *, window: WindowReading | None = None
-) -> SpecPatch:
-    """Period windows come from the analyst's wording, not a model slug."""
-    window = window or read_window(message)
-    if drops_comparison(message):
-        return patch.model_copy(
-            update={
-                "set_periods": None,
-                "add_operations": tuple(
-                    operation
-                    for operation in patch.add_operations
-                    if operation not in _CHANGE_OPERATIONS
-                ),
-                "remove_operations": tuple(
-                    dict.fromkeys([*patch.remove_operations, *_CHANGE_OPERATIONS])
-                ),
-            }
-        )
-    asked = window.asked_quarters if window.counted_window else None
-    base = comparison_asked(message)
-    # "How much did revenue change?" shows the quarters "how has it changed?" does.
-    yoy = YOY.search(message) is not None or _asks_change(message)
-    # "quarter over quarter" is a window of sequential changes.
-    sequential = _SEQUENTIAL.search(message) is not None
-    # "sequentially or versus last year": both changes, each quarter's year over
-    # year from its own comparative beside its change on the quarter before.
-    both = names_both_bases(message)
-    if asked is None and (yoy or sequential) and _YEAR_BASE.search(message) is not None:
-        # "How did EBITDA change over the past year?": a change over a year named
-        # with no count is over that year's four quarters, as "growth over the
-        # last 4 quarters" is, not the growth default (README's growth row).
-        asked = 4
-    named = parse_named_periods(message)
-    if not named and asked is None and window.since_year is not None:
-        # Every filed quarter since that 1 January, at most the window cap: the
-        # quarters are chosen where the report dates are listed, as a named
-        # period's are, not counted from today. A change over it is over those
-        # quarters: year over year from each one's own comparative (ADR 0009),
-        # or on the quarter before, where the oldest has none inside the window.
-        operations = _change_operations(
-            patch.add_operations, across=yoy or sequential, base=base, both=both
-        )
-        return patch.model_copy(
-            update={
-                "set_periods": PeriodSelection(
-                    kind="last_n_quarters",
-                    count=MAX_SINCE_QUARTERS,
-                    since_year=window.since_year,
-                    since_fiscal=window.since_fiscal,
-                ),
-                "add_operations": operations,
-            }
-        )
-    if not named and asked is None and not yoy and (
-        window.trailing_year or window.year_of_quarters
-    ):
-        # "TTM revenue": show the four quarters that make up the trailing year.
-        return patch.model_copy(
-            update={"set_periods": PeriodSelection(kind="last_n_quarters", count=4)}
-        )
-    if named:
-        # A change on a named period is read as on a window: the named quarters,
-        # each with its year-over-year change from its own filing's comparative
-        # (ADR 0009), or with its change on the quarter before, read but not shown.
-        quarters = [period for period in named if period.quarter is not None]
-        operations = _change_operations(
-            patch.add_operations,
-            across=yoy or sequential or len(quarters) >= 2,
-            base=base,
-            both=both,
-        )
-        return patch.model_copy(
-            update={
-                "set_periods": PeriodSelection(
-                    kind="named", named=named, company_base_dates=() if sequential else None
-                ),
-                "add_operations": operations,
-            }
-        )
-    if asked is None and not yoy and not sequential:
-        if _LATEST.search(message) is not None:
-            # "latest" after a year-over-year window: one quarter, no change chip.
-            return patch.model_copy(
-                update={
-                    "set_periods": PeriodSelection(),
-                    "remove_operations": (*patch.remove_operations, *_CHANGE_OPERATIONS),
-                }
-            )
-        return patch
-    # Growth is year over year unless the analyst says sequential (ADR 0010); a
-    # change that names no base is asked about before the analysis runs.
-    explicit_yoy = base == "year_over_year"
-    operations = _change_operations(
-        patch.add_operations, across=yoy or sequential, base=base, both=both
-    )
-    if asked is None and patch.set_periods is not None:
-        return patch.model_copy(update={"add_operations": operations})
-    count = asked if asked is not None else 5
-    if sequential and asked is not None:
-        # Each quarter asked for is shown with its change on the quarter before,
-        # so the window reads one quarter more than it shows.
-        return patch.model_copy(
-            update={
-                "set_periods": PeriodSelection(
-                    kind="last_n_quarters", count=asked + 1, asked=asked
-                ),
-                "add_operations": operations,
-            }
-        )
-    if (yoy or sequential) and count < 5 and not (explicit_yoy and asked is not None):
-        # Only a change that names no base gets here with a window under 5 ("how did
-        # revenue change last quarter?"): it is read over 5 until the analyst says
-        # against what. A change over a window of two or more quarters is year over
-        # year over it, and a sequential window returned above.
-        count = 5
-    if explicit_yoy and EXPLICIT_YOY.search(message) is not None and asked is None:
-        # "Year over year" with no window: two years of quarters. A window the
-        # analyst names is shown as asked; each quarter's base is the comparative
-        # its own filing reports (ADR 0009), so no extra quarters are needed.
-        count = _YOY_WINDOW
-    return patch.model_copy(
-        update={
-            "set_periods": PeriodSelection(kind="last_n_quarters", count=count),
-            "add_operations": operations,
-        }
-    )
-
-
-def _change_operations(
-    operations: tuple[str, ...],
-    *,
-    across: bool,
-    base: ComparisonBase | Literal["unclear"] | None,
-    both: bool,
-) -> tuple[str, ...]:
-    """The patch's operations with the change the words ask for: across the
-    quarters, year over year where that base is named, and both bases where both are."""
-    if across and "across_periods" not in operations:
-        operations = (*operations, "across_periods")
-    if base == "year_over_year" and "year_over_year" not in operations:
-        operations = (*operations, "year_over_year")
-    if both:
-        operations = _with_operations(operations, "year_over_year", "sequential")
-    return operations
-
-
-def _with_operations(operations: tuple[str, ...], *names: str) -> tuple[str, ...]:
-    """The operations with each name appended once."""
-    return tuple(dict.fromkeys([*operations, *names]))
 
 
 def _extend(patch: SpecPatch, **fields: Any) -> SpecPatch:
     """The patch as an edit of the current analysis rather than a new ranking."""
     return patch.model_copy(update={"mode": "extend", "ranked_request": None, **fields})
 
-
-_CHANGE_OPERATIONS = ("across_periods", "year_over_year", "sequential")
 
 # "lowest first", "smallest first", "ascending": the same companies, ordered from the
 # lowest value of the metric. "Largest first" and "descending" turn it back.
@@ -1105,147 +704,31 @@ def _swap_pair(message: str) -> tuple[str, str] | None:
     return None
 
 
-# Words that ask about time at all. A planner's window stands only beside one:
-# "how is Nvidia doing" asks for no window, whatever the model proposed.
-_PERIOD_CUE = re.compile(
-    r"\b(?:quarters?|qtrs?|years?|yrs?|months?|annual(?:ly)?|window|period|periods"
-    r"|recent(?:ly)?|trailing|ttm|ltm|history|historical(?:ly)?|trends?|trending|over time"
-    r"|grow(?:th|n|ing)?|grew|since|yoy|qoq|sequential(?:ly)?|lately|so far)\b",
-    re.IGNORECASE,
-)
-
-
-def planner_window(
-    patch: SpecPatch, message: str, *, window: WindowReading | None = None
-) -> SpecPatch:
-    """A planner's window, kept only where the wording asks about time but names no count.
-
-    The wording's grammar decides first: when it reads a window, that window
-    replaces the planner's (and a disagreement is logged). When it reads none,
-    the planner's stands only if the message has a period word at all.
-    """
-    proposed = patch.set_periods
-    if proposed is None or proposed.kind != "last_n_quarters":
-        return patch
-    window = window or read_window(message)
-    if window.counted_window:
-        assert window.asked_quarters is not None
-        if window.asked_quarters != proposed.count:
-            log_event(
-                "planner_window_overruled",
-                proposed=proposed.count,
-                read=window.asked_quarters,
-            )
-        return patch
-    if _PERIOD_CUE.search(window_words(message)):
-        return patch
-    log_event("planner_window_dropped", proposed=proposed.count)
-    return patch.model_copy(update={"set_periods": None})
-
-
 def refine_patch_from_message(
     patch: SpecPatch,
     message: str,
     current_spec: AnalysisSpec | None,
     *,
     index: CompanyNames | None = None,
-    window: WindowReading | None = None,
+    words: Words | None = None,
 ) -> SpecPatch:
     """Turn follow-up wording into an extend patch when the planner still replaced.
 
     The edit's own words decide, whichever planner proposed the patch: "add",
     "include", "too" and "as well" add companies; "what about", "how about"
     and "same for" put them in place of the ones on screen. ``index`` reads
-    which companies the words name.
+    which companies the words name; ``words`` is the message's period reading,
+    read here when the caller holds none. The period selection binds the
+    words before the company and metric edit, which reads ``set_periods``,
+    and rebases a change follow-up after it.
     """
-    window = window or read_window(message)
-    patch = _without_word_uses(patch, message, index)
-    patch = bind_periods_from_message(patch, message, window=window)
+    if words is None:
+        words = read(message)
+    change = change_asked(message)
+    patch = words.bind(_without_word_uses(patch, message, index), change)
     if current_spec is None:
         return _with_segment_companies(patch, message)
-    return _keep_window_for_change(
-        _refine_against(patch, message, current_spec, index), message, current_spec, window
-    )
-
-
-def _keep_window_for_change(
-    patch: SpecPatch, message: str, current_spec: AnalysisSpec, window: WindowReading
-) -> SpecPatch:
-    """ "Show that year over year" and "sequential instead" keep the quarters on screen.
-
-    With no window named, year over year shows 8 quarters and growth 5: the 8
-    were four quarters with the year before each, the 5 four with the year-earlier
-    base of the newest. Each quarter's base is now the comparative its own filing
-    reports (ADR 0009), so a window the analyst already has needs no extra rows,
-    nor does a named period, read as on a window. A sequential change reads the
-    quarter before the oldest one shown as its base, without showing it: after a
-    year-over-year view, "sequential instead" switches the change to that one
-    and keeps the quarters, as "year over year instead" switches back (ADR 0010).
-    """
-    on_screen = current_spec.periods
-    base = comparison_asked(message)
-    if (
-        patch.mode != "extend"
-        or patch.set_periods is None
-        or on_screen.kind == "latest_quarter"
-        or (on_screen.kind == "last_n_quarters" and (on_screen.shown or 1) <= 1)
-        or base not in ("year_over_year", "sequential")
-        or window.counted_window
-        or window.trailing_year
-        or _names_a_window(message)
-        or parse_named_periods(message)
-    ):
-        return patch
-    if names_both_bases(message):
-        # "Sequentially or versus last year": both changes on the quarters shown.
-        return _switch_to_sequential(patch, on_screen, both=True)
-    if base == "sequential":
-        return _switch_to_sequential(patch, on_screen)
-    # Year over year alone: a sequential change asked beside it goes.
-    removed = tuple(dict.fromkeys([*patch.remove_operations, "sequential"]))
-    if on_screen.company_base_dates is not None:
-        # The quarters before a quarter-over-quarter change's named ones are no
-        # longer a base.
-        return patch.model_copy(
-            update={
-                "set_periods": on_screen.model_copy(update={"company_base_dates": None}),
-                "remove_operations": removed,
-            }
-        )
-    return patch.model_copy(update={"set_periods": None, "remove_operations": removed})
-
-
-def _switch_to_sequential(
-    patch: SpecPatch, on_screen: PeriodSelection, *, both: bool = False
-) -> SpecPatch:
-    """The quarters on screen, each with its change on the quarter before.
-
-    The year-over-year change goes, unless ``both`` were named ("sequentially or
-    versus last year"), when it stays beside. A counted window reads one quarter
-    more than it shows, the oldest quarter's base; a named period reads the
-    quarter before each named quarter the same way; a "since" window keeps its
-    quarters as listed, so its oldest shows no change.
-    """
-    if both:
-        added = _with_operations(patch.add_operations, "year_over_year", "sequential")
-        removed = patch.remove_operations
-    else:
-        bases = ("year_over_year", "sequential")
-        added = tuple(op for op in patch.add_operations if op not in bases)
-        removed = tuple(dict.fromkeys([*patch.remove_operations, *bases]))
-    periods: PeriodSelection | None
-    if on_screen.kind == "named":
-        # Listed afresh, so each named quarter's base is listed with it.
-        periods = PeriodSelection(kind="named", named=on_screen.named, company_base_dates=())
-    elif on_screen.asked is not None or on_screen.since_year is not None:
-        # Already read with its base, or every quarter since a year: unchanged.
-        periods = None
-    else:
-        shown = on_screen.count or 1
-        periods = PeriodSelection(kind="last_n_quarters", count=shown + 1, asked=shown)
-    return patch.model_copy(
-        update={"set_periods": periods, "add_operations": added, "remove_operations": removed}
-    )
+    return words.rebase(_refine_against(patch, message, current_spec, index), change, current_spec)
 
 
 def _refine_against(
@@ -1444,59 +927,3 @@ def _company_edit(
             remove_metrics=(),
         )
     return _extend(patch, add_companies=named, remove_companies=(), add_metrics=())
-
-
-# Periods shorter than a quarter, which no 10-Q reports on its own.
-SUB_QUARTER = re.compile(
-    r"\b(?:last|this|past|previous)\s+(?:month|week)\b|\byesterday\b"
-    r"|\b(?:in|for|during)\s+(?:january|february|march|april|june|july|august|september"
-    r"|october|november|december)\b(?!\s+(?:19|20)\d{2})",
-    re.IGNORECASE,
-)
-
-
-SPECIFIC_PERIOD = re.compile(
-    r"\b(?:"
-    r"q[1-4]\s*(?:fy\s*)?'?\d{2,4}"
-    r"|[1-4]q\s*(?:fy\s*)?'?\d{2,4}"
-    r"|(?:fy|fiscal(?:\s+year)?)\s*'?\d{2,4}"
-    r"|(?:first|second|third|fourth|1st|2nd|3rd|4th)\s+quarter\s+(?:of\s+)?(?:fy\s*)?\d{4}"
-    r"|(?:in|for|during)\s+(?:19|20)\d{2}"
-    # "quarter ended April 2026": a month this parser does not read as a quarter.
-    r"|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(?:\d{1,2},?\s+)?"
-    r"(?:19|20)\d{2}"
-    r")\b",
-    re.IGNORECASE,
-)
-
-
-def _within(outer: re.Match[str], inner: re.Match[str]) -> bool:
-    return outer.start() <= inner.start() and inner.end() <= outer.end()
-
-
-def read_window(message: str) -> WindowReading:
-    """Read once the window details that compilation and answer notes both need."""
-    year_of_quarters = YEAR_OF_QUARTERS.search(message) is not None
-    message = window_words(message)
-    window = asked_window(message)
-    since = SINCE_YEAR.search(message) if window is None else None
-    specific = SPECIFIC_PERIOD.search(message)
-    unread = (
-        specific.group(0)
-        if specific is not None
-        and not parse_named_periods(message)
-        # "since fiscal 2025" names the window's year, not a period left unread.
-        and not (since is not None and _within(since, specific))
-        else None
-    )
-    return WindowReading(
-        asked_quarters=window.quarters if window is not None else None,
-        counted_window=window is not None,
-        interpretation_notes=tuple(window.notes()) if window is not None else (),
-        trailing_year=TRAILING_YEAR.search(message) is not None,
-        year_of_quarters=year_of_quarters,
-        since_year=int(since.group("y")) if since is not None else None,
-        since_fiscal=since is not None and since.group("fiscal") is not None,
-        unread_named_period=unread,
-        sub_quarter=SUB_QUARTER.search(message) is not None,
-    )

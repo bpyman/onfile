@@ -48,6 +48,10 @@ _Avoid_: restated EPS, adjusted EPS
 An amount a filing reports at its report date rather than over the quarter (cash, shareholders' equity, total equity), shown "At" that date.
 _Avoid_: quarterly cash, period balance
 
+**Period selection**:
+The quarters a question asks for: the latest quarter, a window, or named periods, read from the analyst's words and dated for each company from its own filings.
+_Avoid_: timeframe, date range, lookback
+
 **Named period**:
 A fiscal quarter or year the analyst names ("Q3 2024", "fiscal 2025"), read as each company's own fiscal calendar from the fiscal year and period its filings declare; "calendar" names a calendar quarter instead.
 _Avoid_: date range, calendar quarter (unqualified)

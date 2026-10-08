@@ -75,12 +75,13 @@ def test_request_resolution_applies_the_visitor_rule(
     from financial_analyst_agent.graph import spec_turn
     from financial_analyst_agent.graph.analysis_spec import SpecPatch
     from financial_analyst_agent.graph.state import StructuredRequest
+    from financial_analyst_agent.period_selection import Periods
     from financial_analyst_agent.runtime import recorded_runtime
 
     def fail(*_args: object, **_kwargs: object) -> None:
         raise failure
 
-    monkeypatch.setattr(spec_turn, "materialize_period_dates", fail)
+    monkeypatch.setattr(Periods, "dated", fail)
     request = StructuredRequest(
         patch=SpecPatch(
             mode="replace",

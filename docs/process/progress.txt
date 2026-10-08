@@ -3001,3 +3001,210 @@ Blockers / next:
   not done (unattended run). Note for this machine: `next build` fails under the agent's Git
   Bash shell with a Turbopack worker spawn error (0xc0000142) and succeeds from PowerShell.
   simplify-pass-2 is complete: all twelve tickets are resolved.
+
+2026-10-08
+
+Task completed: `docs/process/tickets/period-selection/issues/01-shared-listing-fake.md`
+
+Key decisions:
+- `tests/helpers.py`: `ListedFilings(FakeFacts)` takes `quarters` and `fiscal` per company
+  plus `failing` and `annual`. A company given only quarters is a calendar-year filer (its
+  fiscal periods carry the calendar year and quarter of each end); one given only fiscal
+  periods lists their ends; one in `failing` raises `CompanyNotFoundError` from either
+  listing; one given neither is a `KeyError`, so a test that forgot a company fails loudly.
+  `listed` records `(company, limit)` for report dates and `(company, None)` for fiscal
+  periods, in call order.
+- The nine local fakes are gone. Fakes that also fetch facts, sleep or count subclass
+  `ListedFilings`; a test keyed by CIK through `named_by_cik` keeps that wrapping as a
+  one-line pass-through to `super()`. `test_follow_up_wording` lists the same eight quarters
+  for every company (asked by name or CIK), so its pass-through maps every name to one key.
+  `test_company_names` keys by the three CIKs its issuer-index ranking resolves (the fixture
+  snapshot `named_by_cik` reads holds neither Lincoln). The two fakes that listed nothing
+  (`test_conversation_edges`, `test_follow_up_wording._NoDates`) just inherit FakeFacts.
+- The calendars tests now assert `listed` literals: `[("Apple", 40)]` for the since window,
+  `[("Apple", None), ("Microsoft", None)]` for since-fiscal (no report dates listed), and
+  `[("Microsoft", 3), ("Nvidia", 3), ("Missing", 3)]` for the added company.
+- Left as the ticket allows: `_Unavailable` in `test_multi_period` still overrides the listing
+  to raise `ProviderError` (a 503), which `failing` cannot express; the refusal test needs the
+  provider code and details. Ticket 04's error-asymmetry tests may want `failing` to carry an
+  exception; decide there.
+
+Files changed:
+- `tests/helpers.py`, `tests/unit/test_calendars_clarification_and_formatting.py`,
+  `test_multi_period.py`, `test_follow_up_wording.py`, `test_clarification_checkpoint.py`,
+  `test_company_names.py`, `test_concurrent_dispatch.py`, `test_conversation_edges.py`,
+  `test_filers_rankings_and_narrowing.py`, `test_resumable_clarification.py`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. No source file changed. 2,402 Python tests pass (same count); ruff and mypy pass;
+  compare_answers reports `0 of 893 conversations differ from master`. Period-selection
+  tickets 02-06 remain; 02 is next on the frontier.
+
+2026-10-08
+
+Task completed: `docs/process/tickets/period-selection/issues/02-read-the-period-words-once.md`
+
+Key decisions:
+- `period_selection.py` is born: `read(message, *, stored=None) -> Words`, `Words` with
+  `message`, `reading`, `named`, `names_a_window` and `propose`, and `WindowReading` (nine
+  fields unchanged, plus `year_to_date` with `exclude_if`). `period_window.py` is deleted and
+  the named-period grammar, the cue words and `read_window` moved in; every one of master's
+  69 period and change patterns was compared by `.pattern` and `.flags` with its new home
+  (a scratch script against `git show master:`), all verbatim.
+- `_YEAR_BASE` and `_LATEST` moved too, as `YEAR_BASE` and `LATEST`: `names_a_window` needs
+  the first and the module may not import `request_wording`; both are public only until
+  ticket 03 moves `bind_periods_from_message` in. `MAX_SINCE_QUARTERS` stays with the binding.
+- `Words.propose` takes `model_quarters` (None for a SpecPatch proposal or a rank intent,
+  decided in `turn_graph`), caps it and applies the planner-window rule; `plan_to_spec_patch`
+  is the lifting alone. `resolve_request` reads `words` once with the stored reading and
+  passes `words=` to `refine_patch_from_message` (optional, read from the message when a
+  test calls it without one); `bind_periods_from_message` keeps `window=` until ticket 03.
+- Grammar functions are private to the module; callers use `read(...).reading`, `.named`
+  and `.names_a_window`. `_asks_change` is `names_a_window or len(named) <= 1`, the same
+  truth table as before.
+- Two files outside the ticket's list changed by one import each, else the suite would
+  fail: `graph/clarify.py` and `tests/test_says_what_it_cannot_do.py` (its `date.today`
+  monkeypatch targets the module now). Recorded in rules-to-review.
+
+Files changed:
+- `src/financial_analyst_agent/period_selection.py` (new), `period_window.py` (deleted),
+  `request_wording.py`, `answer_notes.py`, `rules_planner.py`, `graph/state.py`,
+  `graph/turn_graph.py`, `graph/spec_turn.py`, `graph/clarify.py`
+- `tests/unit/test_period_window.py` -> `test_period_selection.py`, `test_planner_window.py`,
+  `test_window_copy.py`, `test_derived_and_named_periods.py`, `test_planner_understanding.py`,
+  `test_planner_wording.py`, `test_calendars_clarification_and_formatting.py`,
+  `test_filers_rankings_and_narrowing.py`, `services/test_metric_phrase.py`,
+  `tests/test_says_what_it_cannot_do.py`
+- the ticket, `docs/process/progress.txt`, `docs/process/rules-to-review.md`
+
+Blockers / next:
+- None. 2,434 tests pass (32 new); ruff and mypy clean; compare_answers reports `0 of 893
+  conversations differ from master`. Tickets 03 (bind and rebase) and 04 (dating) are next on
+  the frontier; 03 can take `LATEST`, `YEAR_BASE` and `MAX_SINCE_QUARTERS` private again.
+
+2026-10-08
+
+Task completed: `docs/process/tickets/period-selection/issues/03-bind-and-rebase-the-period-part-of-a-patch.md`
+
+Key decisions:
+- `ChangeAsked` (seven flags, `NONE`) is declared in `period_selection`; `request_wording.change_asked`
+  builds it from `comparison_asked`, `YOY`, `_SEQUENTIAL`, `names_both_bases`, `EXPLICIT_YOY`, `_CHANGE`
+  and `drops_comparison`, each the raw match over the message. The `_asks_change` rule (change words
+  with no base are a change over a window or with at most one named period) is applied inside
+  `Words.bind` from `names_a_window` and `named`; `comparison_asked` keeps its copy for its `None`.
+- `Words.bind` and `Words.rebase` are `bind_periods_from_message` and `_keep_window_for_change`
+  moved branch for branch; `_operations_with_change` and `_sequential_on` are the old private
+  helpers. `_YOY_WINDOW`, `_GROWTH_WINDOW` (the literal 5), `_CHANGE_OPERATIONS`, `_with_operations`
+  and `MAX_SINCE_QUARTERS` moved with them; `LATEST` and `YEAR_BASE` are private again.
+- `refine_patch_from_message` is the design's composition: `change_asked` once, `bind` before
+  `_refine_against`, `rebase` after. `clarify._read_metric` and `ask_again` call
+  `read(message).bind(..., change_asked(message))`; the `!=` identity check is unchanged.
+- Module tests use hand-built `ChangeAsked` values; the wording tests in the other files compose
+  `read(message).bind(patch, change_asked(message))`, since their subject is the change wording.
+  A seven-flag table pins `change_asked`.
+- Two files outside the ticket's list changed by one import each (`answer_notes.py` for
+  `MAX_SINCE_QUARTERS`; `tests/unit/test_planner_window.py` called the deleted function).
+  Recorded in rules-to-review.
+
+Files changed:
+- `src/financial_analyst_agent/period_selection.py`, `request_wording.py`, `graph/clarify.py`,
+  `answer_notes.py`
+- `tests/unit/test_period_selection.py`, `test_planner_wording.py`, `test_planner_rules.py`,
+  `test_planner_understanding.py`, `test_planner_window.py`, `test_window_copy.py`,
+  `test_derived_and_named_periods.py`
+- the ticket, `docs/process/progress.txt`, `docs/process/rules-to-review.md`
+
+Blockers / next:
+- None. 2,489 tests pass (55 new); ruff and mypy clean; compare_answers reports `0 of 893
+  conversations differ from master`; the rules planner's evaluation matches a fresh master run case
+  for case (99% over 445). Tickets 04 (dating) is next on the frontier; 05 and 06 follow.
+
+2026-10-08
+
+Task completed: `docs/process/tickets/period-selection/issues/04-date-the-periods-for-each-company.md`
+
+Key decisions:
+- `Periods(spec)` is born in `period_selection` with `dated(facts) -> Dated`, `materialize_period_dates`
+  moved branch for branch with its eight helpers (`_window_dated`, `_named_periods_dated`,
+  `_window_dates`, `_fiscal_window_dates`, `_span_asked`, `_not_yet_listed`, `_named_dates`,
+  `_quarters_before`, `_after_latest_filing`); the facts port is the argument, never `Runtime`.
+- `Dated(spec, refusal)` folds the two period refusals of `resolve_request` into finished text,
+  the messages unchanged. An undated window is returned undated with the refusal set, not raised,
+  so `_window_levels` (overview trend, earlier quarters) compiles it through `.spec` as before.
+- The after-latest-filing check still re-lists the first company's fiscal periods (not shown safe
+  to reuse the listing); a test asserts the second listing.
+- `_or_none` stays in `spec_turn` for `drop_annual_filers`, as the ticket allows; the module has
+  its own copy.
+- Tests: a dating section in `test_period_selection.py` (same-object cases, listing order and
+  limits, `asked`/`shown`, the error asymmetry with `CompanyNotFoundError` and
+  `SessionQuotaError`, refusals, a ranked set, named periods and base quarters); the old
+  `materialize_period_dates` tests rewritten against `Periods(...).dated(facts).spec`;
+  `test_public_errors.py` patches `Periods.dated`.
+
+Files changed:
+- `src/financial_analyst_agent/period_selection.py`, `src/financial_analyst_agent/graph/spec_turn.py`
+- `tests/unit/test_period_selection.py`, `test_calendars_clarification_and_formatting.py`,
+  `test_filers_rankings_and_narrowing.py`, `test_public_errors.py`, `test_multi_period.py`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. 2,505 tests pass (16 new); ruff and mypy clean; compare_answers reports `0 of 893
+  conversations differ from master`; phrase coverage 555 of 555. Every file changed is on the
+  ticket's list. Ticket 05 (`Periods.groups` and `shown`) is next; it can move `compile_tasks`
+  beside its caller and `calendar_groups` into the module.
+
+## 2026-10-08 — period-selection 05: Periods.groups and Periods.shown; compile_tasks beside its caller
+
+Ticket: `docs/process/tickets/period-selection/issues/05-group-calendars-and-hide-base-quarters.md`
+
+Key decisions:
+- `Periods.groups` is `calendar_groups` moved unchanged; `_quarter_phase` and `_same_grid` move with
+  it. `compile_tasks`, `period_notes` and `Periods.shown` group through it.
+- `compile_tasks` and `_base_tasks` move to `graph/spec_turn.py`; `CompiledTask` stays in
+  `analysis_spec` (state.py and turn.py use it). `analysis_spec` reads `report_dates` only in its
+  validator.
+- `Periods.shown(rows)` is `_without_base_quarters` / `_without_named_bases` moved branch for branch,
+  keyed by `row.cik or row.company_name`; `merge_analysis` sets its rows on the merged result.
+- Tests: a groups-and-rows section in `test_period_selection.py`; `compile_tasks` tests import it
+  from `spec_turn`.
+
+Files changed:
+- `src/financial_analyst_agent/period_selection.py`, `graph/analysis_spec.py`, `graph/spec_turn.py`,
+  `answer_notes.py` (outside the list: one import, one line; in rules-to-review)
+- `tests/unit/test_period_selection.py`, `test_analysis_spec.py`,
+  `test_calendars_clarification_and_formatting.py`, `test_derived_and_named_periods.py`,
+  `test_filers_rankings_and_narrowing.py`
+- the ticket, `docs/process/progress.txt`, `docs/process/rules-to-review.md`
+
+Blockers / next:
+- None. 2,513 tests pass (8 new); ruff and mypy clean; compare_answers reports `0 of 893
+  conversations differ from master`; phrase coverage 555 of 555. Ticket 06 (notes, chip and quick
+  actions) is next; its blockers 03 and 05 are resolved.
+
+
+## 2026-10-08 — period-selection 06: Periods.notes, chip and quick_actions
+
+Ticket: `docs/process/tickets/period-selection/issues/06-period-notes-chip-and-quick-actions.md`
+
+Key decisions:
+- `Periods.notes` -> `PeriodNotes(read, shown)` is `period_notes` and its three helpers moved branch for
+  branch, with the five period banner constants. `answer_notes.change_banners` keeps the growth and
+  why-change banners; `annotate_analysis` splices them between the two lists (banner order unchanged).
+- `Periods.chip` (since, window, named, latest) and `Periods.quick_actions` ((label, message) pairs);
+  the as-of and ranked chip cases and the ranked / as-of quick-action guard stay in presentation.
+- Step 2 kept master's behaviour: reading "last year" and YTD from the stored reading would add notes
+  to a metric reply after a clarification. `annotate_analysis` passes the stored reading with those
+  two fields read from the wording; recorded in rules-to-review, pinned by a test.
+
+Files changed:
+- `src/financial_analyst_agent/period_selection.py`, `answer_notes.py`, `presentation.py`,
+  `graph/spec_turn.py`
+- `tests/unit/test_period_selection.py`, `test_window_copy.py`,
+  `test_calendars_clarification_and_formatting.py`, `test_filers_rankings_and_narrowing.py`
+- the ticket, `docs/process/progress.txt`, `docs/process/rules-to-review.md`
+
+Blockers / next:
+- The clarification-reply notes need a person's decision (rules-to-review, 8 October 2026). Every
+  period-selection ticket is resolved. 2,531 tests pass; ruff and mypy clean; compare_answers
+  reports `0 of 893 conversations differ from master`; phrase coverage 555 of 555.

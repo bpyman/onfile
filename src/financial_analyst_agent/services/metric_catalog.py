@@ -714,7 +714,7 @@ def _longest_unique_phrases(query: str) -> tuple[Span, ...]:
 # last twelve months") it is a span of quarters, which these words do not reach.
 _TRAILING_YEAR_FORM: dict[str, str] = {"net_income": "net_income_ttm"}
 # The words, as an alternation: here they end just before a figure's name, and
-# request_wording's ``TRAILING_YEAR`` reads them anywhere in the message.
+# period_selection's ``TRAILING_YEAR`` reads them anywhere in the message.
 TRAILING_YEAR_WORDS = (
     r"ttm|ltm|trailing[\s-]+(?:twelve|12)[\s-]+months?"
     r"|(?:last|past)\s+(?:twelve|12)\s+months"

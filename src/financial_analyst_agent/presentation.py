@@ -74,6 +74,7 @@ from financial_analyst_agent.guide import (
     possessive,
     short_name,
 )
+from financial_analyst_agent.period_selection import Periods
 from financial_analyst_agent.services.fact_selector import (
     FOURTH_QUARTER_LABEL,
     MAX_QUARTER_DAYS,
@@ -833,27 +834,6 @@ _LATEST_QUARTER_EDIT = "latest quarter"
 _REMOVE_OPERATION = {"Year over year": "remove year over year", "Lowest first": "largest first"}
 
 
-def _period_chip(spec: AnalysisSpec) -> tuple[str, bool]:
-    """The period chip's label, and whether its × goes back to the latest quarter."""
-    if spec.as_of is not None:
-        # Market cap and price are the snapshot's, not a quarter's.
-        return f"As of {format_date(spec.as_of)}", False
-    if spec.constituents is not None:
-        # A ranking shows each company's latest quarter whatever period was named.
-        return "Latest quarter", False
-    periods = spec.periods
-    if periods.kind == "last_n_quarters" and periods.since_year is not None:
-        # Every filed quarter since that January, or since each company's own
-        # fiscal year: the count is the filings', not asked.
-        year = f"fiscal {periods.since_year}" if periods.since_fiscal else str(periods.since_year)
-        return f"Since {year}", True
-    if periods.kind == "last_n_quarters":
-        return ("Last quarter" if periods.shown == 1 else f"Last {periods.shown} quarters"), True
-    if periods.kind == "named":
-        return periods.label or "Named period", True
-    return "Latest quarter", False
-
-
 def spec_chip_edits(spec: AnalysisSpec) -> tuple[ChipEdit, ...]:
     """Each active-analysis chip, what kind it is, and the follow-up its × sends.
 
@@ -882,7 +862,14 @@ def spec_chip_edits(spec: AnalysisSpec) -> tuple[ChipEdit, ...]:
     for metric in spec.metrics:
         label = format_field_name(metric)
         chip(label, "metric", f"drop {in_sentence(label)}" if len(spec.metrics) > 1 else None)
-    period, moved = _period_chip(spec)
+    if spec.as_of is not None:
+        # Market cap and price are the snapshot's, not a quarter's.
+        period, moved = f"As of {format_date(spec.as_of)}", False
+    elif spec.constituents is not None:
+        # A ranking shows each company's latest quarter whatever period was named.
+        period, moved = "Latest quarter", False
+    else:
+        period, moved = Periods(spec).chip
     chip(period, "period", _LATEST_QUARTER_EDIT if moved else None)
     for operation in spec.operations:
         shown = _OPERATION_CHIPS.get(operation)
@@ -936,24 +923,8 @@ def chip_quick_actions(spec: AnalysisSpec) -> dict[str, tuple[QuickAction, ...]]
     )[:_QUICK_SHOWN]
     periods: tuple[QuickAction, ...] = ()
     if not ranked and spec.as_of is None:
-        kind = spec.periods.kind
         periods = tuple(
-            action
-            for action, offered in (
-                (
-                    QuickAction("Latest quarter", "just the latest quarter"),
-                    kind != "latest_quarter",
-                ),
-                (
-                    QuickAction("Last four quarters", "make that the last four quarters"),
-                    kind != "last_n_quarters" or spec.periods.shown != 4,
-                ),
-                (
-                    QuickAction("Year over year", "show year-over-year"),
-                    "year_over_year" not in spec.operations,
-                ),
-            )
-            if offered
+            QuickAction(label, message) for label, message in Periods(spec).quick_actions
         )
     return {"company": companies, "metric": metrics, "period": periods}
 

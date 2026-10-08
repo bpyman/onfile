@@ -20,7 +20,7 @@ import pytest
 
 from financial_analyst_agent.domain.errors import UnsupportedQuarterlyFactError
 from financial_analyst_agent.runtime import FIXTURE_UNIVERSE_SNAPSHOT_PATH
-from helpers import FakeFacts, named_by_cik
+from helpers import ListedFilings, named_by_cik
 
 # Resolved companies are asked for by CIK; these fakes answer by name.
 _NAMED = named_by_cik('Microsoft')
@@ -32,7 +32,7 @@ Q4 = date(2025, 12, 31)
 FOUR_QUARTERS = (Q4, Q3, Q2, Q1)
 
 
-class _SlowFacts(FakeFacts):
+class _SlowFacts(ListedFilings):
     """Facts that overlap in wall time so concurrency is observable."""
 
     def __init__(
@@ -42,6 +42,7 @@ class _SlowFacts(FakeFacts):
         missing: set[tuple[str, str, date]] | None = None,
         hold_ms: float = 0.05,
     ) -> None:
+        super().__init__({"Microsoft": FOUR_QUARTERS})
         self.values = values
         self.missing = missing or set()
         self.hold_ms = hold_ms
@@ -51,8 +52,7 @@ class _SlowFacts(FakeFacts):
         self.calls: list[tuple[str, str, date | None]] = []
 
     def list_quarterly_report_dates(self, company: str, *, limit: int) -> tuple[date, ...]:
-        company = _NAMED(company)
-        return FOUR_QUARTERS[:limit]
+        return super().list_quarterly_report_dates(_NAMED(company), limit=limit)
 
     def get_financials(
         self, company: str, metric: str, *, report_date: date | None = None

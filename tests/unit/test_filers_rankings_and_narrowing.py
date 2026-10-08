@@ -9,11 +9,9 @@ from types import SimpleNamespace
 from typing import Any
 
 from financial_analyst_agent.answer_notes import (
-    FISCAL_Q4_GAP_BANNER,
     annual_filer_note,
     fund_note,
     missing_component_notes,
-    period_notes,
 )
 from financial_analyst_agent.contracts import TableRow
 from financial_analyst_agent.filing_change import diff_paragraphs
@@ -22,18 +20,14 @@ from financial_analyst_agent.graph.analysis_spec import (
     PeriodSelection,
     ResolvedCompany,
     SpecPatch,
-    compile_tasks,
 )
-from financial_analyst_agent.graph.spec_turn import (
-    drop_annual_filers,
-    drop_funds,
-    materialize_period_dates,
-)
+from financial_analyst_agent.graph.spec_turn import compile_tasks, drop_annual_filers, drop_funds
+from financial_analyst_agent.period_selection import FISCAL_Q4_GAP_BANNER, Periods, read
 from financial_analyst_agent.presentation import long_quarter_banner
 from financial_analyst_agent.ranking import SnapshotRanking
-from financial_analyst_agent.request_wording import read_window, refine_patch_from_message
+from financial_analyst_agent.request_wording import change_asked, refine_patch_from_message
 from financial_analyst_agent.runtime import FIXTURE_UNIVERSE_SNAPSHOT_PATH
-from helpers import FakeFacts
+from helpers import ListedFilings
 
 # Costco's quarters end on Sundays of 12- and 16-week periods; Walmart's at month ends.
 _COSTCO = (date(2026, 5, 10), date(2026, 2, 15), date(2025, 11, 23), date(2025, 8, 31))
@@ -44,12 +38,15 @@ def _company(query: str, name: str | None = None) -> ResolvedCompany:
     return ResolvedCompany(cik=query, name=name or query, ticker=query.upper(), query=query)
 
 
-class _Facts(FakeFacts):
-    def list_quarterly_report_dates(self, company: str, *, limit: int) -> tuple[date, ...]:
-        return {"Costco": _COSTCO, "Walmart": _WALMART}[company][:limit]
+class _Facts(ListedFilings):
+    """Two retailers' quarters; Novo Nordisk files annual reports under its full name."""
+
+    def __init__(self) -> None:
+        super().__init__({"Costco": _COSTCO, "Walmart": _WALMART}, annual=("NVO",))
 
     def files_quarterly(self, company: str) -> tuple[bool, str]:
-        return company != "NVO", {"NVO": "Novo Nordisk A/S"}.get(company, company)
+        quarterly, _ = super().files_quarterly(company)
+        return quarterly, {"NVO": "Novo Nordisk A/S"}.get(company, company)
 
 
 def _runtime() -> Any:
@@ -65,9 +62,7 @@ def _window(*companies: ResolvedCompany) -> AnalysisSpec:
 
 
 def test_a_retailer_ten_days_off_another_calendar_keeps_its_own_quarters() -> None:
-    spec = materialize_period_dates(
-        _window(_company("Costco"), _company("Walmart")), _runtime()
-    )
+    spec = Periods(_window(_company("Costco"), _company("Walmart"))).dated(_Facts()).spec
 
     asked = {(task.issuers, task.report_date) for task in compile_tasks(spec)}
 
@@ -80,12 +75,11 @@ def test_a_retailer_ten_days_off_another_calendar_keeps_its_own_quarters() -> No
 
 
 def test_a_sixteen_week_fourth_quarter_is_not_a_skipped_quarter() -> None:
-    spec = materialize_period_dates(_window(_company("Costco")), _runtime())
+    spec = Periods(_window(_company("Costco"))).dated(_Facts()).spec
 
     message = "Costco revenue"
-    assert FISCAL_Q4_GAP_BANNER not in period_notes(
-        message, spec, window=read_window(message)
-    )
+    notes = Periods(spec).notes(read(message).reading, change_asked(message))
+    assert FISCAL_Q4_GAP_BANNER not in notes.shown
 
 
 def _row(end: date, weeks: int) -> TableRow:

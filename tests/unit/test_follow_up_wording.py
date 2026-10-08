@@ -15,10 +15,13 @@ import pytest
 
 from financial_analyst_agent.contracts import WorkflowPlan
 from financial_analyst_agent.runtime import FIXTURE_UNIVERSE_SNAPSHOT_PATH
-from helpers import FakeFacts
+from helpers import FakeFacts, ListedFilings
+
+# Every company these tests ask for, by name or by CIK, files the same eight quarters.
+_EVERY_COMPANY = "every company"
 
 
-class _PeriodFacts(FakeFacts):
+class _PeriodFacts(ListedFilings):
     Q2 = date(2025, 6, 30)
     Q1 = date(2025, 3, 31)
     Q4 = date(2024, 12, 31)
@@ -28,17 +31,24 @@ class _PeriodFacts(FakeFacts):
     Q4_OLDER = date(2023, 12, 31)
     Q3_OLDER = date(2023, 9, 30)
 
+    def __init__(self) -> None:
+        super().__init__(
+            {
+                _EVERY_COMPANY: (
+                    self.Q2,
+                    self.Q1,
+                    self.Q4,
+                    self.Q3,
+                    self.Q2_PRIOR,
+                    self.Q1_PRIOR,
+                    self.Q4_OLDER,
+                    self.Q3_OLDER,
+                )
+            }
+        )
+
     def list_quarterly_report_dates(self, company: str, *, limit: int) -> tuple[date, ...]:
-        return (
-            self.Q2,
-            self.Q1,
-            self.Q4,
-            self.Q3,
-            self.Q2_PRIOR,
-            self.Q1_PRIOR,
-            self.Q4_OLDER,
-            self.Q3_OLDER,
-        )[:limit]
+        return super().list_quarterly_report_dates(_EVERY_COMPANY, limit=limit)
 
     def get_financials(
         self, company: str, metric: str, *, report_date: date | None = None
@@ -299,11 +309,10 @@ def test_unmaterialized_window_refuses_instead_of_latest_quarter(tmp_path: Path)
     from financial_analyst_agent.thread_store import LocalThreadStore
 
     class _NoDates(FakeFacts):
+        """No quarters are listed, as FakeFacts has it; no fact may be fetched."""
+
         def get_financials(self, company: str, metric: str, **_kwargs: object) -> object:
             raise AssertionError("must not fall back to latest-quarter lookup")
-
-        def list_quarterly_report_dates(self, company: str, *, limit: int) -> tuple:
-            return ()
 
     store = LocalThreadStore(tmp_path)
     completer = _RecordingCompleter(

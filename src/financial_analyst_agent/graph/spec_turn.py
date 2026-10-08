@@ -4,13 +4,13 @@ The analysis graph's structured steps call into here: ``resolve_request``
 (patch → resolve → date the periods against filings → validate → compile),
 ``dispatch_compiled_tasks`` (the bounded, deadline-aware provider fan-out), and
 the deterministic merge of the task results: change rows, ordering, history and
-notes. The analyst's wording is read by ``request_wording``; the notes' text is
-``answer_notes``.
+notes. The analyst's wording is read by ``request_wording``, the periods are
+dated by ``period_selection``, and the notes' text is ``answer_notes``.
 """
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from concurrent.futures import TimeoutError as FuturesTimeout
 from contextvars import copy_context
@@ -18,16 +18,16 @@ from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
 from functools import partial
-from typing import Any
+from typing import Any, Literal
 
 from financial_analyst_agent.answer_notes import (
     already_present_notes,
     annual_filer_note,
     capped_ranking_notes,
+    change_banners,
     fund_note,
     metric_reading_notes,
     missing_component_notes,
-    period_notes,
     segment_notes,
     short_ranking_notes,
 )
@@ -67,10 +67,8 @@ from financial_analyst_agent.domain.errors import (
 )
 from financial_analyst_agent.fan_out import DEFAULT_TASK_MAX_WORKERS, map_in_order
 from financial_analyst_agent.graph.analysis_spec import (
-    MAX_QUARTERS_ASKED,
     AnalysisSpec,
     CompiledTask,
-    NamedPeriodSpec,
     PeriodSelection,
     RankedRequest,
     ResolvedCompany,
@@ -78,8 +76,6 @@ from financial_analyst_agent.graph.analysis_spec import (
     SpecPatch,
     SpecRejection,
     apply_patch,
-    calendar_groups,
-    compile_tasks,
     emptied_by,
     metric_rejection,
     ranked_window_asked,
@@ -88,30 +84,25 @@ from financial_analyst_agent.graph.analysis_spec import (
 )
 from financial_analyst_agent.graph.state import CompiledAnalysis, StructuredRequest
 from financial_analyst_agent.guide import in_sentence, short_name
+from financial_analyst_agent.period_selection import INVALID_QUARTER, Periods, read
 from financial_analyst_agent.providers.sec.client import sec_turn_seconds_left
 from financial_analyst_agent.providers.sec.company_resolver import resolve_company
 from financial_analyst_agent.request_wording import (
     COMPARISON_CANDIDATES,
     COMPARISON_LABELS,
     FORECAST,
-    INVALID_QUARTER,
     LOWEST_FIRST,
     OVERVIEW_METRICS,
     bind_metrics_from_message,
     bind_order_from_message,
+    change_asked,
     comparison_asked,
     refine_patch_from_message,
 )
 from financial_analyst_agent.services.filing_selector import FISCAL_WEEK_TOLERANCE
 from financial_analyst_agent.services.fiscal_periods import (
-    FiscalPeriod,
     adjacent_quarters,
-    calendar_quarter,
-    dates_for,
     one_year_earlier,
-    quarters_in_fiscal_span,
-    quarters_since,
-    quarters_since_fiscal_year,
 )
 from financial_analyst_agent.turn import (
     compare_task,
@@ -129,19 +120,12 @@ ProgressCallback = Callable[[int, int], None]
 
 
 def plan_to_spec_patch(plan: WorkflowPlan) -> SpecPatch:
-    """Lift a one-shot closed plan into a replace-mode spec patch."""
-    patch = _lifted_plan(plan)
-    window = plan.recent_quarters
-    if window is not None and window >= 1 and plan.intent is not Intent.RANK:
-        # The model's reading of a window: used only where the wording's own
-        # reading finds none (see planner_window).
-        selection = PeriodSelection(kind="last_n_quarters", count=min(window, MAX_QUARTERS_ASKED))
-        patch = patch.model_copy(update={"set_periods": selection})
-    return patch
+    """Lift a one-shot closed plan into a replace-mode spec patch.
 
-
-def _lifted_plan(plan: WorkflowPlan) -> SpecPatch:
-    """The plan's companies, metric and ranking as a replace patch."""
+    The plan's companies, metric and ranking; its window is proposed by the
+    words (``period_selection.Words.propose``), which keep it only where the
+    wording asks about time but names no count.
+    """
     intent = plan.intent
     metrics = (plan.metric,) if plan.metric else ()
     if intent is Intent.LOOKUP:
@@ -177,129 +161,6 @@ def _lifted_plan(plan: WorkflowPlan) -> SpecPatch:
     )
 
 
-def materialize_period_dates(spec: AnalysisSpec, runtime: Runtime) -> AnalysisSpec:
-    """Fill last_n_quarters report dates from the facts port.
-
-    The first company's quarter ends become ``report_dates``; every other named
-    company gets its own, so a company on a different fiscal calendar is asked
-    for its quarters rather than the first company's. Dates already on the spec
-    are kept, so a follow-up that adds a company lists only that company.
-    """
-    if spec.periods.kind == "named":
-        return _materialize_named_periods(spec, runtime)
-    if spec.periods.kind != "last_n_quarters":
-        return spec
-    first = spec.companies[0] if spec.companies else None
-    if first is None and spec.constituents is not None and spec.constituents.members:
-        first = spec.constituents.members[0]
-    if first is None:
-        return spec
-    periods = spec.periods
-    since = periods.since_year
-    cap = periods.count or 1
-    listing: Callable[..., _Listed]
-    if since is not None and periods.since_fiscal:
-        listing = partial(_fiscal_window_dates, runtime.facts.fiscal_periods, since=since)
-    else:
-        listing = partial(_window_dates, runtime.facts.list_quarterly_report_dates, since=since)
-    spans: list[int] = []
-    listed_first = False
-    if not periods.report_dates:
-        dates, span = listing(first.handle, limit=cap)
-        if not dates:
-            return spec
-        # A "since" window asks for whatever the filings hold since that
-        # January, so only a counted window can hold fewer than asked.
-        asked = periods.asked or (
-            periods.count
-            if since is None and periods.count and len(dates) < periods.count
-            else None
-        )
-        periods = periods.model_copy(
-            update={"count": len(dates), "report_dates": dates, "asked": asked}
-        )
-        spans.extend([] if span is None else [span])
-        listed_first = True
-    known = dict(periods.company_report_dates)
-    if listed_first and spec.companies:
-        known[first.key] = periods.report_dates
-    # Each company on its own calendar: a "since" window lists up to the cap and
-    # keeps that company's quarters since the January; a counted one lists the count.
-    count = cap if since is not None else periods.count or 1
-    pending = _not_yet_listed(spec.companies, known)
-    listed = map_in_order(
-        lambda company: _or_none(partial(listing, company.handle, limit=count)),
-        pending,
-    )
-    for company, company_listed in zip(pending, listed, strict=True):
-        if company_listed is None:
-            continue
-        company_dates, span = company_listed
-        if company_dates:
-            known[company.key] = company_dates
-        spans.extend([] if span is None else [span])
-    periods = periods.model_copy(
-        update={
-            "company_report_dates": tuple(known.items()),
-            "asked": _span_asked(periods, spans, [periods.report_dates, *known.values()]),
-        }
-    )
-    if periods == spec.periods:
-        return spec
-    return spec.model_copy(update={"periods": periods})
-
-
-# A company's quarter ends for a window, newest first, and the quarters its
-# span holds when the listing counted them (a fiscal year's span).
-_Listed = tuple[tuple[date, ...], int | None]
-
-
-def _window_dates(
-    list_dates: Callable[..., Sequence[date]], handle: str, *, limit: int, since: int | None
-) -> _Listed:
-    """A company's quarter ends for a window, newest first.
-
-    For a "since" window, the listed quarters that ended on or after 1 January
-    of that year; when none has (the year is ahead of the filings), the latest
-    quarter, so the answer shows a figure rather than nothing.
-    """
-    dates = tuple(list_dates(handle, limit=limit))
-    if since is None or not dates:
-        return dates, None
-    return quarters_since(since, dates) or dates[:1], None
-
-
-def _fiscal_window_dates(
-    list_periods: Callable[[str], Sequence[FiscalPeriod]], handle: str, *, limit: int, since: int
-) -> _Listed:
-    """A company's quarter ends since the start of its own fiscal ``since``, newest first.
-
-    Read where its fiscal periods are listed, as a named fiscal year is: Apple's
-    fiscal 2025 opens with the quarter ended December 2024, Microsoft's with
-    September 2024. The span is counted on the company's labels, so the answer
-    can say how many quarters the filings lack. A year ahead of the filings
-    shows the latest quarter, as a calendar year does.
-    """
-    periods = tuple(list_periods(handle))
-    if not periods:
-        return (), None
-    dates = quarters_since_fiscal_year(since, periods)[:limit]
-    if not dates:
-        return (max(period.end for period in periods),), None
-    return dates, quarters_in_fiscal_span(since, periods)
-
-
-def _span_asked(
-    periods: PeriodSelection, spans: list[int], windows: list[tuple[date, ...]]
-) -> int | None:
-    """The quarters a fiscal span asks for, when the filings show fewer; else as it was."""
-    shown = max((len(dates) for dates in windows), default=0)
-    longest = max(spans, default=0)
-    if longest <= shown:
-        return periods.asked
-    return max(periods.asked or 0, longest)
-
-
 def _or_none[T](read: Callable[[], T]) -> T | None:
     """``read()``, or None when it fails.
 
@@ -313,80 +174,6 @@ def _or_none[T](read: Callable[[], T]) -> T | None:
         raise
     except Exception:
         return None
-
-
-def _not_yet_listed(
-    companies: tuple[ResolvedCompany, ...], known: dict[str, Any]
-) -> list[ResolvedCompany]:
-    """The companies without report dates yet, each once, in the spec's order."""
-    pending: dict[str, ResolvedCompany] = {}
-    for company in companies:
-        if company.key not in known:
-            pending.setdefault(company.key, company)
-    return list(pending.values())
-
-
-def _named_dates(periods: Any, named: tuple[NamedPeriodSpec, ...]) -> tuple[date, ...]:
-    matched = {
-        day
-        for spec in named
-        for day in dates_for(tuple(periods), spec.year, spec.quarter, calendar=spec.calendar)
-    }
-    return tuple(sorted(matched, reverse=True))
-
-
-def _quarters_before(listed: Any, shown: tuple[date, ...]) -> tuple[date, ...]:
-    """Each quarter end just before one of ``shown`` and not itself shown, newest first.
-
-    A quarter the filings do not hold is left out: that quarter has no change.
-    """
-    ends = sorted({period.end for period in listed}, reverse=True)
-    before = {
-        older
-        for newer, older in zip(ends, ends[1:], strict=False)
-        if newer in shown and older not in shown and adjacent_quarters(newer, older)
-    }
-    return tuple(sorted(before, reverse=True))
-
-
-def _materialize_named_periods(spec: AnalysisSpec, runtime: Runtime) -> AnalysisSpec:
-    """Each company's own quarter ends for the named periods (ADR 0007).
-
-    "Q3 FY2024" is Apple's quarter ended June 29 and Microsoft's ended March 31;
-    each company's filings say which is which. A company without a filing for
-    the period gets no cells, and the turn says so.
-    """
-    lister = runtime.facts.fiscal_periods
-    periods = spec.periods
-    known = dict(periods.company_report_dates)
-    bases = dict(periods.company_base_dates or ())
-    pending = _not_yet_listed(spec.companies, known)
-    listings = map_in_order(
-        lambda company: _or_none(partial(lister, company.handle)), pending
-    )
-    for company, listed in zip(pending, listings, strict=True):
-        if listed is not None:
-            known[company.key] = _named_dates(listed, periods.named)
-            if periods.company_base_dates is not None:
-                bases[company.key] = _quarters_before(listed, known[company.key])
-    first = next(
-        (known[company.key] for company in spec.companies if known.get(company.key)),
-        (),
-    )
-    longest = max((len(dates) for dates in known.values()), default=0)
-    updated = periods.model_copy(
-        update={
-            "report_dates": first,
-            "count": longest or None,
-            "company_report_dates": tuple(known.items()),
-            "company_base_dates": (
-                None if periods.company_base_dates is None else tuple(bases.items())
-            ),
-        }
-    )
-    if updated == periods:
-        return spec
-    return spec.model_copy(update={"periods": updated})
 
 
 def drop_annual_filers(spec: AnalysisSpec, runtime: Runtime) -> tuple[AnalysisSpec, list[str]]:
@@ -997,7 +784,7 @@ def resolve_request(
     """
     message = request.wording
     patch = request.patch
-    window = request.window
+    words = read(message, stored=request.window)
     intent = request.intent
 
     def answered(result: TurnResult, spec: AnalysisSpec | None) -> Resolution:
@@ -1020,7 +807,7 @@ def resolve_request(
         message,
         current_spec,
         index=getattr(runtime.ranking, "index", None),
-        window=window,
+        words=words,
     )
     if request.company_choice is not None:
         # The held wording reads "Lincoln" again; the analyst already chose which.
@@ -1097,7 +884,7 @@ def resolve_request(
         return answered(_empty_spec(asked, annual_filer_note(annual_filers)), None)
 
     try:
-        spec = materialize_period_dates(spec, runtime)
+        dated = Periods(spec).dated(runtime.facts)
     except (CompanyNotFoundError, *SOURCE_FAILURES) as exc:
         return answered(
             _refusal(
@@ -1111,28 +898,9 @@ def resolve_request(
             ),
             None,
         )
-    if spec.periods.kind == "named" and spec.companies and not spec.periods.report_dates:
-        future = all(
-            period.year > date.today().year for period in spec.periods.named
-        ) or _after_latest_filing(spec, runtime)
-        return answered(
-            _empty_spec(
-                asked,
-                f"No filings found for {spec.periods.label}: it has not been reported yet."
-                if future
-                else f"No filings found for {spec.periods.label}. Periods are fiscal "
-                "years as each company names them; filings older than about "
-                "ten years may not be available.",
-            ),
-            None,
-        )
-    if spec.periods.kind == "last_n_quarters" and not spec.periods.report_dates:
-        return answered(
-            _empty_spec(
-                asked, "Could not determine quarterly report dates for the requested window"
-            ),
-            None,
-        )
+    if dated.refusal is not None:
+        return answered(_empty_spec(asked, dated.refusal), None)
+    spec = dated.spec
     tasks = compile_tasks(spec)
     if not tasks:
         return answered(_empty_spec(asked, "Analysis compiled to no tasks"), None)
@@ -1143,7 +911,7 @@ def resolve_request(
             tasks=tasks,
             patch=patch,
             wording=message,
-            window=window,
+            window=words.reading,
             prior_spec=current_spec,
             notes=request.notes,
             annual_filers=tuple(annual_filers),
@@ -1151,6 +919,84 @@ def resolve_request(
             unrecorded=request.unrecorded,
             ranked_window_asked=ranked_window_asked(draft),
         ),
+    )
+
+
+def _base_tasks(spec: AnalysisSpec) -> tuple[CompiledTask, ...]:
+    if spec.constituents is not None:
+        if not spec.metrics:
+            return (
+                CompiledTask(
+                    kind="rank",
+                    industry=spec.constituents.industry,
+                    limit=spec.constituents.limit,
+                    ranked=spec.constituents.table,
+                ),
+            )
+        return tuple(
+            CompiledTask(
+                kind="rank_and_lookup",
+                industry=spec.constituents.industry,
+                limit=spec.constituents.limit,
+                metric=metric,
+                ranked=spec.constituents.table,
+            )
+            for metric in spec.metrics
+        )
+
+    issuers = tuple(company.handle for company in spec.companies)
+    if not issuers or not spec.metrics:
+        return ()
+    kind: Literal["lookup", "compare"] = "lookup" if len(issuers) == 1 else "compare"
+    return tuple(
+        CompiledTask(kind=kind, issuers=issuers, metric=metric) for metric in spec.metrics
+    )
+
+
+def compile_tasks(spec: AnalysisSpec) -> tuple[CompiledTask, ...]:
+    """Compile a resolved spec into typed tasks without executing providers.
+
+    Each metric becomes an independent task so multi-metric analyses compose
+    without a special-cased multi-metric workflow. A last_n_quarters window with
+    concrete report_dates fans out one task per period.
+    """
+    base = _base_tasks(spec)
+    if (
+        spec.periods.kind not in ("last_n_quarters", "named")
+        or not spec.periods.report_dates
+        or not base
+    ):
+        return base
+    # Rank workflows are snapshot-dated, not filing-period windows.
+    expandable = tuple(
+        task for task in base if task.kind in {"lookup", "compare"}
+    )
+    if not expandable:
+        return base
+    groups = Periods(spec).groups
+    # A named period leaves out a company with no filing for it; asking that
+    # company for another company's date would answer with its own other quarter.
+    named = spec.periods.kind == "named"
+    if named or len(groups) > 1 or (groups and groups[0][1] != spec.periods.report_dates):
+        # Each calendar asks for its own quarter ends; one shared date would
+        # miss every quarter of a company whose fiscal quarters end elsewhere.
+        longest = max(len(dates) for _, dates in groups)
+        return tuple(
+            CompiledTask(
+                kind="compare" if len(spec.companies) > 1 else task.kind,
+                issuers=issuers,
+                metric=task.metric,
+                report_date=dates[index],
+            )
+            for index in range(longest)
+            for task in expandable
+            for issuers, dates in groups
+            if index < len(dates)
+        )
+    return tuple(
+        task.model_copy(update={"report_date": report_date})
+        for report_date in spec.periods.report_dates
+        for task in expandable
     )
 
 
@@ -1166,7 +1012,8 @@ def merge_analysis(compiled: CompiledAnalysis, results: list[TurnResult]) -> Tur
         sequential="year_over_year" not in spec.operations or "sequential" in spec.operations,
         year_over_year="year_over_year" in spec.operations,
     )
-    merged = _one_company_left(_without_base_quarters(merged, spec))
+    merged = merged.model_copy(update={"table_rows": Periods(spec).shown(merged.table_rows)})
+    merged = _one_company_left(merged)
     if len(spec.companies) == 1 and spec.constituents is None:
         merged = _one_company_failure(merged, results)
     merged = _fill_identity(merged, spec)
@@ -1180,52 +1027,6 @@ def merge_analysis(compiled: CompiledAnalysis, results: list[TurnResult]) -> Tur
             merged, _ordering_metric(spec), ascending=lowest_first
         )
     return merged
-
-
-def _without_base_quarters(result: TurnResult, spec: AnalysisSpec) -> TurnResult:
-    """Leave out the quarter read only as the oldest shown quarter's sequential base."""
-    if spec.periods.kind == "named":
-        return _without_named_bases(result, spec)
-    shown = spec.periods.shown
-    if spec.periods.kind != "last_n_quarters" or shown is None:
-        return result
-    handles = {company.handle: company for company in spec.companies}
-    oldest: dict[str, date] = {}
-    for issuers, dates in calendar_groups(spec):
-        if len(dates) <= shown:
-            continue
-        for handle in issuers:
-            company = handles[handle]
-            oldest[company.cik or company.name] = dates[shown - 1]
-    if not oldest:
-        return result
-    rows = [
-        row
-        for row in result.table_rows
-        if row.end_date is None
-        or (row.cik or row.company_name) not in oldest
-        or row.end_date >= oldest[row.cik or row.company_name]
-    ]
-    return result.model_copy(update={"table_rows": rows})
-
-
-def _without_named_bases(result: TurnResult, spec: AnalysisSpec) -> TurnResult:
-    """Leave out the quarters read only as a named quarter's sequential base."""
-    bases = dict(spec.periods.company_base_dates or ())
-    hidden = {
-        company.cik or company.name: set(bases[company.key])
-        for company in spec.companies
-        if bases.get(company.key)
-    }
-    if not hidden:
-        return result
-    rows = [
-        row
-        for row in result.table_rows
-        if row.end_date is None
-        or row.end_date not in hidden.get(row.cik or row.company_name, set())
-    ]
-    return result.model_copy(update={"table_rows": rows})
 
 
 def add_history(
@@ -1263,6 +1064,13 @@ def annotate_analysis(
     """The answer's notes, and the resolved analysis the thread keeps."""
     spec = compiled.spec
     patch = compiled.patch
+    # The stored reading, not the wording: a metric reply to a clarification
+    # keeps the held question's window, and with it the notes about that window.
+    period = Periods(spec).notes(
+        compiled.window,
+        change_asked(compiled.wording),
+        ranked_window=compiled.ranked_window_asked,
+    )
     # Planner notes first: a corrected company name explains the whole answer.
     notes = [
         *([fund_note(list(compiled.funds))] if compiled.funds else []),
@@ -1270,12 +1078,9 @@ def annotate_analysis(
         *missing_component_notes(merged.table_rows),
         *already_present_notes(patch, compiled.prior_spec, spec),
         *metric_reading_notes(compiled.wording, spec),
-        *period_notes(
-            compiled.wording,
-            spec,
-            window=compiled.window,
-            ranked_window=compiled.ranked_window_asked,
-        ),
+        *period.read,
+        *change_banners(compiled.wording, spec),
+        *period.shown,
         *short_ranking_notes(spec),
         *capped_ranking_notes(patch),
     ]
@@ -1375,26 +1180,6 @@ def _with_market_date(spec: AnalysisSpec, runtime: Runtime) -> AnalysisSpec:
     return spec if spec.as_of == as_of else spec.model_copy(update={"as_of": as_of})
 
 
-def _after_latest_filing(spec: AnalysisSpec, runtime: Runtime) -> bool:
-    """Whether every named period ends after the first company's newest filed quarter."""
-    if not spec.companies:
-        return False
-    listed = _or_none(partial(runtime.facts.fiscal_periods, spec.companies[0].handle))
-    if not listed:
-        return False
-    latest = max(listed, key=lambda period: period.end)
-    for named in spec.periods.named:
-        if named.calendar:
-            last = calendar_quarter(latest.end)
-        elif latest.fiscal_year is None or latest.quarter is None:
-            return False
-        else:
-            last = (latest.fiscal_year, latest.quarter)
-        if (named.year, named.quarter or 1) <= last:
-            return False
-    return True
-
-
 # One company's overview carries a few quarters of these beside its table.
 TREND_METRICS: tuple[str, ...] = ("revenue", "net_margin")
 TREND_QUARTERS = 5
@@ -1445,7 +1230,7 @@ def _window_levels(
     out. Only rows with a value, and no change, are kept.
     """
     try:
-        dated = materialize_period_dates(window, runtime)
+        dated = Periods(window).dated(runtime.facts).spec
         chosen = dated if narrow is None else narrow(dated)
         if chosen is None:
             return None

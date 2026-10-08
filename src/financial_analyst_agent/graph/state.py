@@ -25,7 +25,7 @@ from financial_analyst_agent.contracts import (
     TurnResult,
 )
 from financial_analyst_agent.graph.analysis_spec import AnalysisSpec, CompiledTask, SpecPatch
-from financial_analyst_agent.request_wording import WindowReading, read_window
+from financial_analyst_agent.period_selection import WindowReading, read
 
 
 @dataclass(frozen=True)
@@ -75,7 +75,7 @@ class StructuredRequest(BaseModel):
     patch: SpecPatch
     wording: str
     question: str
-    window: WindowReading = Field(default_factory=lambda data: read_window(data["wording"]))
+    window: WindowReading = Field(default_factory=lambda data: read(data["wording"]).reading)
     intent: Intent | None = None
     # The planner's notes (a corrected company name), shown before the answer's own.
     notes: tuple[str, ...] = ()

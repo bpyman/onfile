@@ -24,7 +24,7 @@ from financial_analyst_agent.ranking import SnapshotRanking
 from financial_analyst_agent.rules_planner import DemoCompleter, issuer_index
 from financial_analyst_agent.thread_store import LocalThreadStore
 from financial_analyst_agent.universe import load_universe_snapshot
-from helpers import FakeFacts
+from helpers import ListedFilings
 
 
 def _ranking() -> SnapshotRanking:
@@ -152,12 +152,14 @@ def test_every_capitalised_name_is_a_company_unless_plainly_a_word(word: str, ti
     assert ticker not in _found(f"Ask the {word}: what's Nvidia's revenue?")
 
 
-class _Facts(FakeFacts):
-    def __init__(self) -> None:
-        self.companies: list[str] = []
+class _Facts(ListedFilings):
+    """Microsoft, Lincoln Electric and Lincoln National, asked for by CIK, file the
+    same two quarters."""
 
-    def list_quarterly_report_dates(self, company: str, *, limit: int) -> tuple[date, ...]:
-        return (date(2026, 6, 30), date(2026, 3, 31))[:limit]
+    def __init__(self) -> None:
+        quarters = (date(2026, 6, 30), date(2026, 3, 31))
+        super().__init__({cik: quarters for cik in ("0000789019", "0000059527", "0000059558")})
+        self.companies: list[str] = []
 
     def get_financials(
         self, company: str, metric: str, *, report_date: date | None = None

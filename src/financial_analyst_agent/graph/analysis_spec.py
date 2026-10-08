@@ -1,4 +1,4 @@
-"""Analysis spec, patch application, validation, and task compilation.
+"""Analysis spec, patch application, and validation.
 
 Internal seams for the stateful analysis graph. Callers outside this package
 should not depend on these helpers; the conversation seam owns the public API.
@@ -15,7 +15,6 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from financial_analyst_agent.contracts import ALLOWED_METRICS, unknown_metric_message
 from financial_analyst_agent.domain.errors import CompanyNotFoundError
-from financial_analyst_agent.services.filing_selector import FISCAL_WEEK_TOLERANCE
 
 
 class NamedPeriodSpec(BaseModel):
@@ -552,132 +551,3 @@ def validate_spec(spec: AnalysisSpec) -> SpecRejection | None:
             details={"missing": "metrics"},
         )
     return None
-
-
-def _base_tasks(spec: AnalysisSpec) -> tuple[CompiledTask, ...]:
-    if spec.constituents is not None:
-        if not spec.metrics:
-            return (
-                CompiledTask(
-                    kind="rank",
-                    industry=spec.constituents.industry,
-                    limit=spec.constituents.limit,
-                    ranked=spec.constituents.table,
-                ),
-            )
-        return tuple(
-            CompiledTask(
-                kind="rank_and_lookup",
-                industry=spec.constituents.industry,
-                limit=spec.constituents.limit,
-                metric=metric,
-                ranked=spec.constituents.table,
-            )
-            for metric in spec.metrics
-        )
-
-    issuers = tuple(company.handle for company in spec.companies)
-    if not issuers or not spec.metrics:
-        return ()
-    kind: Literal["lookup", "compare"] = "lookup" if len(issuers) == 1 else "compare"
-    return tuple(
-        CompiledTask(kind=kind, issuers=issuers, metric=metric) for metric in spec.metrics
-    )
-
-
-def _quarter_phase(day: date) -> int:
-    """Month of the quarter grid a period end sits on (0, 1 or 2).
-
-    A 52/53-week quarter ends up to a week either side of a month end, so a
-    date in a month's first half counts as the previous month's end.
-    """
-    month = day.month if day.day >= 15 else day.month - 1
-    return month % 3
-
-
-def _same_grid(dates: tuple[date, ...], reference: tuple[date, ...]) -> bool:
-    """Whether two quarter-end lists name the same quarters, give or take a week.
-
-    Apple's March 28 and Microsoft's March 31 are one quarter. Costco's May 10
-    and Walmart's April 30 sit in the same month of the quarter grid but are
-    different quarters: asking Walmart for May 10 finds no filing.
-    """
-    if _quarter_phase(dates[0]) != _quarter_phase(reference[0]):
-        return False
-    return any(
-        abs(own - shared) <= FISCAL_WEEK_TOLERANCE for own in dates for shared in reference
-    )
-
-
-def calendar_groups(spec: AnalysisSpec) -> list[tuple[tuple[str, ...], tuple[date, ...]]]:
-    """Named companies grouped by the quarter ends their window uses, in spec order.
-
-    A company with no dates of its own, or whose quarters end on the same
-    calendar grid as the first company's (Apple's March 28 beside Microsoft's
-    March 31), shares the window's ``report_dates`` so rows cover the same
-    periods; a company on another grid (Nvidia's April quarter) keeps its own.
-    """
-    reference = spec.periods.report_dates
-    own = dict(spec.periods.company_report_dates)
-    bases = dict(spec.periods.company_base_dates or ())
-    named = spec.periods.kind == "named"
-    groups: dict[tuple[date, ...], list[str]] = {}
-    for company in spec.companies:
-        dates = own.get(company.key, reference)
-        if named:
-            # "Q3 FY2024" is each company's own third quarter, wherever it ends.
-            if not dates:
-                continue
-            if company.key in bases:
-                dates = tuple(sorted({*dates, *bases[company.key]}, reverse=True))
-        elif not dates or not reference or _same_grid(dates, reference):
-            dates = reference
-        groups.setdefault(dates, []).append(company.handle)
-    return [(tuple(issuers), dates) for dates, issuers in groups.items()]
-
-
-def compile_tasks(spec: AnalysisSpec) -> tuple[CompiledTask, ...]:
-    """Compile a resolved spec into typed tasks without executing providers.
-
-    Each metric becomes an independent task so multi-metric analyses compose
-    without a special-cased multi-metric workflow. A last_n_quarters window with
-    concrete report_dates fans out one task per period.
-    """
-    base = _base_tasks(spec)
-    if (
-        spec.periods.kind not in ("last_n_quarters", "named")
-        or not spec.periods.report_dates
-        or not base
-    ):
-        return base
-    # Rank workflows are snapshot-dated, not filing-period windows.
-    expandable = tuple(
-        task for task in base if task.kind in {"lookup", "compare"}
-    )
-    if not expandable:
-        return base
-    groups = calendar_groups(spec)
-    # A named period leaves out a company with no filing for it; asking that
-    # company for another company's date would answer with its own other quarter.
-    named = spec.periods.kind == "named"
-    if named or len(groups) > 1 or (groups and groups[0][1] != spec.periods.report_dates):
-        # Each calendar asks for its own quarter ends; one shared date would
-        # miss every quarter of a company whose fiscal quarters end elsewhere.
-        longest = max(len(dates) for _, dates in groups)
-        return tuple(
-            CompiledTask(
-                kind="compare" if len(spec.companies) > 1 else task.kind,
-                issuers=issuers,
-                metric=task.metric,
-                report_date=dates[index],
-            )
-            for index in range(longest)
-            for task in expandable
-            for issuers, dates in groups
-            if index < len(dates)
-        )
-    return tuple(
-        task.model_copy(update={"report_date": report_date})
-        for report_date in spec.periods.report_dates
-        for task in expandable
-    )

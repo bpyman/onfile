@@ -76,13 +76,12 @@ from financial_analyst_agent.guide import (
 )
 from financial_analyst_agent.issuer_index import CompanyNames
 from financial_analyst_agent.observability import call_provider, log_event
+from financial_analyst_agent.period_selection import read
 from financial_analyst_agent.ranked_wording import ranked_group
 from financial_analyst_agent.request_wording import (
     asks_change_without_base,
     asks_for_explanation,
     asks_speculatively,
-    planner_window,
-    read_window,
 )
 from financial_analyst_agent.services.metric_catalog import resolve_metric_phrase
 from financial_analyst_agent.turn import (
@@ -219,12 +218,17 @@ def request_from_proposal(
             # none, is the planner's paraphrase of every company, not the analyst's.
             proposal = proposal.model_copy(update={"industry": WHOLE_MARKET})
     if is_structured_proposal(proposal):
-        # A planner's window stands only where the words ask about time.
-        window = read_window(message)
-        patch = planner_window(
+        # The words propose the period part: a planner's window stands only
+        # where they ask about time, and a ranking proposes none.
+        words = read(message)
+        quarters = (
+            None
+            if isinstance(proposal, SpecPatch) or proposal.intent is Intent.RANK
+            else proposal.recent_quarters
+        )
+        patch = words.propose(
             proposal if isinstance(proposal, SpecPatch) else plan_to_spec_patch(proposal),
-            message,
-            window=window,
+            model_quarters=quarters,
         )
         intent = None if isinstance(proposal, SpecPatch) else proposal.intent
         notes = () if isinstance(proposal, SpecPatch) else proposal.notes
@@ -242,7 +246,7 @@ def request_from_proposal(
             patch=patch,
             wording=message,
             question=message,
-            window=window,
+            window=words.reading,
             intent=intent,
             notes=notes,
             unrecorded=tuple(unrecorded),
