@@ -19,13 +19,7 @@ from financial_analyst_agent.graph.analysis_spec import (
     ResolvedCompany,
     SpecPatch,
 )
-from financial_analyst_agent.guide import (
-    format_date,
-    in_sentence,
-    joined,
-    possessive,
-    short_name,
-)
+from financial_analyst_agent.prose import format_date, in_sentence, joined, possessive, short_name
 from financial_analyst_agent.request_wording import EXPLICIT_YOY, GROWTH, WHY_CHANGE
 from financial_analyst_agent.services.filing_selector import FISCAL_WEEK_TOLERANCE
 from financial_analyst_agent.services.metric_catalog import (
@@ -91,12 +85,12 @@ def missing_component_notes(rows: Sequence[TableRow]) -> list[str]:
     shown: set[tuple[str, str]] = set()
     # A newest quarter SEC's structured data lacks: the newer-filing banner says so.
     pending: set[tuple[str, date]] = {
-        (row.cik or row.company_name, row.newer_filing_end)
+        (row.company_key, row.newer_filing_end)
         for row in rows
         if row.value is not None and row.newer_filing_end is not None
     }
     for row in rows:
-        company = row.cik or row.company_name
+        company = row.company_key
         if row.missing_components:
             if row.end_date is not None and any(
                 company == other and abs(row.end_date - end) <= FISCAL_WEEK_TOLERANCE
@@ -113,31 +107,40 @@ def missing_component_notes(rows: Sequence[TableRow]) -> list[str]:
     for (metric, parts), companies in missing.items():
         label = _metric_in_prose(metric)
         lacked = joined([_metric_in_prose(part) for part in parts], "or")
-        named = []
-        for company, (name, dates) in companies.items():
-            short = short_name(name) or name
-            if (company, metric) in shown and dates:
-                short += f" ({joined([format_date(day) for day in dates])})"
-            named.append(short)
+        # (short name, the quarters named): a company's quarters are named only
+        # where it has the figure for others in the window. Kept as a pair, not
+        # formatted and parsed back: eleven snapshot short names end in ")".
+        named = [
+            (
+                short_name(name) or name,
+                [format_date(day) for day in dates] if (company, metric) in shown else [],
+            )
+            for company, (name, dates) in companies.items()
+        ]
         # What was looked for and not found, not what the company reports: a
         # quarter can be beyond what is on file, or the line tagged in a way this
         # does not read.
         if len(named) == 1:
-            (only,) = named
-            when = where = ""
-            if only.endswith(")"):
-                only, _, dates_shown = only[:-1].partition(" (")
-                when = f" for {dates_shown}"
-                where = " for that quarter" if " and " not in dates_shown else " for those quarters"
+            ((only, quarters),) = named
+            if quarters:
+                when = f" for {joined(quarters)}"
+                where = " for that quarter" if len(quarters) == 1 else " for those quarters"
             else:
+                when = ""
                 where = " in its filings"
             notes.append(
                 f"{possessive(only)} {label} is missing{when}: no standalone quarterly "
                 f"{lacked} was found{where}, which {label} needs."
             )
         else:
+            listed = joined(
+                [
+                    f"{short} ({joined(quarters)})" if quarters else short
+                    for short, quarters in named
+                ]
+            )
             notes.append(
-                f"{label[:1].upper()}{label[1:]} is missing for {joined(named)}: no standalone "
+                f"{label[:1].upper()}{label[1:]} is missing for {listed}: no standalone "
                 f"quarterly {lacked} was found in their filings, which {label} needs."
             )
     return notes

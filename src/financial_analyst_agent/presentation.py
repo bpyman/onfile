@@ -67,14 +67,8 @@ from financial_analyst_agent.domain.errors import (
 )
 from financial_analyst_agent.graph.analysis_spec import AnalysisSpec
 from financial_analyst_agent.graph.clarify import clarify_prompt
-from financial_analyst_agent.guide import (
-    format_date,
-    in_sentence,
-    joined,
-    possessive,
-    short_name,
-)
 from financial_analyst_agent.period_selection import Periods
+from financial_analyst_agent.prose import format_date, in_sentence, joined, possessive, short_name
 from financial_analyst_agent.services.fact_selector import (
     FOURTH_QUARTER_LABEL,
     MAX_QUARTER_DAYS,

@@ -37,9 +37,9 @@ from financial_analyst_agent.domain.errors import (
 )
 from financial_analyst_agent.fan_out import map_in_order
 from financial_analyst_agent.graph.state import FilingChangeRequest, SectionId
-from financial_analyst_agent.guide import format_date, joined, short_name
 from financial_analyst_agent.numeral_lock import numeral_lock_extras
 from financial_analyst_agent.observability import call_provider
+from financial_analyst_agent.prose import format_date, joined, short_name
 from financial_analyst_agent.providers.sec.company_resolver import resolve_company
 from financial_analyst_agent.providers.sec.submissions import (
     ACCESSION_PATTERN,
@@ -855,7 +855,7 @@ def bind_filing_change(plan: WorkflowPlan, message: str) -> FilingChangeRequest:
         else (plan.older_accession, plan.newer_accession)
     )
     return FilingChangeRequest(
-        company=plan.company or "",
+        company=plan.named_company or "",
         older_accession=older,
         newer_accession=newer,
         named_accessions=found,
@@ -879,7 +879,7 @@ def _request_refusal(company: str, older: str, newer: str, plan: FilingChangeReq
             "I compare one company's filings at a time. Ask about each company "
             "separately, for example “What changed in Apple's latest 10-Q?”."
         )
-    if not company or company == "unknown":
+    if not company:
         return (
             "I couldn't tell which company's filings to compare. Name one, for example "
             "“What changed in Apple's latest 10-Q?”, or give two of its accession numbers."

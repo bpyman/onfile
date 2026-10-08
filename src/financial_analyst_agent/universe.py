@@ -311,7 +311,6 @@ INDUSTRY_GROUP_ALIASES: dict[str, tuple[str, ...]] = {
     "insurance": ("Insurance -*",),
     "reit": ("REIT -*",),
     "oil": ("Oil & Gas*",),
-    "oil and gas": ("Oil & Gas*",),
     "oil & gas": ("Oil & Gas*",),
     "retailer": (
         "Specialty Retail",

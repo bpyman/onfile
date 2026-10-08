@@ -23,16 +23,12 @@ from financial_analyst_agent.graph.analysis_spec import (
     resolve_spec,
 )
 from financial_analyst_agent.graph.spec_turn import _order_by_metric, plan_to_spec_patch
-from financial_analyst_agent.guide import (
-    guide_reply,
-    short_display_name,
-    short_name,
-    suggest_follow_ups,
-)
+from financial_analyst_agent.guide import guide_reply, short_display_name, suggest_follow_ups
 from financial_analyst_agent.issuer_index import IssuerIndex
 from financial_analyst_agent.period_selection import read
 from financial_analyst_agent.planner_cascade import unsure_reason
 from financial_analyst_agent.presentation import present_turn
+from financial_analyst_agent.prose import short_name
 from financial_analyst_agent.ranking import SnapshotRanking
 from financial_analyst_agent.request_wording import (
     OVERVIEW_METRICS,
@@ -399,9 +395,6 @@ EVERYDAY_GROUP_MEMBERS: dict[str, set[str] | None] = {
     "insurance": INSURANCE,
     "reit": REITS,
     "oil": OIL_AND_GAS,
-    # "oil and gas" is normalised to "oil and ga" ("gas" loses its s), so this
-    # key is never looked up; the planner writes the industry as "oil & gas".
-    "oil and gas": None,
     "oil & gas": OIL_AND_GAS,
     "retailer": RETAIL,
     "retail": RETAIL,

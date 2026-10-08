@@ -9,7 +9,7 @@ from typing import Any
 import pytest
 
 from financial_analyst_agent.domain.errors import SessionQuotaError
-from financial_analyst_agent.fan_out import map_in_order
+from financial_analyst_agent.fan_out import map_in_order, or_none
 from financial_analyst_agent.providers.sec.client import sec_turn_budget, sec_turn_seconds_left
 from financial_analyst_agent.turn import run_turn
 from test_run_turn_rank import HEALTHCARE_TOP_10, _snapshot_rank_runtime
@@ -91,3 +91,16 @@ def test_a_ranked_lookup_fetches_its_members_at_once_in_rank_order() -> None:
     assert [trace.args.get("company") for trace in result.tool_traces[1:]] == [
         cik for _name, _ticker, cik, _cap in HEALTHCARE_TOP_10
     ]
+
+
+def test_a_failed_read_is_none_and_a_spent_budget_still_stops_the_turn() -> None:
+    def failing() -> int:
+        raise ValueError("SEC returned nothing usable")
+
+    def spent() -> int:
+        raise SessionQuotaError("This thread has reached its live SEC request limit.")
+
+    assert or_none(lambda: 7) == 7
+    assert or_none(failing) is None
+    with pytest.raises(SessionQuotaError):
+        or_none(spent)
