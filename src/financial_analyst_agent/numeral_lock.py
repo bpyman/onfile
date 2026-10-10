@@ -35,14 +35,16 @@ _AMOUNT_AFTER = (
 # Dates are when, not how much: "March 31, 2026", "2026-03-31" or "in fiscal 2026" in
 # an essay is not a figure, and a grounding date's "31" or "03" must not unlock "31%"
 # elsewhere. A bare four-digit number is a year only beside a word that dates it;
-# "hire 2000 engineers" stays a figure.
+# "hire 2000 engineers" stays a figure. A period label without its year ("Q4",
+# "H1", "Q4'25", "FY27") is a date too: "GM's Q4 loss" quotes no 4.
 _DATE_TEXT = re.compile(
     rf"\b\d{{4}}-\d{{2}}-\d{{2}}(?:T[\d:.+-]+Z?)?\b"
     rf"|\b{_MONTH}\.?\s+\d{{1,2}}(?:st|nd|rd|th)?(?:,?\s+(?:19|20)\d{{2}})?\b{_AMOUNT_AFTER}"
     rf"|\b{_MONTH}\.?\s+(?:19|20)\d{{2}}\b{_AMOUNT_AFTER}"
     r"|\b(?:in|during|since|by|until|through|from|fiscal(?:\s+year)?|calendar(?:\s+year)?"
     r"|FY|Q[1-4]|H[12]|early|mid|late|end\s+of)\s*'?(?:19|20)\d{2}\b"
-    rf"{_AMOUNT_AFTER}",
+    rf"{_AMOUNT_AFTER}"
+    r"|\b(?:Q[1-4]|H[12])(?:'\d{2})?\b|\bFY'?\d{2}\b",
     re.IGNORECASE,
 )
 _YEAR = re.compile(r"\b(?:19|20)\d{2}\b")
@@ -114,13 +116,18 @@ _MIN_SIGNIFICANT_DIGITS = 2
 
 
 def _grounded_amounts(grounding: str) -> list[Decimal]:
-    """Every number in the grounding, as an amount (sign dropped, as an essay's has none)."""
+    """Every number in the grounding, as an amount (sign dropped, as an essay's has none).
+
+    A unit is read as the essay's is: a snippet's "96.22B" is 96.22 billion, so
+    "$96.22 billion" rounds from it and "$96.22 million" does not.
+    """
     amounts = []
     for token in _figures(grounding):
-        try:
-            amounts.append(abs(Decimal(token.lstrip("$").split()[0].replace(",", ""))))
-        except ArithmeticError:
+        parts = _FIGURE_PARTS.fullmatch(token.strip())
+        if parts is None:
             continue
+        number = Decimal(parts.group("number").replace(",", ""))
+        amounts.append(number * _UNIT_SCALE.get(parts.group("unit").casefold(), Decimal(1)))
     return amounts
 
 
