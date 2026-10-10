@@ -617,7 +617,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     gen.add_argument("--set", required=True, choices=sorted(CASE_FILES))
     gen.add_argument("--samples", type=int, default=2)
     gen.add_argument(
-        "--output-tokens", type=int, default=1500, help="assumed per essay, for the estimate"
+        "--output-tokens", type=int, default=600, help="assumed per essay, for the estimate"
     )
     gen.add_argument("--estimate", action="store_true", help="price the run and stop")
     jud = sub.add_parser("judge", help="judge two arms pairwise")
