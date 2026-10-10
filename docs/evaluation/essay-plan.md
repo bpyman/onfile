@@ -62,4 +62,5 @@ Before the freeze, three essays on questions outside both sets were generated on
 
 ## Changes to this plan
 
-None yet.
+- **10 October 2026: four development rounds, not up to three.** Revisions 2 to 5 were each run on the development set and judged against A1; each round's instructions were reviewed by Blake before it ran. Revision 2 set out the reader and what a strong answer does, and the material each kind may use; revision 3 added style guidance and stated the figure check outright; revision 4 directed words to analysis and mapped explanations to the evidence that would settle them; revision 5 stated the advice boundary explicitly, told the analysis essay every quarter in the table has been filed, and set the length to 200 to 300 words. **A2 is revision 5** (`v5@gpt-6.1-sol`), frozen before any held-out essay was generated.
+- **10 October 2026: price.** `gpt-6.1-sol` costs $2 and $10 per million input and output tokens, not $12 for output as first assumed; spend recorded before the correction is slightly overstated.

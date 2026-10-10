@@ -50,7 +50,7 @@ SPEND = ESSAYS / "spend.json"
 # The plan's cap on OpenAI spend for the whole evaluation, in US dollars.
 BUDGET = 14.35
 # US dollars per million tokens, for every model the arms use.
-PRICES = {"gpt-5.6-terra": (2.0, 12.0), "gpt-6.1-sol": (2.0, 12.0)}
+PRICES = {"gpt-5.6-terra": (2.0, 12.0), "gpt-6.1-sol": (2.0, 10.0)}
 JUDGE_MODEL = "claude-sonnet-5-5"
 CRITERIA = ("answers", "accuracy", "analysis", "clarity", "calibration")
 GATES = ("citations", "no_advice", "faithful")

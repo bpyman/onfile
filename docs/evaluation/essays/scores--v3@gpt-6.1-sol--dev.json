@@ -1,0 +1,1145 @@
+{
+  "judge": "claude-sonnet-5-5",
+  "scores": [
+    {
+      "case_id": "claude_explain_01",
+      "sample": 1,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "Opens with the right answer on why banks report net interest income and covers what net interest margin shows, with no numerals and no advice, but it is slightly loose in saying interest expense is 'below operating profit' and in treating the margin as a test of the loan book rather than saying what it cannot show about each balance-sheet side."
+    },
+    {
+      "case_id": "claude_explain_01",
+      "sample": 2,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 4,
+        "clarity": 5,
+        "calibration": 5
+      },
+      "reason": "The essay opens by giving the reason funding is core input and defines NIM, explains the mechanism (spread, growth vs margin, repricing, deposit franchise) and notes what NIM omits (provisions, fees, credit risk), with no numerals, advice or unsupported company claims."
+    },
+    {
+      "case_id": "claude_explain_02",
+      "sample": 1,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 5,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "It opens by directly answering both parts, uses no numerals, and correctly explains the weighted-average share restatement and why comparatives are restated, but it adds some detail beyond what was asked (post-balance-sheet events, diluted EPS)."
+    },
+    {
+      "case_id": "claude_explain_02",
+      "sample": 2,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 5,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "The opening sentence answers both parts of the question, there are no numerals and no advice, and the mechanism is accurate (weighted-average denominator, retrospective adjustment for basic and diluted EPS, a post-period split before issuance, P/E unchanged), though it explains the 'why restate' point a little more than it extends beyond a textbook treatment."
+    },
+    {
+      "case_id": "claude_explain_03",
+      "sample": 1,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "The answer is numeral-free, gives no advice and explains the mechanisms well (capex in investing cash flow, depreciation add-back, working capital, stock-based compensation) with sensible checks, but the first sentence only defines the terms rather than addressing the divergence, and the Tesla-specific claim that operating cash flow stays above net income for years is stated generally rather than tied to the company's actual record."
+    },
+    {
+      "case_id": "claude_explain_03",
+      "sample": 2,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "The opening sentence defines both measures and gives the main reason for the gap, but it does not say outright that the gap usually shows up as operating cash flow above net income; the depreciation mechanism, the capex-outside-OCF point, the free cash flow caveat and the working-capital quality discussion are correct and well calibrated, and the one imprecision is that 'preserves cash but dilutes' stock-based compensation is true but loosely worded, with no numerals and no advice."
+    },
+    {
+      "case_id": "claude_explain_04",
+      "sample": 1,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "It uses no numerals, answers the question in the opening sentence, and explains the mechanism (fixed fab costs, utilization, yields and mix for chips; costs below gross profit for drugs). It also notes the fabless and biologics exceptions, but it runs a little long and the opening is somewhat hedged."
+    },
+    {
+      "case_id": "claude_explain_04",
+      "sample": 2,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 3,
+        "accuracy": 4,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The essay has no numerals, advice or unsupported company claims, and it explains the fixed-cost and below-the-line mechanisms well, but its opening sentence only gestures at the contrast instead of directly saying why gross margin matters more for a chipmaker, and it slightly overstates by saying chip gross margin 'often' reveals both franchise strength and production economics while treating drugmaker gross margin as mostly uninformative."
+    },
+    {
+      "case_id": "claude_explain_05",
+      "sample": 1,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 4,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The opening sentence answers the question and the essay explains the repricing mechanism for both borrower types with appropriate caveats (hedges, accounting classification, floors/caps/swaps), but it is imprecise in saying the deposit lag lifts margin 'initially' without noting the typical later reversal as a firm trend, and it leaves out how fair-value hedge/AOCI effects on bank capital or the question of who bears the tax shield could add depth."
+    },
+    {
+      "case_id": "claude_explain_05",
+      "sample": 2,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "Accurate, numeral-free and well-hedged on both the bank and floating-rate borrower channels, with solid mechanism detail (AFS/OCI, provisions, swaps, capitalized interest), but the opening sentence is a framing statement rather than a direct answer and the last paragraph drifts slightly into tangents."
+    },
+    {
+      "case_id": "claude_explain_06",
+      "sample": 1,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 5,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The opening sentence directly answers the question, the essay explains the mechanism (sign flips, near-zero denominators), the buyback/dividend and unrecognised-asset causes, and the alternatives by purpose with a bank caveat, and it uses no numerals, though the closing alternatives list is somewhat long."
+    },
+    {
+      "case_id": "claude_explain_06",
+      "sample": 2,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 4,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "It answers in the opening sentence and uses no numerals. It explains the sign reversal and why equity is depleted, and it names ROIC and its own denominator problem, though it stays fairly generic and leaves out tangible equity and other denominators."
+    },
+    {
+      "case_id": "claude_explain_07",
+      "sample": 1,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 4,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "It opens by answering both parts (expensed charge lowers margins; next quarter's rebound can be mechanical), explains the asset-acquisition versus business-combination accounting and the adjusted-earnings exclusion, uses no numerals, and gives no advice. Accuracy loses a point because the IFRS line is vague and the amortization remark is loosely stated, and the next-quarter guidance could be more concrete."
+    },
+    {
+      "case_id": "claude_explain_07",
+      "sample": 2,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 4,
+        "analysis": 4,
+        "clarity": 5,
+        "calibration": 4
+      },
+      "reason": "The opening sentence answers both parts of the question and the accounting treatments are correct, though the 'no alternative future use' test is slightly oversimplified and the essay says little about the tax effect or what the data cannot show."
+    },
+    {
+      "case_id": "claude_explain_08",
+      "sample": 1,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 5,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The opening sentence answers the question directly, the causes are accurate and caveated (classification varies, adjusted vs reported margins, noncontrolling interests), and the bridge procedure shows how to tell which explanation applies; the 'investment implication' line is general framing rather than a buy/sell recommendation, and the response contains no numerals."
+    },
+    {
+      "case_id": "claude_explain_08",
+      "sample": 2,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 5,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "The opening sentence directly answers the question, the numeral-free essay correctly lists the below-the-line drivers (financing, nonoperating gains, tax, discontinued operations) with where to check each, and it is slightly dense, with a mild investment-implication line that gives no buy/sell advice."
+    },
+    {
+      "case_id": "claude_explain_09",
+      "sample": 1,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "No numerals and no advice, and the mechanics are correct (expense at sale, liability drawdown, recall accrual when probable and estimable); but it gives no sense of GM's typical warranty scale, so it answers the 'how large' half only by declining to, and the opening sentence is the general mechanism rather than GM's size."
+    },
+    {
+      "case_id": "claude_explain_09",
+      "sample": 2,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The answer uses no numerals and explains the accrual mechanics and recall contingency treatment accurately, but it opens with the mechanism and gives only a qualitative GM magnitude (recurring warranty cost, large recall charges), and the claim that routine warranty stays 'much smaller than manufacturing costs' is true but thin."
+    },
+    {
+      "case_id": "claude_explain_10",
+      "sample": 1,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "The essay uses no numerals, gives no advice, and explains compression mechanics accurately, including the point that an estimate cut alone raises the multiple; it declines a firm forecast for Microsoft without current valuation data, which is well calibrated but leaves the second half of the question only partly answered."
+    },
+    {
+      "case_id": "claude_explain_10",
+      "sample": 2,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 3,
+        "accuracy": 5,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The answer is accurate, well calibrated and explains the mechanism, but the opening gives the definition first and only hedges on whether Microsoft's multiple will compress, so the question is only partly answered up front; no numerals, advice or unsupported company facts appear."
+    },
+    {
+      "case_id": "claude_analysis_01",
+      "sample": 1,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 5,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The opening sentence answers both parts of the question, and every figure and the narrowing and widening calls check against the table. Causes are hedged as untested and the answer says what the table cannot show, but the mechanism section is fairly generic."
+    },
+    {
+      "case_id": "claude_analysis_01",
+      "sample": 2,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 5,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The opening sentence answers both parts of the question (lead narrowing year over year), and the figures and gap arithmetic check out against the table. Causes are labelled plausible rather than shown, and it points to a gross-margin bridge as the next step. The closing line on operating profit is slight filler."
+    },
+    {
+      "case_id": "claude_analysis_02",
+      "sample": 1,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "It opens by saying neither bank can be ranked and explains why, with good limits on what the rows can't show, but 'JPMorgan shows a stronger, steadier trend' is loosely supported, and the claim of year-over-year growth in every quarter is correct but the quarterly rises are asserted without percentages."
+    },
+    {
+      "case_id": "claude_analysis_02",
+      "sample": 2,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 5,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The opening sentence answers the question directly, every figure and trend claim checks against the table, and it lists what the rows cannot show (rate path, drivers, hedges, margin, deposits, total revenue), though it adds no computed comparison such as growth rates or YoY gaps."
+    },
+    {
+      "case_id": "claude_analysis_03",
+      "sample": 1,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 5,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The opening sentence names Merck as the lumpier one and frames deal charges as a hypothesis to test, not a cause. The two quoted figures match the table, and the answer points out Lilly's Q3 2024 dip and that the Q4 2025 figures are derived. It gives a concrete filing checklist, but the checklist is a little long and generic."
+    },
+    {
+      "case_id": "claude_analysis_03",
+      "sample": 2,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "It correctly identifies Merck as the lumpier company with accurate figures, gives acquired in-process R&D expensing as the mechanism while stating that net income alone cannot confirm it, and lists concrete filing checks, but the opening sentence only partly answers 'why' and the checklist is somewhat long."
+    },
+    {
+      "case_id": "claude_analysis_04",
+      "sample": 1,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 3,
+        "clarity": 4,
+        "calibration": 3
+      },
+      "reason": "Every figure and comparison matches the table, and it correctly says the data cannot separate pricing from mix, cost or one-off charges; however, the opening verdict that Tesla is more exposed is partly undercut by its own closing caveat, and the drivers are mostly hypotheses rather than evidence-based mechanisms."
+    },
+    {
+      "case_id": "claude_analysis_04",
+      "sample": 2,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "Every figure matches the table, and the essay clearly says the table cannot identify the causes, but it leads with the exposure ranking and gives only plausible drivers instead of directly answering what is driving each margin trend."
+    },
+    {
+      "case_id": "claude_analysis_05",
+      "sample": 1,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The opening sentence answers the question and states that R&D is only a proxy for AI spending, and the figures match the table, but the claim that Alphabet's ratio rose and Microsoft's fell year over year is correct while 'Oracle's R&D declined' is wrong (it rose from $2.49B to $2.40B? no, it fell), and 'Oracle spent $2.40 billion' omits that the period ended in August, which the answer does flag; the answer also doesn't use the table's infrastructure-spending gap beyond naming it."
+    },
+    {
+      "case_id": "claude_analysis_05",
+      "sample": 2,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The answer opens with Alphabet as leader on the R&D proxy, and every figure and trend claim matches the table. It also states clearly that total R&D is not AI-specific spending and that capex is not captured. It is a little long, and it does not spell out that Oracle's quarter is offset from the other two."
+    },
+    {
+      "case_id": "claude_analysis_06",
+      "sample": 1,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The essay declines to call PLTR a buy, gives no price target, and uses only figures from the table (Q4 2025 revenue of $1.41B, Q1 2026 of $1.63B, Q2 2026 of $1.94B, and net margin of 54.9% against 32.6%). It explains what the table cannot show, such as the source of the margin expansion and valuation. The first sentence only partly answers the question, and 'my judgment is positive' edges close to a view."
+    },
+    {
+      "case_id": "claude_analysis_06",
+      "sample": 2,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The opening sentence directly says the table cannot establish a buy or a price target, and every figure checks against the rows ($1.41B, $1.63B, $1.94B revenue; 54.9% vs 32.6% net margin). It names what the data cannot show, such as the cause of the margin gain, and explains why it matters, but it spends some words on generic caveats and does not give the revenue growth rates."
+    },
+    {
+      "case_id": "claude_analysis_07",
+      "sample": 1,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "It opens with the general mechanism, then correctly says the premise only holds for the fiscal Q2 to Q3 2025 dip ($66.80B to $65.83B despite $23.43B net income), and the latest rows show equity rising. It also states plainly that the table cannot identify the cause of the dip."
+    },
+    {
+      "case_id": "claude_analysis_07",
+      "sample": 2,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The essay corrects the false premise (the latest equity figures are rising), keeps every figure within the table, explains how buybacks, dividends and OCI move equity without touching net income, and says the table cannot show the actual cause. The weaker points are an opening that is partly generic and a few lines of padding."
+    },
+    {
+      "case_id": "claude_analysis_08",
+      "sample": 1,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "The answer opens by placing Micron in an accelerating upcycle and every cited figure matches the table, but it says 'fiscal Q3 2023' and 'fiscal Q3 2024' without noting the table's year-earlier quarters, and its claim that revenue and margin 'softened in fiscal Q2 2025' is wrong on revenue (it rose from $8.71B to $8.05B... actually fell, so correct) but the 36.8% vs 38.4% dip is slight; it also adds sound mechanism, a sensible watch-list and an honest caveat on the extreme latest figures."
+    },
+    {
+      "case_id": "claude_analysis_08",
+      "sample": 2,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The answer opens with a direct statement of cycle position, correctly cites the table's figures (-17.8%, 26.9%, 44.7%, 74.4%, 84.6%, $23.86B, $41.46B) and flags the extreme latest readings and the unproven mechanisms, but \"briefly paused\" in Q2 2025 is only loosely supported (gross margin dipped from 38.4% to 36.8%, while revenue rose from $8.71B to $8.05B... actually fell), and the analysis stays mostly descriptive with a generic closing watch-list."
+    },
+    {
+      "case_id": "claude_analysis_09",
+      "sample": 1,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "Every figure matches the table and the answer is well hedged, saying plainly that the table cannot identify the cause and naming the disclosures that would settle it. The opening answers the question only partially, and the analysis leans on what the table lacks."
+    },
+    {
+      "case_id": "claude_analysis_09",
+      "sample": 2,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The opening sentence answers the question with a hedged lean toward normalization, every figure matches the table, and it says plainly what the table cannot show (cost drivers, charges, reserve effects) and names the evidence that would settle it, though it offers little causal mechanism of its own."
+    },
+    {
+      "case_id": "claude_analysis_10",
+      "sample": 1,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "It correctly says the blanks are missing data rather than zero EPS, notes that two rows (not one) are blank, and checks the trend against year-earlier values and the falling share count, but the opening sentence slightly blurs 'one row' versus two, and the 'annual-filing presentation' explanation is plausible but not shown in the grounding, though it is hedged."
+    },
+    {
+      "case_id": "claude_analysis_10",
+      "sample": 2,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "It correctly identifies two blank rows (July 2025 and July 2026) and shows the trend holds across reported quarters, with a sound mechanism (share-count decline) and stated limits; the opening says the blank is missing data but the cause of the gap is only speculated (fiscal year-end/Q4 not in 10-Q), and the claim that year-over-year figures \"each exceed\" corresponding prior values is correct per the table."
+    },
+    {
+      "case_id": "claude_news_01",
+      "sample": 1,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "news",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 5,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "Every figure and claim traces to results 1–3 with matching markers, and the essay opens with a direct answer and flags what the sources cannot show (the OpenAI revenue confusion, who bears the financing risk, and that forecasts are not evidence of collapse). It loses a point on analysis and clarity because it leans on the sources' framing and runs somewhat long for the content."
+    },
+    {
+      "case_id": "claude_news_01",
+      "sample": 2,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "news",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 5,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The opening sentence answers the question and every figure and reported fact traces to results [1]-[3], with markers in place. The essay also notes what the coverage cannot show (deal recourse terms, the cause of the revenue gap), but the financing paragraph's implications are partly the essay's own inference and the closing paragraph is slightly dense."
+    },
+    {
+      "case_id": "claude_news_02",
+      "sample": 1,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "news",
+      "gates": {
+        "citations": false,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The Capital.com sentences reporting the 25bp hike to 3.75–4.00% and the minutes' content carry no [n] marker (only the later inference sentence is cited), so the citations gate fails, though the essay is otherwise faithful, well-calibrated and analytically sound."
+    },
+    {
+      "case_id": "claude_news_02",
+      "sample": 2,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "news",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The essay is grounded in results 1 and 2, with markers that support the sentences they end, and it gives no advice. It explains the repricing-versus-funding-cost mechanism and says plainly that the coverage holds no bank-specific figures. The opening answers the question only partly, because it leaves the minutes themselves to the second paragraph."
+    },
+    {
+      "case_id": "claude_news_03",
+      "sample": 1,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "news",
+      "gates": {
+        "citations": false,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 3,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "The first paragraph's marker [2][4] misattributes the Motley Fool 9.3% figure (result 4 is correct, but [2] is StockStory, which did not state it), the SpaceX paragraph cites [3] for a quote that appears in the Yahoo result while the Motley Fool result 4 also supports it, and the Verizon storm item and some reported facts (e.g. guidance raise) are sound, but the opening paragraph's combined citation is loose and result 1 (Isaias, dated oddly) is omitted without comment."
+    },
+    {
+      "case_id": "claude_news_03",
+      "sample": 2,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "news",
+      "gates": {
+        "citations": false,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "The citation gate fails because several fact sentences carry no marker or the wrong one (the 9.3% decline is cited to [2][3] though only [3] and [4] hold it, and the SpaceX/Grain Management deal sentence is cited only to [3][4] after the marker sentence)—most notably the opening sentence states reported facts with no marker, and the 'Verizon says home phone service is not going away' details are fine, but marker placement on the headline claim is wrong—while the essay is otherwise accurate, advice-free, and well calibrated in separating the competitive threat from realized losses."
+    },
+    {
+      "case_id": "claude_news_04",
+      "sample": 1,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "news",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 3,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The answer opens by saying the coverage does not identify exposed drugmakers or dollar amounts, which is accurate to the two thin results, and every sourced claim (125% penalty, Nov 30, 2026 start, PhRMA's emergency request, the earlier initiative's withdrawal, the MFN mention) is supported by its marker; analytical value is limited because the grounding gives little beyond the penalty rate, though it does list what data an analyst would need."
+    },
+    {
+      "case_id": "claude_news_04",
+      "sample": 2,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "news",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 3,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The answer opens by stating that the coverage names no exposed drugmakers and gives no dollar amounts, and its cited claims match result 1 (the 125% penalty, the November 30 start date, the earlier blocked rule) and result 2 (the MFN and GENEROUS items), but it mostly restates the grounding and offers little analysis beyond listing the missing inputs."
+    },
+    {
+      "case_id": "claude_news_05",
+      "sample": 1,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "news",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 3,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The answer correctly says the results show only Bloomberg-reported advanced talks, with no premium or closing date, and its [1][2] markers match headline mentions in both results, but it repeats itself and says little beyond what the headline shows."
+    },
+    {
+      "case_id": "claude_news_05",
+      "sample": 2,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "news",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 5,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The essay correctly rejects the question's premise: the results only report advanced talks per Bloomberg, with no premium or closing date, and it cites results [1][2] accurately, gives no advice, and explains what disclosure would answer each question."
+    },
+    {
+      "case_id": "claude_news_06",
+      "sample": 1,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "news",
+      "gates": {
+        "citations": false,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "The figures all come from the grounding, the answer is well calibrated, and it names what the grounding can't show, but the [1] markers sit only at paragraph ends, so several reported-fact sentences (IATA share, $4.53 fuel, 23% fares, United's 35%) carry no marker of their own."
+    },
+    {
+      "case_id": "claude_news_06",
+      "sample": 2,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "news",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The essay answers early, with claims tied to result 1 and the Spirit claim flagged as a weaker source from result 3, and it says what the grounding cannot show; minor issues are the opening's [1][3] marker covering a sentence that mostly reflects the essay's own synthesis, and the 'Argus index reached $4.53' sentence saying 'falling sharply earlier in the year' while the source ties that fall to a wartime low in June (accurate but lightly paraphrased)."
+    },
+    {
+      "case_id": "claude_news_07",
+      "sample": 1,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "news",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "The opening answers both parts of the question, with claims cited to supporting results and a clear statement of what the evidence can't show, but the line that the evidence doesn't justify chasing AMD and the closing note on waiting lean toward advice."
+    },
+    {
+      "case_id": "claude_news_07",
+      "sample": 2,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "news",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The essay answers up front that the target is a thesis rather than a forecast and declines to recommend a trade, and its figures and cited claims match the results, though the opening line and the closing 'before buying' framing lean slightly toward guidance."
+    },
+    {
+      "case_id": "claude_news_08",
+      "sample": 1,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "news",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 3,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The essay correctly says the only result is about Kaspi.kz and cannot support any JPM expectations, and it avoids inventing figures, though it leaves the question unanswered, adds only a generic checklist of metrics, and its [1] marker properly supports the irrelevance claim."
+    },
+    {
+      "case_id": "claude_news_08",
+      "sample": 2,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "news",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 3,
+        "accuracy": 5,
+        "analysis": 2,
+        "clarity": 5,
+        "calibration": 5
+      },
+      "reason": "The essay correctly states that the only result (Kaspi.kz) says nothing about JPM and so cannot answer the question, and it flags its checklist of areas as unsupported, but it gives no Street expectations or swing factors, so it adds little analytical value."
+    },
+    {
+      "case_id": "claude_news_09",
+      "sample": 1,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "news",
+      "gates": {
+        "citations": false,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 4,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The opening sentence directly answers the question and the hedging is well calibrated, but the citations gate fails because the $300B/$664B exposure sentence and the sentence about the $20B revenue report carry no [n] marker (only the paragraph's last sentence does), and the answer leaves out the Oct 9 rebound in result 3."
+    },
+    {
+      "case_id": "claude_news_09",
+      "sample": 2,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "news",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 4,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "It answers directly in the opening sentence, ties its claims to the supplied results, and separates a sentiment shock from contract jeopardy while stating what the coverage cannot show, though the opening sentence's [3] marker is only loosely supported and the ability-to-fund framing leans on the source's interpretation."
+    },
+    {
+      "case_id": "claude_news_10",
+      "sample": 1,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "news",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 3,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The essay honestly says the only source is a quote page with no news, and every figure it cites (230.48, 237.47, 5.565T, 29.14, 23.87% vs 13.44%, 328.72, Nov 17) matches the result with no unsupported causal claims, but it can only restate snapshot data and so offers little analysis."
+    },
+    {
+      "case_id": "claude_news_10",
+      "sample": 2,
+      "arm": "v3@gpt-6.1-sol",
+      "kind": "news",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 4,
+        "analysis": 3,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The essay opens by saying the single quote-page result holds no news rundown, then accurately reports the page's figures with [1] markers and states what the page cannot show; the one imprecision is calling 59.69B 'earnings' and a 'latest' figure without noting the page labels it Q2 FY27."
+    }
+  ]
+}

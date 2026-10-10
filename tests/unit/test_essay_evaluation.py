@@ -92,7 +92,7 @@ def test_generation_holds_each_essay_to_the_numeral_lock_and_prices_it() -> None
     assert not essays["e1"].withheld
     assert essays["a1"].numeral_lock_extras == ["17.3"]
     assert not essays["n1"].withheld
-    assert essays["e1"].cost == pytest.approx(2.0 + 12.0)
+    assert essays["e1"].cost == pytest.approx(2.0 + 10.0)
 
 
 def test_an_estimate_grows_with_samples_and_output() -> None:

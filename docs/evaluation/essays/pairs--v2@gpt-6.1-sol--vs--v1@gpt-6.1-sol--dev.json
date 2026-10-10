@@ -1,0 +1,2465 @@
+{
+  "judge": "claude-sonnet-5-5",
+  "pairs": [
+    {
+      "case_id": "claude_explain_07",
+      "kind": "explain",
+      "sample": 1,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "X",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "tie",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both are accurate and use no numerals, but A opens by directly answering both parts of the question (booking-quarter effect and next-quarter reading) and gives a clearer, more actionable checklist, including the point that repeated exclusion can overstate sustainable profitability, while B is slightly tighter but opens with a framing sentence rather than the direct answer.",
+        "Both are accurate and numeral-free, but B opens with a direct answer to both parts of the question and adds more analytical value (the adjusted-earnings gap, the ongoing program costs, and a concrete checklist for reading the next quarter) at modest extra length."
+      ]
+    },
+    {
+      "case_id": "claude_analysis_07",
+      "kind": "analysis",
+      "sample": 2,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "tie",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both are accurate and well calibrated, and B opens by answering the question more directly, but A's quarter-by-quarter table and its point that non-earnings equity movements were negative in Q3 2025 and absorbed most of Q3 2026's profit give the analyst more to work with.",
+        "B opens by correcting the premise and quantifies from the table that non-earnings equity movements were negative in Q3 2025 and absorbed much of the profit in Q3 2026, while naming what the table cannot show and adding the ROE and cushion implications. A is accurate and concise but mostly gives the textbook equity identity with less analysis of the data."
+      ]
+    },
+    {
+      "case_id": "claude_analysis_05",
+      "kind": "analysis",
+      "sample": 2,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "tie",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both answer correctly that Alphabet leads on R&D but that R&D is only a proxy for AI spend, but A sets the figures out in a compact table and gives the sharper analytical point (AI infrastructure can sit in capex, plus the explanation of why Microsoft's ratio fell), while B's long exact-dollar figures are heavier to read even though it covers Oracle's trend more fully.",
+        "Both open by answering that Alphabet leads on the R&D proxy with the same caveat, but B adds a compact comparison table, explains why Microsoft's falling ratio does not mean cuts, and names the data needed to rank actual AI spending."
+      ]
+    },
+    {
+      "case_id": "claude_analysis_09",
+      "kind": "analysis",
+      "sample": 1,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "tie",
+        "calibration": "Y",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both open with the same answer and stay within the table, but A adds a clear quarter-by-quarter view and names specific filing checks (medical care ratio, reserve development, segment margins, charges and tax) that would separate structural from one-off, while B is shorter and slightly better calibrated but offers less analytical depth.",
+        "B answers in the opening sentence, lays out the six-quarter margin series, and names concrete checks (medical care ratio, reserve development, segment margins, unusual items), while A reads more abstractly, contains a slightly misleading 'investment conclusion' framing, and is a bit less precise (e.g. 'almost break-even' without figures, and B's 'Q1 2026 below year-earlier' is correct in both)."
+      ]
+    },
+    {
+      "case_id": "claude_news_03",
+      "kind": "news",
+      "sample": 1,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "tie",
+        "calibration": "X",
+        "overall": "tie"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": false,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both answers are grounded, cited and free of advice, but A opens with the headline news and adds analysis and calibration (a potential threat versus an established one, non-cash charges versus core weakness, and what to watch), while B mostly restates the snippets.",
+        "B adds stronger analysis and calibration, but its lead sentence cites [2][3] where [3] is the Yahoo result and the sentence's selloff claim is mis-cited in places, and it adds unsupported inferences, whereas A is cleaner, correctly cited and more concise, so the trade-off leaves them roughly even."
+      ]
+    },
+    {
+      "case_id": "claude_news_02",
+      "kind": "news",
+      "sample": 1,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "X",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "X",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": false,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": false,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both are faithful to the grounding and give no advice, but A leads with the direct answer and adds the asset-yield versus funding-cost mechanism, deposit and loan-growth disclosures to watch, and explicit limits of the evidence, while B is shorter but mostly restates the snippets.",
+        "Both answers leave some reported-fact sentences without markers, but B gives the stronger analysis: it explains how asset yields and funding costs drive NII, says which disclosures to watch and states what the grounding cannot show, and it is better calibrated, while A is shorter and tighter."
+      ]
+    },
+    {
+      "case_id": "claude_news_04",
+      "kind": "news",
+      "sample": 2,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "Y",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "tie",
+        "overall": "tie"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both open by saying the results can't identify exposed drugmakers or quantify the money, but A adds the 225% arithmetic, the distinction between a nonpayment penalty and ongoing earnings impact, and a concrete list of what's needed to quantify exposure, while B is shorter but thinner and cites [2] for a claim whose 'does not establish GLOBE coverage' reading is only an inference.",
+        "Both open by saying the results do not identify exposed drugmakers or quantify the money at stake, but A is shorter and avoids B's unsupported and slightly misleading 225% arithmetic and its speculative checklist, and A adds the useful warning not to treat the 26 MFN signers as the GLOBE universe."
+      ]
+    },
+    {
+      "case_id": "claude_explain_03",
+      "kind": "explain",
+      "sample": 2,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "X",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both answer in the opening sentence, use no numerals and give accurate mechanisms, but A adds more analytical value (working-capital limits, explicit statement that the mechanisms don't establish Tesla's actual driver, maintenance vs expansion capex) and better calibration, while B is more concise.",
+        "Both open with the same direct answer and pass all gates, but B is more accurate and better calibrated, since it notes that supplier-payable stretching cannot continue indefinitely and that the grounding cannot show which mechanism drives Tesla's gap. A's claim that depreciation is the main reason for the gap and its Tesla-specific working-capital assertions are slightly less careful, while A is more concise."
+      ]
+    },
+    {
+      "case_id": "claude_explain_04",
+      "kind": "explain",
+      "sample": 2,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both answer in the opening sentence and are accurate, but A gives a clearer mechanism-level breakdown (yield, utilization, cycle, fabless distinction) and states what the margin alone cannot distinguish, which outweighs B's modest edge in concision.",
+        "Both open with a direct answer and contain no numerals or advice, but B explains the mechanisms in more depth (yield, utilization, cycle, fabless vs. fab) and ends by noting that a margin change needs disclosures to tell a sustainable gain from a cyclical one, at the cost of some extra length."
+      ]
+    },
+    {
+      "case_id": "claude_news_06",
+      "kind": "news",
+      "sample": 1,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "X",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "A adds the caveat that the $4.53 figure is not a current quote, states what the sources cannot show, and names the data that would settle the question, while B is somewhat tighter but ends without that and leans on 'strained operations', which the sources don't establish.",
+        "B adds the implication an analyst wants (margin pressure on already-sold tickets, and which disclosures would settle whether cost recovery holds) and notes the $4.53 figure is not a current quote, while A is slightly shorter but less analytical."
+      ]
+    },
+    {
+      "case_id": "claude_news_08",
+      "kind": "news",
+      "sample": 2,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both correctly say the lone Kaspi.kz result cannot answer the question, but A adds a useful checklist of what consensus and swing-factor data would be needed (framed explicitly as not findings), giving more analytical value, while B is shorter but only asks for more data.",
+        "Both honestly state the grounding lacks JPM coverage, but B adds useful guidance on which consensus items and swing factors to check (explicitly framed as not findings) while remaining concise, whereas A only asks for more data."
+      ]
+    },
+    {
+      "case_id": "claude_news_10",
+      "kind": "news",
+      "sample": 1,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "X",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "X",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both honestly say the source holds no weekly news, but A opens with that limit, flags that the price drop is a snapshot rather than a weekly return and that the earnings may not be from this week, and notes the wide analyst spread, while B is shorter but offers less insight and less calibration.",
+        "Both honestly say the source holds no weekly news, but B opens by stating that directly, correctly computes the day-over-day decline, and warns that the earnings figures may not be from this week, which gives more analytical value and better calibration than A at the cost of some length."
+      ]
+    },
+    {
+      "case_id": "claude_analysis_02",
+      "kind": "analysis",
+      "sample": 2,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both answers open by saying that neither bank can be ranked on rate sensitivity from these rows, but A gives a table, specific year-over-year comparisons, and a concrete list of the data needed (rate-versus-volume analysis, deposit betas, repricing schedules, modeled rate shocks), so it is more useful to an analyst. B is somewhat tighter but more generic, and its claim of stronger year-over-year growth for JPMorgan is not backed by any figures.",
+        "Both answers correctly decline to rank rate sensitivity from these rows, but B gives more useful analysis (rate-versus-volume, deposit beta, repricing and hedges, modeled NII shocks, NII share of revenue) and cites the specific figures, while A is shorter and cleaner but thinner."
+      ]
+    },
+    {
+      "case_id": "claude_analysis_04",
+      "kind": "analysis",
+      "sample": 2,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "tie",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "A gives the quarterly margin path for both companies with correct figures and names the disclosures that would separate pricing from mix, cost or charges, while B is shorter but omits the margin percentages and offers a more thinly supported cost-burden claim.",
+        "Both answers are accurate, calibrated and name Tesla as more exposed, but B gives the full margin path for each company and says which disclosures would separate pricing from mix, cost and one-off charges, so it adds more analytical value at a modest cost in length."
+      ]
+    },
+    {
+      "case_id": "claude_analysis_05",
+      "kind": "analysis",
+      "sample": 1,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "tie",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both open with Alphabet as the leader on the R&D proxy and state the limits well, but A adds a compact table and a year-over-year ratio comparison (Alphabet's ratio rose while Microsoft's fell because revenue grew faster), which gives an analyst more to use than B's directional remarks.",
+        "B answers equally directly but adds a clear table, the ratio trend (Alphabet 14.3% to 15.2%, Microsoft 11.6% to 11.1%), and a fuller account of what R&D omits (capex, leases, external investments), whereas A is shorter but its claim that Oracle's R&D declined year on year is accurate yet thinly supported and it offers less analysis."
+      ]
+    },
+    {
+      "case_id": "claude_news_10",
+      "kind": "news",
+      "sample": 2,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "X",
+        "accuracy": "X",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "X",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both answers correctly say the single quote page holds no news, but A adds more analytical value by computing the drop from the previous close and warning that the financial and target figures may not be this week's, while B presents the Q2 results and price target as current facts and is only slightly shorter.",
+        "B opens by directly stating the results cannot support a weekly rundown, correctly computes the drop from the previous close, and flags that the financials and analyst targets are not necessarily this week's news, while A calls the 230.48 price 'current' and implies the targets and earnings are news, so B is better calibrated and more analytically useful despite being longer."
+      ]
+    },
+    {
+      "case_id": "claude_explain_01",
+      "kind": "explain",
+      "sample": 1,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "X",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "A opens with a direct answer to both parts of the question and gives a fuller analyst-oriented account of what margin reveals (growth vs. margin, funding franchise, repricing, mix) and what it cannot show, while B is more concise but shallower and delays its answer to the second part.",
+        "B opens with a direct answer to both parts of the question and gives a richer analytical treatment (funding franchise, repricing, mix, and what margin cannot distinguish), while A is tighter but shallower and delays the NIM answer."
+      ]
+    },
+    {
+      "case_id": "claude_explain_01",
+      "kind": "explain",
+      "sample": 2,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "tie",
+        "overall": "tie"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both answers are accurate, numeral-free and give no advice, but A answers the question more directly and explains more mechanism: it separates the funding-cost, asset-mix and repricing effects, notes that rising rates do not automatically raise the margin, and says what the margin alone cannot show. B is somewhat more concise.",
+        "Both answers are accurate, give the same core answer up front and carry the same caveat that a higher margin is not automatically better, so B's extra analytical detail on funding, asset mix and rate exposure is offset by A's greater concision."
+      ]
+    },
+    {
+      "case_id": "claude_news_01",
+      "kind": "news",
+      "sample": 2,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "X",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "X",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": false,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": false,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both open with the same direct answer and pass every gate. A adds what the grounding can't show: the $20bn is a shortfall against estimates rather than revenue, the Friday rebound is futures only, and the debt deals' guarantees are unknown. That gives it better analysis, accuracy and calibration, at some cost in length.",
+        "B is more analytically valuable and better calibrated (noting the $20bn is a shortfall versus estimates, futures versus closes, and what disclosures would clarify the risk), though both have some uncited or loosely cited sentences and B is longer."
+      ]
+    },
+    {
+      "case_id": "claude_analysis_10",
+      "kind": "analysis",
+      "sample": 1,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "tie",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both correctly find two blanks and conclude the trend holds with a continuity caveat, but A also notes both gaps are fiscal Q4 quarters (a hedged, plausible explanation for why they're blank) and that Q1–Q3 FY2026 is a continuous rising run, which gives it more analytical value; B is a bit more concise but offers no explanation for the blanks.",
+        "B opens with a direct answer, correctly labels the blanks as fiscal Q4 2025 and 2026, offers a plausible and hedged explanation for the gaps, and shows the trend in a clear table, while A says only that data is missing and has less analytical depth."
+      ]
+    },
+    {
+      "case_id": "claude_explain_08",
+      "kind": "explain",
+      "sample": 1,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "X",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both open with the same direct answer and contain no numerals or advice, but A gives a more diagnostic procedure (locating the offset via pretax margin, the comparison-period distortion, an earnings-quality check, and an explicit statement of what the divergence cannot show), while B is somewhat shorter and less analytical.",
+        "Both open with the same correct answer and avoid numerals and advice, but B adds a decision rule (pretax margin tells you whether the offset is financing or tax), a comparison-period distortion, an earnings-quality cash check, and an explicit statement that the divergence alone cannot identify the cause, which makes it more useful to an analyst despite being longer than A."
+      ]
+    },
+    {
+      "case_id": "claude_explain_08",
+      "kind": "explain",
+      "sample": 2,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both open by answering the question and give the same bridge method, but A adds sharper analytical content (durable versus temporary drivers, cash versus accounting gain, investigating the operating decline separately, normalizing tax) and more precise caveats, while B is more concise but more generic and its 'investment conclusion' phrasing edges toward advice-adjacent language.",
+        "Both open with the correct answer and pass the gates, but B adds a per-cause check table, notes that the operating decline needs separate diagnosis, and gives clearer recurrence guidance, while A is shorter but less actionable on how to tell which explanation applies."
+      ]
+    },
+    {
+      "case_id": "claude_news_06",
+      "kind": "news",
+      "sample": 2,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "tie",
+        "clarity": "Y",
+        "calibration": "tie",
+        "overall": "tie"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "B answers the question more directly by adding the Spirit shutdown from result 3, which shows uneven resilience across carriers, while A relies on a single source and hedges more heavily in its opening.",
+        "B explains the fuel price swing and the lag in recovering costs, and names the missing data (margins, bookings, capacity, hedging), while A is shorter and adds the Spirit example but offers less analysis."
+      ]
+    },
+    {
+      "case_id": "claude_news_04",
+      "kind": "news",
+      "sample": 1,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "tie",
+        "overall": "tie"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both answers say up front that the results name no exposed drugmakers and give no dollar figures, but B is shorter and sticks to the sources, while A adds a '225%' calculation that treats the 125% penalty as additive and describes the other article slightly beyond what it says, which makes it a little less well calibrated even though it has more analytical content.",
+        "Both correctly say the results name no exposed drugmakers and give no dollar figure, but B adds the 225% arithmetic and a list of what data would be needed while A is tighter, and B's extra sentences (the 225% combined liability, and the unmarked 'PhRMA's involvement alone is not enough' line) are roughly offset by its added length, so neither clearly wins."
+      ]
+    },
+    {
+      "case_id": "claude_analysis_01",
+      "kind": "analysis",
+      "sample": 1,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "X",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both answer in the opening sentence and pass every gate, but A backs its direction-of-gap claims with a compact table of figures drawn from the data and spots that AMD's and Intel's year-ago margins were depressed, while B gives a similar answer with fewer concrete figures.",
+        "Both answers read the gap direction correctly and hedge the causes appropriately, but B backs its answer with a compact table, sequential and year-over-year comparisons and a concrete comparison-base caveat (AMD at 50.2% and Intel at 36.9% in Q1 2025), while A stays qualitative and vague."
+      ]
+    },
+    {
+      "case_id": "claude_analysis_08",
+      "kind": "analysis",
+      "sample": 2,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "X",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both answer in the opening sentence and quote the table correctly, but A's phase table gives quarter-by-quarter evidence and separates scarcity-led pricing from product-mix durability, which makes it the more useful cycle walkthrough.",
+        "Both answers say the cycle is in a strong expansion with no peak yet shown and caution that the latest figures need verifying, but B backs each phase with specific, correct quarterly figures and fiscal-quarter labels and sets out what would separate a scarcity-led boom from a durable mix shift, while A stays vaguer about the trough and recovery phases."
+      ]
+    },
+    {
+      "case_id": "claude_explain_06",
+      "kind": "explain",
+      "sample": 1,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both answer in the opening sentence and are accurate and calibrated, but A adds more analytical value (causes of low equity mapped to what to check, ROIC denominator caveat, valuation and bank-specific notes, and the 'denominator story' point), which outweighs B's greater concision.",
+        "Both open with a direct answer and use no numerals, but B gives more analytical value by explaining the denominator effects, mapping causes of low equity to what to check, flagging that ROIC and debt-to-equity share the denominator problem, and naming valuation alternatives, which outweighs A's greater brevity."
+      ]
+    },
+    {
+      "case_id": "claude_news_03",
+      "kind": "news",
+      "sample": 2,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "X",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "X",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": false,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": false,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both answers pass every gate and report the same facts accurately, but A opens by naming the biggest story and adds analysis that B lacks (the selloff is not evidence of customer or revenue loss, plus what to watch), while B is only somewhat more concise.",
+        "Both answers share the same citation flaws: A attributes the SpaceX deal ambitions and Verizon's 'home phone service is not going away' to the wrong or no markers. B adds more of the same, such as '[3][4]' on the Grain Management deal, which result 4 supports, and a first-sentence claim cited to [2][3] that result 3 does not fully support. B is preferred overall because its opening sentence answers the question and its takeaway has more analytical value and better calibration, noting that the supplied coverage does not show customer losses and that the cause of the selloff is the reports' interpretation. A is shorter and clearer."
+      ]
+    },
+    {
+      "case_id": "claude_explain_06",
+      "kind": "explain",
+      "sample": 2,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both open with a direct answer and avoid numerals and advice, but A adds more analytical value (the average-equity-near-zero point, buybacks raising ROE mechanically, a table pairing each question with a measure and caveat, bank-specific measures, return on tangible equity, and the equity roll-forward diagnostic), while B is somewhat more concise but less insightful.",
+        "Both answer in the opening sentence with no numerals and no advice, but B adds more analytical value (average-equity crossing zero, buybacks and leverage inflating ROE, the equity roll-forward, bank-specific measures, a caveat for each alternative), which outweighs A's modest edge in brevity."
+      ]
+    },
+    {
+      "case_id": "claude_explain_02",
+      "kind": "explain",
+      "sample": 2,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "X",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both open with the right answer and have no numerals, but A adds more of what an analyst needs: the as-if-at-start-of-period treatment, the post-period but pre-issuance case, and that previously published EPS can differ from the later filing while both are correct. B is tighter but mostly covers the same ground in less depth.",
+        "Both open by answering the question and use no numerals, but B adds the mechanism details an analyst wants (the split is treated as of the start of the period, the post-period-end case, why old and new filings can both be correct) while A is shorter but thinner on why restatement is required."
+      ]
+    },
+    {
+      "case_id": "claude_explain_09",
+      "kind": "explain",
+      "sample": 2,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "tie",
+        "clarity": "Y",
+        "calibration": "tie",
+        "overall": "tie"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both open with the mechanism, but A answers the 'how large' part with a careful, well-calibrated account and a practical checklist, whereas B gives the scale figures asserted as fact without grounding (billion-dollar-scale quarterly expenses, hundreds of millions to billions for recalls), which risks imprecision and faithfulness problems, though B is somewhat tighter and more direct on size.",
+        "A answers both parts of the question, including a rough, hedged sense of GM's scale, in a tighter essay, while B explains the mechanism well but largely avoids saying how large the accruals typically are and is longer."
+      ]
+    },
+    {
+      "case_id": "claude_news_09",
+      "kind": "news",
+      "sample": 2,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both answers say the contract is not shown to be in jeopardy and cite the same facts, but A adds more analysis: the gross-versus-net revenue definitions point, and a list of the disclosures that would settle the question. B is somewhat tighter, but that does not outweigh A's extra analysis.",
+        "Both answers open with a direct 'no/not necessarily' and stay within the grounding, but B better explains what the gap could mean (revenue definitions versus weaker demand) and says which disclosures would settle the question, while A is tighter but less analytical."
+      ]
+    },
+    {
+      "case_id": "claude_analysis_01",
+      "kind": "analysis",
+      "sample": 2,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "tie",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both open by answering the question correctly, but A backs the narrowing claim with a table of the figures, adds the insight that Q2 2025 was a depressed base for AMD and Intel, and tells the analyst what to check next, while B stays more generic and has no numbers. B is slightly more accurate because A's calendar-quarter labels are loose for NVIDIA.",
+        "Both answers open with the correct narrowing and stable-gap conclusions and keep their causal claims hedged, but B grounds them in a verified table and adds the depressed-base caveat, the NVIDIA revenue-growth point and guidance on what would distinguish durable gains, so its analytical value is higher."
+      ]
+    },
+    {
+      "case_id": "claude_explain_03",
+      "kind": "explain",
+      "sample": 1,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "X",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both open with the same direct answer and pass every gate, but A adds more analytical value (separates maintenance from growth capex, warns that add-backs are not evidence of stronger operations, notes supplier-financing reversal risk, and says which disclosures would tell the explanations apart) and is better calibrated about what capital intensity alone cannot establish, while B is somewhat shorter and tighter.",
+        "Both open with the same direct answer and pass all gates, but B gives the fuller mechanism-by-mechanism account of why the gap persists, says what the grounding cannot show about Tesla, and offers diagnostic checks, whereas A is shorter but contains a loose claim that operating cash flow stays above net income 'even while' spending heavily, with less calibration about Tesla specifically."
+      ]
+    },
+    {
+      "case_id": "claude_news_01",
+      "kind": "news",
+      "sample": 1,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "X",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both answer in the opening line and pass every gate, but A adds more analysis (the breadth of the selloff, what the financing coverage cannot show) and is better calibrated, since it says futures only signalled an early recovery. B is shorter and cleaner, but its claim that Friday's rebound eased the selloff goes beyond the futures-only evidence.",
+        "Both answer the question in the opening sentence and stay faithful to the sources, but B adds more analysis (breadth of the selloff, financing-risk implications) and states what the coverage cannot show, which outweighs A's greater brevity."
+      ]
+    },
+    {
+      "case_id": "claude_news_05",
+      "kind": "news",
+      "sample": 2,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "tie",
+        "overall": "tie"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": false,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both correctly open by saying the results show only advanced talks and give no premium or closing date, so A's added explanation of what would settle the question is offset by B's tighter, fully cited and more concise answer.",
+        "Both correctly say the sources show only advanced talks with no premium or closing date, but A is tighter and cites every reported-fact bullet, while B adds a speculative closing paragraph and leaves its bullets uncited, which risks failing the citations gate."
+      ]
+    },
+    {
+      "case_id": "claude_explain_05",
+      "kind": "explain",
+      "sample": 2,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "X",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "X",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "A opens with a direct answer to both parts of the question, and adds more useful analysis: the point that an unchanged spread does not mean an unchanged cost, the distinction between interest expense and EBITDA, and the disclosures that show exposure. B is a little tighter and also correct, but its opening is more generic.",
+        "B's opening sentence answers both halves of the question directly, and it adds more analysis: fixed-rate asset lag, the point that interest sits below EBITDA, and the disclosures that show real exposure. A is tighter, but its opening is more generic."
+      ]
+    },
+    {
+      "case_id": "claude_analysis_08",
+      "kind": "analysis",
+      "sample": 1,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "X",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Answer A walks through the cycle phase by phase with the table's figures, labels the fiscal quarters correctly, and sets out what would separate a durable expansion from a peak; Answer B is shorter and clearer but less thorough, and its 'mature, strongly accelerating' bottom line is slightly muddled.",
+        "Both answer in the opening sentence and hedge well, but B walks through the cycle phase by phase with accurate, table-grounded figures, correct fiscal-quarter labels, and specific diagnostics for what would signal a peak, while A is shorter but vaguer and less specific."
+      ]
+    },
+    {
+      "case_id": "claude_news_07",
+      "kind": "news",
+      "sample": 2,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "X",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": false,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": false,
+          "faithful": false
+        }
+      },
+      "reasons": [
+        "Answer A frames the buy decision as the reader's and explains the mechanisms (TAM versus earnings, expectations already priced in), while Answer B says it would not buy and prefers to wait, which fails the no-advice gate.",
+        "B explicitly leaves the buy decision to the reader and keeps its claims within the grounding, while A says it would not buy before earnings and prefers to wait, which is advice, and it states that shares fell after the previous results as if that were current news, which is a faithfulness risk."
+      ]
+    },
+    {
+      "case_id": "claude_analysis_10",
+      "kind": "analysis",
+      "sample": 2,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "Y",
+        "analysis": "tie",
+        "clarity": "Y",
+        "calibration": "Y",
+        "overall": "Y"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": false
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Answer A mislabels the fiscal quarters (calling the quarter ending April 2025 'Q3 2025' is fine, but the quarter ending Oct 2025 as 'Q1 2026' is defensible), omits the 0.46 vs 0.62 year-over-year comparison, and speculates that Q4 EPS was 'not captured from the annual filing' without grounding, whereas B reports all four year-over-year comparisons accurately and stays within the table while noting what it cannot establish.",
+        "Both answers reach the same conclusion, but B adds an unsupported explanation (Q4 EPS not captured from the annual filing) and labels the quarters Q3 2025 and so on without support, while A stays within the table and is more concise, so A wins narrowly despite B's slightly richer framing."
+      ]
+    },
+    {
+      "case_id": "claude_explain_04",
+      "kind": "explain",
+      "sample": 1,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both open with the same direct answer and pass the gates, but A gives a more complete mechanism (yield, utilization, operating leverage), draws a sharper implication for each industry, and states what margin alone cannot identify, at modest extra length.",
+        "Both open with the same direct answer, but B adds the operating-leverage mechanism, ties each side to the question gross margin answers, and notes that a margin change alone does not identify its cause, while A is shorter but less analytically complete."
+      ]
+    },
+    {
+      "case_id": "claude_news_02",
+      "kind": "news",
+      "sample": 2,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both open with the Fed message and stay within the grounding, but A explains the NII mechanism (asset repricing versus funding cost), notes that credit losses do not hit NII directly, and states what the coverage cannot show, while B is shorter but mostly restates the snippets.",
+        "Both are faithful and cited, but B adds the asset-repricing versus funding-cost mechanism, notes that credit losses do not hit NII directly, and says what the coverage cannot show, which gives more analytical value at modest cost in length."
+      ]
+    },
+    {
+      "case_id": "claude_explain_10",
+      "kind": "explain",
+      "sample": 1,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "X",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "A answers both parts in its opening sentence, explains the mechanisms, and gives signals to watch while declining to forecast without current inputs, whereas B's opening answers only the conceptual part and then leans toward 'modest compression' with no valuation basis, which is slightly less calibrated, though B is more concise.",
+        "B gives the more useful analysis, with concrete signals that separate discount-rate pressure from monetization disappointment, and it is better calibrated because it declines to make a directional call without current valuation data; A is more concise but leans toward compression without grounds."
+      ]
+    },
+    {
+      "case_id": "claude_explain_05",
+      "kind": "explain",
+      "sample": 1,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "tie",
+        "overall": "tie"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both answer in the opening sentence and pass the gates, but A gives a more complete mechanism and more analytically useful detail (accounting treatment of securities, cash-flow classification, what to check in disclosures), while B is somewhat tighter but shallower.",
+        "Both open with a direct answer and are accurate and well-calibrated; B is more thorough on accounting detail and the cash-flow and balance-sheet effects, while A is more concise, so the advantages offset."
+      ]
+    },
+    {
+      "case_id": "claude_news_07",
+      "kind": "news",
+      "sample": 1,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "tie",
+        "calibration": "X",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": false,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": false,
+          "no_advice": false,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Answer B fails the no-advice gate by saying it favors waiting and by telling the reader to make any purchase a limited, long-term position, while Answer A keeps the buy decision with the reader, separates the long-term thesis from the earnings timing, and states what the sources cannot show.",
+        "Answer A drifts into advice (it favors waiting and suggests a limited long-term position) and cites [4] for a claim about 'supply constraints persist' that source 4 doesn't support, while B explains the mechanism, flags what the sources cannot show, and explicitly leaves the buy decision to the reader."
+      ]
+    },
+    {
+      "case_id": "claude_explain_07",
+      "kind": "explain",
+      "sample": 2,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "tie",
+        "overall": "tie"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both answer in the opening sentence, but A is longer and includes a loosely correct IFRS line and a questionable claim that IPR&D is 'tested for impairment while unfinished' alongside bolded padding, whereas B is tighter, precise on asset-acquisition vs business-combination, and equally covers normalized baseline and adjusted-earnings reading; A's added IFRS and presentation detail gives it slightly more analytical breadth.",
+        "Both open with a correct answer and give the same core guidance for reading the next quarter, but B adds the separate acquired-IPR&D line, IFRS treatment, impairment and amortization consequences, and which disclosures to check, which gives an analyst more to work with. A is shorter and cleaner, but it states 'If booked in R&D' less precisely and omits the IFRS contrast."
+      ]
+    },
+    {
+      "case_id": "claude_analysis_09",
+      "kind": "analysis",
+      "sample": 2,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "tie",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "A answers in its opening sentence and backs it with specific margins and a table of the disclosures that would separate structural from one-off causes, while B is accurate and well calibrated but gives fewer figures and less concrete guidance.",
+        "Both open by answering that the rebound looks like normalization rather than proven structural improvement, but B backs this with the actual margin figures and a table pairing each possible explanation with the disclosure that would test it, which makes it more useful to an analyst."
+      ]
+    },
+    {
+      "case_id": "claude_analysis_02",
+      "kind": "analysis",
+      "sample": 1,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "X",
+        "analysis": "X",
+        "clarity": "X",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "A answers directly, cites specific figures, and lists concrete missing disclosures such as rate-shock tables, deposit betas and hedges, while B is vaguer, restates the same limits in dense prose, and its claim that JPMorgan's year-over-year growth is stronger is only loosely supported, though A's opening framing of Wells Fargo as more uneven is slightly muddled.",
+        "Both answer the question up front and decline to rank sensitivity, but B grounds its claims in the table's actual figures, explains the repricing mechanism, lists specific missing data, and is more accurate, whereas A makes a loose claim that JPMorgan's YoY growth is stronger 'in the later periods' (the Q2 2026 YoY growth is 9.9% for JPM against 5.2% for WFC) without citing figures and spends space on a marginal 'currency field' remark."
+      ]
+    },
+    {
+      "case_id": "claude_analysis_06",
+      "kind": "analysis",
+      "sample": 1,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "X",
+        "accuracy": "X",
+        "analysis": "X",
+        "clarity": "X",
+        "calibration": "X",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": false,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": false,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "A answers the question directly, says plainly that the buy decision is the reader's, lays out upside, sideways and downside cases, and gives a clear table of the quarters, while B ends with 'I would require verified earnings quality and a valuation that leaves room... before committing new money', which tells the reader what to do with their money, and also makes a loosely supported claim that year-over-year growth is 'accelerating'.",
+        "B answers the question without telling the reader what to do with their money, and it adds a clear quarterly table, a fuller explanation of what the table cannot show, and scenario-based calibration; A's 'I would require... before committing new money' and 'merits serious consideration' lean into personal investment advice, and it has an imprecise claim that growth is 'accelerating'."
+      ]
+    },
+    {
+      "case_id": "claude_explain_10",
+      "kind": "explain",
+      "sample": 2,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "X",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "A answers both parts in its opening sentence and is better calibrated, saying no sound basis exists to forecast compression and giving concrete indicators to check, whereas B leans toward compression without live data and ends on a looser practical conclusion.",
+        "B is better calibrated because it refuses to forecast without data and gives the analyst concrete diagnostics, while A leans toward modest compression with no grounding and is only more concise."
+      ]
+    },
+    {
+      "case_id": "claude_analysis_03",
+      "kind": "analysis",
+      "sample": 2,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "X",
+        "accuracy": "tie",
+        "analysis": "tie",
+        "clarity": "tie",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "A opens by answering the question and cites the specific quarterly figures from the table, while B gives a bit less specificity and is somewhat longer, though both reach the same well-calibrated hypothesis-and-test conclusion.",
+        "Both answers correctly frame deal-related R&D charges as an untested hypothesis, but B grounds the lumpiness in the table's actual figures, maps each possible cause to the specific filing disclosure that would confirm or reject it, and covers the operating-deterioration alternative, whereas A is shorter but cites fewer data points."
+      ]
+    },
+    {
+      "case_id": "claude_analysis_06",
+      "kind": "analysis",
+      "sample": 2,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "tie",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both decline to call it a buy and name the missing valuation inputs, but A adds a compact table, offers specific alternative explanations for the margin jump (tax benefits, nonoperating income), and says which disclosures would settle it, while B's 'I would consider buying only after...' edges closer to advice.",
+        "Both answers open by saying the table cannot establish a buy and both avoid recommending a trade, but B gives more analysis: it names tax and non-operating income as alternative explanations for the margin jump, and it lists the extra data needed to separate them."
+      ]
+    },
+    {
+      "case_id": "claude_analysis_07",
+      "kind": "analysis",
+      "sample": 1,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "X",
+        "accuracy": "tie",
+        "analysis": "tie",
+        "clarity": "tie",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": false,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both correct the false premise and stay within the grounding, but A opens with the direct answer plus the correction and gives a compact six-quarter table, while B opens with a generic statement and is wordier with full-length numerals.",
+        "B corrects the false premise in its opening sentence, gives a clear six-quarter table with the equity roll-forward identity, stays within the grounding and offers no advice; A opens by restating the premise and ends with an 'investment takeaway' that tells the reader what to review, and its 'subtracting' of the March-to-June 2026 gap is correct but less complete."
+      ]
+    },
+    {
+      "case_id": "claude_explain_09",
+      "kind": "explain",
+      "sample": 1,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "Y",
+        "accuracy": "tie",
+        "analysis": "tie",
+        "clarity": "tie",
+        "calibration": "X",
+        "overall": "Y"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "B answers both parts of the question, including the GM scale, with qualitative size descriptions and a useful note on adjusted-earnings treatment, while A declines to characterize typical size beyond vague wording; B's size claims are somewhat less calibrated, but they are broadly accurate and more useful to an analyst.",
+        "A answers both parts of the question, including GM's typical size, in a compact form using only words for magnitudes, while B declines to size GM's accruals and runs longer, though B is better calibrated."
+      ]
+    },
+    {
+      "case_id": "claude_explain_02",
+      "kind": "explain",
+      "sample": 1,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "X",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both open with the answer and use no numerals, but A adds the accounting-rule basis, the whole-period and post-period-but-pre-issuance timing, and diluted EPS treatment that explain why restatement happens, while B is tighter but more generic.",
+        "Both open with a correct answer and use no numerals, but B better explains the mechanism with added value on timing of post-period splits and diluted EPS, while A is more concise yet thinner and slightly less precise about the restatement mechanics."
+      ]
+    },
+    {
+      "case_id": "claude_analysis_04",
+      "kind": "analysis",
+      "sample": 1,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both answers are accurate and well calibrated, and both open with the Tesla conclusion; A adds the full quarterly margin trajectories and says which disclosures would separate pricing from cost, mix or one-off charges, while B is shorter but gives less analysis.",
+        "Both open by naming Tesla and hedge the causes appropriately, but B gives the full quarterly margin path and a diagnostic framework for separating pricing from cost, mix and one-off items, while A is shorter but omits the margin series and has a slight imprecision in saying Tesla weakened 'from the September quarter', which was the peak."
+      ]
+    },
+    {
+      "case_id": "claude_news_09",
+      "kind": "news",
+      "sample": 1,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both answers pass every gate and answer the question in the opening sentence, but A gives more analysis: it covers the gross-versus-retained revenue reconciliation, states what the sources cannot show, and lists the disclosures that would separate slower cash conversion from real contract risk. B is a little tighter and better calibrated with 'Not necessarily', but it is less insightful.",
+        "Both answer in the opening sentence and stay within the grounding, but B adds analytical value by saying what would separate a revenue-reporting issue from real contract risk and by noting that the StreetSignal reconciliation is unresolved, while A is shorter but mostly restates the grounding."
+      ]
+    },
+    {
+      "case_id": "claude_news_05",
+      "kind": "news",
+      "sample": 1,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "tie",
+        "overall": "tie"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both correctly say the sources report only advanced talks with no premium or closing date; A adds a little analytical value by saying what would be needed to establish them, while B is slightly more concise, so the differences roughly cancel out.",
+        "Both correctly say the supplied coverage shows only advanced talks with no premium or closing date, and B's extra explanation of what would establish the premium and timeline adds some analytical value but also length and an uncited closing sentence, so the two roughly offset."
+      ]
+    },
+    {
+      "case_id": "claude_analysis_03",
+      "kind": "analysis",
+      "sample": 1,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "tie",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both answers hedge the cause correctly and list the filings to check, but A adds more grounded evidence (Merck's earlier 2023 losses and Lilly's Q3 2024 dip) and a clearer table linking each hypothesis to the disclosure that would confirm it, while B is shorter but less concrete.",
+        "Both open by naming Merck as lumpier and are well calibrated, but B grounds the claim in more table figures, gives a clearer hypothesis-to-evidence map, checks Lilly too, and notes the cash-cost implication, while A is shorter but less thorough."
+      ]
+    },
+    {
+      "case_id": "claude_news_08",
+      "kind": "news",
+      "sample": 1,
+      "x": "v2@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "tie",
+        "overall": "tie"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "Both correctly decline because the only result is about Kaspi.kz, but A states more precisely what is unverified (consensus EPS and revenue, guidance assumptions, swing factors) and what would be needed, while B is shorter but offers less.",
+        "Both correctly say the lone Kaspi.kz result cannot support a JPM preview, with A shorter and B slightly more informative about what is missing, so neither clearly wins overall."
+      ]
+    }
+  ]
+}
