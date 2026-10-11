@@ -49,3 +49,6 @@ Thumbs.db
 docs/process/tickets/.ralph-run.md
 docs/process/tickets/learn-react/
 docs/process/tickets/job-search-visuals/
+
+# The essay evaluation's local spend ledger (the budget check reads it).
+docs/evaluation/essays/spend.json

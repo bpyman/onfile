@@ -1,0 +1,1145 @@
+{
+  "judge": "claude-sonnet-5-5",
+  "scores": [
+    {
+      "case_id": "grok_explain_01",
+      "sample": 1,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 4,
+        "analysis": 4,
+        "clarity": 5,
+        "calibration": 5
+      },
+      "reason": "It opens by answering the question, uses no numerals, and explains the mechanism and what stays unchanged, but it slightly overstates EPS accretion: when the earnings yield on repurchased shares is below the after-tax cost of the cash used, a buyback can lower EPS, and it doesn't mention this."
+    },
+    {
+      "case_id": "grok_explain_01",
+      "sample": 2,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 4,
+        "analysis": 3,
+        "clarity": 5,
+        "calibration": 4
+      },
+      "reason": "It opens by answering directly with no numerals and correctly separates the denominator effect from unchanged operations, but it says little about the mechanism (treasury-method dilution, the lost interest income on cash used) and the 'net income unchanged' assumption is only partly qualified."
+    },
+    {
+      "case_id": "grok_explain_02",
+      "sample": 1,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 5,
+        "analysis": 3,
+        "clarity": 5,
+        "calibration": 4
+      },
+      "reason": "The opening sentence directly answers the question, there are no numerals, and the claims are accurate; analytical value is moderate because it mostly lists standard drivers and consequences without a deeper mechanism, such as the deposit-beta or rate-sensitivity channel, or any stated limits of NIM as a metric."
+    },
+    {
+      "case_id": "grok_explain_02",
+      "sample": 2,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 3,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "The essay opens with a correct definition of net interest margin and covers profitability, interest-rate risk and the credit-quality caveat without numerals or advice, but it stays mostly textbook-level and does not open by directly answering why banks care."
+    },
+    {
+      "case_id": "grok_explain_03",
+      "sample": 1,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 4,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "It opens with a direct answer and explains the mechanism (cost timing, inventory cushioning, capitalized costs) with no numerals or advice, but it does not note that a company can also have some memory prices locked in through long-term supply contracts, and the closing watch-list is somewhat generic."
+    },
+    {
+      "case_id": "grok_explain_03",
+      "sample": 2,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 4,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "The opening sentence directly answers the question with the right mechanism (costs hit COGS now while prices lag) and no numerals appear, but it never separates the inventory-lag effect from the point where cost reaches the P&L, and a few claims, such as weighted-average accounting giving a more gradual decline and 'stable reported revenue', are asserted without qualification."
+    },
+    {
+      "case_id": "grok_explain_04",
+      "sample": 1,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 3,
+        "clarity": 5,
+        "calibration": 4
+      },
+      "reason": "Accurate, concise, numeral-free mechanism (numerator comparable, denominators not; use the reprinted comparative or restate by the split factor), though the opening sentence explains the split's effect on share count rather than directly answering why YoY EPS looks broken, and it adds little beyond the standard explanation, such as the direction of the distortion or what to check in the filings."
+    },
+    {
+      "case_id": "grok_explain_04",
+      "sample": 2,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 3,
+        "clarity": 5,
+        "calibration": 4
+      },
+      "reason": "The answer is accurate, concise and numeral-free, and it correctly identifies the denominator mismatch from retrospective restatement. The opening sentence gives the cause only implicitly, and it never covers cases like a split after period end or says what the old filing cannot show."
+    },
+    {
+      "case_id": "grok_explain_05",
+      "sample": 1,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "It correctly explains the uncertainty-driven expensing rule and the timing mismatch with no numerals or advice, but it frames the rule as being about avoiding repeated write-downs rather than the recoverability and measurability standards, the closing list of metrics partly restates generic checklist items, and it never says what a quarterly margin cannot show (such as acquired in-process R&D being expensed too)."
+    },
+    {
+      "case_id": "grok_explain_05",
+      "sample": 2,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "It answers both parts early, with no numerals, advice or unsupported company claims. The mechanism is sound, but the 'too uncertain to recognize as an asset' framing is slightly loose, and the Lilly-specific content is generic and doesn't say what the margin can't show."
+    },
+    {
+      "case_id": "grok_explain_06",
+      "sample": 1,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 3,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "The opening sentence gives the asset-repricing channel and the second paragraph supplies the non-one-directional deposit-cost side, with no numerals, advice or unsupported company claims; it names the mechanisms clearly but stays at a textbook level, and the first sentence does not directly say why the effect is two-sided."
+    },
+    {
+      "case_id": "grok_explain_06",
+      "sample": 2,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "It correctly explains repricing of assets and liabilities, deposit beta, and balance-sheet composition with no numerals or advice, though the opening describes the channel rather than directly answering why the effect is not one-directional, and it stays fairly textbook without noting what cannot be shown."
+    },
+    {
+      "case_id": "grok_explain_07",
+      "sample": 1,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 4,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The opening sentence answers the question directly, and the essay uses no numerals. It explains backlog quality, mix, and execution risk specifically for Oracle, and it states what RPO cannot show. It is a little long and has some generic passages, and a few Oracle claims are slightly imprecise, such as saying 'cloud applications' contracts extend over meaningful service periods."
+    },
+    {
+      "case_id": "grok_explain_07",
+      "sample": 2,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 4,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The opening sentence directly answers the question and the essay uses no numerals; it explains the mechanism and what RPO cannot show (mix of support versus cloud, concentration, conversion, capacity), though some of it is generic, a few phrases are loose (\"cloud-related RPO\" is not a disclosed line item), and the fourth paragraph's list of evidence is somewhat padded."
+    },
+    {
+      "case_id": "grok_explain_08",
+      "sample": 1,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 3,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "It opens with a direct answer (margin pressure, not automatic collapse) and lists the unknowns well, but it uses no numerals, and 'strengthen pricing realization' and 'support manufacturing scale' are loose claims that mostly restate textbook mechanisms without quantifying or ranking the drivers."
+    },
+    {
+      "case_id": "grok_explain_08",
+      "sample": 2,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 3,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The opening sentence answers the question, with pricing power, utilization and mix named as the mechanisms, and the essay contains no numerals. It also lists what the concept alone cannot show, but it never gives a causal chain for how lost volume changes gross margin, so it adds little beyond a textbook treatment."
+    },
+    {
+      "case_id": "grok_explain_09",
+      "sample": 1,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 3,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "It uses no numerals and gives a correct stock-versus-flow distinction with a useful three-question framework (balance-sheet cash, operating cash flow, free cash flow), but it opens with a definition of balance-sheet cash instead of directly answering how to keep the two apart, and it adds little beyond standard textbook treatment, such as how restricted cash, working-capital timing or the cash-flow statement reconciliation can mislead."
+    },
+    {
+      "case_id": "grok_explain_09",
+      "sample": 2,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "It states the stock-versus-flow distinction in the opening sentence, uses no numerals and adds useful adjustments (restricted cash, capex, working-capital quality), but it takes two paragraphs to say how to keep them apart and could be tighter."
+    },
+    {
+      "case_id": "grok_explain_10",
+      "sample": 1,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": false,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 3,
+        "clarity": 4,
+        "calibration": 3
+      },
+      "reason": "The opening sentence answers the question, and the middle paragraphs correctly make price versus intrinsic value the key point, but the closing line 'Buy Apple because you believe...' tells the reader to buy the stock, which fails the no-advice gate, and the claim that Apple carries a premium valuation is stated as fact without grounding."
+    },
+    {
+      "case_id": "grok_explain_10",
+      "sample": 2,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "explain",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 3,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "It opens by answering that buybacks alone aren't a reason to buy and avoids numerals and a direct buy/sell instruction, but it leans on generic buyback logic and never addresses the cost of buying back at high prices or the dilution offset in any depth."
+    },
+    {
+      "case_id": "grok_analysis_01",
+      "sample": 1,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 4,
+        "analysis": 3,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The opening sentence names Lilly, every quoted figure is in the table, and the answer says the data cannot show the product-level cause; but the Pfizer trajectory mixes non-consecutive quarters, and the claim that Pfizer trails on growth pace is not supported by the first-quarter 2026 year-over-year figures (about 5.4% for Pfizer vs 4.9% for Merck)."
+    },
+    {
+      "case_id": "grok_analysis_01",
+      "sample": 2,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 2,
+        "clarity": 3,
+        "calibration": 4
+      },
+      "reason": "The essay names Lilly as pulling away and every figure matches the table. The 'explanation' mostly restates the revenue gap as 'growth velocity and consistency', and the unformatted ten-digit numbers hurt readability. It does say that product-level drivers aren't in the data."
+    },
+    {
+      "case_id": "grok_analysis_02",
+      "sample": 1,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 3,
+        "clarity": 4,
+        "calibration": 3
+      },
+      "reason": "The figures match the table and the opening answers the question with a clear hierarchy, but the mix, moat and competitive-exposure claims are inferred rather than shown by the data, and the caveat that gross margin also reflects costs and mix comes only at the end, after \"compelling\" and \"clear\" have already overstated the case."
+    },
+    {
+      "case_id": "grok_analysis_02",
+      "sample": 2,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 3,
+        "clarity": 3,
+        "calibration": 3
+      },
+      "reason": "It opens with a direct hierarchy answer built from the table's own figures and flags that gross margin is not a pure price measure, but it prints 28-digit unrounded decimals, leans on mix and supply claims the table cannot show, and offers little beyond the margin levels and year-over-year changes."
+    },
+    {
+      "case_id": "grok_analysis_03",
+      "sample": 1,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 3,
+        "analysis": 2,
+        "clarity": 4,
+        "calibration": 3
+      },
+      "reason": "The opening sentence answers the question and every figure comes from the table, but \"broadening\" rests on one quarter of year-over-year growth with no earlier quarters or growth rates to show a trend. The Apple \"strengthened\" and Microsoft \"less pronounced relative to its preceding run rate\" claims are vague and unquantified, and the Microsoft one is loosely supported at best, since its year-over-year growth was roughly steady across recent quarters."
+    },
+    {
+      "case_id": "grok_analysis_03",
+      "sample": 2,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 3,
+        "accuracy": 3,
+        "analysis": 2,
+        "clarity": 4,
+        "calibration": 3
+      },
+      "reason": "The essay never computes growth rates, so its 'narrowing toward Alphabet' verdict rests on unshown numbers. The table's year-over-year growth is about 24% for Alphabet, 18% for Microsoft and 16% for Apple, and Apple's growth roughly doubled over the last four quarters. That points to broadening, so calling Apple 'largely stable' and Microsoft 'decelerating' overstates the case."
+    },
+    {
+      "case_id": "grok_analysis_04",
+      "sample": 1,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 3,
+        "analysis": 3,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "It opens with a direct 'No' and sensible caveats about EPS quality, but it misreads the table: the 0.44, 0.84 and 1.38 figures are not 'comparable periods' (they are Q1 2025, Q1 2026 and Q2 2026), and Intel's -0.19, -0.73 and -2.16 are mixed the same way. It also calls 'third-quarter 0.9 EPS after a prior-year -3.88' illustrative of distortion without saying what drove it, and the rest is a generic list of metrics."
+    },
+    {
+      "case_id": "grok_analysis_04",
+      "sample": 2,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 4,
+        "analysis": 3,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "It answers \"No\" in the first sentence and its figures match the table. It loses an accuracy point for saying AMD's EPS is \"consistently positive and rising\" when it cites only two quarter comparisons. It also treats Intel's 0.9 quarter as an example of one-off distortion without saying the table cannot show the cause. The analysis is mostly a generic list of EPS limits, with little on the mechanism behind the gap, such as Intel's share count growing from about 4.3B to 5.1B diluted shares against AMD's roughly flat 1.6B, which the table did contain."
+    },
+    {
+      "case_id": "grok_analysis_05",
+      "sample": 1,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 3,
+        "accuracy": 2,
+        "analysis": 3,
+        "clarity": 3,
+        "calibration": 4
+      },
+      "reason": "The essay correctly says the table can't show the cost or pricing drivers, but it wrongly claims Tesla's margin fell more sharply than GM's from March to June 2026 (Tesla 4.2% to 1.4%, about 2.8 points; GM 6.7% to 3.0%, about 3.7 points, a bigger drop), and it never says the gap narrowed. Its opening is vague, and the unformatted raw figures hurt readability."
+    },
+    {
+      "case_id": "grok_analysis_05",
+      "sample": 2,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 3,
+        "clarity": 4,
+        "calibration": 3
+      },
+      "reason": "The figures and margin comparisons all check out against the table, and the opening sentence answers the question. But the essay mostly restates margins and year-over-year changes, and it never says the filings' rows can't show the actual drivers (pricing, mix, charges, R&D). It then asserts 'pressure on operating costs' as the cause, which goes a little past the grounding."
+    },
+    {
+      "case_id": "grok_analysis_06",
+      "sample": 1,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 3,
+        "analysis": 3,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "The essay answers with a clear verdict (late-cycle, peak-risk but not confirmed peak) and sensibly contrasts Micron's trough margins with AMAT's stable band, but it misreads the table in places (the Micron gross margin of 0.4467 was labeled 'recovering' but sits after the trough; the 0.4714–0.4734 AMAT figures are year-earlier values; the 6.8B-vs-7.045B revenue comparison is a year-over-year dip, not a downturn signal), and it largely restates the table without naming what the grounding cannot show, such as pricing, inventory, capex or demand data."
+    },
+    {
+      "case_id": "grok_analysis_06",
+      "sample": 2,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 3,
+        "clarity": 3,
+        "calibration": 3
+      },
+      "reason": "The essay answers early and its figures come from the table, but it quotes raw 28-digit decimals that hurt readability, and it states the tight-memory price-driven mechanism as fact without grounding. It calls Applied's margins 'elevated' although they sit near the 0.49 to 0.50 range of prior quarters, and it never says that a gross margin of 0.85 is itself unusual for a memory maker, which would make the cycle-peak case stronger."
+    },
+    {
+      "case_id": "grok_analysis_07",
+      "sample": 1,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 3,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The opening sentence answers that equity size alone doesn't make a bank safer, and the essay is well calibrated about what the table can't show. It stays fairly generic, gives no ratio or mechanism, drifts into cash, and calls total stockholders' equity 'common' equity (a minor imprecision)."
+    },
+    {
+      "case_id": "grok_analysis_07",
+      "sample": 2,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 3,
+        "accuracy": 4,
+        "analysis": 3,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The answer leads with JPM's absolute equity cushion before saying that thicker equity does not establish safety, and the bottom line is well calibrated, but it never gives the main reason (no assets or capital ratios) up front. The figures are correct, though the essay calls the equity 'thickest' and says 'cash' where the table's JPM and WFC figures include restricted cash. It leans on generic safety factors rather than analysis of the rows."
+    },
+    {
+      "case_id": "grok_analysis_08",
+      "sample": 1,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": false,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 3,
+        "accuracy": 4,
+        "analysis": 3,
+        "clarity": 2,
+        "calibration": 3
+      },
+      "reason": "The essay calls MSFT \"the better one-year pick\" and AAPL \"the more conservative alternative\", which is a recommendation on what to buy and fails the no-advice gate, even though it does caveat the missing valuation data and quotes only figures from the grounding (in unreadable 28-digit decimals)."
+    },
+    {
+      "case_id": "grok_analysis_08",
+      "sample": 2,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": false,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 3,
+        "accuracy": 5,
+        "analysis": 3,
+        "clarity": 3,
+        "calibration": 3
+      },
+      "reason": "The essay accurately compares the margins and notes that valuation data is missing, but it fails the no-advice gate by saying 'I would favor MSFT over AAPL for the next year', which is a stock preference. It also leads with a fundamental-case framing instead of saying that the future direction can't be predicted, and its 'lower profitability ceiling' claim goes beyond the data."
+    },
+    {
+      "case_id": "grok_analysis_09",
+      "sample": 1,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 3,
+        "accuracy": 4,
+        "analysis": 3,
+        "clarity": 3,
+        "calibration": 3
+      },
+      "reason": "Every figure is in the grounding and the Palantir reasoning is sound, but the opening says R&D shows up in revenue at both companies even though Oracle's R&D is flat, the bottom line is muddled, unformatted raw numerals hurt readability, and it never compares growth rates or notes the lag between R&D and revenue."
+    },
+    {
+      "case_id": "grok_analysis_09",
+      "sample": 2,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 3,
+        "clarity": 3,
+        "calibration": 3
+      },
+      "reason": "The essay answers up front and every figure it quotes is in the table. Its bottom line, that investments 'appear economically productive', goes further than the aggregate data can support. It also never computes R&D intensity or growth rates, and the raw unformatted figures make it harder to read."
+    },
+    {
+      "case_id": "grok_analysis_10",
+      "sample": 1,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 3,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "It answers up front and correctly separates same-concept GAAP comparability from economic comparability, but it states UnitedHealth/J&J/Pfizer business drivers from outside the grounding, mislabels Pfizer's Q1 figures as 'recent first quarters', and misses table-visible comparability issues such as UNH's year-over-year swings and J&J's large Q1 2025 figure."
+    },
+    {
+      "case_id": "grok_analysis_10",
+      "sample": 2,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "analysis",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 3,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "It opens with a direct comparability verdict and uses the table's figures correctly, but it asserts business-model differences and the 'only $10 million' UNH figure without noting that charges in the grounding cannot be identified, and it mostly restates rows rather than explaining what drove the swings."
+    },
+    {
+      "case_id": "grok_news_01",
+      "sample": 1,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "news",
+      "gates": {
+        "citations": false,
+        "no_advice": true,
+        "faithful": false
+      },
+      "scores": {
+        "answers": 3,
+        "accuracy": 2,
+        "analysis": 3,
+        "clarity": 4,
+        "calibration": 3
+      },
+      "reason": "The smart-home bullet cites [5], but only four results exist and the Welcome Home details come from result 4, so that marker is wrong. The MacBook bullet says reporting suggests a touch-enabled model, which is fine, but it leaves out the strongest items (an October 13 event date, new CEO Ternus), and the claim that the adtech episode shows Apple's willingness to prioritize privacy goes beyond the grounding."
+    },
+    {
+      "case_id": "grok_news_01",
+      "sample": 2,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "news",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 3,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "The answer is well cited and covers the main stories, but the 'Investor take' and strategic-focus claims go slightly past the grounding, the Trade Desk detail is only loosely stated, and it leaves out other reported items such as the new CEO, macOS 27.2 touch gestures and the iPhone 18 Pro Max issue."
+    },
+    {
+      "case_id": "grok_news_02",
+      "sample": 1,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "news",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 4,
+        "analysis": 3,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The opening sentence answers the question and the certainty matches the sources (Intel is not confirmed out, the talks are early, and the role could shrink). It loses points because it never names Intel 14A, calls the talks 'preliminary' when the sources say 'just discussions', and mostly restates the sources without saying what they cannot show."
+    },
+    {
+      "case_id": "grok_news_02",
+      "sample": 2,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "news",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 4,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 5
+      },
+      "reason": "The opening sentence answers the question directly (reporting does not establish a push-out), claims are well supported by the five results, and uncertainty is well calibrated, though attributing the 'no single partner settled' point to [4] and [5] is slightly loose and the analysis largely restates the sources."
+    },
+    {
+      "case_id": "grok_news_03",
+      "sample": 1,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "news",
+      "gates": {
+        "citations": false,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 2,
+        "clarity": 5,
+        "calibration": 3
+      },
+      "reason": "The facts match the sources, but the first sentence of each paragraph has no [n] marker, so the citations gate fails. The answer also restates the reports without context and states a Semafor report based on unnamed sources as established fact."
+    },
+    {
+      "case_id": "grok_news_03",
+      "sample": 2,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "news",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 2,
+        "clarity": 5,
+        "calibration": 3
+      },
+      "reason": "The essay accurately reports the review of JPMorgan and Wells Fargo along with its trigger and status, but it omits the Semafor sourcing, the 'people familiar' attribution and the banks' no-comment stance, so the facts read as confirmed. The first paragraph's marker [4] also does not carry the 'since the spring' or Barclays/Morgan Stanley claims by itself, and the essay adds no implications or limits."
+    },
+    {
+      "case_id": "grok_news_04",
+      "sample": 1,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "news",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 3,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "The markers match their sources and nothing amounts to advice. Minor points: the \"custom-silicon\" framing is not in the grounding, the Blackwell/Rubin claim is attributed to Nvidia when the source is a third-party article, and the SpaceX $40B Nvidia chip item is left out. The \"suggesting\" and \"investor watch\" lines add only light interpretation."
+    },
+    {
+      "case_id": "grok_news_04",
+      "sample": 2,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "news",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 3,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "Every figure and claim traces to the cited results and nothing amounts to advice, but the essay omits the Nvidia $1B item and the SpaceX $40B chip demand, mostly restates snippets with little analysis, and uses mild interpretive framing such as 'signaling a push toward premium AI PCs' and 'memory moved into focus'."
+    },
+    {
+      "case_id": "grok_news_05",
+      "sample": 1,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "news",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 3,
+        "clarity": 4,
+        "calibration": 4
+      },
+      "reason": "The brief covers all five results with correct, supported citations and no advice, but it opens with background instead of a direct answer, restates its sources more than it analyses them, and slightly overstates a few points. For example, it implies Hormuz flows are disrupted by conflict generally rather than by Iran's closure, and it presents Venezuela as a source of 'uncertain' supply when the source is skeptical of the timeline."
+    },
+    {
+      "case_id": "grok_news_05",
+      "sample": 2,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "news",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 3,
+        "clarity": 5,
+        "calibration": 4
+      },
+      "reason": "Citations are accurate and the brief is concise and advice-free, but the first bullet says the Strait is restricted yet leaves out the war context, and the Venezuela bullet's 'industry interest is limited' stretches the source's 'oil industry isn't eager', while the closing 'neither appears positioned to offset immediate disruptions' is a mild inference beyond the grounding."
+    },
+    {
+      "case_id": "grok_news_06",
+      "sample": 1,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "news",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 3,
+        "clarity": 5,
+        "calibration": 4
+      },
+      "reason": "The essay correctly says the results hadn't been reported yet and that all three banks were scheduled to report before the open, which the grounding supports, but it adds nothing beyond that (no date of October 13, no estimates, no mention of Wells Fargo being among the first to report), and it cites only [5] for a claim that [3] and [4] also back."
+    },
+    {
+      "case_id": "grok_news_06",
+      "sample": 2,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "news",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 4,
+        "analysis": 3,
+        "clarity": 5,
+        "calibration": 5
+      },
+      "reason": "The essay correctly says results had not been released as of the sources and answers up front, but its [5] marker supports the 'before open' timing only for Tuesday Oct 13 and doesn't state that date, and it adds little analysis (e.g., no expectations or estimates from results 3, 1 or 2)."
+    },
+    {
+      "case_id": "grok_news_07",
+      "sample": 1,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "news",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": false
+      },
+      "scores": {
+        "answers": 3,
+        "accuracy": 3,
+        "analysis": 2,
+        "clarity": 4,
+        "calibration": 2
+      },
+      "reason": "The essay turns one AMD CEO interview into a verdict on the memory business and adds a claim, in the 'near-term implication' paragraph, that memory suppliers will see favorable pricing. The source does not say that, and it covers only AMD's view, not memory makers' results."
+    },
+    {
+      "case_id": "grok_news_07",
+      "sample": 2,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "news",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": false
+      },
+      "scores": {
+        "answers": 3,
+        "accuracy": 3,
+        "analysis": 2,
+        "clarity": 4,
+        "calibration": 2
+      },
+      "reason": "The essay is built on one AMD CEO interview but presents it as the state of the memory business, and it adds claims the source doesn't support (a 'near-term setup favors memory suppliers' and 'availability, not end-market appetite, is the primary constraint'); it also says nothing about memory pricing, earnings or the suppliers' own results."
+    },
+    {
+      "case_id": "grok_news_08",
+      "sample": 1,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "news",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 4,
+        "analysis": 3,
+        "clarity": 5,
+        "calibration": 5
+      },
+      "reason": "It correctly says the dollar cost cannot be computed from the grounding and gives the reason (cuts are percentages of original component orders, with no baseline volumes, mix or prices), but it cites [3] for the percentage-only point, cites [1] for the higher-price point that [1] and [3] both support, and omits the useful context that orders for October were cut by 15–20% and that the Duo may cannibalize Pro sales."
+    },
+    {
+      "case_id": "grok_news_08",
+      "sample": 2,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "news",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 5,
+        "accuracy": 5,
+        "analysis": 3,
+        "clarity": 5,
+        "calibration": 5
+      },
+      "reason": "The opening sentence directly answers that no dollar figure can be computed and explains why (no order volume or mix in the results), and the cited note about higher prices offsetting the cut is supported by result 1, but the essay adds little beyond that, such as the Duo cannibalization risk or Munster's view on the December quarter."
+    },
+    {
+      "case_id": "grok_news_09",
+      "sample": 1,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "news",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 3,
+        "clarity": 5,
+        "calibration": 4
+      },
+      "reason": "The answer is faithful to the single result and gives a hedged 'not supported' response with correct citations. It adds little beyond the grounding, such as why a review of this kind could or could not lead to capital requirements, and it does not open with a direct yes/no."
+    },
+    {
+      "case_id": "grok_news_09",
+      "sample": 2,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "news",
+      "gates": {
+        "citations": true,
+        "no_advice": true,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 4,
+        "accuracy": 5,
+        "analysis": 3,
+        "clarity": 5,
+        "calibration": 5
+      },
+      "reason": "The answer is accurate, well calibrated and cited to the one result, but it only restates the thin grounding and gives no mechanism, such as why a review does not by itself force a capital raise, or what the sources cannot show."
+    },
+    {
+      "case_id": "grok_news_10",
+      "sample": 1,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "news",
+      "gates": {
+        "citations": true,
+        "no_advice": false,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 3,
+        "accuracy": 4,
+        "analysis": 4,
+        "clarity": 4,
+        "calibration": 3
+      },
+      "reason": "The essay gives a directive ('wait... treat Intel as a watchlist candidate') that tells the reader what to do with their money, so it fails the no-advice gate, and it misstates that Terafab 'was not included in reported financial expectations' (source 3 says it was never part of reported revenue) and attributes the 14A decision timing to a different sentence than the one it supports."
+    },
+    {
+      "case_id": "grok_news_10",
+      "sample": 2,
+      "arm": "v1@gpt-5.6-terra",
+      "kind": "news",
+      "gates": {
+        "citations": true,
+        "no_advice": false,
+        "faithful": true
+      },
+      "scores": {
+        "answers": 3,
+        "accuracy": 4,
+        "analysis": 3,
+        "clarity": 4,
+        "calibration": 3
+      },
+      "reason": "The essay opens with \"Wait rather than buy the dip aggressively\" and closes with \"Buy only if... otherwise, wait\", which tells the reader what to do with their money and so fails the no-advice gate, even though its facts are mostly sourced and it does explain the foundry-customer risk and the valuation premium."
+    }
+  ]
+}

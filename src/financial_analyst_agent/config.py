@@ -91,6 +91,9 @@ class Settings(BaseSettings):
     tavily_base_url: str = "https://api.tavily.com"
     openai_api_key: str = ""
     openai_model: str = "gpt-5.6-terra"
+    # Essays run on gpt-6.1-sol, which wrote better answers than the planner's model on
+    # the essay evaluation (docs/evaluation/essay-evaluation.md); empty means ``openai_model``.
+    openai_essay_model: str = "gpt-6.1-sol"
     openai_base_url: str = ""
     app_mode: AppMode = AppMode.LIVE
     public_demo: bool = False
@@ -242,6 +245,10 @@ class Settings(BaseSettings):
 
     def require_openai_model(self) -> str:
         return self._required("openai_model", "for the live planner")
+
+    def essay_model(self) -> str:
+        """The model essays are written with: ``openai_essay_model``, else the planner's."""
+        return self.openai_essay_model.strip() or self.require_openai_model()
 
 
 def get_settings() -> Settings:
