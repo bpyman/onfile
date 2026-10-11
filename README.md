@@ -23,7 +23,7 @@ Ask about a company and get the number and the filing behind it. Onfile is an ev
 **Results**
 - **Planners, on 160 held-out conversations written by another lab's model (xAI's Grok 4.7):** rules planner 96%, LLM planner 94%, and the rules-first cascade 97% ([comparison](docs/evaluation/planner-comparison.md)).
 - **Within noise, so decided on cost:** no difference between the planners is significant (p = 0.22 to 0.73). The live demo runs the cascade ([ADR 0012](docs/adr/0012-the-live-planner-is-a-rules-first-cascade.md)), which sent 7% of planner calls to the LLM: $0.13 for the run against $1.93 for the LLM planner alone ([comparison](docs/evaluation/planner-comparison.md)).
-- **Everyday wording:** 518 of 518 phrasings of metrics, windows, changes and follow-ups, alone and in combination, read as [the defaults](#how-a-question-is-read) say ([phrase coverage](docs/evaluation/phrase-coverage.md)).
+- **Everyday wording:** 555 of 555 phrasings of metrics, windows, changes and follow-ups, alone and in combination, read as [the defaults](#how-a-question-is-read) say ([phrase coverage](docs/evaluation/phrase-coverage.md)).
 - **Figures checked against their filings:** 25 of 25 found in the text of the 10-Q they cite ([filing check](docs/evaluation/filing-check.md)).
 - **What did not work, and what changed:** [retired approaches, wrong numbers, and a held-out set I had read](#what-failed-and-what-i-changed).
 
@@ -92,7 +92,7 @@ The images are captured from the window by a Playwright script against the recor
 | [Planner comparison](docs/evaluation/planner-comparison.md) | Held out: rules planner 96%, LLM planner 94%, cascade 97% (no difference significant) | 160 conversations xAI's Grok 4.7 wrote from a brief frozen first, labelled again blind, run end to end on the recorded runtime with only the planner swapped |
 | [Filing check](docs/evaluation/filing-check.md) | 25 of 25 figures found in the filing's own text | Figures the live window shows, across sectors and metrics, looked up in the 10-Q each cites |
 | [Numeral lock](docs/evaluation/numeral-lock.md) | Withholds every changed or invented number; passes every true figure as shown, or rounded to two or more significant digits | Known sentences over ten recorded answers' grounding; no model |
-| [Phrase coverage](docs/evaluation/phrase-coverage.md) | 518 of 518 everyday phrasings of metrics, windows, changes and follow-ups, alone and in combination, read as [the defaults](#how-a-question-is-read) say | Each asked as a whole question on the recorded runtime; a test fails on any new misreading, and on any phrasing the live cascade would newly send to the LLM |
+| [Phrase coverage](docs/evaluation/phrase-coverage.md) | 555 of 555 everyday phrasings of metrics, windows, changes and follow-ups, alone and in combination, read as [the defaults](#how-a-question-is-read) say | Each asked as a whole question on the recorded runtime; a test fails on any new misreading, and on any phrasing the live cascade would newly send to the LLM |
 | [Company name coverage](docs/evaluation/company-coverage.md) | 98.7–98.8% of 5,161 companies found for each name form, 100% as `$TICKER` | Every snapshot company asked about in six forms of its name |
 | [Scorecard](docs/evaluation/scorecard.md) | 30 recorded-runtime cases, with p50/p95 latency | Lookups, calendars and derived quarters, growth, rankings, refusals, clarification, follow-ups, filing changes, the numeral lock |
 
@@ -164,6 +164,16 @@ What the planner comparisons found ([ADR 0010](docs/adr/0010-one-reading-of-name
 - **A numeral lock that withheld true figures.** It matched digits exactly, and an essay's grounding holds 22974000000, so a true "$22.97 B" or "30.9%" was withheld every time. A number now also passes when it rounds from a grounded value at the precision written, to at least two significant digits; changed and invented numbers are still withheld ([measurement](docs/evaluation/numeral-lock.md)).
 
 As an independent check outside the XBRL data the app reads, [the filing check](docs/evaluation/filing-check.md) opens the 10-Q each figure cites and looks for the number in the filing's own text: **25 of 25** figures were found.
+
+## Prompts and controls
+
+The model reads questions and writes prose; code produces every number. Five short instructions do the model's part, and each is paired with a check outside the model:
+
+- **Planning** uses a per-intent schema under strict structured output. The model is asked to return the analyst's own word when a measure is ambiguous or unknown, so code can ask or refuse rather than guess.
+- **Follow-ups** return a patch to the analysis on screen. An unclear patch produces a clarifying question.
+- **Essays** pass a numeral lock that withholds any text quoting a figure absent from its grounding: in testing it withheld 108 of 108 altered or invented figures and passed 108 of 108 quoted as the results show them.
+
+The model is consulted only when the rules planner signals uncertainty, 7% of planner calls on the latest held-out set. [Prompts and controls](docs/prompts-and-controls.md) covers each instruction, the routing rule, five changes the evaluations prompted, and the known limits.
 
 ## Architecture
 
@@ -362,9 +372,19 @@ What a question leaves out has a default, so the same words always get the same 
 - Questions are read in English.
 - Public live SEC, if enabled, is quota-guarded. Unrestricted OpenAI/Tavily spend is not exposed to visitors.
 
+## How it was built
+
+Most of the code was written by coding agents (Claude Code; Cursor until October 2026) working from tickets I wrote. I set the scope and the rules the code may not break, designed the evaluations, reviewed every change, and made the judgement calls. Three practices kept the agents' output reliable:
+
+- **Specified work.** Each ticket carries acceptance criteria tied to the PRD and the ADRs. An agent loop takes the next unblocked ticket and must pass tests, linting and type checks before committing.
+- **A replay gate.** Any change that could alter an answer replays all 893 recorded conversations and reports how many differ. A refactor must report none; a fix must account for every difference.
+- **Escalation over improvisation.** When an agent finds a rule it believes is wrong, it records the case and leaves the step undone. Twenty such cases have been decided so far.
+
+The [build record](docs/process/README.md) has the commit history by author and the mistakes review caught before they shipped.
+
 ## Author
 
-[Blake Pyman](https://github.com/bpyman) — portfolio project.
+[Blake Pyman](https://github.com/bpyman). I designed the product, the evaluation protocol and the review process, and directed the agents that wrote most of the code.
 
 ## Origin
 
