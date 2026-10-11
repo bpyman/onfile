@@ -5,10 +5,10 @@ Onfile writes three kinds of prose for analysts: explanations of financial conce
 **Findings**
 
 - **The revised instructions won 26 of 30 held-out questions and lost 2** (p < 0.001) against the original instructions on the same model. The questions were written by another lab's model and were not seen during development.
-- **They gave no investment advice in 60 essays**, against 4 in 60 for the original, and no essay was withheld for an unsupported figure.
+- **A second judge from another lab confirmed the overall result.** Grok 4.7 preferred the revised answer in 18 of 20 pairs and the original in none.
+- **The revision gave no investment advice in 60 essays**, against 4 in 60 for the original, and no essay was withheld for an unsupported figure.
 - **The model matters too.** On the original instructions, `gpt-6.1-sol` beat `gpt-5.6-terra` in all 30 held-out cases. The app now uses both the revised instructions and `gpt-6.1-sol`.
-- **The gain costs some clarity.** Revised answers run about 40 words longer at the median, and the judge found the originals clearer in 22 cases to 7.
-- **A second judge from another lab agreed.** Grok 4.7 preferred the revised answer in 18 of 20 pairs and the original in none.
+- **The gain costs some clarity.** Revised answers run about 40 words longer at the median, and the Claude judge found the originals clearer in 22 cases to 7.
 
 | Held-out results | Original, `gpt-5.6-terra` (before) | Original, `gpt-6.1-sol` | **Revised, `gpt-6.1-sol` (now)** |
 | --- | ---: | ---: | ---: |
