@@ -6,7 +6,12 @@ import json
 
 import pytest
 
-from financial_analyst_agent.essay import INSTRUCTIONS, INSTRUCTIONS_V1, essay_request
+from financial_analyst_agent.essay import (
+    INSTRUCTIONS,
+    INSTRUCTIONS_V1,
+    INSTRUCTIONS_V5,
+    essay_request,
+)
 from financial_analyst_agent.essay_evaluation import (
     Arm,
     Essay,
@@ -41,8 +46,8 @@ _NEWS = EssayCase("n1", "news", ("Why are Apple suppliers down?",), "", _HITS)
 _ARM = Arm("v1", "gpt-6.1-sol")
 
 
-def test_the_app_sends_the_first_instructions_until_a_revision_is_chosen() -> None:
-    assert INSTRUCTIONS is INSTRUCTIONS_V1
+def test_the_app_sends_the_revision_the_evaluation_chose() -> None:
+    assert INSTRUCTIONS is INSTRUCTIONS_V5
 
 
 @pytest.mark.parametrize(
@@ -56,7 +61,7 @@ def test_the_app_sends_the_first_instructions_until_a_revision_is_chosen() -> No
 def test_an_essay_request_is_chosen_by_its_grounding(
     query: str, tool_json: str, kind: str, starts: str
 ) -> None:
-    chosen, instructions, input_text = essay_request(query, tool_json)
+    chosen, instructions, input_text = essay_request(query, tool_json, INSTRUCTIONS_V1)
     assert chosen == kind
     assert instructions == getattr(INSTRUCTIONS_V1, kind)
     assert input_text.startswith(starts)

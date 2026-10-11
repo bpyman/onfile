@@ -91,8 +91,9 @@ class Settings(BaseSettings):
     tavily_base_url: str = "https://api.tavily.com"
     openai_api_key: str = ""
     openai_model: str = "gpt-5.6-terra"
-    # Essays may run on another model than the planner; empty means ``openai_model``.
-    openai_essay_model: str = ""
+    # Essays run on gpt-6.1-sol, which wrote better answers than the planner's model on
+    # the essay evaluation (docs/evaluation/essay-evaluation.md); empty means ``openai_model``.
+    openai_essay_model: str = "gpt-6.1-sol"
     openai_base_url: str = ""
     app_mode: AppMode = AppMode.LIVE
     public_demo: bool = False

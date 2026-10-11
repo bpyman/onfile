@@ -49,7 +49,8 @@ def test_live_runtime_generates_explain_essay_with_openai(
 
     assert essay == _MINING_ESSAY
     assert len(client.calls) == 1
-    assert client.calls[0]["model"] == _MODEL
+    # Essays run on their own model, not the planner's (docs/evaluation/essay-evaluation.md).
+    assert client.calls[0]["model"] == "gpt-6.1-sol"
     assert _MINING_QUERY in client.calls[0]["input"]
 
 
@@ -63,11 +64,10 @@ def test_openai_news_essay_receives_query_and_tool_json() -> None:
     assert _NEWS_QUERY in prompt
     assert _NEWS_TOOL_JSON in prompt
     instructions = client.calls[0]["instructions"].casefold()
-    assert "only" in instructions
-    assert "news tool json" in instructions
-    assert "[n]" in client.calls[0]["instructions"]
-    assert "1-based" in instructions
-    assert "[1, 2]" in client.calls[0]["instructions"]
+    assert "news coverage from the past week" in instructions
+    assert "build the answer only from it" in instructions
+    assert "[2][4]" in client.calls[0]["instructions"]
+    assert "the figure check" in instructions
 
 
 def test_openai_explain_with_analysis_json_does_not_use_news_instructions() -> None:
@@ -80,7 +80,8 @@ def test_openai_explain_with_analysis_json_does_not_use_news_instructions() -> N
     completer.complete_essay("How could AI change bank underwriting?", analysis_json)
 
     instructions = client.calls[0]["instructions"].casefold()
-    assert "news tool json" not in instructions
+    assert "news coverage" not in instructions
+    assert "call it the table" in instructions
     assert "bank underwriting" in client.calls[0]["input"].casefold()
     assert "News tool JSON" not in client.calls[0]["input"]
     assert "do not include numeric tokens" not in instructions

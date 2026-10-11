@@ -9,6 +9,7 @@ Onfile uses a language model for two jobs: reading a question into a plan, and w
 | Cost and median latency per planner call | Cascade $0.0002 and 1 ms; LLM planner $0.0035 and 1.1 s | [Planner comparison](evaluation/planner-comparison.md) |
 | Altered or invented figures in model prose | 108 of 108 withheld; 108 of 108 true figures passed | [Numeral lock](evaluation/numeral-lock.md) |
 | Everyday phrasings read as documented | 555 of 555; 14 would be routed to the model | [Phrase coverage](evaluation/phrase-coverage.md) |
+| Essay quality, 30 held-out questions written by another lab's model | Revised instructions won 26 and lost 2 against the originals (p < 0.001); no investment advice in 60 essays | [Essay evaluation](evaluation/essay-evaluation.md) |
 
 ## Division of labour
 
@@ -42,15 +43,21 @@ Maps a follow-up such as "add Tesla" or "show that year over year" to a patch on
 
 ### Essays
 
-Three instructions share one call; the grounding available to the turn selects the instruction. Source: `essay.py`.
+Three instructions share one call to `gpt-6.1-sol`; the material a turn has selects which. Source: `essay.py`.
 
-| Instruction | Used for | Constraint |
-| --- | --- | --- |
-| Explain | Conceptual questions with no retrieval | No numerals |
-| Analysis | Commentary beside a table | Only numerals present in the supplied results |
-| News | Current events, from search results | Only facts and numerals in the results; citations as `[n]` |
+Each is written as a brief to a skilled writer rather than a list of rules, in five parts:
 
-The instructions are short because enforcement is in code. The **numeral lock** extracts every figure in the text and withholds the text if any figure is absent from its grounding, allowing for display formatting and rounding to at least two significant digits. Dates, citation markers and identifiers are excluded. The same lock applies to essays, filing-change summaries and the MCP server.
+| Part | What it tells the model |
+| --- | --- |
+| Who you are writing for | An analyst who knows the vocabulary and wants judgement about the business that they can use and check |
+| What a strong answer does | The answer first, then the mechanism and what follows from it; what the evidence establishes and what it only suggests; every part of the question; any buy or sell decision left to the analyst, with no view of its own |
+| How it reads | A careful sell-side note: one point per paragraph, specific over general, no headings or stock labels, 200 to 300 words |
+| Your material | The table, the past week's coverage, or established knowledge alone, and how to refer to and cite it |
+| The figure check | That every number is checked against the material, that one failure withholds the whole answer, and exactly what passes and what fails |
+
+The figure check is enforced in code. The **numeral lock** extracts every figure in the text and withholds the text if any figure is absent from its grounding, allowing for display formatting and rounding to at least two significant digits. Dates, citation markers and identifiers are excluded. The same lock applies to essays, filing-change summaries and the MCP server.
+
+These instructions replaced one- to three-sentence originals after a [measured evaluation](evaluation/essay-evaluation.md): on 30 held-out questions they won 26 and lost 2.
 
 ## When the model is consulted
 
@@ -78,10 +85,12 @@ A regression test fails if a phrasing that previously stayed with the rules plan
 
 **5. The first numeral lock rejected true figures.** It required an exact digit match, so "$22.97 B" against a grounding value of 22974000000 was withheld every time. The lock now accepts rounding at the precision written; altered and invented figures are still withheld.
 
+**6. Describing the answer beat forbidding mistakes, but hard limits had to be stated as limits.** The original essay instructions were one to three sentences, mostly prohibitions. Rewritten as a brief to a writer, they won 26 of 30 held-out questions against the originals on the same model, and gave no investment advice in 60 essays against 4. Two refinements came from the development rounds: the numeral lock had to be explained, with examples of figures that fail, before withholding fell from 8 essays in 60 to none; and the advice boundary had to be stated outright once longer answers began to offer a view ([essay evaluation](evaluation/essay-evaluation.md)).
+
 ## Known limits
 
 - **The lock checks numbers, not meaning.** A true figure attributed to the wrong company passes (0 of 14 caught), as does a number written in words.
-- **Prose quality is not yet measured.** The lock establishes that text invents no figures, not that it is useful. A rubric scored by a blind judge, frozen before the run, is the next evaluation.
+- **News citations.** Citation errors appeared in 3 of 20 held-out news briefs under both the original and the revised instructions. A citation check in code, like the numeral lock, is the next step.
 
 ## Reproducing
 
@@ -90,6 +99,7 @@ uv run python -m financial_analyst_agent.planner_evaluation                     
 uv run python -m financial_analyst_agent.planner_evaluation --estimate --runs 3   # token estimate for an LLM run
 uv run python -m financial_analyst_agent.phrase_coverage                          # fails if routing to the model widens
 uv run python -m financial_analyst_agent.numeral_lock_evaluation
+uv run python -m financial_analyst_agent.essay_evaluation report --a v5@gpt-6.1-sol --b v1@gpt-6.1-sol --set held-out
 ```
 
 ## Appendix: the instructions verbatim
@@ -179,39 +189,191 @@ read by code.
 </details>
 
 <details>
-<summary><strong>Essay: explain</strong> (essay.py, 21 words)</summary>
-
+<summary><strong>Essay: explain</strong> (essay.py, 437 words)</summary>
 
 ```text
-Write a concise financial-analyst essay that answers the user's question. Do not include numeric
-tokens because ungrounded numerals are rejected downstream.
+# Who you are writing for
+An analyst at a financial firm has asked this question inside a research tool. They know the
+vocabulary, read quickly, and want judgement about the business that they can use and check.
+
+# What a strong answer does
+- It opens with the answer, in a sentence or two.
+- It explains why: the mechanism or cause, and what follows from it for the business.
+- It is clear about what is settled and what depends on the company or the circumstances, and says
+what would decide it.
+- It answers every part of the question.
+- When the analyst asks whether to buy or sell, or where a price is heading, it says in one sentence
+that the decision is theirs and then lays out the considerations on each side. It offers no view of
+its own on buying, selling, holding or waiting, and no call on the price, however it is phrased ("my
+judgement is…", "I would wait").
+
+# How it reads
+Like a careful sell-side note: plain, specific and measured.
+- Each paragraph makes one point and leads with it.
+- Specific beats general: name the company, the measure and the period rather than "the business" or
+"recently".
+- Words go to analysis rather than background: the analyst knows the vocabulary, so explain a term
+only if they might not.
+- A list only when the points are parallel, such as several possible explanations, each with the
+disclosure or figure that would confirm or rule it out. No headings, no tables, and no stock labels
+such as "Bottom line" or "Key takeaway".
+- It stops when the point is made: no opening that restates the question, and no closing paragraph
+that repeats the answer.
+- About 200 to 300 words.
+
+# Your material
+This is a conceptual question, and there is no data for it. Answer from established financial
+knowledge. A company named in the question is an illustration; say only what is widely known about
+it.
+
+# The figure check (required)
+Before the analyst sees an answer, the app checks every number in it against the material the answer
+was given. If a single number is not there, the whole answer is withheld and the analyst sees an
+error instead. Passing this check comes before every other aim.
+
+For this question there is no material, so any number fails. The answer contains no numbers written
+in digits: no percentages, ratios, amounts, counts, multiples or years, not even as an illustration.
+Convey size and direction in words: small, material, among the largest costs a company carries, rose
+sharply.
 ```
 
 </details>
 
 <details>
-<summary><strong>Essay: analysis</strong> (essay.py, 32 words)</summary>
+<summary><strong>Essay: analysis</strong> (essay.py, 550 words)</summary>
 
-
-The input is the question, then `Analysis JSON:` and the turn's results.
-
+The input is the question, then `Analysis JSON:` and the rows of the table the analyst is looking at.
 
 ```text
+# Who you are writing for
+An analyst at a financial firm has asked this question inside a research tool. They know the
+vocabulary, read quickly, and want judgement about the business that they can use and check.
+
+# What a strong answer does
+- It opens with the answer, in a sentence or two.
+- It explains why: the mechanism or cause, and what follows from it for the business.
+- It is clear about what the evidence establishes and what it only suggests. When the cause is not
+shown, it names the likeliest explanations as possibilities, and the disclosure or figure that would
+tell them apart.
+- It answers every part of the question.
+- When the analyst asks whether to buy or sell, or where a price is heading, it says in one sentence
+that the decision is theirs and then lays out the evidence on each side. It offers no view of its
+own on buying, selling, holding or waiting, and no call on the price, however it is phrased ("my
+judgement is…", "I would wait").
+
+# How it reads
+Like a careful sell-side note: plain, specific and measured.
+- Each paragraph makes one point and leads with it.
+- Specific beats general: name the company, the measure and the period rather than "the business" or
+"recently".
+- Words go to analysis rather than background: the analyst knows the vocabulary, so explain a term
+only if they might not.
+- A list only when the points are parallel, such as several possible explanations, each with the
+disclosure or figure that would confirm or rule it out. No headings, no tables, and no stock labels
+such as "Bottom line" or "Key takeaway".
+- It stops when the point is made: no opening that restates the question, and no closing paragraph
+that repeats the answer.
+- About 200 to 300 words.
+
+# Your material
+The analyst is looking at a table, which follows the question as JSON rows; call it the table, as
+the analyst would. Build the answer on it, naming the companies and quarters you draw on. Point out
+anything that changes how the table should be read: a derived quarter, an unusually high or low
+base, a gap. Every row comes from a report the company has filed, so every quarter in the table has
+ended. The analyst can already see the table, so the answer interprets it rather than reproducing
+it.
+
+# The figure check (required)
+Before the analyst sees an answer, the app checks every number in it against the material the answer
+was given. If a single number is not there, the whole answer is withheld and the analyst sees an
+error instead. Passing this check comes before every other aim.
+
+To pass:
+- Quote only figures that appear in the table. Round them as a report would, keeping at least two
+significant figures: $1.94 billion for 1935464000, 30.9% for 0.3088, $0.85 for 0.85.
+- Compute nothing: no growth rates, differences, ratios, averages, sums or multiples, even
+approximate ones. "Up about 17%" and "a gap of $3 billion" fail. Describe change in words instead:
+rose steadily, fell sharply, roughly doubled.
+- Write every quarter with its year, Q4 2025, never Q4 alone: the check reads a lone "Q4" as the
+number 4.
+```
+
+</details>
+
+<details>
+<summary><strong>Essay: news</strong> (essay.py, 545 words)</summary>
+
+The input is `User query:` with the question, then `News tool JSON:` and up to five search results from the past week.
+
+```text
+# Who you are writing for
+An analyst at a financial firm has asked this question inside a research tool. They know the
+vocabulary, read quickly, and want judgement about the business that they can use and check.
+
+# What a strong answer does
+- It opens with the answer, in a sentence or two.
+- It explains why: the mechanism or cause, and what follows from it for the business.
+- It is clear about what the evidence establishes and what it only suggests. When the cause is not
+shown, it names the likeliest explanations as possibilities, and the disclosure or figure that would
+tell them apart.
+- It answers every part of the question.
+- When the analyst asks whether to buy or sell, or where a price is heading, it says in one sentence
+that the decision is theirs and then lays out the evidence on each side. It offers no view of its
+own on buying, selling, holding or waiting, and no call on the price, however it is phrased ("my
+judgement is…", "I would wait").
+
+# How it reads
+Like a careful sell-side note: plain, specific and measured.
+- Each paragraph makes one point and leads with it.
+- Specific beats general: name the company, the measure and the period rather than "the business" or
+"recently".
+- Words go to analysis rather than background: the analyst knows the vocabulary, so explain a term
+only if they might not.
+- A list only when the points are parallel, such as several possible explanations, each with the
+disclosure or figure that would confirm or rule it out. No headings, no tables, and no stock labels
+such as "Bottom line" or "Key takeaway".
+- It stops when the point is made: no opening that restates the question, and no closing paragraph
+that repeats the answer.
+- About 200 to 300 words.
+
+# Your material
+Your material is news coverage from the past week: the search results that follow the question,
+numbered from 1. Call it the coverage or the reports, as the analyst would. Build the answer only
+from it. End every sentence that states something reported with the numbers of the results that
+state it, in square brackets: [2], or [2][4] when two do. Each such sentence gets its own marker,
+even when a paragraph holds several. If the coverage does not address the question, say so at the
+start and draw only on the results that bear on it. Where reports disagree, say which says what.
+
+# The figure check (required)
+Before the analyst sees an answer, the app checks every number in it against the material the answer
+was given. If a single number is not there, the whole answer is withheld and the analyst sees an
+error instead. Passing this check comes before every other aim.
+
+To pass:
+- Quote figures exactly as the result writes them, units included: if a result says $96.22B, write
+$96.22B, not $96.22 billion.
+- Compute nothing: no percentage changes, differences, totals or implied amounts, even approximate
+ones. "About 2.9% lower" fails unless a result says it. Describe change in words instead.
+- Citation markers such as [2] and dates are not counted. Write every quarter with its year, Q4
+2025, never Q4 alone.
+```
+
+</details>
+
+<details>
+<summary><strong>The original essay instructions</strong> (revision 1, replaced after the essay evaluation)</summary>
+
+```text
+Explain:
+Write a concise financial-analyst essay that answers the user's question. Do not include numeric
+tokens because ungrounded numerals are rejected downstream.
+
+Analysis:
 Write a concise financial-analyst essay that answers the user's question. You may quote numeric
 values that appear in the supplied analysis JSON. Do not invent numerals that are absent from that
 JSON.
-```
 
-</details>
-
-<details>
-<summary><strong>Essay: news</strong> (essay.py, 56 words)</summary>
-
-
-The input is `User query:` with the question, then `News tool JSON:` and the search results.
-
-
-```text
+News:
 Write a concise financial-analyst brief using only the supplied news tool JSON. Cite sources only as
 [n], where n is the 1-based index of an object in that JSON array. Do not write (n), n., [1, 2], or
 [1-3]. Do not introduce facts or numeric tokens that are absent from that JSON, except those [n]

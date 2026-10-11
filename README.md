@@ -24,6 +24,7 @@ Ask about a company and get the number and the filing behind it. Onfile is an ev
 - **Planners, on 160 held-out conversations written by another lab's model (xAI's Grok 4.7):** rules planner 96%, LLM planner 94%, and the rules-first cascade 97% ([comparison](docs/evaluation/planner-comparison.md)).
 - **Within noise, so decided on cost:** no difference between the planners is significant (p = 0.22 to 0.73). The live demo runs the cascade ([ADR 0012](docs/adr/0012-the-live-planner-is-a-rules-first-cascade.md)), which sent 7% of planner calls to the LLM: $0.13 for the run against $1.93 for the LLM planner alone ([comparison](docs/evaluation/planner-comparison.md)).
 - **Everyday wording:** 555 of 555 phrasings of metrics, windows, changes and follow-ups, alone and in combination, read as [the defaults](#how-a-question-is-read) say ([phrase coverage](docs/evaluation/phrase-coverage.md)).
+- **Written answers, on 30 held-out questions:** rewritten instructions beat the originals in 26 and lost 2 (p < 0.001), judged blind by Claude and confirmed by Grok 4.7, with no investment advice in 60 essays ([essay evaluation](docs/evaluation/essay-evaluation.md)).
 - **Figures checked against their filings:** 25 of 25 found in the text of the 10-Q they cite ([filing check](docs/evaluation/filing-check.md)).
 - **What did not work, and what changed:** [retired approaches, wrong numbers, and a held-out set I had read](#what-failed-and-what-i-changed).
 
@@ -90,6 +91,7 @@ The images are captured from the window by a Playwright script against the recor
 | What | Result | How it was measured |
 | --- | --- | --- |
 | [Planner comparison](docs/evaluation/planner-comparison.md) | Held out: rules planner 96%, LLM planner 94%, cascade 97% (no difference significant) | 160 conversations xAI's Grok 4.7 wrote from a brief frozen first, labelled again blind, run end to end on the recorded runtime with only the planner swapped |
+| [Essay evaluation](docs/evaluation/essay-evaluation.md) | Revised instructions won 26 of 30 held-out questions and lost 2; no investment advice in 60 essays, against 4 | 60 questions from two labs' models, two essays per question, judged blind in both orders against a fixed rubric, with a second judge from another lab |
 | [Filing check](docs/evaluation/filing-check.md) | 25 of 25 figures found in the filing's own text | Figures the live window shows, across sectors and metrics, looked up in the 10-Q each cites |
 | [Numeral lock](docs/evaluation/numeral-lock.md) | Withholds every changed or invented number; passes every true figure as shown, or rounded to two or more significant digits | Known sentences over ten recorded answers' grounding; no model |
 | [Phrase coverage](docs/evaluation/phrase-coverage.md) | 555 of 555 everyday phrasings of metrics, windows, changes and follow-ups, alone and in combination, read as [the defaults](#how-a-question-is-read) say | Each asked as a whole question on the recorded runtime; a test fails on any new misreading, and on any phrasing the live cascade would newly send to the LLM |

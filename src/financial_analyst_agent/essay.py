@@ -297,8 +297,9 @@ INSTRUCTION_SETS: dict[str, EssayInstructions] = {
     "v4": INSTRUCTIONS_V4,
     "v5": INSTRUCTIONS_V5,
 }
-# What the app sends.
-INSTRUCTIONS = INSTRUCTIONS_V1
+# What the app sends: revision 5, chosen by the essay evaluation
+# (docs/evaluation/essay-evaluation.md).
+INSTRUCTIONS = INSTRUCTIONS_V5
 
 EssayKind = Literal["explain", "analysis", "news"]
 

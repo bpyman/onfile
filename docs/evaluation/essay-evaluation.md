@@ -1,33 +1,41 @@
 # Essay evaluation
 
-Onfile writes three kinds of prose for an analyst: explanations of financial concepts, commentary on a table of figures, and briefs on the past week's news. This evaluation asked whether better instructions write better answers, judged blind against a [frozen rubric](essay-rubric.md), without letting more invented figures through the numeral lock. The [plan](essay-plan.md) was committed before any essay was generated.
+Onfile writes three kinds of prose for analysts: explanations of financial concepts, commentary on a table of reported figures, and briefs on the past week's news. This evaluation measured whether rewritten instructions produce better answers, judged blind against a [fixed rubric](essay-rubric.md), without weakening the safeguards the app depends on.
 
-**Result.** On 30 held-out questions written by another lab's model, the revised instructions (revision 5) beat the original ones in **26 of 30 cases, losing 2** (p < 0.001), on the same model. They gave no investment advice in any of 60 essays (the original: 4 of 60), and no essay was withheld by the numeral lock. The price is clarity: the revised answers are longer, and the judge found the originals clearer in 22 cases to 7. A second judge from another lab, Grok 4.7, preferred the revision in 18 of 20 pairs and the original in none.
+**Findings**
 
-| Held-out measure | Original on terra (the app today) | Original on sol | **Revision 5 on sol** |
+- **The revised instructions won 26 of 30 held-out questions and lost 2** (p < 0.001) against the original instructions on the same model. The questions were written by another lab's model and were not seen during development.
+- **They gave no investment advice in 60 essays**, against 4 in 60 for the original, and no essay was withheld for an unsupported figure.
+- **The model matters too.** On the original instructions, `gpt-6.1-sol` beat `gpt-5.6-terra` in all 30 held-out cases. The app now uses both the revised instructions and `gpt-6.1-sol`.
+- **The gain costs some clarity.** Revised answers run about 40 words longer at the median, and the judge found the originals clearer in 22 cases to 7.
+- **A second judge from another lab agreed.** Grok 4.7 preferred the revised answer in 18 of 20 pairs and the original in none.
+
+| Held-out results | Original, `gpt-5.6-terra` (before) | Original, `gpt-6.1-sol` | **Revised, `gpt-6.1-sol` (now)** |
 | --- | ---: | ---: | ---: |
-| Cases won against the original on sol | 0 of 30 | — | **26 of 30** |
-| Analytical value (mean, 1 to 5) | 3.07 | 3.42 | **3.90** |
+| Analytical value (1 to 5) | 3.07 | 3.42 | **3.90** |
 | Calibration | 3.90 | 4.40 | **4.80** |
 | Accuracy | 4.10 | 4.50 | **4.55** |
 | Clarity | 4.08 | **4.25** | 3.98 |
-| Gave no investment advice | 92% | 93% | **100%** |
+| No investment advice | 92% | 93% | **100%** |
 | Passed the numeral lock | 100% | 97% | **100%** |
-| Essays failing any gate (of 60) | 9 | 10 | **4** |
-| Median words (explain / analysis / news) | 220 / 224 / 130 | 217 / 240 / 160 | 271 / 274 / 252 |
+| Essays failing any safeguard (of 60) | 9 | 10 | **4** |
+| Median length, words | 197 | 229 | 267 |
 
-## Design
+## What was compared
 
-- **Arms.** The original instructions on `gpt-5.6-terra` (the app today), the original instructions on `gpt-6.1-sol` (the baseline), and revision 5 on `gpt-6.1-sol`. Comparing the first two isolates the model; comparing the last two isolates the instructions.
-- **Questions.** 30 development questions written by Claude and 30 held-out questions written by Grok 4.7, each from the same [brief](essay-brief.md), ten of each kind. News questions mix stories from the week of 5 to 9 October 2026 with general ones ("any news on Apple this week?"). Each question's material was captured once and frozen: an analysis case's table from the recorded runtime, a news case's search results.
-- **Judging.** The Claude judge (`claude-sonnet-5-5`) compared every pair of essays for the same question and sample, in both orders; a preference counted only if it survived the swap. It also scored every essay on the rubric's five criteria and four gates. The essay model never judged essays. Grok 4.7 judged 20 held-out pairs with the same prompt, as an independent check.
-- **Statistics.** Each case scores +1 when revision 5 wins more of its two pairs, −1 when it wins fewer, 0 when equal; two-sided sign test on the non-zero cases. Rubric means carry 95% bootstrap intervals over cases.
+**Instructions and models.** Three configurations wrote two essays for each question: the original instructions on `gpt-5.6-terra` (the app before this work), the original instructions on `gpt-6.1-sol`, and the final revision on `gpt-6.1-sol`. The first pair isolates the model; the second isolates the instructions.
+
+**Questions.** Claude wrote 30 development questions and Grok 4.7 wrote 30 held-out questions from the same [brief](essay-brief.md): ten explanations, ten follow-ups to a table, and ten news questions, some about specific stories from the week of 5 October 2026 and some general ("any news on Apple this week?"). Each question's material was captured once and reused by every configuration: the table from the recorded filings, or the news search results.
+
+**Judging.** A Claude judge (`claude-sonnet-5-5`) compared the two essays for each question and sample without knowing their source, in both orders; a preference counted only when it held both ways. It also scored every essay from 1 to 5 on the rubric's five criteria and checked four safeguards: the numeral lock, citations, no advice, and faithfulness to the material. No model judged its own writing. Grok 4.7 judged 20 of the pairs independently.
+
+**Statistics.** A question counts as a win when one configuration wins more of its two pairs. Significance is a two-sided sign test over questions; rubric means carry 95% bootstrap intervals over questions.
 
 ## Held-out results
 
-**Revision 5 against the original, both on sol**
+**Revised against original instructions, both on `gpt-6.1-sol`**
 
-| Criterion | Revision 5 | Original | Even | p |
+| Criterion | Revised | Original | Even | p |
 | --- | ---: | ---: | ---: | ---: |
 | **Overall** | **26** | **2** | 2 | **< 0.001** |
 | Analytical value | 28 | 2 | 0 | < 0.001 |
@@ -36,43 +44,63 @@ Onfile writes three kinds of prose for an analyst: explanations of financial con
 | Answers the question | 5 | 5 | 20 | 1.0 |
 | Clarity | 7 | 22 | 1 | 0.008 |
 
-By kind, revision 5 won 8 of 10 explanations (none lost), 9 of 10 analyses and 9 of 10 news briefs.
+The gain held across all three kinds of question: 8 of 10 explanations (none lost), 9 of 10 table follow-ups and 9 of 10 news briefs.
 
-**The model alone.** On the original instructions, `gpt-6.1-sol` beat `gpt-5.6-terra` in all 30 held-out cases, with large gains in accuracy, analytical value and calibration. The instructions and the model each account for a large, separate share of the improvement.
+**Safeguards.** Advice is the boundary that matters most at a bank. The original instructions let a buy, sell or wait recommendation through in 4 to 5 of 60 essays on either model; the revision, in none. Its four remaining failures were all news briefs, with a citation that points to the wrong result in three and a claim stated beyond the reports in three. News citation accuracy did not improve on held-out questions: 3 of 20 briefs failed under both sets of instructions.
 
-**Gates.** Advice is the gate that matters most at a bank: the original instructions let a buy, sell or wait recommendation through in 5 of 60 essays on terra and 4 on sol; revision 5 in none. Revision 5's four gate failures were all news briefs: three carry a citation to a result that does not support the sentence, or does not exist, and three state a claim beyond what the results say. News citation accuracy did not improve on held-out questions (3 of 20 briefs failing, as for the original on sol).
+**Agreement between judges.** On the 20 pairs both judges assessed, Grok 4.7 preferred the revision 18 times, the original never, and called 2 even; the Claude judge, 15, 2 and 3. They gave opposite verdicts on 2 pairs. By criterion they agreed most on accuracy and analytical value (17 of 20) and least on calibration (9 of 20).
 
-## Judge agreement
+## Development
 
-On the 20 pairs both judges saw:
+The instructions went through four revisions on the development questions. Each revision was reviewed before it ran, judged against the original, and diagnosed from the judge's reasons before the next was written.
 
-| | Revision 5 preferred | Original preferred | Tie |
-| --- | ---: | ---: | ---: |
-| Grok 4.7 | 18 | 0 | 2 |
-| Claude judge | 15 | 2 | 3 |
+| Revision | Change | Why |
+| --- | --- | --- |
+| 1 | The original: one to three sentences per kind, mostly prohibitions | — |
+| 2 | Described the reader and what a strong answer does; set out the material each kind may use, with a reason for each limit | The original gave advice, quoted raw database values and referred to "the supplied JSON" |
+| 3 | Added style guidance, and stated the numeral lock outright, with examples of figures that pass and fail | Revision 2 answers ran to 400 words with headings, and the numeral lock withheld 8 of 60, mostly for computed figures |
+| 4 | Directed words to analysis rather than background, and paired each possible explanation with the disclosure that would settle it | Revision 3 lost analytical value to revision 2, 5 cases to 17 |
+| 5 | Stated the advice boundary explicitly; noted that every quarter in a table has been filed; set 200 to 300 words | Revision 4 twice offered its own view on buying, and once doubted a filed quarter |
 
-The judges gave the same overall verdict on 13 pairs and opposite verdicts on 2. By criterion they agreed on 17 of 20 for accuracy and for analytical value, 13 for clarity, and 9 for calibration. The result does not rest on one lab's model judging instructions written with that lab's model.
+**Revision 5 head to head, development questions**
 
-## How the instructions changed
+| Revision 5 against | Overall | Analytical value | Clarity | Calibration | Accuracy |
+| --- | --- | --- | --- | --- | --- |
+| Revision 1 | **25–1** (p < 0.001) | 26–1 | 9–16 | 15–0 | 6–0 (p = 0.03) |
+| Revision 2 | 9–7 (p = 0.80) | 10–15 | 15–10 | 4–2 | 3–2 |
+| Revision 4 | 7–8 (p = 1.0) | 3–16 | 18–2 | 3–3 | 4–3 |
 
-Each revision was run on the development set and judged against the original on sol before the next was written. The held-out set was not read or run until revision 5 was frozen.
+**All revisions, development questions**
 
-| Revision | What it added | Development: cases won–lost against the original | Gate failures (of 60) |
-| --- | --- | ---: | ---: |
-| 1 (original) | One or two sentences per kind, mostly prohibitions | — | 8 |
-| 2 | Who the reader is and what a strong answer does; the material each kind may use, with the reason for each limit | 26–1 | 10 |
-| 3 | Style guidance; the numeral lock stated outright, with what passes and what fails | 22–2 | 5 |
-| 4 | Words directed to analysis rather than background; explanations paired with the evidence that would settle them | 23–3 | 5 |
-| 5 | The advice boundary stated explicitly; every quarter in a table marked as filed; 200 to 300 words | 25–1 | 1 |
+| | Rev. 1 | Rev. 2 | Rev. 3 | Rev. 4 | **Rev. 5** |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Overall against revision 1 | — | 26–1 | 22–2 | 23–3 | **25–1** |
+| Clarity against revision 1 | — | 2–22 | 12–13 | 5–20 | **9–16** |
+| Accuracy (1 to 5) | 4.33 | 4.48 | **4.60** | 4.50 | 4.57 |
+| Analytical value | 3.43 | 3.82 | 3.85 | **3.90** | 3.83 |
+| Calibration | 4.40 | **4.73** | 4.70 | 4.68 | 4.72 |
+| Passed the numeral lock | 97% | 87% | 100% | 100% | **100%** |
+| News citations correct | 16/20 | 19/20 | 15/20 | 18/20 | **19/20** |
+| No investment advice | 95% | 100% | 100% | 97% | **100%** |
+| Faithful to the material | 100% | 98% | 100% | 98% | **100%** |
+| Essays failing any safeguard (of 60) | 8 | 10 | 5 | 5 | **1** |
 
-Two lessons carry beyond this app. First, a revision that described the answer well (revision 2) won decisively but was withheld by the numeral lock four times as often as the original, until the lock itself was explained to the model with failing examples; the app's hard constraints had to be stated as constraints, not left to good writing. Second, guidance on length and style traded analytical value for clarity in a measurable way, and the final length was a deliberate choice between them. The instructions themselves are in [`essay.py`](../../src/financial_analyst_agent/essay.py) and quoted in full in [Prompts and controls](../prompts-and-controls.md).
+Revision 5 was chosen over revision 4, which it matched overall, because it traded some analytical depth for clarity and passed every safeguard but one.
+
+**What the development showed**
+
+- **Describing a good answer works better than forbidding bad ones.** The jump from revision 1 to revision 2, which replaced prohibitions with a description of the reader and the answer, produced most of the gain.
+- **Hard constraints must be stated as constraints.** Revision 2 wrote better answers but was withheld by the numeral lock four times as often as the original. Only when the lock itself was explained, with examples of what fails, did withholding fall to zero.
+- **Depth and clarity trade off, and length is the lever.** Each change to length moved analytical value and clarity in opposite directions; the final range is a deliberate choice between them.
+
+The instructions are in [`essay.py`](../../src/financial_analyst_agent/essay.py) and quoted in full in [Prompts and controls](../prompts-and-controls.md).
 
 ## Limits
 
-- **Clarity.** The revision is longer, and the judge found it less clear; an analyst who wants the shortest answer may prefer the original's length.
-- **News citations.** The development gains did not hold on held-out news briefs; citation accuracy needs a check in code, as figures have, rather than more instruction.
-- **LLM judges.** Both judges are language models, which tend to favour longer, more structured answers; the clarity result cuts against that bias, the analytical-value result may benefit from it.
-- **One week of news.** News questions and their results come from a single week, captured once.
+- **Clarity.** The revised answers are longer and judged less clear; an analyst who values brevity above depth may prefer the original's length.
+- **News citations.** Development gains in citation accuracy did not carry to held-out questions. Citations need a check in code, as figures have, rather than more instruction.
+- **Model judges.** Both judges are language models, which tend to favour longer, more structured answers. The clarity result runs against that bias; the analytical-value result may benefit from it.
+- **One week of news.** News questions and their results come from a single week.
 
 ## Reproducing
 
@@ -82,4 +110,4 @@ uv run python -m financial_analyst_agent.essay_evaluation judge --a v5@gpt-6.1-s
 uv run python -m financial_analyst_agent.essay_evaluation report --a v5@gpt-6.1-sol --b v1@gpt-6.1-sol --set held-out
 ```
 
-Essays, judgements and scores are in [`essays/`](essays/). The full evaluation cost about $9 of OpenAI spend; judging ran on the Claude and Cursor subscriptions.
+Essays, judgements and scores are in [`essays/`](essays/). The evaluation cost about $9 in OpenAI usage; judging ran on existing Claude and Cursor subscriptions.
