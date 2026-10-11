@@ -1,0 +1,825 @@
+{
+  "judge": "grok-4.7-high",
+  "pairs": [
+    {
+      "case_id": "grok_analysis_09",
+      "kind": "analysis",
+      "sample": 2,
+      "x": "v5@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "tie",
+        "clarity": "tie",
+        "calibration": "tie",
+        "overall": "tie"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "B better isolates what the table can support—revenue grew faster than R&D at both companies, so traction is visible while a causal payoff is not—whereas A stays more general about the level changes despite sharper caveats on derived quarters and fiscal calendars.",
+        "B is the more useful note because it separates Palantir’s still-rising research spend from Oracle’s decline, names alternative drivers, and flags derived quarters and misaligned reporting periods, while both correctly treat the revenue gains as traction rather than proof that R&D caused them."
+      ]
+    },
+    {
+      "case_id": "grok_explain_09",
+      "kind": "explain",
+      "sample": 2,
+      "x": "v5@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "A more fully explains why a cash balance and operating cash flow can diverge and what neither figure can show, which is what keeping them apart requires.",
+        "B is the better essay for an analyst because it adds the limits that change a conclusion—working-capital cash that may not recur, cash that is not surplus, and free cash flow only once its definition is fixed—while staying as accurate as A’s clearer stock-versus-flow account."
+      ]
+    },
+    {
+      "case_id": "grok_news_06",
+      "kind": "news",
+      "sample": 2,
+      "x": "v5@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "Y",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "X",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": false,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": false,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": false,
+          "no_advice": true,
+          "faithful": false
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "A is preferable overall because it flags the October 13 versus October 14 scheduling conflict and explains what the trading-revenue previews can and cannot show, outweighing its misstatement that BigGo as well as 24/7 Wall St. specified a pre-open release.",
+        "B is the better note because it records the October 13 versus October 14 conflict and what the trading previews can and cannot show, even though it wrongly says BigGo specified a before-the-open release."
+      ]
+    },
+    {
+      "case_id": "grok_news_10",
+      "kind": "news",
+      "sample": 1,
+      "x": "v5@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "Y",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "X",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": false,
+          "no_advice": false,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": false,
+          "no_advice": false,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "A is the better note because it explains the smaller Terafab role, the gap between association and foundry revenue, and what the reports cannot settle, while B’s clearer reply turns that evidence into a don’t-buy instruction.",
+        "B is the better essay because it explains the selloff, separates a continued Terafab role from foundry revenue, and states what the coverage cannot show, while A answers the buy question only by recommending that the reader wait."
+      ]
+    },
+    {
+      "case_id": "grok_analysis_07",
+      "kind": "analysis",
+      "sample": 1,
+      "x": "v5@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "tie",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "A is preferred because it uses the four-quarter equity paths, JPMorgan’s falling cash, and the restricted-cash mismatch to limit any safety ranking, in shorter prose than B’s restated conclusion.",
+        "B is preferable overall because it uses each bank’s equity path and the split in cash—JPMorgan down, Goldman and Wells Fargo up—to show why a larger equity balance does not identify a safer bank, and that substance outweighs A’s slightly plainer wording."
+      ]
+    },
+    {
+      "case_id": "grok_explain_02",
+      "kind": "explain",
+      "sample": 1,
+      "x": "v5@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "X",
+        "analysis": "X",
+        "clarity": "tie",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "A more precisely defines the margin, explains how yields, funding, mix, and rate pass-through move it, and states the credit, fee, and capital limits an analyst must weigh.",
+        "B is the better answer because it explains the mechanisms that make net interest margin matter—volume versus spread, rate pass-through and funding quality—while A is clearer but less precise about what a higher margin actually means."
+      ]
+    },
+    {
+      "case_id": "grok_news_06",
+      "kind": "news",
+      "sample": 1,
+      "x": "v5@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "X",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "A is more useful to an analyst because it explains how equity versus fixed-income trading could shape still-unreported results and flags the October 13 versus October 14 date conflict, while B mostly restates two preview estimates.",
+        "B is more useful to an analyst because it explains the equity-versus-fixed-income trading mechanism, states what still cannot be judged for each bank, and flags the October 13 versus October 14 reporting-date conflict, while A mainly restates two preview estimates."
+      ]
+    },
+    {
+      "case_id": "grok_explain_02",
+      "kind": "explain",
+      "sample": 2,
+      "x": "v5@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "tie",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "A better explains how funding mix and repricing drive the margin and separates margin from total earnings, while both stay accurate and appropriately cautious.",
+        "B is preferred overall because it explains the funding and repricing mechanisms and the difference between margin and total earnings, while both answers are accurate, direct, and appropriately cautious."
+      ]
+    },
+    {
+      "case_id": "grok_news_04",
+      "kind": "news",
+      "sample": 1,
+      "x": "v5@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "tie",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": false,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": false,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "A answers with the week's specific developments and is more exact about what preorders, Broadcom's forecast, and the memory architecture do not prove, while B cites a revenue article on the OCP sentence and leaves several reported figures without a marker.",
+        "B is better overall because it separates preorders, forecasts, and architecture proposals from orders, delivered revenue, and adoption, which outweighs A's clearer scan and its extra SpaceX dollar figure and session-versus-week price split."
+      ]
+    },
+    {
+      "case_id": "grok_explain_10",
+      "kind": "explain",
+      "sample": 1,
+      "x": "v5@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "Y",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "X",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "A is preferable overall because it explains more completely when buybacks create or destroy value and keeps the limits of price, funding, and leverage explicit, which matters more than B’s tighter and more direct wording.",
+        "B is the better note for an analyst because it separates a larger ownership claim from economic value, sets the cash-return case against the ways buybacks flatter per-share results, and stays within what a repurchase can show, which outweighs A's more direct opening and tighter layout."
+      ]
+    },
+    {
+      "case_id": "grok_analysis_09",
+      "kind": "analysis",
+      "sample": 1,
+      "x": "v5@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "tie",
+        "clarity": "tie",
+        "calibration": "X",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "A is preferable because it keeps growth, R&D, and causation inside the table and names alternative drivers and derived quarters, while B’s sharper intensity point overstates efficiency and a year-over-year pattern that does not hold in every quarter.",
+        "B is the better overall answer because it separates earlier development from the newest R&D, gives each company a different mechanism and alternative explanations, and flags the derived quarters, while A is clearer but treats lower R&D intensity as efficiency."
+      ]
+    },
+    {
+      "case_id": "grok_analysis_10",
+      "kind": "analysis",
+      "sample": 2,
+      "x": "v5@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "tie",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": false
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": false
+        }
+      },
+      "reasons": [
+        "A is the stronger essay because it ties each firm’s swings to base effects and the derived fourth quarter and states what those figures cannot prove, while B restates headline results and asserts business models the table does not contain.",
+        "B is preferable because it maps comparability onto the unusual bases and derived fourth quarters in the table and states what those moves do not establish, while A is clearer but broader and treats business models the rows do not show as fact."
+      ]
+    },
+    {
+      "case_id": "grok_news_01",
+      "kind": "news",
+      "sample": 1,
+      "x": "v5@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "X",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "X",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": false,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": false,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "A is preferable overall because its opening sentence answers the question and it explains the commercial mechanism, the announced-versus-rumored distinction, and the limits of the evidence, while B is easier to scan but mostly restates the items and leaves reported facts uncited.",
+        "B answers in the first sentence and explains which item already affects advertisers, which details are still expectations, and what the reports cannot show, while A is easier to scan but mostly lists the headlines."
+      ]
+    },
+    {
+      "case_id": "grok_analysis_10",
+      "kind": "analysis",
+      "sample": 1,
+      "x": "v5@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "tie",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": false
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": false
+        }
+      },
+      "reasons": [
+        "A is the better answer because it shows how base effects and derived fourth quarters change what the earnings comparisons mean, in clearer prose, without asserting business-mix facts the table does not contain.",
+        "B is more useful because it shows how derived fourth quarters, extreme base effects, and consolidated versus common-shareholder income limit the comparison, while A stays clearer but more general."
+      ]
+    },
+    {
+      "case_id": "grok_analysis_01",
+      "kind": "analysis",
+      "sample": 1,
+      "x": "v5@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "tie",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "A is the better note because it dates when Lilly took the lead, separates Merck’s modest steady gains from Pfizer’s uneven seasonal path, and flags the derived fourth-quarter figures and Pfizer’s mismatched reporting dates.",
+        "B better explains the gap by separating Lilly’s sustained climb from Merck’s modest growth and Pfizer’s uneven path, and it states the derivation, seasonality, and causation limits A omits."
+      ]
+    },
+    {
+      "case_id": "grok_explain_05",
+      "kind": "explain",
+      "sample": 1,
+      "x": "v5@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "X",
+        "accuracy": "tie",
+        "analysis": "tie",
+        "clarity": "tie",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "A answers both the accounting cause and the margin limitation in its opening and stays tighter, while the two essays are equally accurate, analytical, and well calibrated.",
+        "B answers both parts of the question at the outset and more precisely links uncertain recoverability to the ways trial timing can move a quarter’s margin without saying anything reliable about the pipeline."
+      ]
+    },
+    {
+      "case_id": "grok_analysis_02",
+      "kind": "analysis",
+      "sample": 2,
+      "x": "v5@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "tie",
+        "clarity": "tie",
+        "calibration": "tie",
+        "overall": "tie"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": false
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": false
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": false
+        }
+      },
+      "reasons": [
+        "B is preferable overall because it treats the movement in the spread, a slightly wider NVIDIA lead over Broadcom and a much narrower gap to AMD off a weak base, as a pricing-power signal rather than proof, while A is plainer but never says whether those gaps are closing and states a software-versus-chip split the table does not show.",
+        "B is better overall because it ties the pricing-power reading to the margin path, base effects, and what the filings cannot separate, while A ranks the spread more smoothly but leaves out qualifications the table supports."
+      ]
+    },
+    {
+      "case_id": "grok_explain_04",
+      "kind": "explain",
+      "sample": 2,
+      "x": "v5@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "X",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "A is preferable overall because its opening sentence states the share-basis mismatch and it then separates that mechanical effect from other causes of an EPS gap, outweighing B’s advantage in brevity.",
+        "B wins overall because it answers in the first sentence and then gives the retrospective-adjustment rule, the warning not to adjust an already restated comparative, and the non-split drivers that can still move EPS, which outweighs A's tighter prose."
+      ]
+    },
+    {
+      "case_id": "grok_news_08",
+      "kind": "news",
+      "sample": 1,
+      "x": "v5@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "tie",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "Y",
+        "calibration": "X",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": false,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": false,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "A is preferable because it shows why an October component-order cut is not a December-quarter dollar cost, keeps a price offset and Duo substitution unquantified, and does not treat the effect as an established revenue loss.",
+        "B is the stronger answer because it shows why an October component-order cut cannot be turned into a December-quarter dollar cost and states the price-offset and substitution limits the reports leave open, which outweighs A’s clearer brevity."
+      ]
+    },
+    {
+      "case_id": "grok_explain_08",
+      "kind": "explain",
+      "sample": 2,
+      "x": "v5@gpt-6.1-sol",
+      "y": "v1@gpt-6.1-sol",
+      "preference": {
+        "answers": "X",
+        "accuracy": "tie",
+        "analysis": "X",
+        "clarity": "tie",
+        "calibration": "tie",
+        "overall": "X"
+      },
+      "gates": {
+        "x": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "x_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        },
+        "y_swapped": {
+          "citations": true,
+          "no_advice": true,
+          "faithful": true
+        }
+      },
+      "reasons": [
+        "A is preferable because its opening sentence settles both the margin effect and the limit of the concept, and it adds the two-way mix, incremental-demand, and operating-profit implications while staying equally accurate and calibrated.",
+        "B answers both parts of the question in its opening and adds the mix-direction, substitution-versus-new-demand, and gross-margin-versus-operating-profit distinctions an analyst needs, which outweighs A's tighter prose."
+      ]
+    }
+  ]
+}
