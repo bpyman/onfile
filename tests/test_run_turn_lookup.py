@@ -441,8 +441,8 @@ def test_snapshot_banner_keeps_a_corrected_company_note_before_it() -> None:
 
     assert answer.banners[0].startswith("Showing Apple for")
     assert answer.banners[1].startswith("Universe snapshot as of")
-ALPHABET_SNAPSHOT_MARKET_CAP = Decimal("4139313608328")
-SNAPSHOT_AS_OF = "2026-09-27T22:43:45.015184+00:00"
+ALPHABET_SNAPSHOT_MARKET_CAP = Decimal("4252480898693")
+SNAPSHOT_AS_OF = "2026-10-12T14:33:59.613170+00:00"
 
 
 class _ShopifyMarketCapCompleter:

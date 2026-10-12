@@ -1,7 +1,7 @@
 """P/E, return on equity, EBITDA, share price, cash and dividends on the recorded demo,
 and the round-4 open items that came with them (ADR 0008).
 
-Values are the recorded 27 September 2026 filings and snapshot.
+Values are the recorded 27 September 2026 filings and the 12 October 2026 snapshot.
 """
 
 from __future__ import annotations
@@ -27,17 +27,17 @@ def test_pe_is_market_cap_over_trailing_net_income(runtime) -> None:  # type: ig
     assert answer.fact_card.period_label == (
         "Calculated † · Trailing year · Jun 29, 2025 – Jun 27, 2026"
     )
-    assert answer.fact_card.concept == "Market cap (Sep 27, 2026) ÷ trailing-year net income"
+    assert answer.fact_card.concept == "Market cap (Oct 12, 2026) ÷ trailing-year net income"
     assert answer.fact_card.form == ""
     assert any("trailing-year net income" in banner for banner in answer.banners)
     labels = [item.label for item in answer.evidence]
-    assert "Apple Inc. · Market cap · At Sep 27, 2026" in labels
+    assert "Apple Inc. · Market cap · At Oct 12, 2026" in labels
 
 
 def test_p_slash_e_is_not_read_as_two_tickers(runtime) -> None:  # type: ignore[no-untyped-def]
     (answer,) = ask(runtime, "Compare Nvidia, AMD and Broadcom P/E")
     assert column_of(answer, "Ticker") == ["NVDA", "AMD", "AVGO"]
-    assert column_of(answer, "P/E ratio (trailing year)") == ["28.3x †", "159.8x †", "43.9x †"]
+    assert column_of(answer, "P/E ratio (trailing year)") == ["28.3x †", "148.9x †", "44.2x †"]
 
 
 def test_return_on_equity_over_a_window(runtime) -> None:  # type: ignore[no-untyped-def]
@@ -71,8 +71,8 @@ def test_dividends_asks_which_and_per_share_answers(runtime) -> None:  # type: i
 
 def test_share_price_comes_from_the_snapshot(runtime) -> None:  # type: ignore[no-untyped-def]
     (answer,) = ask(runtime, "Nvidia stock price")
-    assert column_of(answer, "Share price") == ["$225.07"]
-    assert answer.banners[0].startswith("Universe snapshot as of Sep 27, 2026")
+    assert column_of(answer, "Share price") == ["$225.23"]
+    assert answer.banners[0].startswith("Universe snapshot as of Oct 12, 2026")
 
 
 def test_cash_is_a_balance_at_each_quarter_end(runtime) -> None:  # type: ignore[no-untyped-def]
@@ -87,7 +87,7 @@ def test_cash_is_a_balance_at_each_quarter_end(runtime) -> None:  # type: ignore
 
 def test_a_ranking_by_pe_says_what_it_leaves_out(runtime) -> None:  # type: ignore[no-untyped-def]
     (answer,) = ask(runtime, "Rank tech companies by P/E")
-    assert column_of(answer, "Ticker")[:2] == ["AMD", "PLTR"]
+    assert column_of(answer, "Ticker")[:2] == ["PLTR", "AMD"]
     assert any(
         banner.startswith("Ordered by P/E ratio.") and "a higher P/E ratio" in banner
         for banner in answer.banners

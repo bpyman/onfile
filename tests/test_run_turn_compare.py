@@ -456,8 +456,8 @@ def test_run_turn_refuses_unknown_compare_ratio_with_allowed_list() -> None:
 
 
 MSFT_GOOG_MARKET_CAP_QUERY = "compare Microsoft and Google market cap"
-MICROSOFT_SNAPSHOT_MARKET_CAP = Decimal("3832846143500")
-ALPHABET_SNAPSHOT_MARKET_CAP = Decimal("4139313608328")
+MICROSOFT_SNAPSHOT_MARKET_CAP = Decimal("4010094022000")
+ALPHABET_SNAPSHOT_MARKET_CAP = Decimal("4252480898693")
 
 
 def test_run_turn_compare_snapshot_market_caps() -> None:
