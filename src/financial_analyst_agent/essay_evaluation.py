@@ -36,6 +36,7 @@ from typing import Any, Literal
 
 from financial_analyst_agent.contracts import ToolTrace
 from financial_analyst_agent.essay import INSTRUCTION_SETS, EssayInstructions, essay_request
+from financial_analyst_agent.model_spend import MODEL_PRICES
 from financial_analyst_agent.numeral_lock import numeral_lock_extras
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -50,7 +51,7 @@ SPEND = ESSAYS / "spend.json"
 # The plan's cap on OpenAI spend for the whole evaluation, in US dollars.
 BUDGET = 14.35
 # US dollars per million tokens, for every model the arms use.
-PRICES = {"gpt-5.6-terra": (2.0, 12.0), "gpt-6.1-sol": (2.0, 10.0)}
+PRICES = MODEL_PRICES
 JUDGE_MODEL = "claude-sonnet-5-5"
 CRITERIA = ("answers", "accuracy", "analysis", "clarity", "calibration")
 GATES = ("citations", "no_advice", "faithful")

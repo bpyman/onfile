@@ -2,9 +2,11 @@
 
 import json
 from dataclasses import dataclass
+from decimal import Decimal
 from typing import Any, Literal
 
 from financial_analyst_agent.config import Settings
+from financial_analyst_agent.model_spend import DailySpendCap
 from financial_analyst_agent.planner import openai_client_from_settings
 
 
@@ -330,22 +332,33 @@ class OpenAIEssayCompleter:
     """Generate qualitative essays through the OpenAI Responses API."""
 
     def __init__(
-        self, client: Any, model: str, instructions: EssayInstructions = INSTRUCTIONS
+        self,
+        client: Any,
+        model: str,
+        instructions: EssayInstructions = INSTRUCTIONS,
+        spend: DailySpendCap | None = None,
     ) -> None:
         self._client = client
         self._model = model
         self._instructions = instructions
+        self._spend = spend or DailySpendCap(Decimal(0))
 
     @classmethod
-    def from_settings(cls, settings: Settings) -> "OpenAIEssayCompleter":
+    def from_settings(
+        cls, settings: Settings, spend: DailySpendCap | None = None
+    ) -> "OpenAIEssayCompleter":
         client, _ = openai_client_from_settings(settings)
-        return cls(client, settings.essay_model())
+        return cls(client, settings.essay_model(), spend=spend)
 
     def complete_essay(self, query: str, tool_json: str = "") -> str:
+        """The essay; raises ``SpendCapReached`` once the day's budget is spent."""
         _, instructions, input_text = essay_request(query, tool_json, self._instructions)
-        response = self._client.responses.create(
-            model=self._model,
-            instructions=instructions,
-            input=input_text,
+        response = self._spend.call(
+            self._model,
+            lambda: self._client.responses.create(
+                model=self._model,
+                instructions=instructions,
+                input=input_text,
+            ),
         )
         return str(response.output_text)

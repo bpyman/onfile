@@ -4,6 +4,7 @@ import json
 import logging
 import threading
 from collections.abc import Callable, Mapping
+from decimal import Decimal
 from functools import lru_cache
 from pathlib import Path
 from types import MappingProxyType
@@ -14,6 +15,7 @@ from financial_analyst_agent.domain.errors import ProviderError, ProviderRefusal
 from financial_analyst_agent.essay import OpenAIEssayCompleter
 from financial_analyst_agent.facts import RecordedSECDataSource
 from financial_analyst_agent.facts_warmer import FactsWarmer, ensure_facts_warmer
+from financial_analyst_agent.model_spend import DailySpendCap
 from financial_analyst_agent.news import (
     FIXTURE_NEWS_QUERY,
     FIXTURE_RESEARCH_QUERY,
@@ -253,6 +255,24 @@ def _shared_sec_client(settings: Settings) -> SECClient:
         return client
 
 
+_SPEND_CAPS: dict[tuple[object, ...], DailySpendCap] = {}
+_SPEND_CAPS_LOCK = threading.Lock()
+
+
+def _shared_spend_cap(settings: Settings) -> DailySpendCap:
+    """One OpenAI spend ledger per configuration for the process, shared by every turn."""
+    key = (settings.openai_daily_budget_usd, settings.openai_spend_file)
+    with _SPEND_CAPS_LOCK:
+        cap = _SPEND_CAPS.get(key)
+        if cap is None:
+            path = settings.openai_spend_file.strip()
+            cap = DailySpendCap(
+                Decimal(str(settings.openai_daily_budget_usd)), Path(path) if path else None
+            )
+            _SPEND_CAPS[key] = cap
+        return cap
+
+
 def recorded_runtime() -> Runtime:
     """Replay captured SEC, news, and model responses; never touches the network."""
     source = RecordedSECDataSource()
@@ -356,15 +376,16 @@ def live_runtime(
     rules = DemoCompleter(issuer_index())
     # The rules planner plans, and the LLM planner only where it is unsure (ADR 0012).
     # Without an OpenAI key (or with public OpenAI turned off) the rules planner plans alone.
+    spend = _shared_spend_cap(resolved)
     completer: Completer = (
         CascadeCompleter(
-            rules, OpenAIStructuredCompleter.from_settings(resolved), ranking.knows_industry
+            rules, OpenAIStructuredCompleter.from_settings(resolved, spend), ranking.knows_industry
         )
         if use_openai
         else rules
     )
     essay = (
-        OpenAIEssayCompleter.from_settings(resolved)
+        OpenAIEssayCompleter.from_settings(resolved, spend)
         if use_openai
         else RecordedEssayCompleter(live=True)
     )

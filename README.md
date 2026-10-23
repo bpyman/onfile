@@ -372,7 +372,7 @@ What a question leaves out has a default, so the same words always get the same 
 - The metric catalog is closed. Unknown or ambiguous phrases do not guess, and segment figures (AWS, iPhone) are not reported on their own: the answer shows the company-wide figure and says it is not the segment.
 - Foreign private issuers (20-F and 40-F filers) have no 10-Q facts, and subsidiaries that file jointly with their parent have no quarterly figures of their own in SEC's data.
 - Questions are read in English.
-- Public live SEC, if enabled, is quota-guarded. Unrestricted OpenAI/Tavily spend is not exposed to visitors.
+- Public live SEC, if enabled, is quota-guarded. OpenAI spend is capped per day (`OPENAI_DAILY_BUDGET_USD`); past the cap written answers pause and figures still work.
 
 ## How it was built
 

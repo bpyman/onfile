@@ -291,9 +291,18 @@ def _news_grounded_essay_turn(
             message=_no_news_message(runtime),
         )
     tool_json = _hits_json(hits)
-    essay = call_provider(
-        "llm", lambda: essay_completer.complete_essay(query, tool_json)
-    )
+    try:
+        essay = call_provider(
+            "llm", lambda: essay_completer.complete_essay(query, tool_json)
+        )
+    except ProviderError as exc:
+        return TurnResult(
+            intent=intent,
+            tool_traces=traces,
+            renderer=RendererKind.REFUSE,
+            message=visitor_message(exc, ESSAY_UNAVAILABLE_MESSAGE),
+            refusal=refusal_from_error(exc),
+        )
     return _locked_essay(
         intent,
         essay,

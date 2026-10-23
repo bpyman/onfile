@@ -96,8 +96,13 @@ Neither Vercel variable is `NEXT_PUBLIC_`, so neither reaches the browser bundle
 Every other API setting keeps the default in `config.py` (thread TTL 7200 s, 25 turns
 per thread, 150 live SEC requests per thread, and per visitor 30 new threads and 120
 turns an hour). The public demo lands on the live
-runtime, and visitors can switch to the recorded runtime, which needs no keys. Nothing caps
-total OpenAI spend across threads, so set a monthly budget in the OpenAI dashboard.
+runtime, and visitors can switch to the recorded runtime, which needs no keys.
+`OPENAI_DAILY_BUDGET_USD` (default 5) caps the API's OpenAI spend per UTC day, priced from
+the tokens each response reports and kept in `OPENAI_SPEND_FILE` so a restart does not
+reset it. Past the cap the planner keeps the rules plan and written answers say they are
+paused until tomorrow; figures are unaffected. Turns already in flight can each add one
+more request, and a redeploy starts a new file, so also set a monthly budget in the OpenAI
+dashboard.
 
 The live runtime bounds what a slow or failing SEC can cost, also with defaults in
 `config.py` (see `.env.example`):
