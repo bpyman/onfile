@@ -3284,3 +3284,26 @@ Files changed:
 Blockers / next:
 - None. 2,537 tests pass (1 new); ruff and mypy clean; compare_answers reports `0 of 893
   conversations differ from master`. Every simplify-leftovers ticket is resolved.
+
+
+## 2026-10-23 — demo-polish 01: a comparison over several quarters gets a headline about the trend
+
+Ticket: `docs/process/tickets/demo-polish/issues/01-a-trend-headline-for-several-companies.md`
+
+Key decisions:
+- `_trends_headline` for a comparison (not a ranking) of one amount, two to four companies, three
+  or more quarters each: each company's first and last cell as the table shows it, "rose" / "fell"
+  / "was unchanged at", and ", its highest in the window" / ", its lowest" where the latest quarter
+  is above or below every earlier one and no earlier cell reads the same.
+- The window: "Over 8 quarters to <date>" when every latest quarter ends on one date; "Over each
+  company's last 8 quarters" when they differ; "Over the quarters shown" when the counts differ.
+- Five or more companies, rankings, changes and several metrics keep their headlines.
+
+Files changed:
+- `src/financial_analyst_agent/presentation.py`
+- `tests/test_presentation.py`, `tests/unit/test_answer_card.py`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. Full suite passes; ruff and mypy clean; compare_answers (against HEAD) shows 53 of 893
+  conversations differ, all in a headline, all comparisons over a window. Ticket 02 is next.

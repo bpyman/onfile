@@ -1612,6 +1612,18 @@ def test_an_overview_leads_with_a_sentence() -> None:
     assert "net margin" in answer.headline
 
 
+def test_a_comparison_over_a_window_says_where_each_company_went() -> None:
+    # Apple's quarters end on Jun 27 and Microsoft's on Jun 30, so the window
+    # is each company's own last 8 quarters.
+    answer = _answer("Compare Apple and Microsoft gross margin over the last 8 quarters")
+
+    assert answer.headline == (
+        "Over each company's last 8 quarters, Apple's gross margin rose from 46.2% † to "
+        "50.1%, its highest in the window, and Microsoft's fell from 69.4% to 67.2% †, "
+        "its lowest."
+    )
+
+
 def test_an_overview_draws_small_revenue_and_margin_trends() -> None:
     answer = _answer("How is Nvidia doing?")
 

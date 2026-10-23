@@ -2405,8 +2405,9 @@ def comparison_headline(rows: list[TableRow], intent: Intent) -> str | None:
     """ "Of these 10 companies, Apple reported the most research and development, …"
 
     For a ranking or a comparison of one amount: who leads and who trails, in the
-    table's own formatted amounts; for one company over quarters, where it went.
-    None for changes (``growth_headline`` says those) and for several metrics.
+    table's own formatted amounts; for a few companies or one over quarters, where
+    each went. None for changes (``growth_headline`` says those) and for several
+    metrics.
     """
     if any(row.comparison is not None for row in rows):
         return None
@@ -2420,7 +2421,11 @@ def comparison_headline(rows: list[TableRow], intent: Intent) -> str | None:
             latest[key] = row
     if len(latest) == 1:
         return _trend_headline(levels)
-    ordered = sorted(latest.values(), key=lambda row: Decimal(str(row.value)), reverse=True)
+    if intent not in (Intent.RANK, Intent.RANK_AND_LOOKUP):
+        trends = _trends_headline(levels)
+        if trends is not None:
+            return trends
+    ordered =sorted(latest.values(), key=lambda row: Decimal(str(row.value)), reverse=True)
     top, bottom = ordered[0], ordered[-1]
     if top.value == bottom.value:
         return None
@@ -2479,6 +2484,68 @@ def _trend_headline(levels: list[TableRow]) -> str | None:
         f"{_format_cell(last, 'value')} over {len(ordered)} quarters to "
         f"{format_date(last.end_date)}."
     )
+
+
+def _trends_headline(levels: list[TableRow]) -> str | None:
+    """ "Over 8 quarters to Jun 30, 2026, Apple's gross margin rose from 46.2% to 50.1%, …"
+
+    Two to four companies over three or more quarters each: where each one's
+    amount started and ended, in the table's own formatted amounts, and whether
+    its latest quarter is the highest or lowest it shows. None otherwise, so the
+    caller says who leads.
+    """
+    series: dict[str, list[TableRow]] = {}
+    for row in levels:
+        series.setdefault(row.company_key, []).append(row)
+    if not 2 <= len(series) <= 4 or any(len(points) < 3 for points in series.values()):
+        return None
+    paths = [sorted(points, key=lambda row: row.end_date or date.min) for points in series.values()]
+    counts = {len(points) for points in paths}
+    ends = {points[-1].end_date for points in paths}
+    quarters = f"{counts.pop()} quarters" if len(counts) == 1 else "the quarters shown"
+    if len(ends) == 1:
+        window = f"Over {quarters} to {format_date(ends.pop() or date.min)}"
+    elif quarters == "the quarters shown":
+        window = "Over the quarters shown"
+    else:
+        window = f"Over each company's last {quarters}"
+
+    def bare(row: TableRow) -> str:
+        return _format_cell(row, "value").removesuffix(DERIVED_MARK)
+
+    label = in_sentence(format_field_name(paths[0][-1].metric))
+    clauses: list[str] = []
+    said_window = False
+    # A clause that ends ", its highest" is set off from the next one.
+    set_off = False
+    for index, points in enumerate(paths):
+        first, last = points[0], points[-1]
+        subject = f"{_owner(last)} {label}" if index == 0 else _owner(last)
+        start, end_amount = _format_cell(first, "value"), _format_cell(last, "value")
+        if bare(first) == bare(last):
+            clauses.append(f"{subject} was unchanged at {end_amount}")
+            continue
+        value = Decimal(str(last.value))
+        earlier = [Decimal(str(row.value)) for row in points[:-1]]
+        verb = "rose" if value > Decimal(str(first.value)) else "fell"
+        clause = f"{subject} {verb} from {start} to {end_amount}"
+        # Only where no earlier quarter reads the same in the table.
+        if bare(last) not in {bare(row) for row in points[:-1]}:
+            extreme = (
+                "highest" if value > max(earlier) else "lowest" if value < min(earlier) else ""
+            )
+            if extreme:
+                clause += f", its {extreme}" + ("" if said_window else " in the window")
+                said_window = True
+                set_off = set_off or index < len(paths) - 1
+        clauses.append(clause)
+    if not set_off:
+        body = joined(clauses)
+    elif len(clauses) == 2:
+        body = f"{clauses[0]}, and {clauses[1]}"
+    else:
+        body = "; ".join(clauses[:-1]) + f"; and {clauses[-1]}"
+    return f"{window}, {body}."
 
 
 def change_percent(row: TableRow) -> Decimal | None:
