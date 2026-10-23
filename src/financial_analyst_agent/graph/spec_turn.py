@@ -30,6 +30,7 @@ from financial_analyst_agent.answer_notes import (
     missing_component_notes,
     segment_notes,
     short_ranking_notes,
+    unapplied_notes,
 )
 from financial_analyst_agent.contracts import (
     COMPANY_NOT_FOUND,
@@ -1075,8 +1076,13 @@ def annotate_analysis(
         *short_ranking_notes(spec),
         *capped_ranking_notes(patch),
     ]
-    # A segment's note explains the whole answer, as a planner's does.
-    leading = [*compiled.notes, *segment_notes(compiled.wording, spec)]
+    # A segment's note explains the whole answer, as a planner's does, and so does
+    # a part of the question the answer does not act on.
+    leading = [
+        *compiled.notes,
+        *segment_notes(compiled.wording, spec),
+        *unapplied_notes(compiled.wording, spec),
+    ]
     banners = list(dict.fromkeys([*leading, *merged.banners, *notes]))
     snapshot_banner_index = merged.snapshot_banner_index
     if merged.snapshot_as_of is not None:

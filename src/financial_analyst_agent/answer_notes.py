@@ -24,8 +24,10 @@ from financial_analyst_agent.request_wording import EXPLICIT_YOY, GROWTH, WHY_CH
 from financial_analyst_agent.services.filing_selector import FISCAL_WEEK_TOLERANCE
 from financial_analyst_agent.services.metric_catalog import (
     METRIC_DISPLAY,
+    resolve_metric_phrases,
     segment_note,
     segment_term,
+    unworked_share,
 )
 
 WHY_CHANGE_BANNER = (
@@ -239,6 +241,172 @@ def already_present_notes(
 def _shown_name(company: ResolvedCompany) -> str:
     """The name a note calls a company by: its short name, or the words that named it."""
     return short_name(company.name) or company.query
+
+
+WHY_NOT_ANSWERED_NOTE = (
+    "Filings report what happened, not why, so the “why” is not answered here. "
+    "Management explains the quarter in the 10-Q's MD&A, and “what changed in the "
+    "latest 10-Q” shows it."
+)
+
+# An amount, its number read whole (possessive): "over 12 quarters" is not "over 1".
+# A year ("over 2024") and a span of time or a count ("over 3 fiscal years", "more
+# than 5 companies") are not amounts a company would have to pass.
+_YEAR = r"(?:19|20)\d\d\b(?![%.,\d])"
+_SPAN = (
+    r"\s+(?:[a-z-]+\s+)?"
+    r"(?:quarters?|years?|months?|weeks?|days?|companies|stocks|firms|names)\b"
+)
+_AMOUNT = (
+    rf"(?!{_YEAR})\$?\d[\d,]*+(?:\.\d++)?"
+    r"(?:\s*(?:%|percent\b|x\b|(?:bn|[bmkt]|billion|million|trillion|thousand)\b))?"
+    rf"(?!{_SPAN})"
+)
+# A figure past a threshold: "growth above 20%", "P/E under 15", "more than $10B",
+# "between $5B and $20B", "20% or more", "$1T+".
+_THRESHOLD = re.compile(
+    r"(?:\b(?:more|greater|higher|bigger|larger|less|lower|fewer|smaller) than"
+    r"|\b(?:over|above|below|under|at least|at most|in excess of|north of|south of)"
+    r"|\bexceed(?:s|ing)?|[<>]=?)"
+    rf"\s*{_AMOUNT}"
+    rf"|\bbetween\s+{_AMOUNT}\s+and\s+{_AMOUNT}"
+    rf"|(?<![\w.$]){_AMOUNT}"
+    r"(?:\+|\s+(?:plus|or (?:more|higher|greater|above|over|less|lower|below|fewer|under))\b)",
+    re.IGNORECASE,
+)
+# A quality, or an index or exchange a company would have to be in: rankings take
+# the largest companies by market cap and filter on nothing else. "The most
+# profitable" orders rather than screens; "S&P Global" and "Dow Inc." are companies.
+_CONDITION = re.compile(
+    r"(?<!most )(?<!more )(?<!least )(?<!less )\b(?:un)?profitable\b"
+    r"|\b(?:making|make|makes|losing|lose|loses) money\b"
+    r"|\b(?:money|loss)[- ](?:losing|making)\b"
+    r"|\b(?:positive|negative) (?:free cash flow|fcf|cash flow|earnings|net income|income"
+    r"|margins?|growth|eps)\b"
+    r"|\bdividend[- ]paying\b|\bpay(?:s|ing)? (?:a |any )?dividends?\b"
+    r"|\bdebt[- ]free\b|\bno debt\b|\bcash[- ]rich\b|\bhigh[- ]growth\b"
+    r"|\b(?:small|mid|micro)[- ]?caps?\b|\b(?:double|triple)[- ]digit\b"
+    r"|\bs&p ?500\b|\bdow jones\b|\bnasdaq(?:[- ]?100)?\b|\bnyse\b"
+    r"|\brussell ?(?:1000|2000|3000)\b",
+    re.IGNORECASE,
+)
+# A place: the filings' structured data reports company-wide totals.
+_REGION = re.compile(
+    r"\b(?:geograph(?:y|ic|ical|ically)|by (?:regions?|country|countries|geography)"
+    r"|international(?:ly)?(?! (?:accounting|financial reporting|standards))"
+    r"|overseas|abroad|(?:greater |mainland )?china|europe|emea|apac"
+    r"|asia(?:[- ]pacific)?|japan|india|latin america|north america|americas)\b",
+    re.IGNORECASE,
+)
+_ASKS_WHY = re.compile(
+    r"\bwhy\b|\bwhat (?:drove|drives|caused|causes|explains?|is behind|was behind)\b"
+    r"|\breasons? (?:for|behind)\b|\bdrivers? (?:of|behind)\b",
+    re.IGNORECASE,
+)
+# A ranking by how fast a figure grew, which is ordered by the figure itself. "By
+# revenue and their growth" orders by revenue, as asked.
+_BY_GROWTH = re.compile(
+    r"\bby (?:(?!and\b|with\b|their\b|its\b|plus\b)[\w&-]+ ){0,2}growth\b"
+    r"|\bfastest[- ]growing\b|\bgrew (?:the )?(?:most|fastest)\b"
+    r"|\b(?:highest|most|fastest) growth\b",
+    re.IGNORECASE,
+)
+
+
+def unapplied_notes(message: str, spec: AnalysisSpec) -> list[str]:
+    """Say which words of the question the answer does not act on, whichever planner read it.
+
+    An answer that drops part of a question looks like an answer to all of it:
+    "software companies that grew more than 20% while staying profitable" shown as
+    the largest software companies, or "FCF yield" beside revenue shown as revenue
+    alone. Each part the analysis cannot express is named in the analyst's own
+    words, with what is shown instead.
+    """
+    notes: list[str] = []
+    if spec.constituents is not None:
+        conditions = list(
+            dict.fromkeys(
+                [
+                    *(match.group(0).strip() for match in _THRESHOLD.finditer(message)),
+                    *(match.group(0) for match in _CONDITION.finditer(message)),
+                    *_regions(message, spec),
+                ]
+            )
+        )
+        if conditions:
+            quoted = joined([f"“{condition}”" for condition in conditions])
+            verb = "is" if len(conditions) == 1 else "are"
+            notes.append(
+                f"I can't screen companies by a condition yet, so {quoted} {verb} not "
+                "applied: the list is the largest companies by market cap."
+            )
+    if not spec.metrics:
+        return notes
+    unknown = [
+        phrase.term
+        for phrase in resolve_metric_phrases(message)
+        if phrase.kind == "unknown" and phrase.term
+    ]
+    # A measure left out comes first: it is what was asked for.
+    notes[:0] = [
+        f"I can't look up “{term}” yet, so this answer leaves it out."
+        for term in dict.fromkeys(unknown)
+    ]
+    if spec.constituents is not None:
+        if "order_by_metric" in spec.operations and _BY_GROWTH.search(message):
+            # The banner after says which figure orders the list.
+            notes.append(
+                "A ranking cannot be ordered by growth yet, so each company's growth is "
+                "shown beside the figure the list is ordered by."
+            )
+    else:
+        notes.extend(
+            "Filings' structured data reports company-wide totals, not regions such as "
+            f"“{region}”, so this shows the company-wide figure."
+            for region in dict.fromkeys(_regions(message, spec))
+        )
+    share = unworked_share(message)
+    if share is not None:
+        notes.append(
+            f"I divide one figure by another only for the ratios I list, so “{share}” is "
+            "not worked out here: the figures are shown as reported."
+        )
+    if _ASKS_WHY.search(message) and not WHY_CHANGE.search(message):
+        notes.append(WHY_NOT_ANSWERED_NOTE)
+    return notes
+
+
+def _regions(message: str, spec: AnalysisSpec) -> list[str]:
+    """The places a question names, other than as part of a company's name ("Yum China")."""
+    companies = [
+        *spec.companies,
+        *(spec.constituents.members if spec.constituents is not None else ()),
+    ]
+    typed = message.casefold()
+    return [
+        match.group(0)
+        for match in _REGION.finditer(message)
+        if not any(_in_typed_name(company.name, match.group(0), typed) for company in companies)
+    ]
+
+
+def _in_typed_name(name: str, place: str, typed: str) -> bool:
+    """Whether ``place`` is a word of ``name`` that the question typed as part of the name.
+
+    "Yum China revenue" types "Yum China"; "IBM international revenue" names a place,
+    though "international" is a word of IBM's name.
+    """
+    words = name.casefold().replace(",", " ").split()
+    place_words = place.casefold().split()
+    size = len(place_words)
+    for start in range(len(words) - size + 1):
+        if words[start : start + size] != place_words:
+            continue
+        before = " ".join(words[max(start - 1, 0) : start + size])
+        after = " ".join(words[start : start + size + 1])
+        if (start > 0 and before in typed) or (start + size < len(words) and after in typed):
+            return True
+    return False
 
 
 def change_banners(message: str, spec: AnalysisSpec) -> list[str]:

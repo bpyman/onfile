@@ -64,6 +64,10 @@ _Avoid_: metric collision, unknown metric
 A user metric phrase that names nothing in the closed catalog.
 _Avoid_: ambiguous metric
 
+**Unapplied wording**:
+Words of a question the answer does not act on: a condition on a ranking ("above 20%", "profitable", "S&P 500"), an unknown metric beside a catalog one, a region, one figure as a share of another outside the catalog's ratios, or a "why". The answer names them in a note above it, in the analyst's words, whichever planner read the question (ADR 0016).
+_Avoid_: ignored words, dropped constraint (for the note)
+
 **Shared name**:
 A company name two or more snapshot members answer to ("Lincoln"). The analyst is asked which one; the largest is not assumed (ADR 0010).
 _Avoid_: ambiguous company (in prose), alias collision

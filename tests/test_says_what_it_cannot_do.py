@@ -464,3 +464,159 @@ def test_compare_to_peers_adds_peers(runtime) -> None:  # type: ignore[no-untype
     (answer,) = ask(runtime, "Compare Nvidia to its peers")
     tickers = set(tickers_of(answer))
     assert "NVDA" in tickers and len(tickers) >= 3
+
+
+# Parts of a question the answer cannot act on
+
+
+def test_a_ranking_names_the_conditions_it_does_not_screen_by(runtime) -> None:  # type: ignore[no-untyped-def]
+    (answer,) = ask(runtime, "Top 5 tech companies with revenue growth above 20%")
+    assert answer.table is not None
+    # The largest by market value, not a screen: the note says so before anything else.
+    assert answer.banners[0] == (
+        "I can't screen companies by a condition yet, so “above 20%” is not applied: "
+        "the list is the largest companies by market cap."
+    )
+
+
+@pytest.mark.parametrize(
+    ("question", "group", "condition"),
+    [
+        ("Top 10 profitable banks", BANKS, "profitable"),
+        ("Top 5 small-cap pharma companies", PHARMA, "small-cap"),
+        ("Largest tech companies in the S&P 500", TECH, "S&P 500"),
+        ("Top 5 S&P 500 tech companies", TECH, "S&P 500"),
+        ("Top 5 loss-making tech companies", TECH, "loss-making"),
+        ("Top 5 tech companies with revenue growth of 20% or more", TECH, "20% or more"),
+        ("Top 5 tech companies with $1T+ market cap", TECH, "$1T+"),
+    ],
+)
+def test_a_screening_word_is_not_part_of_the_group(  # type: ignore[no-untyped-def]
+    runtime, question: str, group: set[str], condition: str
+) -> None:
+    # "Profitable banks" are banks, not a group the snapshot lacks.
+    (answer,) = ask(runtime, question)
+    assert answer.table is not None, answer.message
+    assert set(tickers_of(answer)) <= group
+    assert answer.banners[0].startswith(
+        f"I can't screen companies by a condition yet, so “{condition}” is not applied"
+    )
+
+
+def test_a_range_and_a_quality_are_conditions_too(runtime) -> None:  # type: ignore[no-untyped-def]
+    (answer,) = ask(runtime, "Top 5 software companies with revenue between $5B and $20B")
+    assert "“between $5B and $20B” is not applied" in answer.banners[0]
+    # "dividends" asks which dividends first; the resumed answer keeps the question's words.
+    _asked, answer = ask(
+        runtime,
+        "Top 10 tech companies by revenue with P/E under 30 that pay dividends",
+        "Dividends paid",
+    )
+    assert "“under 30” and “pay dividends” are not applied" in answer.banners[0]
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Apple revenue over 8 quarters",
+        "Top 10 banks by net income over the last 4 quarters",
+        "Apple revenue over 2024 and 2025",
+        "Top 10 banks by net income over 12 quarters",
+        "Top 5 tech companies by revenue over 4 fiscal quarters",
+        "Top 10 banks by revenue between 2023 and 2025",
+        # A company's name is not an index.
+        "Top 5 financial companies including S&P Global",
+    ],
+)
+def test_a_window_or_a_year_is_not_a_condition(runtime, question: str) -> None:  # type: ignore[no-untyped-def]
+    (answer,) = ask(runtime, question)
+    assert not any("not applied" in banner for banner in answer.banners)
+
+
+def test_a_ranking_by_growth_says_it_is_ordered_by_the_figure(runtime) -> None:  # type: ignore[no-untyped-def]
+    (answer,) = ask(runtime, "Rank semiconductor companies by revenue growth")
+    assert answer.banners[0] == (
+        "A ranking cannot be ordered by growth yet, so each company's growth is shown "
+        "beside the figure the list is ordered by."
+    )
+    # Growth shown beside the order asked for is not that.
+    (shown,) = ask(runtime, "Top 5 tech companies by revenue and their growth")
+    assert not any("ordered by growth" in banner for banner in shown.banners)
+
+
+@pytest.mark.parametrize(
+    ("question", "measure"),
+    [
+        ("Apple revenue and dividend yield", "dividend yield"),
+        ("Apple EPS analyst estimates", "analyst estimates"),
+        ("Broadcom 5-year revenue CAGR", "compound annual growth"),
+    ],
+)
+def test_a_measure_it_cannot_look_up_beside_one_it_can_is_named(
+    runtime, question: str, measure: str
+) -> None:  # type: ignore[no-untyped-def]
+    (answer,) = ask(runtime, question)
+    assert answer.fact_card is not None
+    assert answer.banners[0] == f"I can't look up “{measure}” yet, so this answer leaves it out."
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Can you estimate Apple's revenue?",
+        "Microsoft revenue from its beta products",
+        "Apple revenue as of the report date",
+        "Apple revenue under international accounting standards",
+    ],
+)
+def test_an_ordinary_word_is_not_a_measure_or_a_place(runtime, question: str) -> None:  # type: ignore[no-untyped-def]
+    (answer,) = ask(runtime, question)
+    assert answer.fact_card is not None, answer.message
+    assert not any("can't look up" in banner or "regions" in banner for banner in answer.banners)
+
+
+@pytest.mark.parametrize(
+    ("question", "measure"),
+    [
+        ("Microsoft FCF yield", "free cash flow yield"),
+        ("Nvidia's next earnings date", "earnings dates"),
+        ("Who are Apple's largest institutional holders", "institutional ownership"),
+        ("How has Nvidia stock performed this year", "stock performance"),
+        ("Apple EPS estimates", "analyst estimates"),
+    ],
+)
+def test_a_question_about_what_filings_do_not_hold_is_refused_by_name(
+    runtime, question: str, measure: str
+) -> None:  # type: ignore[no-untyped-def]
+    # Not plain free cash flow, net income, or an overview: none of those was asked.
+    (answer,) = ask(runtime, question)
+    assert answer.fact_card is None and answer.table is None
+    assert answer.message is not None
+    assert answer.message.startswith(f"I can't look up {measure} yet.")
+
+
+def test_a_region_is_named_and_the_company_wide_figure_shown(runtime) -> None:  # type: ignore[no-untyped-def]
+    (answer,) = ask(runtime, "Share of Apple revenue from China")
+    assert answer.fact_card is not None and answer.fact_card.metric_header == "Revenue"
+    assert answer.banners[0] == (
+        "Filings' structured data reports company-wide totals, not regions such as "
+        "“China”, so this shows the company-wide figure."
+    )
+
+
+def test_one_figure_as_a_share_of_another_is_not_worked_out(runtime) -> None:  # type: ignore[no-untyped-def]
+    (answer,) = ask(runtime, "Alphabet capex as % of revenue")
+    assert "“% of revenue” is not worked out here" in answer.banners[0]
+    # A ratio elsewhere in the question does not work this one out.
+    (mixed,) = ask(runtime, "Apple gross margin and capex as % of revenue")
+    assert any("“% of revenue” is not worked out here" in banner for banner in mixed.banners)
+    # A ratio the catalog has is worked out, and says nothing.
+    (ratio,) = ask(runtime, "Apple R&D as a percentage of revenue")
+    assert ratio.fact_card is not None and ratio.fact_card.metric_header == "R&D to sales"
+    assert not any("not worked out" in banner for banner in ratio.banners)
+
+
+def test_a_why_inside_a_figures_question_is_not_answered_and_says_so(runtime) -> None:  # type: ignore[no-untyped-def]
+    (answer,) = ask(runtime, "Show me Nvidia's revenue and tell me why it grew")
+    assert answer.table is not None
+    assert answer.banners[0].startswith("Filings report what happened, not why, so the “why”")
