@@ -1,6 +1,6 @@
 # Why, from the filing: design
 
-Status: proposed, 23 October 2026. Awaiting decisions (end of this file) before any ticket.
+Status: accepted, 23 October 2026 ([ADR 0017](../../../adr/0017-management-explanation-is-quoted-from-the-filing.md)). The decisions at the end of this file are answered.
 
 ## The problem
 
@@ -94,10 +94,10 @@ It missed AMD's gross margin, where paragraphs about operating income ranked fir
 - **MCP:** a `get_explanation` tool, in Phase A or later.
 - **Recorded runtime:** eight recorded companies have no filing text: JPMorgan, Wells Fargo, Goldman Sachs, Johnson & Johnson, AbbVie, Merck, Abbott and Intel. Recording their two latest 10-Qs uses SEC only, at no cost.
 
-## Decisions I need from you
+## Decisions (Blake, 23 October 2026)
 
-1. **Phasing.** Ship A alone first, then B, then C? (Recommended: yes. A is useful, free and auditable on its own.)
-2. **Who labels the Phase A set?** You, an LLM judge, or the judge with you spot-checking ten? If a judge, which model? Your default is Opus.
-3. **When the panel shows.** On every "why" question and the bare "why?" follow-up, or only when asked ("show management's explanation")? (Recommended: on every why question; never on a plain lookup.)
-4. **The panel's name.** "Management's explanation" or "In the filing"?
-5. **Recording the eight missing companies' 10-Qs.** This uses SEC only and adds about 2 MB to the recordings. (Recommended: yes.)
+1. **Phasing:** A, then B, then C. Each ships on its own.
+2. **Labels:** claude-opus-5-5 labels the Phase A set, and Blake spot-checks ten labels before any result is reported.
+3. **When the panel shows:** on every "why", "what drove" or "what caused" question about a figure, and on a bare "why?" after a figures answer. Never on a plain lookup.
+4. **Name:** "Management's explanation".
+5. **Recording the eight missing companies:** not yet decided. It uses SEC only. Phase A is built and measured on the 21 recorded companies that already have filing text.
