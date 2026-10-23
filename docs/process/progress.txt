@@ -3309,3 +3309,29 @@ Blockers / next:
 - None. pytest (2,602), ruff, mypy pass; compare_answers reports `0 of 893 conversations differ`;
   lint, tsc, vitest (228) pass; `npm run build` passes from PowerShell (Git Bash hits Turbopack
   0xc0000142). In a fresh worktree `npx tsc --noEmit` needs a build first for Next's `LayoutProps`.
+
+
+## 2026-10-23 — demo-polish 07: the landing page shows every capability
+
+Ticket: `docs/process/tickets/demo-polish/issues/07-the-landing-shows-every-capability.md`
+
+Key decisions:
+- Three lines, then a "Show N more" / "Show fewer" disclosure (`aria-expanded`, `aria-controls`
+  on the list) for the rest of what `meta` sends.
+- Every example is rendered. From `sm` up all show; on a phone three show and a "+N" chip
+  (disclosure, hidden from `sm` up) reveals the rest, because at 375 px four examples wrap past
+  two rows (measured against the recorded API).
+- 800×600: no horizontal scroll and no covered content at the end of the page; the bottom
+  padding is `main`'s `pb-44` in `analyst-window.tsx`, larger than the 128 px composer. The
+  review's composer scrollbar was not reproduced; if it recurs the cause is the composer's
+  textarea, left alone.
+
+Files changed:
+- `web/components/landing.tsx`, `web/components/landing.test.tsx` (new)
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. pytest (2,602), ruff, mypy pass; compare_answers reports `0 of 893 conversations differ`;
+  lint, tsc, vitest (230) pass; `npm run build` passes from PowerShell. Portfolio images of the
+  landing page were not re-captured (the capture script needs a running app). The follow-up line
+  is the API's fifth capability, so it sits behind "Show 2 more"; reordering is a storefront change.
