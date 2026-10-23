@@ -377,6 +377,30 @@ def test_which_grew_faster_leads_with_the_answer(runtime) -> None:  # type: igno
     assert "Apple's grew" in answer.headline
 
 
+def test_a_sequential_question_gets_a_sequential_headline(runtime) -> None:  # type: ignore[no-untyped-def]
+    (sequential,) = ask(runtime, "Microsoft revenue quarter over quarter")
+    assert sequential.headline == (
+        "Quarter over quarter, Microsoft's revenue grew 8.6% † in the quarter ended Jun 30, 2026."
+    )
+    (yearly,) = ask(runtime, "Microsoft revenue year over year")
+    assert yearly.headline == (
+        "Year over year, Microsoft's revenue grew 17.7% † in the quarter ended Jun 30, 2026."
+    )
+    # Both bases asked: year over year, with the sequential change for the same quarter.
+    _, both = ask(
+        runtime, "Apple revenue over the last 6 quarters", "sequentially and year over year"
+    )
+    assert both.headline == (
+        "Year over year, Apple's revenue grew 16.4% in the quarter ended Jun 27, 2026; "
+        "quarter over quarter, it fell 1.6%."
+    )
+    (several,) = ask(runtime, "Apple and Microsoft revenue quarter over quarter")
+    assert several.headline == (
+        "Quarter over quarter, Microsoft's revenue grew 8.6% and Apple's fell 1.6%, "
+        "each in its latest quarter."
+    )
+
+
 def test_quarter_lengths_are_not_misreported(runtime) -> None:  # type: ignore[no-untyped-def]
     (answer,) = ask(runtime, "Which grew faster, Apple or Microsoft?")
     assert not any("65 weeks" in banner for banner in answer.banners)

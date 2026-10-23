@@ -995,16 +995,27 @@ def compile_tasks(spec: AnalysisSpec) -> tuple[CompiledTask, ...]:
 def merge_analysis(compiled: CompiledAnalysis, results: list[TurnResult]) -> TurnResult:
     """One answer from the task results, in task order: deterministic, no fetch."""
     spec = compiled.spec
+    across = "across_periods" in spec.operations
+    # Year over year alone turns the sequential change off; asked for beside
+    # it ("sequentially or versus last year"), both changes are shown.
+    sequential = "year_over_year" not in spec.operations or "sequential" in spec.operations
+    year_over_year = "year_over_year" in spec.operations
     merged = merge_task_results(
         compiled.tasks,
         results,
-        across_periods="across_periods" in spec.operations,
-        # Year over year alone turns the sequential change off; asked for beside
-        # it ("sequentially or versus last year"), both changes are shown.
-        sequential="year_over_year" not in spec.operations or "sequential" in spec.operations,
-        year_over_year="year_over_year" in spec.operations,
+        across_periods=across,
+        sequential=sequential,
+        year_over_year=year_over_year,
     )
-    merged = merged.model_copy(update={"table_rows": Periods(spec).shown(merged.table_rows)})
+    bases: tuple[ComparisonBase, ...] = ()
+    if across:
+        bases = (
+            *(("year_over_year",) if year_over_year else ()),
+            *(("sequential",) if sequential else ()),
+        )
+    merged = merged.model_copy(
+        update={"table_rows": Periods(spec).shown(merged.table_rows), "change_bases": bases}
+    )
     merged = _one_company_left(merged)
     if len(spec.companies) == 1 and spec.constituents is None:
         merged = _one_company_failure(merged, results)

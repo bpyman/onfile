@@ -3307,3 +3307,27 @@ Files changed:
 Blockers / next:
 - None. Full suite passes; ruff and mypy clean; compare_answers (against HEAD) shows 53 of 893
   conversations differ, all in a headline, all comparisons over a window. Ticket 02 is next.
+
+
+## 2026-10-23 — demo-polish 02: a quarter-over-quarter question gets a quarter-over-quarter headline
+
+Ticket: `docs/process/tickets/demo-polish/issues/02-a-sequential-question-gets-a-sequential-headline.md`
+
+Key decisions:
+- New `TurnResult.change_bases` (the bases asked), set in `merge_analysis` from the reading that
+  switches the table's sequential change; the headline cannot learn it from the rows, since a
+  sequential view also shows a year-over-year change on its latest quarter.
+- Sequential alone: "Quarter over quarter, …". Both: today's year-over-year headline, plus
+  "; quarter over quarter, it fell 1.6%." for one company only. Year over year: unchanged.
+- The ticket's "`sequential` in the spec's operations" is true only when both bases are asked;
+  recorded in `docs/process/rules-to-review.md`.
+
+Files changed:
+- `src/financial_analyst_agent/contracts.py`, `graph/spec_turn.py`, `presentation.py`
+- `tests/test_says_what_it_cannot_do.py`
+- the ticket, `docs/process/progress.txt`, `docs/process/rules-to-review.md`
+
+Blockers / next:
+- None. Full suite passes; ruff and mypy clean; compare_answers (against HEAD) shows 29 of 893
+  conversations differ, all in a headline, all sequential-change conversations. Ticket 04 is next
+  (03 is another lane's).

@@ -1616,7 +1616,7 @@ def present_turn(result: TurnResult) -> Presentation:
         clarify_prompt=_clarify_prompt(result),
         suggestions=tuple(result.suggestions),
         message_tone="info" if result.guide else "warning",
-        headline=growth_headline(result.table_rows)
+        headline=growth_headline(result.table_rows, result.change_bases)
         or overview_headline(result.table_rows)
         or (comparison_headline(result.table_rows, result.intent) if table is not None else None),
         trends=overview_trends(result.trend_rows),
@@ -2361,44 +2361,86 @@ def overview_headline(rows: list[TableRow]) -> str | None:
     return sentence + "."
 
 
-def growth_headline(rows: list[TableRow]) -> str | None:
+_CHANGE_OPENERS: dict[ComparisonBase, str] = {
+    "year_over_year": "Year over year",
+    "sequential": "Quarter over quarter",
+}
+
+
+def growth_headline(
+    rows: list[TableRow], bases: tuple[ComparisonBase, ...] = ()
+) -> str | None:
     """ "Year over year, Microsoft's revenue grew 17.8% and Apple's grew 16.4%."
 
-    Each company's latest year-over-year change of the one amount the table
-    shows, fastest first; None when there is no such change to state.
+    Each company's latest change of the one amount the table shows, fastest
+    first, on the base the analyst asked for (``bases``): quarter over quarter
+    when only the sequential change was asked, otherwise year over year, with one
+    company's sequential change for the same quarter beside it when both were
+    asked. None when there is no such change to state.
     """
-    metrics = {row.metric for row in rows if row.comparison == "year_over_year"}
-    if len(metrics) != 1:
+    base: ComparisonBase = "year_over_year"
+    if bases == ("sequential",) and _latest_changes(rows, "sequential"):
+        base = "sequential"
+    ordered = _latest_changes(rows, base)
+    if not ordered:
         return None
+    label = in_sentence(format_field_name(ordered[0].metric))
+    parts = [
+        _change_clause(f"{possessive(row.short)} {label}" if index == 0 else _owner(row), row)
+        for index, row in enumerate(ordered)
+    ]
+    opener = _CHANGE_OPENERS[base]
+    if len(parts) > 1:
+        return f"{opener}, {joined(parts)}, each in its latest quarter."
+    (latest,) = ordered
+    ended = format_date(latest.end_date) if latest.end_date else ""
+    sentence = f"{opener}, {parts[0]} in the quarter ended {ended}"
+    if base == "year_over_year" and "sequential" in bases:
+        before = next(
+            (
+                row
+                for row in rows
+                if row.comparison == "sequential"
+                and row.company_key == latest.company_key
+                and row.metric == latest.metric
+                and row.end_date == latest.end_date
+                and change_percent(row) is not None
+            ),
+            None,
+        )
+        if before is not None:
+            sentence += f"; quarter over quarter, {_change_clause('it', before)}"
+    return sentence + "."
+
+
+def _latest_changes(rows: list[TableRow], base: ComparisonBase) -> list[TableRow]:
+    """Each company's latest change on ``base`` with a percent, fastest first.
+
+    Empty unless the changes on that base are of one amount.
+    """
+    if len({row.metric for row in rows if row.comparison == base}) != 1:
+        return []
     latest: dict[str, TableRow] = {}
     for row in rows:
-        if row.comparison != "year_over_year" or change_percent(row) is None:
+        if row.comparison != base or change_percent(row) is None:
             continue
         key = row.company_key
         shown = latest.get(key)
         if shown is None or (row.end_date or date.min) > (shown.end_date or date.min):
             latest[key] = row
-    if not latest:
-        return None
-    ordered = sorted(
+    return sorted(
         latest.values(), key=lambda row: change_percent(row) or Decimal(0), reverse=True
     )
-    label = in_sentence(format_field_name(next(iter(metrics))))
-    parts: list[str] = []
-    for index, row in enumerate(ordered):
-        percent = change_percent(row) or Decimal(0)
-        owner = possessive(row.short)
-        subject = f"{owner} {label}" if index == 0 else owner
-        mark = DERIVED_MARK if is_derived(row) else ""
-        if percent == 0:
-            parts.append(f"{subject} was unchanged{mark}")
-            continue
-        verb = "grew" if percent > 0 else "fell"
-        parts.append(f"{subject} {verb} {abs(percent):.1f}%{mark}")
-    if len(parts) == 1:
-        ended = format_date(ordered[0].end_date) if ordered[0].end_date else ""
-        return f"Year over year, {parts[0]} in the quarter ended {ended}."
-    return f"Year over year, {joined(parts)}, each in its latest quarter."
+
+
+def _change_clause(subject: str, row: TableRow) -> str:
+    """ "Apple's revenue grew 16.4%", "it fell 1.6% †", "Chipotle's was unchanged"."""
+    percent = change_percent(row) or Decimal(0)
+    mark = DERIVED_MARK if is_derived(row) else ""
+    if percent == 0:
+        return f"{subject} was unchanged{mark}"
+    verb = "grew" if percent > 0 else "fell"
+    return f"{subject} {verb} {abs(percent):.1f}%{mark}"
 
 
 def comparison_headline(rows: list[TableRow], intent: Intent) -> str | None:
