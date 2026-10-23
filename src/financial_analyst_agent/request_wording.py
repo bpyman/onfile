@@ -154,6 +154,15 @@ _COMPARE_TO_ISSUER = re.compile(
 )
 
 
+# "Compare Nvidia to its peers", "add its competitors": the largest companies in
+# the industry, which the turn adds. Never a company of that name.
+PEERS = re.compile(
+    r"\b(?:peers?|competitors?|rivals?|comparables?|similar (?:companies|firms|to)"
+    r"|companies like)\b",
+    re.IGNORECASE,
+)
+
+
 # "next quarter" asks for a forecast; filings only report what has happened.
 FORECAST = re.compile(
     r"\bnext\s+(?:quarter|year|fiscal\s+year|fy)\b|\bforecasts?\b|\bprojected\b|\bpredict",
@@ -738,6 +747,11 @@ def _refine_against(
     index: CompanyNames | None,
 ) -> SpecPatch:
     """The follow-up's edit of the analysis on screen."""
+    if PEERS.search(message):
+        # "compare to its peers": the peers the turn found (``with_peers``) join
+        # the analysis on screen; the words name no company called "its peers".
+        kept = tuple(company for company in patch.add_companies if not PEERS.search(company))
+        return patch.model_copy(update={"add_companies": kept})
     if drops_comparison(message):
         # Nothing else on screen changes: not a company called "year over year".
         return _extend(

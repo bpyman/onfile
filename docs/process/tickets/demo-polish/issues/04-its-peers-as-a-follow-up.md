@@ -18,4 +18,39 @@ Asked fresh, "Compare Nvidia to its peers" works: the rules planner sets `peers=
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+A peers follow-up adds the peers to the analysis on screen, keeping its metric and window, whichever
+planner read the words:
+
+- The peers wording moved from `rules_planner._PEERS` to `request_wording.PEERS`, shared by the
+  rules planner, the turn graph, the edit reading and the guide.
+- `rules_planner._follow_up`: peers wording that names no company, with companies on screen, is an
+  extend edit (no longer a compare plan with no company, refused for its metric, or a company called
+  "its peers"). "Compare NVIDIA to its peers" is planned as it is fresh.
+- `turn_graph.with_peers(proposal, ranking, message, spec)`: with companies on screen and peers
+  wording, `_peers_follow_up` turns the proposal into an extend patch adding the largest companies
+  in the industry (three, as fresh) of the one company on screen, or of the one company the words
+  name when it is on screen or the proposal is already an edit. A new question naming a company not
+  on screen ("Apple revenue", then "Compare Nvidia to its peers") stays the fresh peers question.
+- `request_wording._refine_against`: peers wording never reads a company from the words ("compare
+  to its peers", "add its peers"); a company the planner proposed whose name is peers wording is
+  dropped. The mode is kept.
+- Several companies on screen and none named ("Nvidia and AMD revenue", then "compare to their
+  peers"): the guide asks whose peers, with one suggestion per company ("compare NVIDIA to its
+  peers", …), each of which adds that company's peers to the table (`guide.PEERS_MESSAGE`).
+
+Outside the file list: `request_wording.py` (where "compare to X" and "add X" read X as a company)
+and `guide.py` (the whose-peers reply); recorded in `docs/process/rules-to-review.md`. No planner
+schema or prompt changed.
+
+Tests in `tests/test_says_what_it_cannot_do.py` beside `test_compare_to_peers_adds_peers`:
+`test_its_peers_as_a_follow_up_adds_the_peers` (both conversations of the ticket, plus "add its
+peers", "how does it stack up against peers?" over 4 quarters and "compare to peers": the same
+tickers as the fresh question, the metric and window on screen, no row named "its peers" or "peers",
+no "Company not found") and `test_peers_with_several_companies_on_screen_asks_whose`.
+
+`compare_answers.py` (against HEAD, the previous commit): 0 of 893 conversations differ; none of the
+replayed conversations is a peers follow-up.

@@ -41,6 +41,7 @@ from financial_analyst_agent.ranked_wording import (
 from financial_analyst_agent.request_wording import (
     OVERVIEW_METRICS,
     OVERVIEW_PLAN,
+    PEERS,
     asks_for_explanation,
     asks_speculatively,
     asks_to_swap,
@@ -280,10 +281,6 @@ def _is_exploratory_query(normalized: str) -> bool:
     return "exploratory" in normalized
 
 
-_PEERS = re.compile(
-    r"\b(?:peers?|competitors?|rivals?|comparables?|similar (?:companies|firms|to)"
-    r"|companies like)\b"
-)
 _SORT_BY = re.compile(r"^(?:sort|order|rank)(?:ed)?\s+(?:them\s+|it\s+|these\s+)?by\s+.+$")
 _LIST_WORDING = re.compile(r"\b(?:vs|versus|compare[ds]?|and|or|against)\b|,")
 _ORDER_WORDING = re.compile(
@@ -518,7 +515,7 @@ class DemoCompleter:
             # "iPhone sales": a segment one company reports names it.
             companies = list(segment_companies(query))
         segment = segment_term(query)
-        if len(companies) == 1 and _PEERS.search(normalized):
+        if len(companies) == 1 and PEERS.search(normalized):
             # "Compare Nvidia to its peers": the conversation adds the peers.
             return WorkflowPlan(
                 intent=Intent.COMPARE,
@@ -802,6 +799,11 @@ def _follow_up(
     """Short edits that lean on the current analysis ("and net margin", "what about MSFT?")."""
     if len(normalized.split()) > _FOLLOW_UP_MAX_WORDS:
         return None
+    if PEERS.search(normalized) and spec.companies:
+        # "compare to its peers": the turn adds the peers of the company on screen
+        # (``with_peers``). "Compare NVIDIA to its peers" is planned as it is
+        # asked fresh, and the turn adds them on screen when NVIDIA is there.
+        return None if companies else SpecPatch(mode="extend")
     text = normalized.strip(" .?!")
     top = _TOP_N.search(normalized)
     if (

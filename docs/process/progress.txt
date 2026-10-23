@@ -3331,3 +3331,28 @@ Blockers / next:
 - None. Full suite passes; ruff and mypy clean; compare_answers (against HEAD) shows 29 of 893
   conversations differ, all in a headline, all sequential-change conversations. Ticket 04 is next
   (03 is another lane's).
+
+
+## 2026-10-23 — demo-polish 04: "compare to its peers" as a follow-up adds the peers
+
+Ticket: `docs/process/tickets/demo-polish/issues/04-its-peers-as-a-follow-up.md`
+
+Key decisions:
+- `request_wording.PEERS` (moved from `rules_planner._PEERS`) is the one peers wording.
+- `rules_planner._follow_up`: peers wording naming no company is an extend edit; naming one, it is
+  planned as fresh.
+- `turn_graph.with_peers` takes the message and the spec on screen; `_peers_follow_up` adds the
+  peers of the one company on screen (or the one named, when on screen) as an extend patch. A new
+  question about a company not on screen stays the fresh peers question.
+- `request_wording._refine_against` never reads a company out of peers wording.
+- Several companies on screen and none named: the guide asks whose peers, one suggestion each.
+
+Files changed:
+- `src/financial_analyst_agent/request_wording.py`, `rules_planner.py`, `graph/turn_graph.py`,
+  `guide.py`
+- `tests/test_says_what_it_cannot_do.py`
+- the ticket, `docs/process/progress.txt`, `docs/process/rules-to-review.md`
+
+Blockers / next:
+- None. Full suite passes; ruff and mypy clean; compare_answers (against HEAD) shows 0 of 893
+  conversations differ (none replays a peers follow-up). Ticket 05 is next.

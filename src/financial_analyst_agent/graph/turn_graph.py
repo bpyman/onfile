@@ -79,6 +79,7 @@ from financial_analyst_agent.observability import call_provider, log_event
 from financial_analyst_agent.period_selection import read
 from financial_analyst_agent.ranked_wording import ranked_group
 from financial_analyst_agent.request_wording import (
+    PEERS,
     asks_change_without_base,
     asks_for_explanation,
     asks_speculatively,
@@ -115,13 +116,28 @@ def _answered(result: TurnResult, spec: AnalysisSpec | None) -> dict[str, Any]:
     return {"result": result, "analysis_spec": spec, "thread_spec": spec}
 
 
-def with_peers(proposal: WorkflowPlan | SpecPatch, ranking: Any) -> WorkflowPlan | SpecPatch:
-    """Add the largest companies in the named company's industry ("… to its peers")."""
-    if not isinstance(proposal, WorkflowPlan) or not proposal.peers or not proposal.companies:
-        return proposal
+def with_peers(
+    proposal: WorkflowPlan | SpecPatch,
+    ranking: Any,
+    message: str = "",
+    spec: AnalysisSpec | None = None,
+) -> WorkflowPlan | SpecPatch:
+    """Add the largest companies in the named company's industry ("… to its peers").
+
+    A follow-up ("compare to its peers", "add its peers") adds them to the
+    analysis on screen (``spec``), keeping its metric and window, whichever
+    planner read the words: the peers of the one company on screen, or of the
+    one the words name.
+    """
     lookup = getattr(ranking, "lookup_member", None)
     peers = getattr(ranking, "peers", None)
     if not callable(lookup) or not callable(peers):
+        return proposal
+    if spec is not None and spec.companies and spec.constituents is None and PEERS.search(message):
+        follow_up = _peers_follow_up(proposal, spec, lookup, peers)
+        if follow_up is not None:
+            return follow_up
+    if not isinstance(proposal, WorkflowPlan) or not proposal.peers or not proposal.companies:
         return proposal
     try:
         member = lookup(proposal.companies[0])
@@ -130,6 +146,48 @@ def with_peers(proposal: WorkflowPlan | SpecPatch, ranking: Any) -> WorkflowPlan
     found = peers(member.cik, limit=_PEER_COUNT)
     companies = (*proposal.companies, *(peer.ticker for peer in found))
     return proposal.model_copy(update={"companies": companies})
+
+
+def _peers_follow_up(
+    proposal: WorkflowPlan | SpecPatch,
+    spec: AnalysisSpec,
+    lookup: Callable[[str], Any],
+    peers: Callable[..., Any],
+) -> SpecPatch | None:
+    """The edit that adds a company's peers to the analysis on screen, or None.
+
+    None when the words name more than one company, when a new question names
+    one not on screen, or when several companies are on screen and the words
+    name none of them (the guide asks whose peers).
+    """
+    named = proposal.add_companies if isinstance(proposal, SpecPatch) else proposal.companies
+    on_screen = {company.cik for company in spec.companies if company.cik}
+    members: list[tuple[str, Any]] = []
+    for name in named:
+        if PEERS.search(name):
+            continue
+        try:
+            members.append((name, lookup(name)))
+        except Exception:
+            continue
+    if len(members) > 1:
+        return None
+    if isinstance(proposal, WorkflowPlan) and any(m.cik not in on_screen for _, m in members):
+        return None
+    if members:
+        name, member = members[0]
+        cik, adding = member.cik, (() if member.cik in on_screen else (name,))
+    elif len(spec.companies) == 1:
+        cik, adding = spec.companies[0].cik, ()
+    else:
+        return None
+    if not cik:
+        return None
+    found = peers(cik, exclude=frozenset(on_screen), limit=_PEER_COUNT)
+    companies = (*adding, *(peer.ticker for peer in found))
+    if isinstance(proposal, SpecPatch):
+        return proposal.model_copy(update={"mode": "extend", "add_companies": companies})
+    return SpecPatch(mode="extend", add_companies=companies)
 
 
 def _names_a_company(proposal: WorkflowPlan | SpecPatch) -> bool:
@@ -283,7 +341,8 @@ def _interpret(state: AnalysisRun, runtime: GraphRuntime[TurnDeps]) -> dict[str,
     proposal = call_provider(
         "planner", lambda: completer.complete(message, current_spec=deps.active_spec)
     )
-    request = request_from_proposal(with_peers(proposal, providers.ranking), message, deps)
+    proposal = with_peers(proposal, providers.ranking, message, deps.active_spec)
+    request = request_from_proposal(proposal, message, deps)
     if isinstance(request, StructuredRequest) and request.patch.ranked_request is None:
         # A ranking names an industry: "top five banks" names no company to miss.
         not_recorded = not_recorded_reply(

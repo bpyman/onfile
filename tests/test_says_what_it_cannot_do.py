@@ -490,6 +490,46 @@ def test_compare_to_peers_adds_peers(runtime) -> None:  # type: ignore[no-untype
     assert "NVDA" in tickers and len(tickers) >= 3
 
 
+@pytest.mark.parametrize(
+    ("first", "follow_up", "header"),
+    [
+        ("Nvidia revenue", "compare to its peers", "Revenue"),
+        ("Nvidia gross margin", "compare it with its peers", "Gross margin"),
+        ("Nvidia revenue", "add its peers", "Revenue"),
+        ("Nvidia revenue last 4 quarters", "how does it stack up against peers?", "Revenue"),
+        ("Nvidia revenue", "compare to peers", "Revenue"),
+    ],
+)
+def test_its_peers_as_a_follow_up_adds_the_peers(  # type: ignore[no-untyped-def]
+    runtime, first: str, follow_up: str, header: str
+) -> None:
+    (fresh,) = ask(runtime, "Compare Nvidia to its peers")
+    shown = replay(runtime, first, follow_up)
+    before, answer = shown.answers
+    # Nvidia and the peers the fresh question adds, on the metric and window on screen.
+    assert set(tickers_of(answer)) == set(tickers_of(fresh))
+    assert answer.table is not None and answer.table.headers[2] == header
+    quarters = len(before.table.rows) if before.table is not None else 1
+    assert len(answer.table.rows) == quarters * len(set(tickers_of(answer)))
+    names = {name.casefold() for name in column_of(answer, "Company")}
+    assert not names & {"its peers", "peers"}
+    assert "Company not found" not in str(answer.table.rows)
+
+
+def test_peers_with_several_companies_on_screen_asks_whose(runtime) -> None:  # type: ignore[no-untyped-def]
+    _, asked = ask(runtime, "Nvidia and AMD revenue", "compare to their peers")
+    assert asked.table is None
+    assert asked.message is not None and "peers" in asked.message
+    assert asked.suggestions == (
+        "compare NVIDIA to its peers",
+        "compare Advanced Micro Devices to its peers",
+    )
+    _, _, answered = ask(
+        runtime, "Nvidia and AMD revenue", "compare to their peers", "compare NVIDIA to its peers"
+    )
+    assert {"NVDA", "AMD"} <= set(tickers_of(answered)) and len(tickers_of(answered)) >= 4
+
+
 # Parts of a question the answer cannot act on
 
 

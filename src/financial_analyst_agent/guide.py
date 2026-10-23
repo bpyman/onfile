@@ -21,6 +21,7 @@ from financial_analyst_agent.contracts import (
 from financial_analyst_agent.graph.analysis_spec import AnalysisSpec
 from financial_analyst_agent.issuer_index import CompanyNames, expand_groups
 from financial_analyst_agent.prose import in_sentence, joined, possessive, short_name
+from financial_analyst_agent.request_wording import PEERS
 from financial_analyst_agent.services.metric_catalog import (
     METRIC_DISPLAY,
     resolve_metric_phrase,
@@ -137,6 +138,11 @@ CHART_MESSAGE = (
     "Charts appear on their own when an answer has several quarters or several "
     "companies. Ask for a window or add a company, and the chart follows."
 )
+PEERS_MESSAGE = (
+    "Whose peers should I add? There are {count} companies here, each with its own "
+    "industry: name one, and I'll add the largest companies in its industry."
+)
+_MAX_PEER_CHOICES = 3
 SMALLEST_MESSAGE = (
     "Rankings start from the largest companies by market cap, so I can't list the "
     "smallest yet."
@@ -236,6 +242,18 @@ def guide_reply(
         return _guide(UNSUPPORTED_MESSAGE.format(names=joined(unsupported, "or")), suggestions)
     if _CHART.match(text):
         return _guide(CHART_MESSAGE, ["last 4 quarters", "show year-over-year"])
+    if (
+        spec is not None
+        and len(spec.companies) > 1
+        and PEERS.search(text)
+        and _named_company(message, index) is None
+    ):
+        # "compare to their peers" with Nvidia and AMD on screen: whose?
+        names = [short_name(company.name) or company.query for company in spec.companies]
+        return _guide(
+            PEERS_MESSAGE.format(count=len(names)),
+            [f"compare {name} to its peers" for name in names[:_MAX_PEER_CHOICES]],
+        )
     if _WHY.match(text) and len(text.split()) <= _WHY_MAX_WORDS and not _names_figure(
         message, index
     ):

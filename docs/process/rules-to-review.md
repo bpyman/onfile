@@ -171,3 +171,10 @@ Each entry: date, ticket, where, the rule, why it looks wrong, what the agent di
 - **The rule:** the analysis asks for a sequential change when `sequential` is in the spec's operations.
 - **Why it looks wrong:** `sequential` is in the operations only when both bases are asked ("sequentially or versus last year"); `analysis_spec.SUPPORTED_OPERATIONS` says alone "it is the quarter-over-quarter view, which `across_periods` already means". "Microsoft revenue quarter over quarter" reads as `("across_periods",)`. Read as the ticket says, the ticket's own example would keep its year-over-year headline.
 - **What you did:** worked around it. `merge_analysis` already decides the sequential change as "`year_over_year` not in the operations, or `sequential` in them"; the bases it records on the result (`TurnResult.change_bases`) come from that same reading, so the headline and the table's change columns cannot disagree.
+
+## 2026-10-23 — demo-polish 04: the file list leaves out where "compare to its peers" becomes a company
+
+- **Where:** `docs/process/tickets/demo-polish/issues/04-its-peers-as-a-follow-up.md`, **Files (this ticket only)**.
+- **The rule:** the change is in `rules_planner.py`, `graph/turn_graph.py`, `planner.py` (schema only) and tests.
+- **Why it looks wrong:** the row named "its peers" comes from `request_wording._refine_against`, whose "compare to X" and "add X" readings take X as a company whatever the planner proposed. "Peers must never be read as a company name" cannot hold without changing it. The ticket's "say which one's peers is unclear and ask" needs a reply; the guide (`guide.py`) is where replies that ask the analyst live.
+- **What you did:** moved the peers wording into `request_wording` (`PEERS`) and made the edit reading skip it; added `PEERS_MESSAGE` and one branch to `guide.guide_reply`. Said so in the Answer.
