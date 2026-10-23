@@ -271,10 +271,10 @@ def test_meta_serves_the_capability_catalog_and_example_query(client: TestClient
         "show year-over-year",
     ]
     groups = {group["title"]: group["names"] for group in meta["metric_groups"]}
-    assert list(groups) == ["Reported (SEC EDGAR)", "Calculated", "Daily snapshot (FMP)"]
+    assert list(groups) == ["Reported (SEC EDGAR)", "Calculated", "Dated snapshot (FMP)"]
     assert groups["Reported (SEC EDGAR)"][0] == "Revenue"
     assert "Gross margin" in groups["Calculated"]
-    assert groups["Daily snapshot (FMP)"] == ["Market cap", "Share price"]
+    assert groups["Dated snapshot (FMP)"] == ["Market cap", "Share price"]
     assert not any("_" in name for names in groups.values() for name in names)
 
 

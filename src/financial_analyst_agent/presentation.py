@@ -723,7 +723,7 @@ def metric_groups() -> tuple[tuple[str, tuple[str, ...]], ...]:
         ),
         ("Calculated", tuple(format_field_name(metric) for metric in FORMULA_METRICS)),
         (
-            "Daily snapshot (FMP)",
+            "Dated snapshot (FMP)",
             tuple(format_field_name(metric) for metric in SNAPSHOT_METRICS),
         ),
     )

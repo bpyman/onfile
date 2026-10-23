@@ -867,7 +867,7 @@ def test_metric_groups_split_reported_from_calculated() -> None:
     )
     assert "Operating cash flow" in groups["Reported (SEC EDGAR)"]
     assert "Cash and equivalents" in groups["Reported (SEC EDGAR)"]
-    assert groups["Daily snapshot (FMP)"] == ("Market cap", "Share price")
+    assert groups["Dated snapshot (FMP)"] == ("Market cap", "Share price")
 
 
 @pytest.mark.parametrize("across_periods", [True, False])
