@@ -3284,3 +3284,28 @@ Files changed:
 Blockers / next:
 - None. 2,537 tests pass (1 new); ruff and mypy clean; compare_answers reports `0 of 893
   conversations differ from master`. Every simplify-leftovers ticket is resolved.
+
+
+## 2026-10-23 — demo-polish 03: a clarification shows no internal ids
+
+Ticket: `docs/process/tickets/demo-polish/issues/03-no-internal-ids-on-a-clarification.md`
+
+Key decisions:
+- One rule, `slugNote(slug, label)` in `web/lib/clarify.ts`: the slug's words (underscores as
+  spaces), or null when the label already contains them, case-insensitive and ignoring
+  punctuation. The comparison base shows nothing under either button; "eps diluted" still shows
+  under "Diluted EPS".
+- The bubble already read as the label; its hover title said `Sent as year_over_year`. It now uses
+  the same rule, so no title for the comparison base and "Sent as eps diluted" for Diluted EPS.
+- A candidate with no server label falls back to the slug's words. The slug sent is unchanged.
+
+Files changed:
+- `web/lib/clarify.ts`, `web/lib/clarify.test.ts`
+- `web/components/clarify.tsx`, `web/components/clarify.test.tsx` (new)
+- `web/components/thread.tsx`, `web/components/thread.test.tsx`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. pytest (2,602), ruff, mypy pass; compare_answers reports `0 of 893 conversations differ`;
+  lint, tsc, vitest (228) pass; `npm run build` passes from PowerShell (Git Bash hits Turbopack
+  0xc0000142). In a fresh worktree `npx tsc --noEmit` needs a build first for Next's `LayoutProps`.

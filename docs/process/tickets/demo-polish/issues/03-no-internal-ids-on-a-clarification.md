@@ -19,4 +19,14 @@ From the product review (presentation fixes). On the live demo, "Why did Target'
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped 2026-10-23.
+
+- `web/lib/clarify.ts` gains `slugWords` (underscores as spaces) and `slugNote(slug, label)`: the slug's words, or null when the label already contains them. Containment is case-insensitive and ignores punctuation, so "shareholders equity" is not repeated under "Shareholders' equity" nor "selling general and administrative" under "Selling, general and administrative". A candidate with no server label falls back to the slug's words instead of the raw slug.
+- `web/components/clarify.tsx` shows `slugNote` under a label (no line under either comparison-base button; "eps diluted" still shows under "Diluted EPS"). The comment's "what the button sends" moved to the helper's doc; the button still sends the slug.
+- The analyst's message bubble already read as the label (`shownMessage`), but its hover title read `Sent as year_over_year`. `web/components/thread.tsx` now titles it only with `slugNote(sent, shown)`: none for the comparison base, "Sent as eps diluted" for Diluted EPS. What is sent to the API is unchanged.
+- Tests: `web/components/clarify.test.tsx` (new: no underscore in the rendered comparison clarification, text or title/aria-label; metric slug words shown; slug still sent), `web/lib/clarify.test.ts` (`slugNote`, fallback label), `web/components/thread.test.tsx` (bubble text and title after pressing each kind of button).
+- Checks: pytest, ruff, mypy pass; compare_answers reports 0 of 893 conversations differ; lint, tsc, vitest (228) pass; `npm run build` passes from PowerShell. `npx tsc --noEmit` needs Next's generated route types (`LayoutProps`) from a build in a fresh worktree; after the build it passes.
