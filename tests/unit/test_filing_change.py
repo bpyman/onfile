@@ -972,6 +972,26 @@ def test_numeral_lock_treats_dates_as_dates_not_figures() -> None:
     assert numeral_lock_extras("In 2025, revenue rose.", grounding) == []
 
 
+def test_numeral_lock_treats_quarter_and_half_labels_as_periods_not_figures() -> None:
+    from financial_analyst_agent.numeral_lock import numeral_lock_extras
+
+    grounding = json.dumps([{"value": "-1200000000", "period": "Q3"}])
+
+    # A quarter, half or fiscal-year label with no year is when, not how much.
+    for essay in (
+        "The table does not explain GM's Q4 loss.",
+        "H1 margins held while H2 margins fell.",
+        "Guidance for FY27 was not given.",
+        "Its Q4'25 loss widened.",
+    ):
+        assert numeral_lock_extras(essay, grounding) == [], essay
+    # A figure beside the label is still a figure...
+    assert numeral_lock_extras("The Q4 loss was 15% wider.", grounding) == ["15"]
+    assert numeral_lock_extras("The Q4 loss was $1.3 billion.", grounding) == ["$1.3 billion"]
+    # ...and a source's label does not unlock its digit.
+    assert numeral_lock_extras("The loss came in 3 parts.", grounding) == ["3"]
+
+
 def test_numeral_lock_accepts_a_grounded_value_as_the_window_shows_it() -> None:
     from financial_analyst_agent.numeral_lock import numeral_lock_extras
 
@@ -993,6 +1013,34 @@ def test_numeral_lock_accepts_a_grounded_value_as_the_window_shows_it() -> None:
     assert numeral_lock_extras("Net margin was 31.9%.", grounding) == ["31.9"]
     # One significant digit is too coarse to tie to a grounded value.
     assert numeral_lock_extras("Revenue was $2 billion more.", grounding) == ["$2 billion"]
+
+
+def test_numeral_lock_reads_a_grounded_unit_suffix_as_its_amount() -> None:
+    from financial_analyst_agent.numeral_lock import numeral_lock_extras
+
+    # News snippets abbreviate units: "96.22B" is 96.22 billion.
+    grounding = json.dumps([{"snippet": "Revenue 96.22B"}])
+
+    for essay in (
+        "Revenue was 96.22B [1].",
+        "Revenue was $96.22B [1].",
+        "Revenue was $96.22 B [1].",
+        "Revenue was $96.22 billion [1].",
+        "Revenue was about $96 billion [1].",
+    ):
+        assert numeral_lock_extras(essay, grounding, hit_count=1) == [], essay
+    # A changed digit, or the right digits at another scale, is still withheld.
+    assert numeral_lock_extras("Revenue was $96.23B [1].", grounding, hit_count=1) == ["$96.23B"]
+    assert numeral_lock_extras("Revenue was $96.23 billion [1].", grounding, hit_count=1) == [
+        "$96.23 billion"
+    ]
+    assert numeral_lock_extras("Revenue was $97 billion [1].", grounding, hit_count=1) == [
+        "$97 billion"
+    ]
+    assert numeral_lock_extras("Revenue was $96.22 million [1].", grounding, hit_count=1) == [
+        "$96.22 million"
+    ]
+    assert numeral_lock_extras("Revenue was $96.22 [1].", grounding, hit_count=1) == ["$96.22"]
 
 
 def test_table_cells_are_separated_in_filing_text() -> None:
