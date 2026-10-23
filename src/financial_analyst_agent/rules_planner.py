@@ -39,6 +39,7 @@ from financial_analyst_agent.ranked_wording import (
     without_preamble,
 )
 from financial_analyst_agent.request_wording import (
+    FORM_NAME,
     OVERVIEW_METRICS,
     OVERVIEW_PLAN,
     PEERS,
@@ -729,9 +730,11 @@ def _unknown_term(query: str, mentions: list[CompanyMention]) -> str | None:
     It keeps the analyst's own spelling: "CEO", not "ceo".
     """
     named = _typed_words(mentions)
+    # "Apple 10-K" names a filing, not a measure called "K".
+    words = FORM_NAME.sub(" ", re.sub(r"['’]s\b", "", query))
     left = [
         typed
-        for typed in re.findall(r"[\w&]+", re.sub(r"['’]s\b", "", query))
+        for typed in re.findall(r"[\w&]+", words)
         if (word := typed.casefold()) not in named
         and word not in _QUESTION_WORDS
         and word not in _COMPARE_FILLER

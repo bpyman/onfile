@@ -157,6 +157,41 @@ def test_an_unsupported_metric_is_named_not_swapped(runtime, question: str, name
     assert "Apple" in " ".join(answer.suggestions)
 
 
+@pytest.mark.parametrize(
+    ("question", "company", "form"),
+    [
+        ("Apple 10-K", "Apple", "10-K"),
+        ("Apple's latest 10-K", "Apple", "10-K"),
+        ("show me Microsoft's 10-Q", "Microsoft", "10-Q"),
+        ("Apple annual report", "Apple", "10-K"),
+    ],
+)
+def test_a_form_name_is_about_the_filing_not_a_metric(  # type: ignore[no-untyped-def]
+    runtime, question: str, company: str, form: str
+) -> None:
+    (answer,) = ask(runtime, question)
+    assert answer.message is not None
+    assert "“K”" not in answer.message and "“Q”" not in answer.message
+    assert "can't look up" not in answer.message
+    assert form in answer.message
+    # What the app can show from that filing, for that company.
+    assert answer.suggestions[0] == f"What changed in {company}'s latest {form}?"
+    assert any(company in suggestion for suggestion in answer.suggestions[1:])
+
+
+@pytest.mark.parametrize(("question", "form"), [("Apple 8-K", "8-K"), ("Toyota 20-F", "20-F")])
+def test_a_form_the_app_does_not_read_says_so(runtime, question: str, form: str) -> None:  # type: ignore[no-untyped-def]
+    (answer,) = ask(runtime, question)
+    assert answer.message is not None
+    assert answer.message.startswith(f"I don't read {form}s")
+    assert "can't look up" not in answer.message
+
+
+def test_what_changed_in_a_10_k_keeps_its_filing_change_answer(runtime) -> None:  # type: ignore[no-untyped-def]
+    (answer,) = ask(runtime, "What changed in Apple's latest 10-K")
+    assert answer.intent == "filing_change", answer.message
+
+
 def test_an_unsupported_metric_after_another_answer_does_not_repeat_it(runtime) -> None:  # type: ignore[no-untyped-def]
     answers = ask(runtime, "Apple capex", "Apple buybacks")
     assert answers[1].fact_card is None and answers[1].table is None

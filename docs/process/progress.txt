@@ -3356,3 +3356,24 @@ Files changed:
 Blockers / next:
 - None. Full suite passes; ruff and mypy clean; compare_answers (against HEAD) shows 0 of 893
   conversations differ (none replays a peers follow-up). Ticket 05 is next.
+
+
+## 2026-10-23 — demo-polish 05: "Apple 10-K" is about the filing, not a metric called "K"
+
+Ticket: `docs/process/tickets/demo-polish/issues/05-a-form-name-is-not-a-metric.md`
+
+Key decisions:
+- `request_wording.FORM_NAME`, `form_label`, `reads_form`: the one reading of form names.
+- `rules_planner._unknown_term` drops form names before naming an unknown measure.
+- `guide._form_reply` (one branch of `guide_reply`): a company and a 10-K/10-Q with nothing else
+  asked gets the guide's suggestions for that filing; an 8-K or 20-F with no figure asked is said
+  plainly. "What changed in …'s latest 10-K" is left to the planner.
+
+Files changed:
+- `src/financial_analyst_agent/request_wording.py`, `rules_planner.py`, `guide.py`
+- `tests/test_says_what_it_cannot_do.py`, `tests/unit/test_planner_rules.py`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. Full suite passes; ruff and mypy clean; compare_answers (against HEAD) shows 0 of 893
+  conversations differ (none replays a bare form name). Ticket 06 is next.

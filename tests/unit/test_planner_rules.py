@@ -9,7 +9,13 @@ from typing import Any
 import pytest
 
 from financial_analyst_agent.answer_notes import capped_ranking_notes
-from financial_analyst_agent.contracts import Intent, RendererKind, TableRow, TurnResult
+from financial_analyst_agent.contracts import (
+    Intent,
+    RendererKind,
+    TableRow,
+    TurnResult,
+    WorkflowPlan,
+)
 from financial_analyst_agent.conversation import run_conversation_turn, start_thread
 from financial_analyst_agent.domain.errors import UnknownIndustryError
 from financial_analyst_agent.filing_change import _read_filings, _year_apart_quarterlies
@@ -104,6 +110,16 @@ def test_misspelt_names_still_correct_beside_common_words() -> None:
     corrected = issuer_index().correct("how does inflation affect nvida revenue")
 
     assert [mention.query for mention in corrected] == ["NVDA"]
+
+
+@pytest.mark.parametrize(
+    "question", ["Apple 10-K", "Apple's latest 10-K", "Microsoft 10-Q", "Apple 8-K", "Apple 20-F"]
+)
+def test_a_form_name_is_not_an_unknown_measure(question: str) -> None:
+    plan = DemoCompleter().complete(question)
+
+    assert isinstance(plan, WorkflowPlan)
+    assert plan.metric.casefold() not in {"k", "q", "f", "10", "8", "20"}
 
 
 def test_a_ticker_that_is_also_an_alias_is_one_company() -> None:

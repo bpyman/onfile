@@ -21,7 +21,7 @@ from financial_analyst_agent.contracts import (
 from financial_analyst_agent.graph.analysis_spec import AnalysisSpec
 from financial_analyst_agent.issuer_index import CompanyNames, expand_groups
 from financial_analyst_agent.prose import in_sentence, joined, possessive, short_name
-from financial_analyst_agent.request_wording import PEERS
+from financial_analyst_agent.request_wording import FORM_NAME, PEERS, form_label, reads_form
 from financial_analyst_agent.services.metric_catalog import (
     METRIC_DISPLAY,
     resolve_metric_phrase,
@@ -143,6 +143,23 @@ PEERS_MESSAGE = (
     "industry: name one, and I'll add the largest companies in its industry."
 )
 _MAX_PEER_CHOICES = 3
+FORM_MESSAGE = (
+    "I don't show a {form} on its own, but I can read {owner} filings: what changed in "
+    "its latest {form}, the figures it reports such as revenue, or an overview of how it "
+    "is doing."
+)
+UNREAD_FORM_MESSAGE = (
+    "I don't read {form}s. I answer from 10-Q and 10-K filings, the quarterly and annual "
+    "reports US companies file with the SEC."
+)
+# Words around a company and a form name that ask for nothing else ("show me
+# Microsoft's latest 10-Q").
+_FORM_FILLER = frozenset(
+    """
+    show me the latest last most recent newest current its a an please pull up open get
+    give see view read can you i want to what is was filing filings
+    """.split()  # noqa: SIM905
+)
 SMALLEST_MESSAGE = (
     "Rankings start from the largest companies by market cap, so I can't list the "
     "smallest yet."
@@ -231,6 +248,9 @@ def guide_reply(
             else STARTER_QUESTIONS[2]
         )
         return _guide(SMALLEST_MESSAGE, [suggestion])
+    form = _form_reply(message, text, index)
+    if form is not None:
+        return form
     unsupported = _unsupported_metrics(text)
     if unsupported:
         name = _named_company(message, index) or _spec_company(spec)
@@ -263,6 +283,46 @@ def guide_reply(
             return _guide(WHY_MESSAGE, list(STARTER_QUESTIONS[3:]))
         return _guide(WHY_MESSAGE, [f"What changed in {name}'s latest 10-Q?"])
     return None
+
+
+def _form_reply(message: str, text: str, index: CompanyNames | None) -> TurnResult | None:
+    """A form name with nothing else asked: what the app can show from that filing.
+
+    "Apple 10-K" and "show me Microsoft's 10-Q" name a company and a filing but no
+    figure or change: the reply suggests the filing's changes, a figure and an
+    overview. A form the app does not read ("8-K", "20-F") is said plainly,
+    unless the words ask for a figure. "What changed in Apple's latest 10-K" is a
+    filing change, which this leaves to the planner.
+    """
+    form = form_label(text)
+    if form is None:
+        return None
+    if not reads_form(form):
+        if resolve_metric_phrase(text).kind != "unknown":
+            return None
+        name = _named_company(message, index)
+        suggestions = (
+            [f"How is {name} doing?", f"What changed in {name}'s latest 10-Q?"]
+            if name is not None
+            else list(STARTER_QUESTIONS[:3])
+        )
+        return _guide(UNREAD_FORM_MESSAGE.format(form=form), suggestions)
+    mentions = index.find(message) if index is not None else []
+    if index is None or len(mentions) != 1:
+        return None
+    named = set(re.findall(r"[\w&]+", mentions[0].typed.casefold()))
+    rest = FORM_NAME.sub(" ", re.sub(r"'s\b", "", text))
+    if any(word not in named and word not in _FORM_FILLER for word in re.findall(r"[\w&]+", rest)):
+        return None
+    name = short_display_name(index, mentions[0].query, mentions[0].typed)
+    return _guide(
+        FORM_MESSAGE.format(form=form, owner=possessive(name)),
+        [
+            f"What changed in {name}'s latest {form}?",
+            f"{name} revenue last 4 quarters",
+            f"How is {name} doing?",
+        ],
+    )
 
 
 def _names_figure(message: str, index: CompanyNames | None) -> bool:
