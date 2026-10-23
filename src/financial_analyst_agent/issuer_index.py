@@ -157,6 +157,9 @@ _NICKNAMES: tuple[tuple[str, str], ...] = (
     ("comcast", "CMCSA"),
     ("amex", "AXP"),
     ("exxonmobil", "XOM"),
+    # Listed as "Exxonmobil Holdings Corporation" since October 2026.
+    ("exxon", "XOM"),
+    ("exxon mobil", "XOM"),
     ("berkshire", "BRK-B"),
     ("citi", "C"),
     ("chase", "JPM"),
