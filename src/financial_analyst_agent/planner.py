@@ -1,5 +1,6 @@
 """OpenAI structured-output planner. Emits a closed intent or a spec patch."""
 
+from decimal import Decimal
 from typing import Annotated, Any, Literal
 
 import openai
@@ -20,6 +21,7 @@ from financial_analyst_agent.graph.analysis_spec import (
     RankedRequest,
     SpecPatch,
 )
+from financial_analyst_agent.model_spend import DailySpendCap, SpendCapReached
 from financial_analyst_agent.request_wording import OVERVIEW_PLAN
 
 _PLANNER_FAILED_MESSAGE = "LLM planner failed"
@@ -311,13 +313,16 @@ def openai_client_from_settings(settings: Settings) -> tuple[Any, str]:
 class OpenAIStructuredCompleter:
     """Calls OpenAI parse() with Plan as the constrained response schema."""
 
-    def __init__(self, client: Any, model: str) -> None:
+    def __init__(self, client: Any, model: str, spend: DailySpendCap | None = None) -> None:
         self._client = client
         self._model = model
+        self._spend = spend or DailySpendCap(Decimal(0))
 
     @classmethod
-    def from_settings(cls, settings: Settings) -> "OpenAIStructuredCompleter":
-        return cls(*openai_client_from_settings(settings))
+    def from_settings(
+        cls, settings: Settings, spend: DailySpendCap | None = None
+    ) -> "OpenAIStructuredCompleter":
+        return cls(*openai_client_from_settings(settings), spend)
 
     def complete(
         self, query: str, current_spec: AnalysisSpec | None = None
@@ -332,14 +337,20 @@ class OpenAIStructuredCompleter:
             )
             response_format = FollowUpPlan
         try:
-            completion = self._client.chat.completions.parse(
-                model=self._model,
-                messages=[
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": query},
-                ],
-                response_format=response_format,
+            completion = self._spend.call(
+                self._model,
+                lambda: self._client.chat.completions.parse(
+                    model=self._model,
+                    messages=[
+                        {"role": "system", "content": system},
+                        {"role": "user", "content": query},
+                    ],
+                    response_format=response_format,
+                ),
             )
+        except SpendCapReached as exc:
+            # The day's budget is spent: the cascade keeps the rules plan.
+            raise PlannerError(_PLANNER_FAILED_MESSAGE, details={"stage": "budget"}) from exc
         except openai.OpenAIError as exc:
             raise PlannerError(
                 _PLANNER_FAILED_MESSAGE,

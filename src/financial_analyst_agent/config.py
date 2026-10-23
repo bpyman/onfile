@@ -95,6 +95,11 @@ class Settings(BaseSettings):
     # the essay evaluation (docs/evaluation/essay-evaluation.md); empty means ``openai_model``.
     openai_essay_model: str = "gpt-6.1-sol"
     openai_base_url: str = ""
+    # The live runtime's OpenAI spend per day (UTC), in US dollars; 0 means no ceiling.
+    # Past it the planner falls back to the rules plan and written answers pause.
+    openai_daily_budget_usd: float = 5.0
+    # Where the day's spend is kept, so a restart does not reset it.
+    openai_spend_file: str = ".cache/openai-spend.json"
     app_mode: AppMode = AppMode.LIVE
     public_demo: bool = False
     demo_live_sec: bool = False

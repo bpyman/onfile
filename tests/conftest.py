@@ -1,13 +1,14 @@
 """Shared pytest helpers."""
 
 from collections.abc import Iterator
+from pathlib import Path
 
 import pytest
 
 
 @pytest.fixture(autouse=True)
 def _keep_non_network_tests_offline(
-    request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch
+    request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """Prevent a developer .env from selecting live providers in ordinary tests."""
     if request.node.get_closest_marker("network"):
@@ -20,6 +21,8 @@ def _keep_non_network_tests_offline(
     monkeypatch.setenv("OPENAI_API_KEY", "")
     # A live runtime built in a test must not start polling SEC.
     monkeypatch.setenv("SEC_FILING_WATCH_SECONDS", "0")
+    # A test's OpenAI spend is its own, never a developer's day of live use.
+    monkeypatch.setenv("OPENAI_SPEND_FILE", str(tmp_path / "openai-spend.json"))
 
 
 @pytest.fixture(autouse=True)
