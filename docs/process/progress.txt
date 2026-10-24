@@ -3377,3 +3377,28 @@ Files changed:
 Blockers / next:
 - None. Full suite passes; ruff and mypy clean; compare_answers (against HEAD) shows 0 of 893
   conversations differ (none replays a bare form name). Ticket 06 is next.
+
+
+## 2026-10-23 — demo-polish 06: a well-known private company is named as private
+
+Ticket: `docs/process/tickets/demo-polish/issues/06-a-private-company-is-named-as-private.md`
+
+Key decisions:
+- `data/private_companies.json`, a hand-kept list of 15 names, none in the snapshot or the SEC
+  filer names (Klarna left off: the snapshot lists KLAR).
+- `issuer_index.private_companies_in` / `without_private_companies`, matched whole and before any
+  correction.
+- The guide answers a private company named alone; the rules planner blanks it and notes it beside
+  a listed one; the not-recorded reply carries the note.
+- `turn_graph` passes the live snapshot's index to `guide_reply` (one line outside the file list).
+
+Files changed:
+- `src/financial_analyst_agent/data/private_companies.json` (new), `issuer_index.py`, `guide.py`,
+  `rules_planner.py`, `graph/turn_graph.py`
+- `tests/unit/test_planner_rules.py`, `tests/test_says_what_it_cannot_do.py`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. Full suite passes; ruff and mypy clean; compare_answers (against HEAD) shows 0 of 893
+  conversations differ (none names a listed private company). Tickets 03 and 07 belong to
+  another lane.

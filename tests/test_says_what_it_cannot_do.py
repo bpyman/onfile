@@ -187,6 +187,27 @@ def test_a_form_the_app_does_not_read_says_so(runtime, question: str, form: str)
     assert "can't look up" not in answer.message
 
 
+@pytest.mark.parametrize("company", ["Stripe", "OpenAI"])
+def test_a_private_company_is_named_as_private(runtime, company: str) -> None:  # type: ignore[no-untyped-def]
+    (answer,) = ask(runtime, f"{company} revenue")
+    assert answer.message == (
+        f"{company} is a private company: it files no reports with the SEC, so there are "
+        "no figures to show."
+    )
+    assert answer.suggestions
+    assert "Stride" not in str(answer)
+
+
+def test_a_private_company_beside_a_listed_one_is_left_out_with_a_note(runtime) -> None:  # type: ignore[no-untyped-def]
+    (answer,) = ask(runtime, "Compare Visa and Stripe revenue")
+    # Visa is listed but not recorded: the recorded runtime says so, as for "Visa revenue".
+    (visa,) = ask(runtime, "Visa revenue")
+    assert answer.message == visa.message
+    assert answer.banners == (
+        "Stripe is a private company: it files no reports with the SEC, so it is left out.",
+    )
+
+
 def test_what_changed_in_a_10_k_keeps_its_filing_change_answer(runtime) -> None:  # type: ignore[no-untyped-def]
     (answer,) = ask(runtime, "What changed in Apple's latest 10-K")
     assert answer.intent == "filing_change", answer.message

@@ -10,6 +10,7 @@ exploring with one tap.
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from typing import Any
 
 from financial_analyst_agent.contracts import (
@@ -19,7 +20,12 @@ from financial_analyst_agent.contracts import (
     TurnResult,
 )
 from financial_analyst_agent.graph.analysis_spec import AnalysisSpec
-from financial_analyst_agent.issuer_index import CompanyNames, expand_groups
+from financial_analyst_agent.issuer_index import (
+    CompanyNames,
+    expand_groups,
+    private_companies_in,
+    without_private_companies,
+)
 from financial_analyst_agent.prose import in_sentence, joined, possessive, short_name
 from financial_analyst_agent.request_wording import FORM_NAME, PEERS, form_label, reads_form
 from financial_analyst_agent.services.metric_catalog import (
@@ -203,9 +209,16 @@ def _spec_company(spec: AnalysisSpec | None) -> str | None:
 
 
 def guide_reply(
-    message: str, spec: AnalysisSpec | None, index: CompanyNames | None = None
+    message: str,
+    spec: AnalysisSpec | None,
+    index: CompanyNames | None = None,
+    outside: CompanyNames | None = None,
 ) -> TurnResult | None:
-    """A guide answer when the message is not an analysis request, else None."""
+    """A guide answer when the message is not an analysis request, else None.
+
+    ``outside`` is the live snapshot's index on the recorded runtime, so a
+    listed company the recording left out still counts as listed.
+    """
     text = _normalized(message)
     if not text:
         return None
@@ -231,6 +244,9 @@ def guide_reply(
         )
     if _not_english(text):
         return _guide(ENGLISH_MESSAGE, list(STARTER_QUESTIONS[:3]))
+    private = private_companies_in(message)
+    if private and not _names_listed(without_private_companies(message), index, outside):
+        return _guide(private_reply(private), list(STARTER_QUESTIONS[:3]))
     if _NOT_OPERATING_GROUP.search(text) and _RANKING_WORDS.search(text):
         return _guide(NOT_OPERATING_MESSAGE, ["Top 5 banks by revenue", STARTER_QUESTIONS[2]])
     etf = _etf_ticker(message, index)
@@ -382,7 +398,41 @@ def not_recorded_reply(
         return None
     if index is not None and index.find(expand_groups(message)):
         return None
-    return _guide(NOT_RECORDED_MESSAGE.format(name=missing[0]), list(STARTER_QUESTIONS[:3]))
+    reply = _guide(NOT_RECORDED_MESSAGE.format(name=missing[0]), list(STARTER_QUESTIONS[:3]))
+    private = private_companies_in(message)
+    # "Compare Visa and Stripe revenue": Stripe is left out whatever is recorded.
+    return reply.model_copy(update={"banners": [private_note(private)]}) if private else reply
+
+
+def _names_listed(message: str, *indexes: CompanyNames | None) -> bool:
+    """Whether any of the indexes finds a company in the message."""
+    return any(index.find(expand_groups(message)) for index in indexes if index is not None)
+
+
+def private_reply(names: Sequence[str]) -> str:
+    """ "Stripe is a private company: it files no reports with the SEC, so …"."""
+    if len(names) == 1:
+        return (
+            f"{names[0]} is a private company: it files no reports with the SEC, so there are "
+            "no figures to show."
+        )
+    return (
+        f"{joined(list(names))} are private companies: they file no reports with the SEC, so "
+        "there are no figures to show."
+    )
+
+
+def private_note(names: Sequence[str]) -> str:
+    """Say a private company named beside a listed one is left out, as a fund is."""
+    if len(names) == 1:
+        return (
+            f"{names[0]} is a private company: it files no reports with the SEC, so it is "
+            "left out."
+        )
+    return (
+        f"{joined(list(names))} are private companies: they file no reports with the SEC, so "
+        "they are left out."
+    )
 
 
 def not_recorded_banner(missing: list[str]) -> str:

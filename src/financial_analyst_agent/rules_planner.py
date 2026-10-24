@@ -24,8 +24,14 @@ from financial_analyst_agent.filing_change import (
     requested_sections,
 )
 from financial_analyst_agent.graph.analysis_spec import AnalysisSpec, RankedRequest, SpecPatch
-from financial_analyst_agent.guide import short_display_name
-from financial_analyst_agent.issuer_index import CompanyMention, IssuerIndex, normalize
+from financial_analyst_agent.guide import private_note, short_display_name
+from financial_analyst_agent.issuer_index import (
+    CompanyMention,
+    IssuerIndex,
+    normalize,
+    private_companies_in,
+    without_private_companies,
+)
 from financial_analyst_agent.period_selection import read
 from financial_analyst_agent.providers.sec.submissions import ACCESSION_PATTERN
 from financial_analyst_agent.ranked_wording import (
@@ -408,6 +414,12 @@ class DemoCompleter:
         self, query: str, current_spec: object = None, *, _nested: bool = False
     ) -> WorkflowPlan | SpecPatch:
         query, count_notes = prepared(query)
+        private = private_companies_in(query)
+        if private:
+            # "Compare Visa and Stripe revenue": Stripe files nothing with the SEC,
+            # and its name is never corrected to a listed company's (Stride).
+            query = without_private_companies(query)
+            count_notes = [*count_notes, private_note(private)]
         normalized = query.strip().casefold()
         metric = _metric_from_query(normalized)
         mentions = self.index.find(query)

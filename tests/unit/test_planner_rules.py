@@ -122,6 +122,47 @@ def test_a_form_name_is_not_an_unknown_measure(question: str) -> None:
     assert plan.metric.casefold() not in {"k", "q", "f", "10", "8", "20"}
 
 
+_STRIPE_NOTE = "Stripe is a private company: it files no reports with the SEC, so it is left out."
+
+
+@pytest.mark.parametrize(
+    ("company", "named"), [("Stripe", "Stripe"), ("OpenAI", "OpenAI"), ("stripe", "Stripe")]
+)
+def test_a_private_company_is_named_as_private_on_the_live_index(company: str, named: str) -> None:
+    reply = guide_reply(f"{company} revenue", None, issuer_index())
+
+    assert reply is not None and reply.message is not None
+    assert reply.message.startswith(f"{named} is a private company")
+    # Never corrected to a listed company first (Stripe was read as Stride).
+    plan = _live().complete(f"{company} revenue")
+    assert isinstance(plan, WorkflowPlan)
+    assert "LRN" not in (plan.company, *plan.companies)
+    assert not any("Stride" in note for note in plan.notes)
+
+
+def test_a_private_company_beside_a_listed_one_is_left_out_on_the_live_index() -> None:
+    message = "Compare Visa and Stripe revenue"
+    assert guide_reply(message, None, issuer_index()) is None
+    plan = _live().complete(message)
+
+    assert isinstance(plan, WorkflowPlan)
+    assert plan.companies == ("V",) or plan.company == "V"
+    assert _STRIPE_NOTE in plan.notes
+
+
+def test_no_private_company_is_in_the_universe_snapshot() -> None:
+    import json
+    import re
+    from pathlib import Path
+
+    data = Path(__file__).resolve().parents[2] / "src" / "financial_analyst_agent" / "data"
+    private = json.loads((data / "private_companies.json").read_text(encoding="utf-8"))
+    names = [company.name for company in load_universe_snapshot().companies]
+    for entry in private["companies"]:
+        pattern = re.compile(rf"(?<![\w-]){re.escape(entry)}(?![\w-])", re.IGNORECASE)
+        assert not [name for name in names if pattern.search(name)], entry
+
+
 def test_a_ticker_that_is_also_an_alias_is_one_company() -> None:
     plan = DemoCompleter().complete("AAPL")
 

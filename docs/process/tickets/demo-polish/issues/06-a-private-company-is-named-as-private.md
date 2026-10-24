@@ -18,4 +18,38 @@ When a question names one of them and no listed company, reply in the guide's vo
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+- `src/financial_analyst_agent/data/private_companies.json`: Stripe, OpenAI, Anthropic, Databricks,
+  ByteDance, Shein, Epic Games, Cargill, Mars, Koch Industries, Bloomberg, Fidelity Investments,
+  Chick-fil-A, Valve, Revolut. Checked against `universe_snapshot.json` and `sec_filer_names.json`
+  on 2026-10-23: none is in either. Klarna is left off, since the snapshot lists it (KLAR).
+- `issuer_index.private_companies_in` / `without_private_companies`: whole names,
+  case-insensitive, matched before any spelling correction; blanking keeps every offset.
+- `guide.guide_reply`, before either planner: a question naming a private company and no listed
+  one gets "Stripe is a private company: it files no reports with the SEC, so there are no figures
+  to show." (several: "Stripe and OpenAI are private companies: …"), with the starter suggestions
+  the not-found reply gives. "Listed" reads the runtime's index and, on the recorded runtime, the
+  live snapshot's (`outside`), so Visa counts as listed there though it was not recorded.
+- `rules_planner.DemoCompleter.complete` blanks private names before it reads companies, so
+  "Stripe" is never corrected to Stride, and plans the listed companies with the note "Stripe is a
+  private company: it files no reports with the SEC, so it is left out.", which the answer shows
+  first, as a planner's notes are.
+- `guide.not_recorded_reply` carries the same note as a banner, so the recorded runtime's "Compare
+  Visa and Stripe revenue" says what it says of Visa ("Visa isn't in the recorded demo…") plus
+  the note.
+
+Outside the file list: one line in `graph/turn_graph.py` passes the live snapshot's index to
+`guide_reply`, as it already did to `not_recorded_reply`.
+
+Tests: `tests/unit/test_planner_rules.py` on the live index (`issuer_index()`, offline) —
+"Stripe revenue", "stripe revenue" and "OpenAI revenue" get the private reply and are never planned
+as Stride; "Compare Visa and Stripe revenue" gets no guide reply and plans Visa with the note; and
+`test_no_private_company_is_in_the_universe_snapshot` reads both files.
+`tests/test_says_what_it_cannot_do.py` on the recorded runtime — the private reply for Stripe and
+OpenAI, and Visa's not-recorded reply plus the note.
+
+`compare_answers.py` (against HEAD, the previous commit): 0 of 893 conversations differ; none of the
+replayed conversations names a listed private company.

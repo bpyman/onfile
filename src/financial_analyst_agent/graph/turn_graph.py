@@ -331,7 +331,8 @@ def _interpret(state: AnalysisRun, runtime: GraphRuntime[TurnDeps]) -> dict[str,
     providers = deps.runtime
     message = state["message"]
     index = names_index(providers)
-    guide = guide_reply(message, deps.active_spec, index)
+    outside = getattr(providers.completer, "outside_index", None)
+    guide = guide_reply(message, deps.active_spec, index, outside)
     if guide is not None:
         return {
             "request": None,
@@ -345,9 +346,7 @@ def _interpret(state: AnalysisRun, runtime: GraphRuntime[TurnDeps]) -> dict[str,
     request = request_from_proposal(proposal, message, deps)
     if isinstance(request, StructuredRequest) and request.patch.ranked_request is None:
         # A ranking names an industry: "top five banks" names no company to miss.
-        not_recorded = not_recorded_reply(
-            message, index, getattr(providers.completer, "outside_index", None)
-        )
+        not_recorded = not_recorded_reply(message, index, outside)
         if not_recorded is not None:
             return {"request": None, **_answered(not_recorded, deps.active_spec)}
     return {"request": request, "result": None}
