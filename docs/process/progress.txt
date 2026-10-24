@@ -3314,3 +3314,35 @@ Files changed:
 Blockers / next:
 - None. 2,627 tests pass; ruff and mypy clean; compare_answers reports `0 of 893 conversations
   differ from HEAD`. Ticket 02 (the evaluation set and harness) is next; its blocker 01 is resolved.
+
+
+## 2026-10-23 — why-from-the-filing 02: the explanation evaluation set and harness
+
+Ticket: `docs/process/tickets/why-from-the-filing/issues/02-the-explanation-evaluation-set-and-harness.md`
+
+Key decisions:
+- `explanation_evaluation.py`: `cases`, `candidates`, `brief [--case]` and `score --labels`, all
+  offline; no model is called.
+- The pool is the 21 companies with a recorded latest 10-Q crossed with the 15 metrics that have
+  words, kept only where the recorded facts hold the metric for that quarter. 40 drawn with seed
+  20261023; 20/20 bases, each split 10 dev / 10 held-out.
+- Directions come from the recorded runtime's lookup (comparative for year over year, the quarter
+  before for sequential, formula components for ratios); the verb follows them. All 40 have one.
+- Candidates give each distinct paragraph an id so the judge labels it once; the baseline is the
+  MD&A's first paragraph naming the metric.
+- Precision at k is the design's hit rate (one of the first k states a cause). No report is
+  committed: there are no labels until ticket 03.
+- The rubric is a brief to an equity analyst with the hard constraints stated; it awaits Blake's
+  review before any judge run.
+
+Files changed:
+- `src/financial_analyst_agent/explanation_evaluation.py` (new)
+- `tests/unit/test_explanation_evaluation.py` (new)
+- `docs/evaluation/explanation-cases.json`, `explanation-candidates.json`, `explanation-rubric.md` (new)
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None for code. 2,641 tests pass; ruff and mypy clean; compare_answers reports `0 of 893
+  conversations differ from HEAD`. Ticket 03 (judge the set) is a person's: it runs the model
+  judge after the rubric is reviewed. Nothing found for 9 cases; 3 first places are about another
+  metric by code's reading (e05, e10, e19).
