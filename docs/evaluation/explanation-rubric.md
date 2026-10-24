@@ -10,11 +10,9 @@ Read each paragraph the way you would read it for a client: literally, and with 
 - The company, the metric (for example gross margin or R&D spending), the comparison basis (year over year, against the same quarter a year earlier; or sequential, against the quarter before), and the date the quarter ended.
 - Either one paragraph from the MD&A, or the whole MD&A.
 
-## Judging one paragraph
+## What counts as a cause
 
-The question is: **does this paragraph state a cause of this metric's move, in this quarter, on this basis?**
-
-It does when it says what drove the move: a product, a segment, a region, price, volume, mix, currency, a charge or its absence, an acquisition, a cost, or any other driver named in the text. Wording such as "primarily due to", "driven by" or "reflecting" usually introduces one, but judge what the words say, not whether those phrases appear.
+A paragraph states a cause when it says what drove the move: a product, a segment, a region, price, volume, mix, currency, a charge or its absence, an acquisition, a cost, or any other driver named in the text. Wording such as "primarily due to", "driven by" or "reflecting" usually introduces one, but judge what the words say, not whether those phrases appear.
 
 It does not when:
 
@@ -24,9 +22,13 @@ It does not when:
 - **It covers the other basis only.** For a sequential question, a cause given only against the year-earlier quarter is no, and the other way round.
 - **It looks ahead, defines a term or describes a risk.** "We expect gross margins to improve", "gross margin is revenue less cost of sales" and "tariffs could raise our costs" state no cause of this quarter's move.
 
-A cause stated for part of the company counts: "Products gross margin increased primarily due to a different mix of products" explains part of the company's gross margin. So does a cause of one of a figure's parts: for free cash flow, a cause of operating cash flow or of capital spending. Say so in `scope` so the two kinds can be counted apart.
+A cause stated for part of the company counts: "Products gross margin increased primarily due to a different mix of products" explains part of the company's gross margin. So does a cause of one of a figure's parts: for free cash flow, a cause of operating cash flow or of capital spending.
 
-Answer **only from the paragraph shown**. Do not use what you know about the company, the industry or the quarter, and do not assume a cause is stated elsewhere in the filing. If the paragraph points to another section for the cause ("see Industry Conditions above"), that pointer is not a cause.
+## Judging one paragraph
+
+The question is: **does this paragraph state a cause of this metric's move, in this quarter, on this basis?**
+
+Answer **only from the paragraph shown**. Do not use what you know about the company, the industry or the quarter, and do not assume a cause is stated elsewhere in the filing. If the paragraph points to another section for the cause ("see Industry Conditions above"), that pointer is not a cause. Where the cause is given for part of the company or one of the figure's parts, say so in `scope`, so the two kinds can be counted apart.
 
 Return only this JSON object, with no other text:
 
@@ -40,7 +42,7 @@ Return only this JSON object, with no other text:
 
 ## Judging the whole MD&A
 
-The question is: **does any paragraph of this MD&A state a cause of this metric's move, in this quarter, on this basis**, by the standard above?
+The question is: **does any paragraph of this MD&A state a cause of this metric's move, in this quarter, on this basis**, by the standard in "What counts as a cause"?
 
 This decides whether "the MD&A does not discuss this figure" was the right reply. Read every paragraph. Answer only from the text shown. A cause in a table's caption or a list item that follows a lead-in sentence ("primarily due to:") counts, as long as it is in the text.
 
@@ -56,4 +58,4 @@ Return only this JSON object, with no other text:
 
 ## Changes
 
-None yet.
+- 23 October 2026, before any judge run (approved by Blake): the standard for a cause moved into its own section, so a paragraph prompt holds only "Judging one paragraph" and an MD&A prompt only "Judging the whole MD&A", each with the shared standard. Before, every prompt held both judgements and both answer shapes. The wording is unchanged apart from "It does when" becoming "A paragraph states a cause when", and the `scope` sentence moving to the paragraph judgement.

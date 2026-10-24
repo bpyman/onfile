@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import json
 import random
+import re
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass
 from datetime import date
@@ -522,6 +523,26 @@ def brief() -> str:
     return text.split("\n## Changes", 1)[0].strip()
 
 
+PARAGRAPH_JUDGEMENT = "Judging one paragraph"
+MDA_JUDGEMENT = "Judging the whole MD&A"
+_SHARED_SECTIONS = ("What you are shown", "What counts as a cause")
+
+
+def judgement_brief(judgement: str) -> str:
+    """The rubric for one judgement: its opening, the shared standard and that judgement only.
+
+    A prompt holds one question and one answer shape, so the judge never has to
+    work out which of two applies.
+    """
+    opening, *blocks = re.split(r"^## ", brief(), flags=re.MULTILINE)
+    sections = {}
+    for block in blocks:
+        heading, _, body = block.partition("\n")
+        sections[heading.strip()] = f"## {heading.strip()}\n{body}".strip()
+    chosen = [sections[name] for name in (*_SHARED_SECTIONS, judgement)]
+    return "\n\n".join([opening.strip(), *chosen])
+
+
 _BASIS_NAMES: dict[str, str] = {
     "year_over_year": "year over year (against the same quarter a year earlier)",
     "sequential": "sequential (against the quarter before)",
@@ -532,7 +553,7 @@ def paragraph_prompt(entry: Mapping[str, Any], paragraph: Mapping[str, Any]) -> 
     """What the judge is shown to label one paragraph."""
     return "\n".join(
         [
-            brief(),
+            judgement_brief(PARAGRAPH_JUDGEMENT),
             "",
             "## The paragraph to judge",
             "",
@@ -552,7 +573,7 @@ def mda_prompt(entry: Mapping[str, Any], html: str) -> str:
     paragraphs = section_paragraphs(extract_section(html, "mda"))
     return "\n".join(
         [
-            brief(),
+            judgement_brief(MDA_JUDGEMENT),
             "",
             "## The MD&A to judge",
             "",

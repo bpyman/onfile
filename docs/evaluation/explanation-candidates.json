@@ -213,37 +213,16 @@
       "report_date": "2026-05-28",
       "accession": "0000723125-26-000015",
       "url": "https://www.sec.gov/Archives/edgar/data/723125/000072312526000015/mu-20260528.htm",
-      "reason": null,
+      "reason": "not_discussed",
       "paragraphs": [
         {
           "id": "e05-p1",
-          "text": "The increase in cash provided by operating activities for the first nine months of 2026 as compared to the first nine months of 2025 was primarily due to higher net income in the current year adjusted for non-cash items, an increase in accounts payable and accrued expenses mostly related to property, plant and equipment and income and other taxes, an increase in other current liabilities resulting mainly from higher consideration payable to customers for pricing adjustments, and an increase in noncurrent liabilities largely due to higher noncurrent income taxes payable related to the implementation of Pillar Two. These increases were partially offset by a significant increase in receivables due to higher revenue in the first nine months of 2026.",
-          "cause": "primarily due to higher net income in the current year adjusted for non-cash items, an increase in accounts payable and accrued expenses mostly related to property, plant and equipment and income and other taxes, an increase in other current liabilities resulting mainly from higher consideration payable to customers for pricing adjustments, and an increase in noncurrent liabilities largely due to higher noncurrent income taxes payable related to the implementation of Pillar Two"
-        },
-        {
-          "id": "e05-p2",
-          "text": "Operating Activities: Cash provided by operating activities reflects net income adjusted for certain non-cash items, including depreciation expense, amortization of intangible assets, and stock-based compensation, and the effects of changes in operating assets and liabilities.",
-          "cause": "reflects net income adjusted for certain non-cash items, including depreciation expense, amortization of intangible assets, and stock-based compensation, and the effects of changes in operating assets and liabilities"
-        },
-        {
-          "id": "e05-p3",
           "text": "Equity in net income (loss) of equity method investees 9 — % (4) — % 7 — % 13 — % 10 — %",
           "cause": null
         }
       ],
-      "scored": [
-        {
-          "paragraph": "e05-p1",
-          "rank": 1,
-          "score": 17
-        },
-        {
-          "paragraph": "e05-p2",
-          "rank": 2,
-          "score": 10
-        }
-      ],
-      "baseline": "e05-p3"
+      "scored": [],
+      "baseline": "e05-p1"
     },
     {
       "id": "e06",
@@ -360,7 +339,7 @@
         {
           "id": "e09-p2",
           "text": "Net income and earnings per share for the three months ended June 30, 2026 increased primarily due to higher gross margin, partially offset by higher acquired IPR&D charges, asset impairment, restructuring, and other special charges, and marketing, selling, and administrative expenses. Net income and earnings per share for the six months ended June 30, 2026 increased primarily due to higher gross margin, partially offset by higher acquired IPR&D charges, research and development expenses, and marketing, selling, and administrative expenses.",
-          "cause": "primarily due to higher gross margin, partially offset by higher acquired IPR&D charges, research and development expenses, and marketing, selling, and administrative expenses"
+          "cause": null
         }
       ],
       "scored": [
@@ -368,11 +347,6 @@
           "paragraph": "e09-p1",
           "rank": 1,
           "score": 14
-        },
-        {
-          "paragraph": "e09-p2",
-          "rank": 2,
-          "score": 19
         }
       ],
       "baseline": "e09-p2"
@@ -387,32 +361,16 @@
       "report_date": "2026-06-30",
       "accession": "0001628280-26-049270",
       "url": "https://www.sec.gov/Archives/edgar/data/1318605/000162828026049270/tsla-20260630.htm",
-      "reason": null,
+      "reason": "not_discussed",
       "paragraphs": [
         {
           "id": "e10-p1",
-          "text": "Net cash provided by operating activities increased by $3.94 billion to $8.63 billion during the six months ended June 30, 2026 from $4.70 billion during the six months ended June 30, 2025. This increase was primarily due to favorable changes in net operating assets and liabilities of $3.01 billion and an increase in net income excluding non-cash expenses, gains and losses of $933 million.",
-          "cause": "primarily due to favorable changes in net operating assets and liabilities of $3.01 billion and an increase in net income excluding non-cash expenses, gains and losses of $933 million"
-        },
-        {
-          "id": "e10-p2",
           "text": "During the three and six months ended June 30, 2026, we recognized total revenues of $28.24 billion and $50.62 billion, respectively, representing increases of $5.74 billion and $8.79 billion, respectively, compared to the same periods in the prior year. During the three and six months ended June 30, 2026, our net income attributable to common stockholders was $1.11 billion and $1.59 billion, respectively, representing a decrease of $58 million and an increase of $10 million, respectively, compared to the same periods in the prior year. We continue to ramp production and build and optimize our manufacturing capacity, expand our operations while focusing on further cost reductions and operational efficiencies, including through vertical integration of our battery and semiconductor supply chains, to enable increased deliveries and deployments of our products. We are also investing heavily in research and development to accelerate our AI, software and fleet-based profits for further revenue growth, which will negatively impact our profitability during this phase.",
-          "cause": "attributable to common stockholders was $1.11 billion and $1.59 billion, respectively, representing a decrease of $58 million and an increase of $10 million, respectively, compared to the same periods in the prior year"
+          "cause": null
         }
       ],
-      "scored": [
-        {
-          "paragraph": "e10-p1",
-          "rank": 1,
-          "score": 13
-        },
-        {
-          "paragraph": "e10-p2",
-          "rank": 2,
-          "score": 10
-        }
-      ],
-      "baseline": "e10-p2"
+      "scored": [],
+      "baseline": "e10-p1"
     },
     {
       "id": "e11",
@@ -689,41 +647,15 @@
       "report_date": "2026-06-27",
       "accession": "0000002488-26-000123",
       "url": "https://www.sec.gov/Archives/edgar/data/2488/000000248826000123/amd-20260627.htm",
-      "reason": null,
+      "reason": "not_discussed",
       "paragraphs": [
         {
           "id": "e19-p1",
           "text": "Operating income for the three months ended June 27, 2026 was $2.0 billion compared to operating loss of $134 million for the prior year period. The increase in operating income was due to higher gross profit, partially offset by higher operating expenses. Net income for the three months ended June 27, 2026 was $2.3 billion compared to net income of $872 million for the prior year period. The increase in net income was primarily driven by higher operating income.",
-          "cause": "primarily driven by higher operating income"
-        },
-        {
-          "id": "e19-p2",
-          "text": "Net cash provided by operating activities of continuing operations was $5.3 billion in the six months ended June 27, 2026, primarily due to our net income of $3.7 billion, adjusted for non-cash and non-operating charges of $1.9 billion and net cash outflows of $274 million from changes in our operating assets and liabilities. The primary drivers of the changes in operating assets and liabilities included a $966 million increase in accounts receivable driven primarily by higher revenue, a $1.0 billion increase in prepaid expenses and other assets primarily due to prepayments of supply agreements, partially offset by a $2.2 billion increase in accounts payable primarily due to timing of payment obligations.",
-          "cause": "primarily due to our net income of $3.7 billion, adjusted for non-cash and non-operating charges of $1.9 billion and net cash outflows of $274 million from changes in our operating assets and liabilities"
-        },
-        {
-          "id": "e19-p3",
-          "text": "Net cash provided by operating activities of continuing operations was $2.4 billion in the six months ended June 28, 2025, primarily due to our net income of $1.6 billion, adjusted for non-cash and non-operating charges of $1.2 billion and net cash outflows of $284 million from changes in our operating assets and liabilities. The primary drivers of the change in operating assets and liabilities were a $1.1 billion decrease in accounts receivable due to higher receipts of customer payments and a $943 million increase in inventory primarily to support the continued ramp of Client and Data Center products in advanced process technology nodes. Net cash provided by operating activities of ZT Systems' data center infrastructure manufacturing business (ZT Manufacturing Business), classified as discontinued operations, was $549 million.",
-          "cause": "primarily due to our net income of $1.6 billion, adjusted for non-cash and non-operating charges of $1.2 billion and net cash outflows of $284 million from changes in our operating assets and liabilities"
+          "cause": null
         }
       ],
-      "scored": [
-        {
-          "paragraph": "e19-p1",
-          "rank": 1,
-          "score": 26
-        },
-        {
-          "paragraph": "e19-p2",
-          "rank": 2,
-          "score": 17
-        },
-        {
-          "paragraph": "e19-p3",
-          "rank": 3,
-          "score": 15
-        }
-      ],
+      "scored": [],
       "baseline": "e19-p1"
     },
     {
@@ -937,11 +869,6 @@
           "id": "e25-p2",
           "text": "We believe that our cash and cash equivalents on hand, cash flows from operations and our revolving credit facility will provide sufficient liquidity to operate our business and fund our current obligations for at least the next 12 months. For additional information regarding our cash requirement from indebtedness, contractual commitments and backstops, see Note 6. “Borrowings” and Note 10. “Commitments and Contingencies” in Part I, Item 1 of this Form 10-Q.",
           "cause": null
-        },
-        {
-          "id": "e25-p3",
-          "text": "Cash flows from operating activities consist of net income adjusted for certain non-cash and other items and changes in assets and liabilities. The $13,116 million increase in cash provided by operations during the three fiscal quarters ended August 2, 2026 compared to the prior year fiscal period was primarily due to $15,139 million higher net income and $782 million higher non-cash adjustments primarily from higher stock-based compensation, offset in part by $2,805 million from changes in operating assets and liabilities.",
-          "cause": "primarily due to $15,139 million higher net income and $782 million higher non-cash adjustments primarily from higher stock-based compensation, offset in part by $2,805 million from changes in operating assets and liabilities"
         }
       ],
       "scored": [
@@ -954,11 +881,6 @@
           "paragraph": "e25-p2",
           "rank": 2,
           "score": 3
-        },
-        {
-          "paragraph": "e25-p3",
-          "rank": 3,
-          "score": 10
         }
       ],
       "baseline": "e25-p2"
@@ -1221,11 +1143,6 @@
         },
         {
           "id": "e34-p2",
-          "text": "As a percentage of net revenue, gross margin was 69% for each of the fiscal quarter and three fiscal quarters ended August 2, 2026, and 67% and 68% for the fiscal quarter and three fiscal quarters ended August 3, 2025, respectively. The increases were primarily due to the gross margin benefit from our net revenue growth, partially offset by a higher mix of semiconductor solutions net revenue, which has a lower gross margin than infrastructure software.",
-          "cause": "primarily due to the gross margin benefit from our net revenue growth, partially offset by a higher mix of semiconductor solutions net revenue, which has a lower gross margin than infrastructure software"
-        },
-        {
-          "id": "e34-p3",
           "text": "Cost of products sold",
           "cause": null
         }
@@ -1235,14 +1152,9 @@
           "paragraph": "e34-p1",
           "rank": 1,
           "score": 10
-        },
-        {
-          "paragraph": "e34-p2",
-          "rank": 2,
-          "score": 21
         }
       ],
-      "baseline": "e34-p3"
+      "baseline": "e34-p2"
     },
     {
       "id": "e35",

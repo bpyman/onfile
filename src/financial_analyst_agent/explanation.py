@@ -17,8 +17,9 @@ sentence or the next says the metric changed or why. It is scored on:
 - and it loses points for looking ahead ("we expect") or defining a term.
 
 A paragraph whose subject is another metric ("Operating income was $2.0 billion … The
-increase in operating income was due to higher gross profit") ranks below every
-paragraph about this one (``is_about_another_metric``). Ties keep the filing's order.
+increase in operating income was due to higher gross profit") is never chosen
+(``is_about_another_metric``): with nothing about this metric, the answer is that the
+MD&A does not discuss it. Ties keep the filing's order.
 The weights are a first cut; the explanation evaluation measures them.
 """
 
@@ -374,8 +375,12 @@ def management_explanation(
     paragraphs = section_paragraphs(extract_section(html, "mda"))
     if not paragraphs:
         return ManagementExplanation((), "mda_not_found")
-    ranked: list[tuple[bool, int, int, ExplainingParagraph]] = []
+    ranked: list[tuple[int, int, ExplainingParagraph]] = []
     for position, paragraph in enumerate(paragraphs):
+        # A paragraph about another metric is never shown: with nothing about this
+        # one, the honest answer is that the MD&A does not discuss it (ADR 0017).
+        if is_about_another_metric(paragraph, metric):
+            continue
         scored = _score(paragraph, family, basis)
         if scored is None:
             continue
@@ -386,9 +391,9 @@ def management_explanation(
             cause=cause,
             url=filing_anchor_url(source_url, paragraph),
         )
-        ranked.append((is_about_another_metric(paragraph, metric), -score, position, chosen))
-    ranked.sort(key=lambda entry: entry[:3])
-    chosen_paragraphs = tuple(entry[3] for entry in ranked[:MAX_PARAGRAPHS])
+        ranked.append((-score, position, chosen))
+    ranked.sort(key=lambda entry: entry[:2])
+    chosen_paragraphs = tuple(entry[2] for entry in ranked[:MAX_PARAGRAPHS])
     if not chosen_paragraphs:
         return ManagementExplanation((), "not_discussed")
     return ManagementExplanation(chosen_paragraphs)

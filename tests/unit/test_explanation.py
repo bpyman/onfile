@@ -161,7 +161,7 @@ def test_a_metric_without_words_gets_no_explanation() -> None:
     assert "dividends_per_share" not in explained_metrics()
 
 
-def test_a_paragraph_mostly_about_another_metric_ranks_below_one_about_this_one() -> None:
+def test_a_paragraph_mostly_about_another_metric_is_never_shown() -> None:
     about_operating_income = (
         "Operating income increased to $2.0 billion compared to the prior year period. The "
         "increase in operating income was primarily due to higher gross profit, partially "
@@ -170,12 +170,12 @@ def test_a_paragraph_mostly_about_another_metric_ranks_below_one_about_this_one(
     about_gross_margin = "Gross margin increased to 54% in the second quarter."
     html = _mda(about_operating_income, about_gross_margin)
     explanation = management_explanation(html, "gross_margin", None, URL)
-    assert [chosen.text for chosen in explanation.paragraphs] == [
-        about_gross_margin,
-        about_operating_income,
-    ]
+    assert [chosen.text for chosen in explanation.paragraphs] == [about_gross_margin]
     assert is_about_another_metric(about_operating_income, "gross_margin")
     assert not is_about_another_metric(about_gross_margin, "gross_margin")
+    # With nothing about gross margin, the MD&A does not discuss it: no fallback.
+    alone = management_explanation(_mda(about_operating_income), "gross_margin", None, URL)
+    assert alone.paragraphs == () and alone.reason == "not_discussed"
 
 
 def test_on_a_tie_the_metric_named_first_is_the_subject() -> None:

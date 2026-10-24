@@ -192,7 +192,13 @@ def test_the_prompts_show_the_case_and_only_the_text_judged() -> None:
     entry = json.loads(ev.CANDIDATES_PATH.read_text(encoding="utf-8"))["cases"][0]
     paragraph = entry["paragraphs"][0]
     prompt = ev.paragraph_prompt(entry, paragraph)
-    assert prompt.startswith(ev.brief())
+    # One judgement per prompt: the shared standard and its own question and answer shape.
+    assert prompt.startswith(ev.judgement_brief(ev.PARAGRAPH_JUDGEMENT))
+    assert "## What counts as a cause" in prompt
+    assert ev.MDA_JUDGEMENT not in prompt and "nothing_to_find" not in prompt
+    mda = ev.mda_prompt(entry, "<html></html>")
+    assert ev.PARAGRAPH_JUDGEMENT not in mda and '"explains"' not in mda
+    assert "## What counts as a cause" in mda
     assert entry["question"] in prompt and paragraph["text"] in prompt
     others = [p["text"] for p in entry["paragraphs"][1:] if p["text"] not in paragraph["text"]]
     assert not any(text in prompt for text in others)
