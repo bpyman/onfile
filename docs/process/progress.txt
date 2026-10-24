@@ -3284,3 +3284,33 @@ Files changed:
 Blockers / next:
 - None. 2,537 tests pass (1 new); ruff and mypy clean; compare_answers reports `0 of 893
   conversations differ from master`. Every simplify-leftovers ticket is resolved.
+
+
+## 2026-10-23 — why-from-the-filing 01: choose the MD&A paragraphs that explain a figure
+
+Ticket: `docs/process/tickets/why-from-the-filing/issues/01-choose-the-paragraphs-that-explain-a-figure.md`
+
+Key decisions:
+- New `explanation.py`: `management_explanation(html, metric, basis, source_url)` returns up to
+  three verbatim paragraphs (score, first causal clause span, anchor link) or a reason
+  (`mda_not_found`, `not_discussed`, `metric_not_covered`). No model, no network.
+- Metric words are a table of families in `explanation.py`, not catalog fields; longer phrases win
+  overlaps ("cost of sales" is gross margin), and "non-operating income" is not operating income.
+- A paragraph qualifies only when a sentence naming the metric (or the next) gives a change or
+  a cause. One whose subject is another metric (outnumbers, ties and comes first, or owns the
+  opening sentence) ranks below every paragraph about this one.
+- Basis from wording and from the quarters a sentence names; bonuses for a cause beside the
+  metric in a quarter sentence and for opening on the company-wide figure.
+- `filing_change._paragraphs` renamed `section_paragraphs`; behaviour unchanged.
+- AMD gross margin now finds the cause first (the MI308 charges and mix); Tesla operating income
+  is `not_discussed` instead of an auto-cycle paragraph.
+
+Files changed:
+- `src/financial_analyst_agent/explanation.py` (new), `src/financial_analyst_agent/filing_change.py`
+- `tests/unit/test_explanation.py` (new)
+- `CONTEXT.md` (Management's explanation)
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. 2,627 tests pass; ruff and mypy clean; compare_answers reports `0 of 893 conversations
+  differ from HEAD`. Ticket 02 (the evaluation set and harness) is next; its blocker 01 is resolved.

@@ -68,6 +68,10 @@ _Avoid_: ambiguous metric
 Words of a question the answer does not act on: a condition on a ranking ("above 20%", "profitable", "S&P 500"), an unknown metric beside a catalog one, a region, one figure as a share of another outside the catalog's ratios, or a "why". The answer names them in a note above it, in the analyst's words, whichever planner read the question (ADR 0016).
 _Avoid_: ignored words, dropped constraint (for the note)
 
+**Management's explanation**:
+The paragraphs of a filing's MD&A that explain a figure's move, quoted verbatim from the filing the figure came from, each with a link to its passage (ADR 0017). Code chooses up to three: a paragraph must name the metric in the MD&A's own words and say it moved or why, and one whose subject is another metric ranks below one about this metric. Where none qualifies, the answer says the MD&A does not discuss the figure in words it can find; it never falls back to an arbitrary paragraph. A model may later summarise the paragraphs but never stands in for them.
+_Avoid_: rationale, commentary, reason (unqualified), the why
+
 **Shared name**:
 A company name two or more snapshot members answer to ("Lincoln"). The analyst is asked which one; the largest is not assumed (ADR 0010).
 _Avoid_: ambiguous company (in prose), alias collision

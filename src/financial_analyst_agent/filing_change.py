@@ -323,7 +323,7 @@ def _blocks(section_text: str) -> list[str]:
     return [block for block in blocks if len(block) > 20 or block.lower().startswith("item")]
 
 
-def _paragraphs(section_text: str) -> list[str]:
+def section_paragraphs(section_text: str) -> list[str]:
     """The section's prose: no running footers, headings, or rows that are mostly figures."""
     blocks = _blocks(section_text)
     # A running footer repeats word for word but for its page number ("Apple Inc. |
@@ -558,8 +558,8 @@ def diff_paragraphs(
     older_url: str,
     newer_url: str,
 ) -> list[DisclosureChange]:
-    left = _paragraphs(older)
-    right = _paragraphs(newer)
+    left = section_paragraphs(older)
+    right = section_paragraphs(newer)
     under_left = _subsections(older)
     under_right = _subsections(newer)
     # Matched with dates masked: a paragraph that differs only by its dates ("the

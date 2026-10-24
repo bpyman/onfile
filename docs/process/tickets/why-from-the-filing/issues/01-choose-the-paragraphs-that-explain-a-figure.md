@@ -31,4 +31,55 @@ Spec: `docs/process/tickets/why-from-the-filing/design.md` (phase A) and `docs/a
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped `explanation.management_explanation(html, metric, basis, source_url)`, which returns a
+`ManagementExplanation`: up to three `ExplainingParagraph`s (verbatim text from
+`filing_change.section_paragraphs`, integer score, the span of the first causal clause, and
+`filing_anchor_url(source_url, text)`), or none and a reason: `mda_not_found`, `not_discussed`,
+or `metric_not_covered` for a metric with no words. No model, no network.
+
+- **Words** live in a table in `explanation.py`, by family, so related catalog metrics share them:
+  revenue; gross margin / gross profit / cost of revenue; operating income / operating margin;
+  net income / net margin; R&D / R&D to sales; SG&A / SG&A ratio; operating cash flow; capex;
+  free cash flow. Overlaps go to the longer phrase ("cost of sales" is gross margin, "sales,
+  general and administrative" is SG&A), and "non-operating income" is not operating income.
+- **Eligible** only when a sentence naming the metric, or the one after it, has change or causal
+  wording. A definition, or a paragraph that names the metric and talks about something else,
+  is not chosen (Tesla's operating income is now `not_discussed`, where the prototype showed a
+  paragraph about the auto cycle).
+- **Subject**: `is_about_another_metric` is true when another metric's words outnumber this
+  one's, tie and come first, or the opening sentence names another metric and not this one.
+  Those paragraphs rank below every paragraph about this metric.
+- **Score**: mentions, causal and change wording (each capped), a bonus when a causal clause sits
+  in a sentence naming the metric (more when that sentence is about the quarter, not only the
+  year to date), the basis asked (wording, plus the quarters named: "third quarter of 2026 …
+  third quarter of 2025" is year over year, "… second quarter of 2026" sequential), a quarter
+  mention, opening on the company-wide figure, and penalties for outlook and definitions. Ties
+  keep filing order; the result does not depend on hash order (a test runs it under two
+  `PYTHONHASHSEED`s).
+- `filing_change._paragraphs` is renamed `section_paragraphs`, with no change in behaviour.
+
+First paragraphs on the recorded 10-Qs:
+- Apple gross margin: "Products gross margin and gross margin percentage increased … primarily
+  due to a different mix of products and tariff refunds". States the cause.
+- Micron gross margin: "Consolidated Gross Margin: … increased to 85% … from 74% for the second
+  quarter of 2026 as a result of improvements in margins for both DRAM and NAND products".
+  States the cause (sequential; asking year over year puts the 38% → 85% paragraph first).
+- Pfizer revenue: "Total revenues increased $381 million, or 3%, in the second quarter … reflecting
+  an operational increase … and a favorable impact of foreign exchange". States the cause.
+- **AMD gross margin** (pinned): "Gross margin for the three months ended June 27, 2026 was 54%
+  compared to … 40% … primarily driven by the absence of inventory and related charges associated
+  with the U.S. government export control on AMD Instinct MI308 … and a favorable product mix".
+  It found the cause; the operating-income paragraph the prototype put first is now third.
+- Nvidia revenue: Data Center revenue ("driven by the ramp of our Blackwell Ultra
+  infrastructure"), then "Revenue growth … was driven by data center products". The first states a
+  cause of the largest segment's move, not total revenue's; the second states total revenue's.
+
+Known weaknesses for the evaluation (ticket 02/03) to measure: a segment's paragraph often
+outranks the total's where the total paragraph has no causal wording (Apple iPad, AMD Client,
+Cisco Services revenue); cash-flow and capex questions often land on liquidity boilerplate.
+
+compare_answers reports 0 of 893 conversations differ (nothing is wired into a turn yet).
