@@ -1,0 +1,711 @@
+{
+  "judge": "claude-opus-5-5",
+  "judgements": {
+    "e01-mda": {
+      "nothing_to_find": false,
+      "where": "Total revenue for the third quarter of 2026 increased 74% as compared to the second quarter of 2026, primarily due to increases in sales of both DRAM and NAND products.",
+      "reason": "The paragraph credits the sequential revenue rise to higher DRAM and NAND sales, and its bullets trace those to higher average selling prices and bit shipments."
+    },
+    "e01-m15": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only refers the reader to the \"Industry Conditions—Memory and Storage Demand\" section and doesn't itself give any cause, nor does it address the sequential comparison."
+    },
+    "e01-m16": {
+      "explains": true,
+      "scope": "company",
+      "reason": "The paragraph says the 74% sequential revenue increase came primarily from higher sales of both DRAM and NAND products, which names the products behind the move."
+    },
+    "e02-m31": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only explains how return on equity is calculated and does not say what drove net income's year-over-year change."
+    },
+    "e02-m7": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph reports a $39 million net loss from portfolio actions in the quarter, but it never ties that loss to the year-over-year change in net income or compares it with the year-earlier quarter, so it gives no reason net income rose."
+    },
+    "e04-m74": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only defines acquired IPR&D and explains how it is recorded, and it gives no cause for the year-over-year rise in R&D spending this quarter."
+    },
+    "e03-m5": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only describes general seasonal and product-introduction effects on net sales and costs. It does not state a cause of this quarter's sequential drop in cost of revenue."
+    },
+    "e02-mda": {
+      "nothing_to_find": false,
+      "where": "Medical costs decreased primarily due to fewer people served across UnitedHealthcare and Optum Health",
+      "reason": "No paragraph explains net income directly, but this one gives the quarter's year-over-year cause of medical costs, a part of net income: fewer people served and favorable prior-period reserve development, partly offset by elevated cost trend."
+    },
+    "e04-m70": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only defines what goes into R&D expenses; it names nothing that drove the year-over-year increase this quarter."
+    },
+    "e04-m73": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It says the personnel, infrastructure and other support costs within R&D rose mainly because of integration expenses, including $229 million of stock-based compensation tied to the Arcellx, Ouro Medicines and Tubulis acquisitions; the paragraph covers the three and six months together and does not restrict this cause to either period."
+    },
+    "e03-mda": {
+      "nothing_to_find": true,
+      "where": null,
+      "reason": "Every cost-of-sales or gross-margin cause in this MD&A (product mix, tariff refunds, memory costs, services mix) is given against the same periods of 2025, and the note on tariff refunds describes how they are accounted for rather than explaining this quarter's change from the previous quarter, so no paragraph states a sequential cause."
+    },
+    "e04-m21": {
+      "explains": false,
+      "scope": null,
+      "reason": "The bullet gives the Arcellx, Tubulis and Ouro Medicines acquisitions as the reason acquired IPR&D expenses rose, but it never says that line is part of R&D spending, and it doesn't name the quarter or the year-over-year basis."
+    },
+    "e05-m14": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph is only a row of figures for equity in net income of equity method investees, so it gives no cause for the sequential move in net margin."
+    },
+    "e04-mda": {
+      "nothing_to_find": false,
+      "where": "Research and development expenses increased 18% and 9% to $1.8 billion",
+      "reason": "The paragraph says R&D rose in the three months ended June 30, 2026 against the same period of 2025 because personnel, infrastructure and other support costs went up. It ties that rise mainly to integration expenses, including $229 million of stock-based compensation from the Arcellx, Ouro Medicines and Tubulis acquisitions, partly offset by lower oncology clinical study activity."
+    },
+    "e06-m32": {
+      "explains": false,
+      "scope": null,
+      "reason": "The only cause it names, improved mix from Blackwell Ultra, is given for the year-over-year increase; on the sequential basis it says gross margin was about flat, not up, and the clause that Blackwell is still the vast majority of revenue explains why nothing changed rather than naming what drove a sequential increase."
+    },
+    "e06-mda": {
+      "nothing_to_find": false,
+      "where": "Gross margin increased from a year ago on improved mix from Blackwell Ultra.",
+      "reason": "The paragraph's second sentence explains the quarter-on-quarter change: it says gross margin was approximately flat sequentially because Blackwell is still the vast majority of revenue, so product mix didn't change; the analyst should note that the MD&A calls the move flat, not up."
+    },
+    "e07-m46": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph covers the income tax provision and effective tax rate. It mentions R&D only as a source of tax credits and gives no cause for the year-over-year rise in R&D spending."
+    },
+    "e07-m39": {
+      "explains": true,
+      "scope": "company",
+      "reason": "It says the quarter's year-over-year rise in R&D came mainly from higher employee-related costs, as headcount grew to support AMD's AI strategy and long-term growth, and that this applies to both periods."
+    },
+    "e05-mda": {
+      "nothing_to_find": false,
+      "where": "Consolidated Gross Margin: Our consolidated gross margin has been impacted by the factors",
+      "reason": "The MD&A gives sequential causes for parts of net income: gross margin rose to 85% from 74% mainly on higher DRAM and NAND average selling prices, plus execution and mix, and net interest improved on lower debt and higher cash balances."
+    },
+    "e07-mda": {
+      "nothing_to_find": false,
+      "where": "R&D expenses of $2.5 billion for the three months ended June 27, 2026 increased",
+      "reason": "The paragraph says the year-over-year rise in R&D in both the quarter and the six months came mainly from higher employee-related costs, driven by more headcount supporting AMD's AI strategy and long-term growth."
+    },
+    "e08-mda": {
+      "nothing_to_find": true,
+      "where": null,
+      "reason": "Every quarterly comparison in this MD&A is against the same quarter a year earlier or against the six-month period, and the only paragraph that mentions operating margin describes general macroeconomic trends, so no paragraph gives a cause for the sequential drop in operating margin."
+    },
+    "e09-m6": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph explains net income and EPS. It mentions R&D expenses only as an offset for the six-month period, and it gives no cause for R&D spending rising sequentially in this quarter."
+    },
+    "e08-m13": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph describes general macroeconomic and industry risks that 'have had, and will likely continue to have' an effect on pricing and operating margin, but it names no specific cause of this quarter's sequential drop in operating margin."
+    },
+    "e09-mda": {
+      "nothing_to_find": true,
+      "where": null,
+      "reason": "The only paragraph that explains R&D ('Research and development expenses increased 14 percent and 21 percent...') compares the quarter with the same quarter a year earlier, and no paragraph gives a cause of the sequential change from the first quarter of 2026."
+    },
+    "e10-m6": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph compares net income only with the same quarter a year earlier (a $58 million decrease) and gives no cause for the sequential rise. Its remarks on production ramps, cost reductions and R&D spending describe general strategy and what lies ahead, not a cause of this quarter's change in net income."
+    },
+    "e10-mda": {
+      "nothing_to_find": true,
+      "where": null,
+      "reason": "Every causal paragraph compares the quarter with the same quarter a year earlier or covers the six months to date. These include the paragraphs on the California valuation allowance release, the SpaceX mark-to-market gain and the tax provision. No paragraph states why net income changed against the first quarter of 2026."
+    },
+    "e12-mda": {
+      "nothing_to_find": true,
+      "where": null,
+      "reason": "Every gross margin cause in the MD&A (product mix, higher memory costs, pricing, productivity, lower amortization) compares the third quarter of fiscal 2026 with the third quarter of fiscal 2025, or covers the first nine months; no paragraph explains the move against the prior quarter."
+    },
+    "e12-m10": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph gives causes for the drop in product gross margin (product mix and higher memory costs), but it never says it is comparing with the prior quarter, and its other figures, such as the 37% rise in EPS, read like year-over-year comparisons, so it does not show a cause of the sequential move."
+    },
+    "e14-m67": {
+      "explains": true,
+      "scope": "company",
+      "reason": "It attributes the company's $6.4 billion operating income increase to growth in two named segments, Productivity and Business Processes and Intelligent Cloud, but gives no reason why those segments grew."
+    },
+    "e14-m19": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only looks ahead, saying AI and cloud investments may reduce operating margins, and describes supply-chain risks; it gives no cause for this quarter's year-over-year rise in operating income."
+    },
+    "e14-m76": {
+      "explains": true,
+      "scope": "company",
+      "reason": "It explains the company's year-over-year rise in operating income by naming two segments, Productivity and Business Processes and Intelligent Cloud, as the sources of the growth; it doesn't say what drove those segments."
+    },
+    "e14-mda": {
+      "nothing_to_find": false,
+      "where": "Operating income increased $6.4 billion or 20% driven by growth",
+      "reason": "For the quarter, year over year, this paragraph says operating income rose because the Productivity and Business Processes and Intelligent Cloud segments grew, which names where the increase came from."
+    },
+    "e16-m19": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph gives causes (higher HIV, Trodelvy and Livdelzi sales and higher royalty revenues, partly offset by lower Veklury, Cell Therapy and HCV sales) only against the same periods in 2025, so it does not explain the sequential move from the prior quarter."
+    },
+    "e13-mda": {
+      "nothing_to_find": false,
+      "where": "Research and development expenses increased 18% and 9% to $1.8 billion and $3.1 billion",
+      "reason": "Operating income is revenue minus operating costs, and the MD&A gives causes for this quarter's year-over-year rise in those costs: R&D rose on acquisition integration expenses including $229 million of stock-based compensation, acquired IPR&D of $11.2 billion came from the Arcellx, Tubulis and Ouro acquisitions, the $1.75 billion IPR&D impairment followed the EVOKE-03 discontinuation, and SG&A rose on HIV promotion and integration costs."
+    },
+    "e21-m33": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only says SG&A expense went up and puts it down to unspecified factors, none of them significant, so it names no cause for the move in the SG&A ratio."
+    },
+    "e19-mda": {
+      "nothing_to_find": false,
+      "where": "Operating income for the three months ended June 27, 2026 was $2.0 billion compared to operating loss",
+      "reason": "The MD&A says the year-over-year rise in this quarter's net income was primarily driven by higher operating income, which it attributes to higher gross profit partly offset by higher operating expenses; it also attributes the quarter's higher other income to unrealized gains from the public market listing of non-marketable equity securities, which explains another part of net income."
+    },
+    "e41-m105": {
+      "explains": true,
+      "scope": "company",
+      "reason": "It says Alphabet's R&D expenses rose $4.4 billion year over year in the three months ended June 30, 2026, mainly because of $2.9 billion more employee compensation and $592 million more depreciation."
+    },
+    "e21-mda": {
+      "nothing_to_find": true,
+      "where": null,
+      "reason": "The only SG&A paragraph says the expense rose because of 'various factors, none of which were significant', so it names no driver, and no other paragraph gives a cause for the SG&A expense or ratio this quarter compared with a year earlier."
+    },
+    "e41-m117": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only says that Alphabet-level activities mainly consist of shared AI research and development expenses; it does not say that R&D rose or what drove a year-over-year increase this quarter."
+    },
+    "e19-m13": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It says net income rose mainly because operating income rose, and that operating income rose on higher gross profit partly offset by higher operating expenses, so the cause is stated through one of net income's parts."
+    },
+    "e41-m2": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only describes Alphabet's segment structure and says AI-related R&D is centralized at the Alphabet level; it gives no reason for R&D spending rising year over year this quarter."
+    },
+    "e42-m59": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only describes how the company's taxes are spread across countries and how sensitive it is to statutory tax rates; it doesn't name anything that caused net margin to fall this quarter compared with a year earlier."
+    },
+    "e41-mda": {
+      "nothing_to_find": false,
+      "where": "Research and development expenses increased $4.4 billion and $7.9 billion from the three",
+      "reason": "The paragraph says the year-over-year rise in R&D for the three months ended June 30, 2026 came mainly from $2.9 billion more employee compensation and $592 million more depreciation."
+    },
+    "e43-m6": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph names higher gross margin as a reason net income and EPS rose, but it gives no cause for the gross margin move itself, and its comparison is against the year-earlier periods rather than the prior quarter."
+    },
+    "e16-mda": {
+      "nothing_to_find": true,
+      "where": null,
+      "reason": "Every revenue explanation in the MD&A compares the three and six months ended June 30, 2026 with the same periods in 2025, and no paragraph explains the change from the first quarter of 2026 to the second, so no cause is given on the sequential basis."
+    },
+    "e43-mda": {
+      "nothing_to_find": true,
+      "where": null,
+      "reason": "The only explanation of gross margin (\"Gross margin as a percent of revenue for the three months ended June 30, 2026 increased 1.5 percentage points, primarily driven by improved cost of production and favorable product mix...\") compares the quarter with the same quarter a year earlier (85.8% vs 84.3%), and no paragraph gives a cause for the move against the previous quarter."
+    },
+    "e42-mda": {
+      "nothing_to_find": false,
+      "where": "Net interest expense (interest expense less interest income) in the second quarter and first six months of 2026 increased",
+      "reason": "The paragraph says higher debt, taken on for general corporate purposes, buybacks, dividends and the Clario acquisition, raised net interest expense in the second quarter. Net interest expense is a part of net income, so this names a cause of the year-over-year fall in net margin."
+    },
+    "e44-mda": {
+      "nothing_to_find": false,
+      "where": "Gross margin increased from a year ago on improved mix from Blackwell Ultra.",
+      "reason": "The MD&A says gross margin rose from a year ago because of improved mix from Blackwell Ultra. Gross margin and gross profit count as one subject, so this is a cause of this quarter's year-over-year move, and the later paragraph 'Gross margin increased to 75.0% for the second quarter...' gives the same reason."
+    },
+    "e44-m32": {
+      "explains": true,
+      "scope": "company",
+      "reason": "It says gross margin, which counts as the same subject as gross profit, rose from a year ago because of improved mix from Blackwell Ultra."
+    },
+    "e44-m47": {
+      "explains": true,
+      "scope": "company",
+      "reason": "The sentence covers both the second-quarter and first-half year-over-year gross margin increases and attributes them to improved mix from Blackwell Ultra; the H20 charge it also mentions applies only to the first half of fiscal 2026."
+    },
+    "e45-m21": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It says AGS segment revenue rose in the three months against the prior-year quarter mainly because of higher long-term service agreement revenue and more customer spending on spares, which is a cause given for one segment rather than the whole company."
+    },
+    "e45-m19": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only says that revenue rose compared with the prior year and gives no reason; the causes it lists (higher revenue, higher average selling prices, lower costs, product mix) explain gross margin, not revenue."
+    },
+    "e45-m5": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph describes product development and how the company sells, but gives no cause for the year-over-year revenue increase this quarter."
+    },
+    "e45-m58": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph explains why days sales outstanding rose (more down payment invoices and less receivables factoring) and gives no cause for the year-over-year change in revenue."
+    },
+    "e45-mda": {
+      "nothing_to_find": false,
+      "where": "The Semiconductor Systems segment remained our largest revenue contributor for which",
+      "reason": "This paragraph says the year-over-year revenue increase in the three months ended July 26, 2026 came from foundry and logic customers spending more because of stronger demand for leading-edge technologies, and from higher memory spending on DRAM technology transitions; the next paragraph adds that AGS revenue rose on higher long-term service agreement revenue and spares."
+    },
+    "e46-m38": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only says what the percentages in a table mean and gives no reason why operating income rose against the prior quarter."
+    },
+    "e47-m13": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only describes general macroeconomic and industry conditions, and the risks they pose, that have affected and may keep affecting pricing and operating margin; it names no specific cause of this quarter's year-over-year operating margin decline."
+    },
+    "e46-mda": {
+      "nothing_to_find": false,
+      "where": "•CMBU operating income was higher, primarily due to increases in average selling prices",
+      "reason": "The MD&A compares each business unit's operating income in the third quarter of 2026 with the second quarter and names causes for each, mainly higher average selling prices, with higher bit shipments and favorable mix in some units; a cause stated for part of the company counts."
+    },
+    "e48-m12": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only explains what the Other category includes and which items are left out of segment operating income; it gives no cause for the sequential change in operating income."
+    },
+    "e49-m3": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph describes Micron's manufacturing network and its ongoing technology investments, but it gives no cause for the sequential fall in the R&D-to-sales ratio this quarter, either for R&D spending or for sales."
+    },
+    "e48-mda": {
+      "nothing_to_find": true,
+      "where": null,
+      "reason": "Every operating-income and margin driver in the MD&A, at company and segment level, is measured against the same period a year earlier, and no paragraph states a cause of the move against the prior quarter."
+    },
+    "e49-m50": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph says sequential R&D expense rose 5% because of higher employee compensation, but that would push the R&D-to-sales ratio up, so it does not explain why the ratio fell; it never mentions revenue growth outpacing R&D, which is what would lower the ratio."
+    },
+    "e49-mda": {
+      "nothing_to_find": false,
+      "where": "R&D expenses for the third quarter of 2026 increased 5% as compared to the second quarter of 2026",
+      "reason": "Under the rubric, R&D spending and the R&D-to-sales ratio count as one subject, and this paragraph gives a sequential cause for this quarter's R&D move: a 5% rise driven primarily by higher employee compensation."
+    },
+    "e50-m42": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph is just the heading \"Research and development expenses (1)\" and gives no cause for the sequential rise in the R&D-to-sales ratio."
+    },
+    "e47-mda": {
+      "nothing_to_find": false,
+      "where": "Research and development (\"R&D\") expenses increased $782 million, or 49%, in the three months",
+      "reason": "The MD&A gives Q2 2026 year-over-year causes for parts of operating income: R&D rose on AI program costs and stock-based compensation, SG&A rose on the 2025 CEO Performance Award stock compensation and higher labor and litigation costs, and energy gross margin fell on sales mix and unfavorable warranty adjustments."
+    },
+    "e53-m50": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph explains why gross margin rose, citing net revenue growth and a higher semiconductor mix, but it never says what drove revenue up."
+    },
+    "e50-mda": {
+      "nothing_to_find": true,
+      "where": null,
+      "reason": "The only cause given for R&D expenses (higher third-party cloud hosting and stock-based compensation) compares the quarter with the same quarter of 2025, and no paragraph explains the R&D-to-sales ratio against the prior quarter."
+    },
+    "e52-mda": {
+      "nothing_to_find": false,
+      "where": "Products gross margin and gross margin percentage increased during the third quarter",
+      "reason": "Net income is built partly from gross margin, and this paragraph says this quarter's year-over-year rise in Products gross margin came mainly from product mix and tariff refunds, partly offset by higher costs such as memory, so it explains part of the net margin move; the tax-rate paragraph also explains a part, the higher effective tax rate, which held net margin back."
+    },
+    "e51-mda": {
+      "nothing_to_find": true,
+      "where": null,
+      "reason": "Every operating-income and EBIT-adjusted cause in the MD&A (Cost, Price, Mix, Other, the EV realignment charges) is measured against the three months ended June 30, 2025 or the six-month period, and no paragraph explains a change from the March 2026 quarter."
+    },
+    "e53-m48": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It says infrastructure software segment revenue rose year over year in the quarter mainly because of strong demand for VMware Cloud Foundation, including additional license revenue recognized on contracts customers cannot terminate."
+    },
+    "e53-m14": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only describes how accounting estimates and critical accounting policies work and gives no cause for the year-over-year change in revenue."
+    },
+    "e53-m47": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It attributes the year-over-year increase in semiconductor solutions segment revenue for the fiscal quarter to strong demand for networking solutions, mainly custom AI accelerators and AI networking products."
+    },
+    "e53-mda": {
+      "nothing_to_find": false,
+      "where": "Net revenue from our semiconductor solutions segment increased in the fiscal quarter",
+      "reason": "This paragraph says semiconductor solutions revenue rose in the quarter compared with the year-earlier quarter because of strong demand for networking solutions, mainly custom AI accelerators and AI networking products, and the next paragraph gives VCF demand as the cause for infrastructure software."
+    },
+    "e54-m40": {
+      "explains": true,
+      "scope": "part",
+      "reason": "For one segment, the paragraph names the businesses that drove revenue growth, led by electron microscopy, with reported increases of $55 million in electron microscopy, $37 million in chromatography and mass spectrometry, and $26 million in chemical analysis, but it does not explain the company-wide figure."
+    },
+    "e54-m48": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It attributes the segment's year-over-year revenue growth to the clinical research business (mainly the Clario acquisition, +$441 million), the research and safety market channel (+$153 million) and pharma services (+$99 million), so the cause covers one segment, not the whole company."
+    },
+    "e54-m22": {
+      "explains": true,
+      "scope": "company",
+      "reason": "The paragraph names what drove the company's revenue growth: end markets (pharma and biotech on stronger market conditions; academic, government, industrial and applied on demand for high-end instruments; diagnostics and healthcare), geographies (Europe and Asia-Pacific, including China) and the segments that led organic growth (Laboratory Products and Biopharma Services, and Analytical Instruments), though it does not say outright that the comparison is with the year-earlier quarter."
+    },
+    "e54-m3": {
+      "explains": false,
+      "scope": null,
+      "reason": "This is a bullet from the forward-looking statements disclaimer listing kinds of financial expectations; it gives no cause for the year-over-year revenue increase this quarter."
+    },
+    "e55-m13": {
+      "explains": true,
+      "scope": "company",
+      "reason": "It says the year-over-year rise in operating income this quarter came from higher gross profit, partly offset by higher operating expenses."
+    },
+    "e55-m25": {
+      "explains": true,
+      "scope": "part",
+      "reason": "The paragraph says Data Center operating income rose in both periods, which includes this quarter, mainly because of higher revenue and the absence of last year's MI308 export-control inventory charges, partly offset by higher cost of sales and operating expenses."
+    },
+    "e54-mda": {
+      "nothing_to_find": false,
+      "where": "During the second quarter of 2026, customer activity continued to strengthen across our end markets.",
+      "reason": "For the second quarter of 2026, this paragraph names drivers of the year-over-year revenue growth: strong pharma and biotech growth on stronger market conditions, and academic, government, industrial and applied growth on demand for high-end instruments. It also names the geographies and segments that led the growth, and the segment paragraphs add bioproduction demand and the Clario acquisition."
+    },
+    "e55-m31": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It says the year-over-year rise in Embedded segment operating income for the quarter (\"in both periods\") was driven mainly by higher revenue, partly offset by higher cost of sales and operating expenses."
+    },
+    "e55-mda": {
+      "nothing_to_find": false,
+      "where": "Operating income for the three months ended June 27, 2026 was $2.0 billion compared to operating loss",
+      "reason": "This paragraph says the year-over-year rise in operating income came from higher gross profit, partly offset by higher operating expenses; the Data Center segment paragraph adds more specific causes for this quarter, namely higher revenue and the absence of the prior-year MI308 export-control inventory charges."
+    },
+    "e56-mda": {
+      "nothing_to_find": true,
+      "where": null,
+      "reason": "No paragraph gives a cause of the sequential change in net income or net margin: the sequential notes cover revenue, gross margin (described as flat) and operating expenses, which are different metrics, and the effective tax rate and other income are explained only year over year or with no period comparison."
+    },
+    "e57-m86": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only defines what SG&A expenses consist of and how they are recorded; it gives no cause for the SG&A ratio's sequential rise this quarter."
+    },
+    "e58-m41": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only introduces a list of items that affected GAAP net income and doesn't say what drove net margin up year over year this quarter."
+    },
+    "e58-m105": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph explains the change in working capital since May 31, 2026, and mentions net income only as one factor in that change; it gives no cause for the year-over-year rise in net margin or net income."
+    },
+    "e57-mda": {
+      "nothing_to_find": true,
+      "where": null,
+      "reason": "The only SG&A causes (higher HIV promotional expenses and acquisition integration costs including $332 million of stock-based compensation) are given against the same periods of 2025, not against the prior quarter, and no paragraph explains a sequential change in SG&A or the SG&A ratio."
+    },
+    "e59-m10": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only gives full-year 2026 guidance for net income and other measures and states no cause of the sequential fall in net margin this quarter."
+    },
+    "e60-m13": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph describes general macroeconomic and industry risks that affect pricing, order rates and operating margin, but it names no specific cause of this quarter's sequential fall in operating income."
+    },
+    "e60-mda": {
+      "nothing_to_find": true,
+      "where": null,
+      "reason": "Every causal paragraph (gross margin, R&D, SG&A, other income, taxes) compares Q2 2026 with Q2 2025 or the six-month periods, and none explains operating income against Q1 2026, so the MD&A states no sequential cause."
+    },
+    "e59-mda": {
+      "nothing_to_find": true,
+      "where": null,
+      "reason": "Every causal paragraph (the consolidated Cost and Other drivers, the regional EBIT-adjusted drivers, income tax) compares the June 2026 quarter with the June 2025 quarter or with the six-month periods; the Q2 EV charges and Q1 IEEPA adjustment are reported for each quarter, but no paragraph says they drove a change in net income or net margin against the March 2026 quarter."
+    },
+    "e58-mda": {
+      "nothing_to_find": false,
+      "where": "Our total operating margin and total margin as a percentage of revenues increased in the first quarter of fiscal 2027",
+      "reason": "No paragraph explains net income or net margin directly, but this one says operating margin rose year over year this quarter because of higher revenues, and operating income is part of net income; other paragraphs also give year-over-year causes for other parts this quarter: lower restructuring and amortization expenses, higher non-operating income, higher interest expense and a higher tax provision."
+    }
+  },
+  "labels": {
+    "e01": {
+      "nothing_to_find": false,
+      "explains": {
+        "e01-m16": true,
+        "e01-m15": false
+      }
+    },
+    "e02": {
+      "nothing_to_find": false,
+      "explains": {
+        "e02-m7": false,
+        "e02-m31": false
+      }
+    },
+    "e03": {
+      "nothing_to_find": true,
+      "explains": {
+        "e03-m5": false
+      }
+    },
+    "e04": {
+      "nothing_to_find": false,
+      "explains": {
+        "e04-m73": true,
+        "e04-m74": false,
+        "e04-m70": false,
+        "e04-m21": false
+      }
+    },
+    "e05": {
+      "nothing_to_find": false,
+      "explains": {
+        "e05-m14": false
+      }
+    },
+    "e06": {
+      "nothing_to_find": false,
+      "explains": {
+        "e06-m32": false
+      }
+    },
+    "e07": {
+      "nothing_to_find": false,
+      "explains": {
+        "e07-m39": true,
+        "e07-m46": false
+      }
+    },
+    "e08": {
+      "nothing_to_find": true,
+      "explains": {
+        "e08-m13": false
+      }
+    },
+    "e09": {
+      "nothing_to_find": true,
+      "explains": {
+        "e09-m6": false
+      }
+    },
+    "e10": {
+      "nothing_to_find": true,
+      "explains": {
+        "e10-m6": false
+      }
+    },
+    "e12": {
+      "nothing_to_find": true,
+      "explains": {
+        "e12-m10": false
+      }
+    },
+    "e13": {
+      "nothing_to_find": false,
+      "explains": {}
+    },
+    "e14": {
+      "nothing_to_find": false,
+      "explains": {
+        "e14-m67": true,
+        "e14-m76": true,
+        "e14-m19": false
+      }
+    },
+    "e16": {
+      "nothing_to_find": true,
+      "explains": {
+        "e16-m19": false
+      }
+    },
+    "e19": {
+      "nothing_to_find": false,
+      "explains": {
+        "e19-m13": true
+      }
+    },
+    "e21": {
+      "nothing_to_find": true,
+      "explains": {
+        "e21-m33": false
+      }
+    },
+    "e41": {
+      "nothing_to_find": false,
+      "explains": {
+        "e41-m105": true,
+        "e41-m117": false,
+        "e41-m2": false
+      }
+    },
+    "e42": {
+      "nothing_to_find": false,
+      "explains": {
+        "e42-m59": false
+      }
+    },
+    "e43": {
+      "nothing_to_find": true,
+      "explains": {
+        "e43-m6": false
+      }
+    },
+    "e44": {
+      "nothing_to_find": false,
+      "explains": {
+        "e44-m47": true,
+        "e44-m32": true
+      }
+    },
+    "e45": {
+      "nothing_to_find": false,
+      "explains": {
+        "e45-m19": false,
+        "e45-m21": true,
+        "e45-m58": false,
+        "e45-m5": false
+      }
+    },
+    "e46": {
+      "nothing_to_find": false,
+      "explains": {
+        "e46-m38": false
+      }
+    },
+    "e47": {
+      "nothing_to_find": false,
+      "explains": {
+        "e47-m13": false
+      }
+    },
+    "e48": {
+      "nothing_to_find": true,
+      "explains": {
+        "e48-m12": false
+      }
+    },
+    "e49": {
+      "nothing_to_find": false,
+      "explains": {
+        "e49-m50": false,
+        "e49-m3": false
+      }
+    },
+    "e50": {
+      "nothing_to_find": true,
+      "explains": {
+        "e50-m42": false
+      }
+    },
+    "e51": {
+      "nothing_to_find": true,
+      "explains": {}
+    },
+    "e52": {
+      "nothing_to_find": false,
+      "explains": {}
+    },
+    "e53": {
+      "nothing_to_find": false,
+      "explains": {
+        "e53-m50": false,
+        "e53-m48": true,
+        "e53-m47": true,
+        "e53-m14": false
+      }
+    },
+    "e54": {
+      "nothing_to_find": false,
+      "explains": {
+        "e54-m22": true,
+        "e54-m40": true,
+        "e54-m48": true,
+        "e54-m3": false
+      }
+    },
+    "e55": {
+      "nothing_to_find": false,
+      "explains": {
+        "e55-m13": true,
+        "e55-m25": true,
+        "e55-m31": true
+      }
+    },
+    "e56": {
+      "nothing_to_find": true,
+      "explains": {}
+    },
+    "e57": {
+      "nothing_to_find": true,
+      "explains": {
+        "e57-m86": false
+      }
+    },
+    "e58": {
+      "nothing_to_find": false,
+      "explains": {
+        "e58-m105": false,
+        "e58-m41": false
+      }
+    },
+    "e59": {
+      "nothing_to_find": true,
+      "explains": {
+        "e59-m10": false
+      }
+    },
+    "e60": {
+      "nothing_to_find": true,
+      "explains": {
+        "e60-m13": false
+      }
+    }
+  },
+  "spot_check": [
+    "e01-m16",
+    "e07-m46",
+    "e10-m6",
+    "e12-m10",
+    "e21-m33",
+    "e41-m105",
+    "e46-m38",
+    "e48-m12",
+    "e55-m25",
+    "e60-m13"
+  ]
+}

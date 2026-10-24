@@ -10,8 +10,8 @@ Bar: precision at 3 of 0.8 or better for the scoring, with no first-place paragr
 
 | Method | Shown | Precision at 1 | Precision at 3 | Nothing found right |
 | --- | --- | --- | --- | --- |
-| scoring | 13 of 20 | 0.23 (3 of 13) | 0.23 (3 of 13) | 0.57 (4 of 7) |
-| baseline | 17 of 20 | 0.12 (2 of 17) | 0.12 (2 of 17) | 0.67 (2 of 3) |
+| scoring | 7 of 16 | 0.57 (4 of 7) | 0.57 (4 of 7) | 0.67 (6 of 9) |
+| baseline | 15 of 16 | 0.13 (2 of 15) | 0.13 (2 of 15) | 0.00 (0 of 1) |
 
 First-place paragraphs about another metric (by code's reading):
 
@@ -21,8 +21,8 @@ First-place paragraphs about another metric (by code's reading):
 
 | Method | Shown | Precision at 1 | Precision at 3 | Nothing found right |
 | --- | --- | --- | --- | --- |
-| scoring | 15 of 20 | 0.27 (4 of 15) | 0.40 (6 of 15) | 0.80 (4 of 5) |
-| baseline | 16 of 20 | 0.00 (0 of 16) | 0.00 (0 of 16) | 0.75 (3 of 4) |
+| scoring | 8 of 20 | 0.50 (4 of 8) | 0.75 (6 of 8) | 0.67 (8 of 12) |
+| baseline | 17 of 20 | 0.12 (2 of 17) | 0.12 (2 of 17) | 0.67 (2 of 3) |
 
 First-place paragraphs about another metric (by code's reading):
 
@@ -32,8 +32,8 @@ First-place paragraphs about another metric (by code's reading):
 
 | Method | Shown | Precision at 1 | Precision at 3 | Nothing found right |
 | --- | --- | --- | --- | --- |
-| scoring | 28 of 40 | 0.25 (7 of 28) | 0.32 (9 of 28) | 0.67 (8 of 12) |
-| baseline | 33 of 40 | 0.06 (2 of 33) | 0.06 (2 of 33) | 0.71 (5 of 7) |
+| scoring | 15 of 36 | 0.53 (8 of 15) | 0.67 (10 of 15) | 0.67 (14 of 21) |
+| baseline | 32 of 36 | 0.12 (4 of 32) | 0.12 (4 of 32) | 0.50 (2 of 4) |
 
 First-place paragraphs about another metric (by code's reading):
 
