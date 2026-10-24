@@ -3284,3 +3284,170 @@ Files changed:
 Blockers / next:
 - None. 2,537 tests pass (1 new); ruff and mypy clean; compare_answers reports `0 of 893
   conversations differ from master`. Every simplify-leftovers ticket is resolved.
+
+
+## 2026-10-23 — demo-polish 01: a comparison over several quarters gets a headline about the trend
+
+Ticket: `docs/process/tickets/demo-polish/issues/01-a-trend-headline-for-several-companies.md`
+
+Key decisions:
+- `_trends_headline` for a comparison (not a ranking) of one amount, two to four companies, three
+  or more quarters each: each company's first and last cell as the table shows it, "rose" / "fell"
+  / "was unchanged at", and ", its highest in the window" / ", its lowest" where the latest quarter
+  is above or below every earlier one and no earlier cell reads the same.
+- The window: "Over 8 quarters to <date>" when every latest quarter ends on one date; "Over each
+  company's last 8 quarters" when they differ; "Over the quarters shown" when the counts differ.
+- Five or more companies, rankings, changes and several metrics keep their headlines.
+
+Files changed:
+- `src/financial_analyst_agent/presentation.py`
+- `tests/test_presentation.py`, `tests/unit/test_answer_card.py`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. Full suite passes; ruff and mypy clean; compare_answers (against HEAD) shows 53 of 893
+  conversations differ, all in a headline, all comparisons over a window. Ticket 02 is next.
+
+
+## 2026-10-23 — demo-polish 02: a quarter-over-quarter question gets a quarter-over-quarter headline
+
+Ticket: `docs/process/tickets/demo-polish/issues/02-a-sequential-question-gets-a-sequential-headline.md`
+
+Key decisions:
+- New `TurnResult.change_bases` (the bases asked), set in `merge_analysis` from the reading that
+  switches the table's sequential change; the headline cannot learn it from the rows, since a
+  sequential view also shows a year-over-year change on its latest quarter.
+- Sequential alone: "Quarter over quarter, …". Both: today's year-over-year headline, plus
+  "; quarter over quarter, it fell 1.6%." for one company only. Year over year: unchanged.
+- The ticket's "`sequential` in the spec's operations" is true only when both bases are asked;
+  recorded in `docs/process/rules-to-review.md`.
+
+Files changed:
+- `src/financial_analyst_agent/contracts.py`, `graph/spec_turn.py`, `presentation.py`
+- `tests/test_says_what_it_cannot_do.py`
+- the ticket, `docs/process/progress.txt`, `docs/process/rules-to-review.md`
+
+Blockers / next:
+- None. Full suite passes; ruff and mypy clean; compare_answers (against HEAD) shows 29 of 893
+  conversations differ, all in a headline, all sequential-change conversations. Ticket 04 is next
+  (03 is another lane's).
+
+
+## 2026-10-23 — demo-polish 04: "compare to its peers" as a follow-up adds the peers
+
+Ticket: `docs/process/tickets/demo-polish/issues/04-its-peers-as-a-follow-up.md`
+
+Key decisions:
+- `request_wording.PEERS` (moved from `rules_planner._PEERS`) is the one peers wording.
+- `rules_planner._follow_up`: peers wording naming no company is an extend edit; naming one, it is
+  planned as fresh.
+- `turn_graph.with_peers` takes the message and the spec on screen; `_peers_follow_up` adds the
+  peers of the one company on screen (or the one named, when on screen) as an extend patch. A new
+  question about a company not on screen stays the fresh peers question.
+- `request_wording._refine_against` never reads a company out of peers wording.
+- Several companies on screen and none named: the guide asks whose peers, one suggestion each.
+
+Files changed:
+- `src/financial_analyst_agent/request_wording.py`, `rules_planner.py`, `graph/turn_graph.py`,
+  `guide.py`
+- `tests/test_says_what_it_cannot_do.py`
+- the ticket, `docs/process/progress.txt`, `docs/process/rules-to-review.md`
+
+Blockers / next:
+- None. Full suite passes; ruff and mypy clean; compare_answers (against HEAD) shows 0 of 893
+  conversations differ (none replays a peers follow-up). Ticket 05 is next.
+
+
+## 2026-10-23 — demo-polish 05: "Apple 10-K" is about the filing, not a metric called "K"
+
+Ticket: `docs/process/tickets/demo-polish/issues/05-a-form-name-is-not-a-metric.md`
+
+Key decisions:
+- `request_wording.FORM_NAME`, `form_label`, `reads_form`: the one reading of form names.
+- `rules_planner._unknown_term` drops form names before naming an unknown measure.
+- `guide._form_reply` (one branch of `guide_reply`): a company and a 10-K/10-Q with nothing else
+  asked gets the guide's suggestions for that filing; an 8-K or 20-F with no figure asked is said
+  plainly. "What changed in …'s latest 10-K" is left to the planner.
+
+Files changed:
+- `src/financial_analyst_agent/request_wording.py`, `rules_planner.py`, `guide.py`
+- `tests/test_says_what_it_cannot_do.py`, `tests/unit/test_planner_rules.py`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. Full suite passes; ruff and mypy clean; compare_answers (against HEAD) shows 0 of 893
+  conversations differ (none replays a bare form name). Ticket 06 is next.
+
+
+## 2026-10-23 — demo-polish 06: a well-known private company is named as private
+
+Ticket: `docs/process/tickets/demo-polish/issues/06-a-private-company-is-named-as-private.md`
+
+Key decisions:
+- `data/private_companies.json`, a hand-kept list of 15 names, none in the snapshot or the SEC
+  filer names (Klarna left off: the snapshot lists KLAR).
+- `issuer_index.private_companies_in` / `without_private_companies`, matched whole and before any
+  correction.
+- The guide answers a private company named alone; the rules planner blanks it and notes it beside
+  a listed one; the not-recorded reply carries the note.
+- `turn_graph` passes the live snapshot's index to `guide_reply` (one line outside the file list).
+
+Files changed:
+- `src/financial_analyst_agent/data/private_companies.json` (new), `issuer_index.py`, `guide.py`,
+  `rules_planner.py`, `graph/turn_graph.py`
+- `tests/unit/test_planner_rules.py`, `tests/test_says_what_it_cannot_do.py`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. Full suite passes; ruff and mypy clean; compare_answers (against HEAD) shows 0 of 893
+  conversations differ (none names a listed private company). Tickets 03 and 07 belong to
+  another lane.
+## 2026-10-23 — demo-polish 03: a clarification shows no internal ids
+
+Ticket: `docs/process/tickets/demo-polish/issues/03-no-internal-ids-on-a-clarification.md`
+
+Key decisions:
+- One rule, `slugNote(slug, label)` in `web/lib/clarify.ts`: the slug's words (underscores as
+  spaces), or null when the label already contains them, case-insensitive and ignoring
+  punctuation. The comparison base shows nothing under either button; "eps diluted" still shows
+  under "Diluted EPS".
+- The bubble already read as the label; its hover title said `Sent as year_over_year`. It now uses
+  the same rule, so no title for the comparison base and "Sent as eps diluted" for Diluted EPS.
+- A candidate with no server label falls back to the slug's words. The slug sent is unchanged.
+
+Files changed:
+- `web/lib/clarify.ts`, `web/lib/clarify.test.ts`
+- `web/components/clarify.tsx`, `web/components/clarify.test.tsx` (new)
+- `web/components/thread.tsx`, `web/components/thread.test.tsx`
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. pytest (2,602), ruff, mypy pass; compare_answers reports `0 of 893 conversations differ`;
+  lint, tsc, vitest (228) pass; `npm run build` passes from PowerShell (Git Bash hits Turbopack
+  0xc0000142). In a fresh worktree `npx tsc --noEmit` needs a build first for Next's `LayoutProps`.
+
+
+## 2026-10-23 — demo-polish 07: the landing page shows every capability
+
+Ticket: `docs/process/tickets/demo-polish/issues/07-the-landing-shows-every-capability.md`
+
+Key decisions:
+- Three lines, then a "Show N more" / "Show fewer" disclosure (`aria-expanded`, `aria-controls`
+  on the list) for the rest of what `meta` sends.
+- Every example is rendered. From `sm` up all show; on a phone three show and a "+N" chip
+  (disclosure, hidden from `sm` up) reveals the rest, because at 375 px four examples wrap past
+  two rows (measured against the recorded API).
+- 800×600: no horizontal scroll and no covered content at the end of the page; the bottom
+  padding is `main`'s `pb-44` in `analyst-window.tsx`, larger than the 128 px composer. The
+  review's composer scrollbar was not reproduced; if it recurs the cause is the composer's
+  textarea, left alone.
+
+Files changed:
+- `web/components/landing.tsx`, `web/components/landing.test.tsx` (new)
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. pytest (2,602), ruff, mypy pass; compare_answers reports `0 of 893 conversations differ`;
+  lint, tsc, vitest (230) pass; `npm run build` passes from PowerShell. Portfolio images of the
+  landing page were not re-captured (the capture script needs a running app). The follow-up line
+  is the API's fifth capability, so it sits behind "Show 2 more"; reordering is a storefront change.

@@ -96,3 +96,49 @@ describe("Thread answer rendering", () => {
     act(() => root.unmount());
   });
 });
+
+describe("Thread clarify answer", () => {
+  /** The analyst's bubble after pressing the button that sends `sent`. */
+  function answeredBubble(slugs: string[], labels: string[], sent: string): { text: string | null; title: string | null } {
+    const asked: Turn = {
+      index: 0,
+      message: "First question",
+      presentation: { ...PRESENTATION, candidates: labels },
+      candidate_slugs: slugs,
+      clarify_enabled: true,
+    };
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    act(() => {
+      root.render(
+        createElement(Thread, {
+          turns: [asked, { ...TURNS[1], message: sent }],
+          turn: { status: "idle" } as const,
+          onRetry: vi.fn(),
+          onAsk: vi.fn(),
+          onStartOver: vi.fn(),
+        }),
+      );
+    });
+    const element = container.querySelector('[data-turn="1"] p')!;
+    const bubble = { text: element.textContent, title: element.getAttribute("title") };
+    act(() => root.unmount());
+    return bubble;
+  }
+
+  it("shows a pressed comparison button by its words, with no id", () => {
+    const bubble = answeredBubble(
+      ["year_over_year", "sequential"],
+      ["The same quarter a year earlier (year over year)", "The quarter before (sequential)"],
+      "year_over_year",
+    );
+    expect(bubble.text).toBe("The same quarter a year earlier (year over year)");
+    expect(bubble.title).toBeNull();
+  });
+
+  it("names what was sent, as words, when the label reads differently", () => {
+    const bubble = answeredBubble(["eps_diluted", "eps_basic"], ["Diluted EPS", "Basic EPS"], "eps_diluted");
+    expect(bubble.text).toBe("Diluted EPS");
+    expect(bubble.title).toBe("Sent as eps diluted");
+  });
+});

@@ -312,10 +312,11 @@ What a question leaves out has a default, so the same words always get the same 
 | A why or yes-no question: `Why is Goldman's revenue so volatile?` | The figures it names, with a note that filings report what changed, not why |
 | An ambiguous word: `profit`, `income`, `margin`, `cash flow`, `interest`, `expenses`, `dividends`, `tax` | A question: which one? (ADR 0004) |
 | Two metrics: `revenue and net income` | Both |
-| A measure the catalog lacks: `debt`, `debt-to-equity`, `customer acquisition cost` | It says it cannot look that up yet, and lists what it can |
-| A segment or operating figure: `iPhone sales`, `Google Cloud revenue`, `deliveries` | The company-wide figure, with a note that filings report totals, not segments. With no company named, a segment one company reports names it: `iPhone sales` is Apple's revenue, `AWS` Amazon's, `Azure` Microsoft's |
+| A measure the catalog lacks: `debt`, `debt-to-equity`, `FCF yield`, `CAGR`, `earnings date`, `analyst estimates`, `institutional holders` | It says it cannot look that up yet, and lists what it can. Beside a catalog metric (`Apple revenue and dividend yield`), the catalog metric, with a note naming the measure left out |
+| A segment, region or operating figure: `iPhone sales`, `Google Cloud revenue`, `revenue from China`, `deliveries` | The company-wide figure, with a note that filings report totals, not segments or regions. With no company named, a segment one company reports names it: `iPhone sales` is Apple's revenue, `AWS` Amazon's, `Azure` Microsoft's |
 | An overview: `How is Apple doing?`, `the rundown on Apple` | Revenue, net income and three margins for the latest quarter, with five quarters of revenue and net margin |
 | A ranking: `top banks by revenue`, `biggest tech companies` | The 10 largest companies in the group by market value, or as many as asked |
+| A ranking with a condition: `tech companies with revenue growth above 20%`, `profitable banks`, `in the S&P 500` | The same largest companies, with a note naming each condition not applied: rankings screen by nothing but market value |
 | A follow-up that adds: `add Microsoft`, `also Microsoft`, `Microsoft too`, `add net income`, `and net income too` | What is on screen, plus Microsoft or net income |
 | A follow-up that replaces: `what about Microsoft?`, `same for Microsoft`, `what about net income?` | That in place of the companies, or the metric, on screen |
 | A general question: `What is EPS?`, `How might AI change banking?` | An explanation, marked as the model's, with no figures |
@@ -344,7 +345,7 @@ What a question leaves out has a default, so the same words always get the same 
 
 - An ambiguous word asks even when the rest of the question hints (`how much interest did JPMorgan pay`) or names a catalog metric beside it (`fee income and noninterest income`). `net interest` asks too; `net interest income` and `NII` name the bank figure.
 - A phrase that names one figure is that figure: `earnings` is net income; `EPS` and `earnings per share` are diluted EPS, `basic EPS` basic; `tax rate` is the effective tax rate; `EBIT` is operating income; `SG&A as a percentage of sales` is the SG&A ratio and `R&D as a percentage of revenue` R&D to sales; `income before taxes` and `noninterest income` are those figures. `profit margin` is net margin, with a note saying so. `fee income`, which no single filing figure measures, asks which.
-- An unknown measure stays unknown even when a word inside it would be ambiguous alone (`equity` in `debt-to-equity`). Beside a catalog metric (`Apple revenue and dividend yield`), the catalog metric is answered.
+- An unknown measure stays unknown even when a word inside it would be ambiguous alone (`equity` in `debt-to-equity`). Beside a catalog metric (`Apple revenue and dividend yield`), the catalog metric is answered, with a note naming the measure left out, whichever planner read it.
 - A per-share figure with no period, when the latest quarter is a fiscal fourth (`Cisco EPS`), is the latest quarter with its own per-share figure, with a note saying which quarter it stepped past: a 10-K reports EPS and dividends per share only for the year, and per-share figures are never derived (ADR 0007). Named (`Cisco EPS in Q4 FY2026`), that quarter says it is reported only for the year; in a window, it is a blank row saying so.
 
 **Companies**
@@ -368,6 +369,7 @@ What a question leaves out has a default, so the same words always get the same 
 ## Limitations
 
 - Ranking membership is a dated snapshot of US-listed operating companies, not a live screener; companies that file no 10-Qs (foreign private issuers) are left out of rankings.
+- A ranking cannot screen by a condition (`growth above 20%`, `profitable`, `S&P 500`) or be ordered by a change; a figure is not divided by another outside the catalog's ratios; filings' structured data has no regions. Where a question asks for one of these, the answer names the words it did not apply rather than leave them out unannounced ([ADR 0016](docs/adr/0016-an-answer-names-what-it-does-not-apply.md)).
 - Quarterly facts are directly reported standalone quarters where the filing has one. Otherwise only two derivations are made, both marked †: a fiscal fourth quarter (the 10-K's year minus the nine months) and a year-to-date difference (ADR 0007). Per-share figures are never derived.
 - The metric catalog is closed. Unknown or ambiguous phrases do not guess, and segment figures (AWS, iPhone) are not reported on their own: the answer shows the company-wide figure and says it is not the segment.
 - Foreign private issuers (20-F and 40-F filers) have no 10-Q facts, and subsidiaries that file jointly with their parent have no quarterly figures of their own in SEC's data.

@@ -119,7 +119,9 @@ class Settings(BaseSettings):
     # so the per-thread budgets alone do not bound what one visitor can spend.
     client_threads_per_hour: int = 30
     client_turns_per_hour: int = 120
-    snapshot_stale_after_days: int = 30
+    # Every ranking dates its snapshot; the flag marks one too old to trust (the
+    # snapshot is rebuilt by hand, see README Maintenance).
+    snapshot_stale_after_days: int = 90
 
     model_config = SettingsConfigDict(
         env_file=".env",

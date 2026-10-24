@@ -192,9 +192,23 @@ _INDUSTRY_WORDS = {
 }  # fmt: skip
 
 
+# Words that would screen a group rather than name it ("profitable banks",
+# "small-cap pharma", "S&P 500 tech"). A ranking takes the largest by market cap
+# and screens on nothing, so the group is the rest, and the answer's note names
+# what it did not apply ("large-cap" needs no note: the largest are what a ranking
+# shows). "The most profitable tech companies" orders rather than screens, and is
+# left as it is.
+_GROUP_SCREEN = re.compile(
+    r"(?<!most )(?<!least )\b(?:(?:un)?profitable|(?:money|loss)[- ](?:losing|making)"
+    r"|dividend[- ]paying|debt[- ]free|cash[- ]rich|high[- ]growth"
+    r"|(?:small|mid|micro|large|mega)[- ]?caps?|s&p ?500|nasdaq(?:[- ]?100)?)\s+",
+    re.IGNORECASE,
+)
+
+
 def _clean_group(industry: str) -> str:
-    """The group alone: "5 banks" and "largest banks" rank banks."""
-    return _GROUP_LEAD.sub("", industry).strip() or industry
+    """The group alone: "5 banks", "largest banks" and "profitable banks" rank banks."""
+    return _GROUP_SCREEN.sub("", _GROUP_LEAD.sub("", industry)).strip() or industry
 
 
 def _plural_group(group: str) -> str:

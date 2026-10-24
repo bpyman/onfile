@@ -30,6 +30,7 @@ Maps a new question to one of eight intents (lookup, compare, rank, rank-and-loo
 - **Uncertainty has somewhere to go.** For an ambiguous measure the model returns the analyst's own word ("set metric to the user's word; code asks which they mean"); for a measure outside the catalog it returns the word unchanged and code refuses it by name. The model is never asked to guess.
 - **The prompt names what code handles.** "Periods … and year-over-year growth are read from the question by code." The model may suggest a window length; the code's reading of the words takes precedence.
 - **One prohibition.** "Never calculate, select, or invent financial values." The schema contains no field a value could occupy.
+- **What the plan cannot hold is named, not dropped.** The schema has no field for a condition ("above 20%", "profitable"), a region or a "why", so neither planner can express one. Code reads those words from the question and names them in a note above the answer, whichever planner read it ([ADR 0016](adr/0016-an-answer-names-what-it-does-not-apply.md)).
 
 If the call fails, the cascade keeps the rules planner's plan.
 

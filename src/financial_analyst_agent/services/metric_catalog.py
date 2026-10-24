@@ -568,6 +568,63 @@ _UNKNOWN_MEASURES: tuple[tuple[str, str], ...] = (
     ("repurchase", "share buybacks"),
     ("headcount", "headcount"),
     ("employees", "headcount"),
+    # Built on a catalog metric, but not that metric: "FCF yield" is not free cash
+    # flow, and a CAGR is not one quarter's revenue.
+    ("free cash flow yield", "free cash flow yield"),
+    ("fcf yield", "free cash flow yield"),
+    ("earnings yield", "earnings yield"),
+    ("cagr", "compound annual growth"),
+    ("compound annual growth rate", "compound annual growth"),
+    ("compound annual growth", "compound annual growth"),
+    ("compounded annual growth", "compound annual growth"),
+    # Not in a 10-Q at all: when the next report comes, what analysts expect, who
+    # owns the shares, and how the stock has traded. Each phrase says so in itself:
+    # "estimate", "beta" and "insiders" alone are ordinary words ("estimate Apple's
+    # revenue", "beta products").
+    ("earnings date", "earnings dates"),
+    ("earnings dates", "earnings dates"),
+    ("next earnings", "earnings dates"),
+    ("earnings release date", "earnings dates"),
+    ("earnings report date", "earnings dates"),
+    ("analyst estimates", "analyst estimates"),
+    ("analysts' estimates", "analyst estimates"),
+    ("street estimates", "analyst estimates"),
+    ("consensus estimates", "analyst estimates"),
+    ("eps estimates", "analyst estimates"),
+    ("eps estimate", "analyst estimates"),
+    ("earnings estimates", "analyst estimates"),
+    ("revenue estimates", "analyst estimates"),
+    ("consensus", "analyst estimates"),
+    ("expectations", "analyst estimates"),
+    ("price target", "price targets"),
+    ("price targets", "price targets"),
+    ("analyst ratings", "analyst ratings"),
+    ("analyst rating", "analyst ratings"),
+    ("institutional holders", "institutional ownership"),
+    ("institutional ownership", "institutional ownership"),
+    ("institutional investors", "institutional ownership"),
+    ("13f", "institutional ownership"),
+    ("largest shareholders", "institutional ownership"),
+    ("biggest shareholders", "institutional ownership"),
+    ("major shareholders", "institutional ownership"),
+    ("insider trading", "insider trades"),
+    ("insider trades", "insider trades"),
+    ("insider buying", "insider trades"),
+    ("insider selling", "insider trades"),
+    ("insider transactions", "insider trades"),
+    ("form 4", "insider trades"),
+    ("short interest", "short interest"),
+    ("stock performed", "stock performance"),
+    ("shares performed", "stock performance"),
+    ("stock returns", "stock performance"),
+    ("stock return", "stock performance"),
+    ("share price performance", "stock performance"),
+    ("stock price performance", "stock performance"),
+    ("total shareholder return", "stock performance"),
+    ("total return", "stock performance"),
+    ("stock beta", "beta"),
+    ("stock volatility", "volatility"),
+    ("share price volatility", "volatility"),
 )
 # Parts of a company and operating figures the filings' structured data does
 # not break out: "AWS revenue" is Amazon's total, "deliveries" is not a figure.
@@ -575,7 +632,8 @@ _SEGMENT_WORDS = re.compile(
     r"\b(?:aws|amazon web services|azure|iphones?|ipads?|macs?|wearables|google cloud"
     r"|youtube|instagram|whatsapp|xbox|data cent(?:er|re)s?|segments?|divisions?"
     r"|business units?|same[- ]store sales|comparable sales|comps|per employee|per user"
-    r"|arpu|deliveries|subscribers|users|units sold|backlog|bookings|store count)\b",
+    r"|arpu|deliveries|subscribers|users|units sold|backlog|bookings|store count"
+    r"|(?:revenue|sales|product|business|segment) mix)\b",
     re.IGNORECASE,
 )
 
@@ -788,6 +846,31 @@ def _as_ratios_of_revenue(query: str, matches: Sequence[Span]) -> list[Span]:
                 continue
         merged.append((start, end, metric))
     return merged
+
+
+# A share of a figure, wherever it sits: "capex as a % of revenue".
+_SHARE_OF_FIGURE = re.compile(
+    r"(?:%|\bpercent(?:age)?|\bshare|\bproportion|\bfraction)\s+of\s+"
+    r"(?:(?:the|its|their|total)\s+)*"
+    r"(?:revenue|sales|net income|income|profits?|earnings|cash flow|assets|equity)\b"
+)
+
+
+def unworked_share(query: str) -> str | None:
+    """The words of a share of a figure that the catalog does not read as one of its ratios.
+
+    "R&D as a percentage of revenue" is R&D to sales; "capex as a % of revenue"
+    has no ratio, so no answer works it out.
+    """
+    normalized = query.casefold()
+    ratios = set(_RATIO_OF_REVENUE.values())
+    covered = [
+        (start, end) for start, end, metric in _phrase_matches(normalized)[0] if metric in ratios
+    ]
+    for match in _SHARE_OF_FIGURE.finditer(normalized):
+        if not _spans_overlap(match.start(), match.end(), covered):
+            return match.group(0)
+    return None
 
 
 def _spans_overlap(start: int, end: int, occupied: list[tuple[int, int]]) -> bool:

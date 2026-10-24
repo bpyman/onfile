@@ -154,6 +154,45 @@ _COMPARE_TO_ISSUER = re.compile(
 )
 
 
+# "Compare Nvidia to its peers", "add its competitors": the largest companies in
+# the industry, which the turn adds. Never a company of that name.
+PEERS = re.compile(
+    r"\b(?:peers?|competitors?|rivals?|comparables?|similar (?:companies|firms|to)"
+    r"|companies like)\b",
+    re.IGNORECASE,
+)
+
+
+# A filing's form name ("10-K", "Apple's latest 10-Q", "annual report"): about a
+# filing, never a metric or a measure called "K".
+FORM_NAME = re.compile(
+    r"\b(?:10-?[kq]|8-?k|20-?f)s?\b|\b(?:annual|quarterly) reports?\b", re.IGNORECASE
+)
+# Forms the app does not read: current reports and foreign issuers' annual reports.
+_UNREAD_FORMS = {"8k": "8-K", "20f": "20-F"}
+
+
+def form_label(text: str) -> str | None:
+    """The first form a message names, as the SEC writes it ("10-K", "8-K"), or None.
+
+    An annual report is a 10-K and a quarterly report a 10-Q.
+    """
+    found = FORM_NAME.search(text)
+    if found is None:
+        return None
+    word = found.group(0).casefold().replace("-", "").removesuffix("s")
+    if word.startswith("annual"):
+        return "10-K"
+    if word.startswith("quarterly"):
+        return "10-Q"
+    return _UNREAD_FORMS.get(word) or f"{word[:-1]}-{word[-1].upper()}"
+
+
+def reads_form(form: str) -> bool:
+    """Whether the app reads a filing of this form (10-Q and 10-K, not 8-K or 20-F)."""
+    return form not in _UNREAD_FORMS.values()
+
+
 # "next quarter" asks for a forecast; filings only report what has happened.
 FORECAST = re.compile(
     r"\bnext\s+(?:quarter|year|fiscal\s+year|fy)\b|\bforecasts?\b|\bprojected\b|\bpredict",
@@ -738,6 +777,11 @@ def _refine_against(
     index: CompanyNames | None,
 ) -> SpecPatch:
     """The follow-up's edit of the analysis on screen."""
+    if PEERS.search(message):
+        # "compare to its peers": the peers the turn found (``with_peers``) join
+        # the analysis on screen; the words name no company called "its peers".
+        kept = tuple(company for company in patch.add_companies if not PEERS.search(company))
+        return patch.model_copy(update={"add_companies": kept})
     if drops_comparison(message):
         # Nothing else on screen changes: not a company called "year over year".
         return _extend(

@@ -63,7 +63,7 @@ def snapshot_status(
     as_of: str,
     *,
     now: datetime | None = None,
-    stale_after_days: int = 30,
+    stale_after_days: int = 90,
     recorded: bool = False,
 ) -> tuple[str, bool]:
     """Human freeze date plus whether the ranking snapshot is older than the threshold.

@@ -867,7 +867,7 @@ def test_metric_groups_split_reported_from_calculated() -> None:
     )
     assert "Operating cash flow" in groups["Reported (SEC EDGAR)"]
     assert "Cash and equivalents" in groups["Reported (SEC EDGAR)"]
-    assert groups["Daily snapshot (FMP)"] == ("Market cap", "Share price")
+    assert groups["Dated snapshot (FMP)"] == ("Market cap", "Share price")
 
 
 @pytest.mark.parametrize("across_periods", [True, False])
@@ -1610,6 +1610,18 @@ def test_an_overview_leads_with_a_sentence() -> None:
 
     assert answer.headline.startswith("NVIDIA's revenue was $")
     assert "net margin" in answer.headline
+
+
+def test_a_comparison_over_a_window_says_where_each_company_went() -> None:
+    # Apple's quarters end on Jun 27 and Microsoft's on Jun 30, so the window
+    # is each company's own last 8 quarters.
+    answer = _answer("Compare Apple and Microsoft gross margin over the last 8 quarters")
+
+    assert answer.headline == (
+        "Over each company's last 8 quarters, Apple's gross margin rose from 46.2% † to "
+        "50.1%, its highest in the window, and Microsoft's fell from 69.4% to 67.2% †, "
+        "its lowest."
+    )
 
 
 def test_an_overview_draws_small_revenue_and_margin_trends() -> None:

@@ -300,6 +300,41 @@ def test_ranking_and_comparison_get_a_headline() -> None:
     )
 
 
+def _compared(rows: list[TableRow]) -> str | None:
+    return present_turn(
+        TurnResult(
+            intent=Intent.COMPARE, renderer=RendererKind.TABLE, tool_traces=[], table_rows=rows
+        )
+    ).headline
+
+
+def test_a_comparison_over_quarters_says_where_each_company_started_and_ended() -> None:
+    rows = [*_series(MSFT, ["70", "90", "80"]), *_series(AAPL, ["95", "140", "95"])]
+    assert _compared(rows) == (
+        "Over 3 quarters to Mar 31, 2026, Microsoft's revenue rose from $70 to $80 "
+        "and Apple's was unchanged at $95."
+    )
+    highs = [*_series(MSFT, ["70", "80", "90"]), *_series(AAPL, ["140", "120", "100"])]
+    assert _compared(highs) == (
+        "Over 3 quarters to Mar 31, 2026, Microsoft's revenue rose from $70 to $90, "
+        "its highest in the window, and Apple's fell from $140 to $100, its lowest."
+    )
+
+
+def test_a_comparison_of_more_than_four_companies_over_quarters_names_the_leader() -> None:
+    companies = [
+        {"company_name": f"Company {letter}", "ticker": letter, "cik": f"000000000{index}"}
+        for index, letter in enumerate("ABCDE")
+    ]
+    rows = [
+        row
+        for index, company in enumerate(companies)
+        for row in _series(company, [str(10 + index), str(20 + index), str(30 + index)])
+    ]
+    headline = _compared(rows)
+    assert headline is not None and headline.startswith("Of these 5 companies, Company E")
+
+
 def test_spec_chip_edits_say_the_follow_up_each_chip_sends() -> None:
     spec = AnalysisSpec(
         companies=(

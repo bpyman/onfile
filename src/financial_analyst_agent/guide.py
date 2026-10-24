@@ -10,6 +10,7 @@ exploring with one tap.
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from typing import Any
 
 from financial_analyst_agent.contracts import (
@@ -19,8 +20,14 @@ from financial_analyst_agent.contracts import (
     TurnResult,
 )
 from financial_analyst_agent.graph.analysis_spec import AnalysisSpec
-from financial_analyst_agent.issuer_index import CompanyNames, expand_groups
+from financial_analyst_agent.issuer_index import (
+    CompanyNames,
+    expand_groups,
+    private_companies_in,
+    without_private_companies,
+)
 from financial_analyst_agent.prose import in_sentence, joined, possessive, short_name
+from financial_analyst_agent.request_wording import FORM_NAME, PEERS, form_label, reads_form
 from financial_analyst_agent.services.metric_catalog import (
     METRIC_DISPLAY,
     resolve_metric_phrase,
@@ -137,6 +144,28 @@ CHART_MESSAGE = (
     "Charts appear on their own when an answer has several quarters or several "
     "companies. Ask for a window or add a company, and the chart follows."
 )
+PEERS_MESSAGE = (
+    "Whose peers should I add? There are {count} companies here, each with its own "
+    "industry: name one, and I'll add the largest companies in its industry."
+)
+_MAX_PEER_CHOICES = 3
+FORM_MESSAGE = (
+    "I don't show a {form} on its own, but I can read {owner} filings: what changed in "
+    "its latest {form}, the figures it reports such as revenue, or an overview of how it "
+    "is doing."
+)
+UNREAD_FORM_MESSAGE = (
+    "I don't read {form}s. I answer from 10-Q and 10-K filings, the quarterly and annual "
+    "reports US companies file with the SEC."
+)
+# Words around a company and a form name that ask for nothing else ("show me
+# Microsoft's latest 10-Q").
+_FORM_FILLER = frozenset(
+    """
+    show me the latest last most recent newest current its a an please pull up open get
+    give see view read can you i want to what is was filing filings
+    """.split()  # noqa: SIM905
+)
 SMALLEST_MESSAGE = (
     "Rankings start from the largest companies by market cap, so I can't list the "
     "smallest yet."
@@ -180,9 +209,16 @@ def _spec_company(spec: AnalysisSpec | None) -> str | None:
 
 
 def guide_reply(
-    message: str, spec: AnalysisSpec | None, index: CompanyNames | None = None
+    message: str,
+    spec: AnalysisSpec | None,
+    index: CompanyNames | None = None,
+    outside: CompanyNames | None = None,
 ) -> TurnResult | None:
-    """A guide answer when the message is not an analysis request, else None."""
+    """A guide answer when the message is not an analysis request, else None.
+
+    ``outside`` is the live snapshot's index on the recorded runtime, so a
+    listed company the recording left out still counts as listed.
+    """
     text = _normalized(message)
     if not text:
         return None
@@ -208,6 +244,9 @@ def guide_reply(
         )
     if _not_english(text):
         return _guide(ENGLISH_MESSAGE, list(STARTER_QUESTIONS[:3]))
+    private = private_companies_in(message)
+    if private and not _names_listed(without_private_companies(message), index, outside):
+        return _guide(private_reply(private), list(STARTER_QUESTIONS[:3]))
     if _NOT_OPERATING_GROUP.search(text) and _RANKING_WORDS.search(text):
         return _guide(NOT_OPERATING_MESSAGE, ["Top 5 banks by revenue", STARTER_QUESTIONS[2]])
     etf = _etf_ticker(message, index)
@@ -225,6 +264,9 @@ def guide_reply(
             else STARTER_QUESTIONS[2]
         )
         return _guide(SMALLEST_MESSAGE, [suggestion])
+    form = _form_reply(message, text, index)
+    if form is not None:
+        return form
     unsupported = _unsupported_metrics(text)
     if unsupported:
         name = _named_company(message, index) or _spec_company(spec)
@@ -236,6 +278,18 @@ def guide_reply(
         return _guide(UNSUPPORTED_MESSAGE.format(names=joined(unsupported, "or")), suggestions)
     if _CHART.match(text):
         return _guide(CHART_MESSAGE, ["last 4 quarters", "show year-over-year"])
+    if (
+        spec is not None
+        and len(spec.companies) > 1
+        and PEERS.search(text)
+        and _named_company(message, index) is None
+    ):
+        # "compare to their peers" with Nvidia and AMD on screen: whose?
+        names = [short_name(company.name) or company.query for company in spec.companies]
+        return _guide(
+            PEERS_MESSAGE.format(count=len(names)),
+            [f"compare {name} to its peers" for name in names[:_MAX_PEER_CHOICES]],
+        )
     if _WHY.match(text) and len(text.split()) <= _WHY_MAX_WORDS and not _names_figure(
         message, index
     ):
@@ -245,6 +299,46 @@ def guide_reply(
             return _guide(WHY_MESSAGE, list(STARTER_QUESTIONS[3:]))
         return _guide(WHY_MESSAGE, [f"What changed in {name}'s latest 10-Q?"])
     return None
+
+
+def _form_reply(message: str, text: str, index: CompanyNames | None) -> TurnResult | None:
+    """A form name with nothing else asked: what the app can show from that filing.
+
+    "Apple 10-K" and "show me Microsoft's 10-Q" name a company and a filing but no
+    figure or change: the reply suggests the filing's changes, a figure and an
+    overview. A form the app does not read ("8-K", "20-F") is said plainly,
+    unless the words ask for a figure. "What changed in Apple's latest 10-K" is a
+    filing change, which this leaves to the planner.
+    """
+    form = form_label(text)
+    if form is None:
+        return None
+    if not reads_form(form):
+        if resolve_metric_phrase(text).kind != "unknown":
+            return None
+        name = _named_company(message, index)
+        suggestions = (
+            [f"How is {name} doing?", f"What changed in {name}'s latest 10-Q?"]
+            if name is not None
+            else list(STARTER_QUESTIONS[:3])
+        )
+        return _guide(UNREAD_FORM_MESSAGE.format(form=form), suggestions)
+    mentions = index.find(message) if index is not None else []
+    if index is None or len(mentions) != 1:
+        return None
+    named = set(re.findall(r"[\w&]+", mentions[0].typed.casefold()))
+    rest = FORM_NAME.sub(" ", re.sub(r"'s\b", "", text))
+    if any(word not in named and word not in _FORM_FILLER for word in re.findall(r"[\w&]+", rest)):
+        return None
+    name = short_display_name(index, mentions[0].query, mentions[0].typed)
+    return _guide(
+        FORM_MESSAGE.format(form=form, owner=possessive(name)),
+        [
+            f"What changed in {name}'s latest {form}?",
+            f"{name} revenue last 4 quarters",
+            f"How is {name} doing?",
+        ],
+    )
 
 
 def _names_figure(message: str, index: CompanyNames | None) -> bool:
@@ -304,7 +398,41 @@ def not_recorded_reply(
         return None
     if index is not None and index.find(expand_groups(message)):
         return None
-    return _guide(NOT_RECORDED_MESSAGE.format(name=missing[0]), list(STARTER_QUESTIONS[:3]))
+    reply = _guide(NOT_RECORDED_MESSAGE.format(name=missing[0]), list(STARTER_QUESTIONS[:3]))
+    private = private_companies_in(message)
+    # "Compare Visa and Stripe revenue": Stripe is left out whatever is recorded.
+    return reply.model_copy(update={"banners": [private_note(private)]}) if private else reply
+
+
+def _names_listed(message: str, *indexes: CompanyNames | None) -> bool:
+    """Whether any of the indexes finds a company in the message."""
+    return any(index.find(expand_groups(message)) for index in indexes if index is not None)
+
+
+def private_reply(names: Sequence[str]) -> str:
+    """ "Stripe is a private company: it files no reports with the SEC, so …"."""
+    if len(names) == 1:
+        return (
+            f"{names[0]} is a private company: it files no reports with the SEC, so there are "
+            "no figures to show."
+        )
+    return (
+        f"{joined(list(names))} are private companies: they file no reports with the SEC, so "
+        "there are no figures to show."
+    )
+
+
+def private_note(names: Sequence[str]) -> str:
+    """Say a private company named beside a listed one is left out, as a fund is."""
+    if len(names) == 1:
+        return (
+            f"{names[0]} is a private company: it files no reports with the SEC, so it is "
+            "left out."
+        )
+    return (
+        f"{joined(list(names))} are private companies: they file no reports with the SEC, so "
+        "they are left out."
+    )
 
 
 def not_recorded_banner(missing: list[str]) -> str:
