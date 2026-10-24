@@ -12,4 +12,8 @@ A person's ticket: it runs a model judge and needs Blake's review.
 
 **Blocked by:** 02
 
-**Status:** ready-for-human
+**Status:** resolved
+
+## Answer
+
+First run, 24 October 2026: 127 judgements by claude-opus-5-5 (`docs/evaluation/explanation-labels.json`), report `docs/evaluation/explanation.md`. Blake spot-checked the ten labels drawn with the fixed seed and agreed with all ten. The bar was missed: precision at 3 was 0.32 (9 of 28 cases shown), against the baseline's 0.06. Most of the miss was sequential questions (17 of 20 MD&As state no sequential cause) and cash-flow questions landing on cash-balance paragraphs. Tuning continues in ticket 05, on the development half, with a fresh held-out set, because the failures were read from both halves.
