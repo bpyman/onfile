@@ -7,16 +7,17 @@ HTML, the catalog metric and the comparison base the question asked for.
 A paragraph is chosen only when it names the metric in the MD&A's own words, and that
 sentence or the next says the metric changed or why. It must also:
 
-- compare on the basis asked: a sequential question needs a paragraph that says it
-  compares with the quarter before ("sequentially", "compared to the second quarter of
-  2026" beside the third); a year-over-year question takes any paragraph but one that
-  compares only sequentially, since a 10-Q compares with a year earlier by default;
+- compare year over year: any paragraph but one that compares only sequentially
+  ("sequentially", "compared to the second quarter of 2026" beside the third), since a
+  10-Q compares with a year earlier by default;
 - explain the quarter: a cause given only for the year to date ("first nine months")
   does not count, unless the paragraph says it holds for both periods;
 - be prose: a block of fewer than eight words, or with no verb, is a heading.
 
-A sequential question that finds nothing, where a year-over-year one would, gets
-``basis_not_discussed`` with those paragraphs as the alternative. It is scored on:
+Phase A covers year-over-year questions about amounts, and gross margin (``covers``).
+A sequential question is not searched for a sequential cause, which 10-Qs rarely give:
+it gets ``basis_not_discussed`` with the year-over-year paragraphs as the alternative,
+or ``not_discussed`` when there are none. A paragraph is scored on:
 
 - how often it names the metric;
 - whether a sentence naming the metric gives a cause ("primarily due to", "driven by"),
@@ -32,7 +33,8 @@ increase in operating income was due to higher gross profit") is never chosen
 (``is_about_another_metric``): with nothing about this metric, the answer is that the
 MD&A does not discuss it. A paragraph about the cash balance, liquidity, or financing or
 investing cash flows is about another metric for every metric covered. Ties keep the
-filing's order. Cash flow and capex are not covered for now (``_METRIC_FAMILY``).
+filing's order. Margins other than gross margin, ratios, cash flow and capex are not
+covered for now (``_METRIC_FAMILY``).
 The weights are a first cut; the explanation evaluation measures them.
 """
 
@@ -51,8 +53,8 @@ from financial_analyst_agent.filing_change import (
 
 MAX_PARAGRAPHS = 3
 
-# ``basis_not_discussed``: a sequential question found nothing, but the MD&A explains
-# the same metric against a year earlier; those paragraphs come as the alternative.
+# ``basis_not_discussed``: a sequential question, where the MD&A explains the same
+# metric against a year earlier; those paragraphs come as the alternative.
 NothingFound = Literal[
     "mda_not_found", "not_discussed", "basis_not_discussed", "metric_not_covered"
 ]
@@ -141,13 +143,16 @@ _METRIC_FAMILY: dict[str, str] = {
     "gross_profit": "gross",
     "cost_of_revenue": "gross",
     "operating_income": "operating",
-    "operating_margin": "operating",
     "net_income": "net",
-    "net_margin": "net",
     "research_and_development": "rd",
-    "rd_to_sales": "rd",
     "selling_general_and_administrative": "sga",
-    "sga_ratio": "sga",
+    # Left out for now (ticket 06): the second judge run found these margins' causes in
+    # a component's paragraph (gross margin, R&D, interest expense), which is about
+    # another metric and so never shown. Gross margin stays: its own paragraphs explain it.
+    # "operating_margin": "operating",
+    # "net_margin": "net",
+    # "rd_to_sales": "rd",
+    # "sga_ratio": "sga",
     # Left out for now: the first judge run found these questions landing on cash-balance
     # and financing paragraphs, and the causes MD&As give are for the year to date. Their
     # words stay above, so a cash-flow paragraph is still about another metric.
@@ -239,8 +244,8 @@ class ExplainingParagraph:
 class ManagementExplanation:
     """Up to three paragraphs in score order, or none and the reason.
 
-    With ``basis_not_discussed``, ``alternative`` holds the paragraphs a year-over-year
-    question on the same filing and metric gets.
+    With ``basis_not_discussed`` (a sequential question), ``alternative`` holds the
+    paragraphs a year-over-year question on the same filing and metric gets.
     """
 
     paragraphs: tuple[ExplainingParagraph, ...]
@@ -251,6 +256,15 @@ class ManagementExplanation:
 def explained_metrics() -> tuple[str, ...]:
     """Catalog metrics the MD&A has words for."""
     return tuple(_METRIC_FAMILY)
+
+
+def covers(metric: str, basis: ComparisonBase | None) -> bool:
+    """Whether a why question can be answered with paragraphs, not only a reason.
+
+    That is a year-over-year question (or one naming no basis) about a covered metric.
+    A sequential one gets ``basis_not_discussed`` or ``not_discussed``.
+    """
+    return metric in _METRIC_FAMILY and basis != "sequential"
 
 
 def _family_mentions(paragraph: str) -> dict[str, int]:
@@ -398,16 +412,13 @@ def _is_heading(paragraph: str) -> bool:
 def _compares_on(paragraph: str, basis: ComparisonBase | None) -> bool:
     """Whether the paragraph's comparison can answer the basis asked.
 
-    Sequential needs the paragraph to say it compares with the quarter before. Year
-    over year takes any paragraph but one comparing only sequentially: a 10-Q's MD&A
-    compares with the year-earlier quarter unless it says otherwise.
+    Year over year takes any paragraph but one comparing only sequentially: a 10-Q's
+    MD&A compares with the year-earlier quarter unless it says otherwise. A sequential
+    question is never searched (``management_explanation``).
     """
     if basis is None:
         return True
-    bases = _bases(paragraph)
-    if basis == "sequential":
-        return "sequential" in bases
-    return bases != {"sequential"}
+    return _bases(paragraph) != {"sequential"}
 
 
 def _only_for_the_year_to_date(paragraph: str) -> bool:
@@ -472,14 +483,16 @@ def management_explanation(
     paragraphs = section_paragraphs(extract_section(html, "mda"))
     if not paragraphs:
         return ManagementExplanation((), "mda_not_found")
-    chosen = _choose(paragraphs, metric, family, basis, source_url)
-    if chosen:
-        return ManagementExplanation(chosen)
     if basis == "sequential":
-        # 10-Qs explain the quarter against a year earlier; say so, and offer that.
+        # 10-Qs explain the quarter against a year earlier, so a sequential cause is not
+        # searched for (ticket 06): say so, and offer the year-over-year paragraphs.
         alternative = _choose(paragraphs, metric, family, "year_over_year", source_url)
         if alternative:
             return ManagementExplanation((), "basis_not_discussed", alternative)
+        return ManagementExplanation((), "not_discussed")
+    chosen = _choose(paragraphs, metric, family, basis, source_url)
+    if chosen:
+        return ManagementExplanation(chosen)
     return ManagementExplanation((), "not_discussed")
 
 

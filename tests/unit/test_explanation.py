@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 
 from financial_analyst_agent.explanation import (
+    covers,
     explained_metrics,
     is_about_another_metric,
     management_explanation,
@@ -86,11 +87,15 @@ def test_amd_gross_margin_puts_no_operating_income_paragraph_first() -> None:
     assert first.startswith("Gross margin for the three months ended June 27, 2026 was 54%")
 
 
-def test_the_basis_asked_picks_the_comparison_that_matches_it() -> None:
-    sequential = _first("mu-20260528.htm", "gross_margin", "sequential")
-    year_over_year = _first("mu-20260528.htm", "gross_margin", "year_over_year")
-    assert "from 74% for the second quarter of 2026" in sequential
-    assert "from 38% for the third quarter of 2025" in year_over_year
+def test_a_sequential_question_gets_the_year_over_year_paragraphs_instead() -> None:
+    html, url = _recorded("mu-20260528.htm")
+    sequential = management_explanation(html, "gross_margin", "sequential", url)
+    year_over_year = management_explanation(html, "gross_margin", "year_over_year", url)
+    assert "from 38% for the third quarter of 2025" in year_over_year.paragraphs[0].text
+    # Micron's MD&A explains the quarter sequentially too, but that is no longer searched.
+    assert sequential.paragraphs == ()
+    assert sequential.reason == "basis_not_discussed"
+    assert sequential.alternative == year_over_year.paragraphs
 
 
 def test_each_paragraph_is_verbatim_with_its_cause_and_link() -> None:
@@ -244,17 +249,39 @@ def test_no_more_than_three_paragraphs() -> None:
     assert len(explanation.paragraphs) == 3
 
 
-def test_every_ticket_metric_has_words() -> None:
-    assert {
+def test_phase_a_covers_amounts_and_gross_margin() -> None:
+    assert set(explained_metrics()) == {
         "revenue",
-        "gross_margin",
+        "cost_of_revenue",
         "gross_profit",
+        "gross_margin",
         "operating_income",
-        "operating_margin",
         "net_income",
         "research_and_development",
         "selling_general_and_administrative",
-    } <= set(explained_metrics())
+    }
+
+
+@pytest.mark.parametrize(
+    "metric", ["operating_margin", "net_margin", "rd_to_sales", "sga_ratio", "effective_tax_rate"]
+)
+def test_a_margin_or_ratio_other_than_gross_margin_is_not_covered(metric: str) -> None:
+    html = _mda(
+        "Operating margin and net margin increased in the quarter compared to the prior year "
+        "quarter, primarily due to higher revenue. Net income increased, driven by demand."
+    )
+    explanation = management_explanation(html, metric, "year_over_year", URL)
+    assert explanation.paragraphs == ()
+    assert explanation.reason == "metric_not_covered"
+    assert metric not in explained_metrics()
+    assert not covers(metric, "year_over_year")
+
+
+def test_covered_questions_are_year_over_year_amounts() -> None:
+    assert covers("revenue", "year_over_year")
+    assert covers("gross_margin", None)
+    assert not covers("revenue", "sequential")
+    assert not covers("operating_margin", "year_over_year")
 
 
 @pytest.mark.parametrize("metric", ["operating_cash_flow", "capital_expenditure", "free_cash_flow"])
@@ -280,20 +307,24 @@ SEQUENTIAL = (
 )
 
 
-def test_a_sequential_question_never_gets_a_year_over_year_only_paragraph() -> None:
+def test_a_sequential_question_is_answered_with_the_year_over_year_paragraphs() -> None:
+    # Ticket 06: sequential causes are rare in 10-Qs, so they are no longer searched for,
+    # even where one is there.
     unnamed = "Revenue increased 12% in the quarter, primarily due to higher volumes."
     html = _mda(YEAR_OVER_YEAR, unnamed, SEQUENTIAL)
     explanation = management_explanation(html, "revenue", "sequential", URL)
-    assert [chosen.text for chosen in explanation.paragraphs] == [SEQUENTIAL]
-
-
-def test_the_sequential_half_of_a_sentence_giving_both_counts() -> None:
-    both = (
-        "Data Center revenue was up 117% from a year ago and up 18% sequentially, driven by "
-        "demand for our Blackwell platform."
+    assert explanation.paragraphs == ()
+    assert explanation.reason == "basis_not_discussed"
+    assert explanation.alternative == (
+        management_explanation(html, "revenue", "year_over_year", URL).paragraphs
     )
-    explanation = management_explanation(_mda(YEAR_OVER_YEAR, both), "revenue", "sequential", URL)
-    assert [chosen.text for chosen in explanation.paragraphs] == [both]
+    assert {chosen.text for chosen in explanation.alternative} == {YEAR_OVER_YEAR, unnamed}
+
+
+def test_a_sequential_question_with_only_a_sequential_cause_is_not_discussed() -> None:
+    explanation = management_explanation(_mda(SEQUENTIAL), "revenue", "sequential", URL)
+    assert explanation.paragraphs == () and explanation.alternative == ()
+    assert explanation.reason == "not_discussed"
 
 
 def test_a_year_over_year_question_drops_a_sequential_only_paragraph() -> None:

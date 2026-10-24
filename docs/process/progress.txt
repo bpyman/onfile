@@ -3390,3 +3390,38 @@ Blockers / next:
   fails, because the ids are new.
 - 2,661 tests pass; ruff and mypy are clean; compare_answers reports `0 of 893 conversations
   differ from HEAD`.
+
+
+## 2026-10-23 — why-from-the-filing 06: narrow phase A to year-over-year amounts, confirmation set
+
+Ticket: `docs/process/tickets/why-from-the-filing/issues/06-narrow-phase-a-and-draw-a-confirmation-set.md`
+
+Key decisions:
+- Phase A covers year-over-year questions about revenue, cost of revenue, gross profit, gross
+  margin, operating income, net income, R&D and SG&A. Operating margin, net margin, R&D to sales
+  and the SG&A ratio are commented out of `_METRIC_FAMILY` (`metric_not_covered`); their words stay.
+- A sequential question is not searched: `basis_not_discussed` with the year-over-year paragraphs,
+  or `not_discussed`. `explanation.covers` names the scope. Weights unchanged.
+- Confirm set: e61 to e80, seed 20261025, all year over year, covered metrics, no overlap with any
+  earlier (company, metric, basis), no company more than twice (15 companies). 6 of its
+  (company, metric) pairs were drawn earlier as sequential questions; the ticket's rule allows it.
+  Its paragraphs were not opened.
+- Dev and held-out stay as they were (`SECOND_DRAW_METRICS` freezes ticket 05's metrics). The
+  narrowed scope covers 6 of 16 dev and 6 of 20 held-out cases. `score` counts only covered
+  cases, reports dev, held-out and confirm (no "all"), and the report says the dev and held-out
+  figures predate the narrowing.
+
+Files changed:
+- `src/financial_analyst_agent/explanation.py`, `src/financial_analyst_agent/explanation_evaluation.py`
+- `tests/unit/test_explanation.py`, `tests/unit/test_explanation_evaluation.py`
+- `docs/evaluation/explanation-cases.json`, `docs/evaluation/explanation-candidates.json`
+- `CONTEXT.md` (Management's explanation)
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- The confirm set needs a judge run (paid, a person's):
+  `git show b1afb9f:docs/evaluation/explanation-candidates.json > old-candidates.json`, then
+  `judge --carry-from old-candidates.json` (63 judgements, all confirm), then
+  `score --labels docs/evaluation/explanation-labels.json`.
+- 2,669 tests pass; ruff and mypy are clean; compare_answers reports `0 of 893 conversations
+  differ from HEAD`.

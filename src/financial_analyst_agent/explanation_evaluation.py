@@ -10,7 +10,8 @@ no model: the labels come from a judge a person runs (ticket 03).
     uv run python -m financial_analyst_agent.explanation_evaluation score --labels labels.json
 
 ``cases`` writes ``explanation-cases.json``: the development set, from the first draw's seed,
-and a fresh held-out set from its own seed (ticket 05). ``candidates`` writes, for each case,
+a fresh held-out set from its own seed (ticket 05), and a confirmation set, year over year
+only, from a third (ticket 06). ``candidates`` writes, for each case,
 the paragraphs ``explanation.py`` chooses and the baseline's to ``explanation-candidates.json``.
 ``brief`` prints the judge's instructions. ``score`` reads the judge's labels and writes
 ``explanation.md``. ``judge --carry-from old-candidates.json`` keeps the saved labels of
@@ -43,6 +44,7 @@ from financial_analyst_agent.contracts import (
 from financial_analyst_agent.domain.errors import FinancialAnalystError
 from financial_analyst_agent.essay_evaluation import parse_judgement
 from financial_analyst_agent.explanation import (
+    covers,
     explained_metrics,
     is_about_another_metric,
     management_explanation,
@@ -72,7 +74,13 @@ CASE_COUNT = 40
 HELD_OUT_SEED = 20261024
 HELD_OUT_COUNT = 20
 HELD_OUT_FIRST_ID = 41
-SETS = ("dev", "held-out")
+# The confirmation set (ticket 06): drawn after phase A narrowed to year-over-year
+# questions about amounts, which was chosen after reading the held-out set.
+CONFIRM_SEED = 20261025
+CONFIRM_COUNT = 20
+CONFIRM_FIRST_ID = 61
+_MOST_PER_COMPANY = 2
+SETS = ("dev", "held-out", "confirm")
 BASES: tuple[ComparisonBase, ...] = ("year_over_year", "sequential")
 # The metrics the first draw's pool was built from: ``explanation.py``'s at the time,
 # cash flow and capex included, so the first draw stays reproducible from its seed.
@@ -93,13 +101,25 @@ _FIRST_DRAW_METRICS = (
     "capital_expenditure",
     "free_cash_flow",
 )
+# The metrics covered when the development set was fixed and the held-out set drawn
+# (ticket 05), so both stay as they were after the narrowing (ticket 06).
+SECOND_DRAW_METRICS = tuple(
+    metric
+    for metric in _FIRST_DRAW_METRICS
+    if metric not in ("operating_cash_flow", "capital_expenditure", "free_cash_flow")
+)
 CASES_NOTES = (
     "The development set is the first draw's development half (seed 20261023), less its "
     "operating cash flow, capex and free cash flow cases, whose metrics are no longer "
     "covered. The first draw's held-out half (e20, e22 to e40) was read while diagnosing the "
     "first judge run, so it and its labels leave the evaluation. The held-out set is a fresh "
     "draw (seed 20261024, ids from e41) from the narrowed pool, sharing no (company, metric, "
-    "basis) with either half of the first draw: 10 year over year and 10 sequential."
+    "basis) with either half of the first draw: 10 year over year and 10 sequential. "
+    "Ticket 06 narrowed phase A to year-over-year questions about amounts and gross margin, "
+    "after reading the held-out set; the development and held-out sets stay for the record, "
+    "drawn under the wider scope. The confirm set (seed 20261025, ids from e61) is 20 year-"
+    "over-year cases from the covered metrics, sharing no (company, metric, basis) with any "
+    "earlier set, and no company more than twice."
 )
 
 Direction = Literal["rose", "fell"]
@@ -381,13 +401,13 @@ def draw_held_out(seed: int, used: Collection[tuple[str, str, str]]) -> list[Exp
     """A fresh held-out set: 20 why questions, 10 per basis, none already ``used``.
 
     ``used`` holds the (company, metric, basis) of every case drawn before. The pool
-    is ``_pool`` over the metrics ``explanation.py`` covers now; no (company, metric)
+    is ``_pool`` over the metrics ``explanation.py`` covered then; no (company, metric)
     is drawn twice. Ids follow on from the first draw's.
     """
     facts = recorded_facts()
     quarterlies = latest_quarterlies()
     rng = random.Random(seed)
-    pool = _pool(facts, quarterlies, explained_metrics())
+    pool = _pool(facts, quarterlies, SECOND_DRAW_METRICS)
     picked: list[tuple[str, str, ComparisonBase]] = []
     taken: set[tuple[str, str]] = set()
     for basis in BASES:
@@ -403,12 +423,53 @@ def draw_held_out(seed: int, used: Collection[tuple[str, str, str]]) -> list[Exp
     ]
 
 
+def draw_confirm(seed: int, used: Collection[tuple[str, str, str]]) -> list[ExplanationCase]:
+    """The confirmation set: 20 year-over-year why questions, none already ``used``.
+
+    The pool is ``_pool`` over the metrics ``explanation.py`` covers now. No company
+    is drawn more than twice while the pool allows it. Ids follow on from the held-out set's.
+    """
+    facts = recorded_facts()
+    quarterlies = latest_quarterlies()
+    rng = random.Random(seed)
+    basis: ComparisonBase = "year_over_year"
+    pool = [
+        pair
+        for pair in _pool(facts, quarterlies, explained_metrics())
+        if (*pair, basis) not in used
+    ]
+    rng.shuffle(pool)
+    picked: list[tuple[str, str]] = []
+    per_company: dict[str, int] = {}
+    for cik, metric in pool:
+        if len(picked) < CONFIRM_COUNT and per_company.get(cik, 0) < _MOST_PER_COMPANY:
+            picked.append((cik, metric))
+            per_company[cik] = per_company.get(cik, 0) + 1
+    # Where the pool cannot spread them that far, the rest come in the shuffled order.
+    picked += [pair for pair in pool if pair not in picked][: CONFIRM_COUNT - len(picked)]
+    templates = [rng.randrange(len(_TEMPLATES)) for _ in picked]
+    return [
+        _case(
+            facts,
+            quarterlies,
+            f"e{CONFIRM_FIRST_ID + index:02d}",
+            SETS[2],
+            (cik, metric, basis),
+            template,
+        )
+        for index, ((cik, metric), template) in enumerate(zip(picked, templates, strict=True))
+    ]
+
+
 def evaluation_cases() -> list[ExplanationCase]:
-    """The development set (the first draw's, with a covered metric) and the fresh held-out set."""
+    """The development set (the first draw's, with a metric covered in ticket 05), the
+    fresh held-out set, and the confirmation set."""
     first = draw_cases(SEED)
-    dev = [case for case in first if case.set == SETS[0] and case.metric in explained_metrics()]
+    dev = [case for case in first if case.set == SETS[0] and case.metric in SECOND_DRAW_METRICS]
     used = {(case.cik, case.metric, case.basis) for case in first}
-    return dev + draw_held_out(HELD_OUT_SEED, used)
+    held_out = draw_held_out(HELD_OUT_SEED, used)
+    used |= {(case.cik, case.metric, case.basis) for case in held_out}
+    return dev + held_out + draw_confirm(CONFIRM_SEED, used)
 
 
 def _company_name(facts: SecFactLookup, cik: str, report_date: str, metric: str) -> str:
@@ -419,7 +480,7 @@ def _company_name(facts: SecFactLookup, cik: str, report_date: str, metric: str)
 
 def cases_payload(cases: Sequence[ExplanationCase]) -> dict[str, Any]:
     return {
-        "seeds": {SETS[0]: SEED, SETS[1]: HELD_OUT_SEED},
+        "seeds": {SETS[0]: SEED, SETS[1]: HELD_OUT_SEED, SETS[2]: CONFIRM_SEED},
         "notes": CASES_NOTES,
         "cases": [asdict(case) for case in cases],
     }
@@ -537,17 +598,18 @@ def score(
     Precision at k is the share of cases shown at least one paragraph where one of
     the first k states a cause (the design's label). "Nothing found" is right when
     the judge found no cause anywhere in the MD&A.
+
+    Only the cases the narrowed scope covers are counted (``covers``: year over year,
+    a covered metric); ``outside_scope`` says how many of a set's are not. The sets
+    are never added together: the earlier ones were read before the narrowing.
     """
     by_case = labels["labels"]
     summary: dict[str, Any] = {}
-    for split in (*SETS, "all"):
-        entries = [
-            entry
-            for entry in candidates["cases"]
-            if split == "all" or sets[entry["id"]] == split
-        ]
-        if not entries:
+    for split in SETS:
+        in_set = [entry for entry in candidates["cases"] if sets[entry["id"]] == split]
+        if not in_set:
             continue
+        entries = [entry for entry in in_set if covers(entry["metric"], entry["basis"])]
         scored: list[Sequence[bool] | None] = []
         baseline: list[Sequence[bool] | None] = []
         empty = []
@@ -569,8 +631,16 @@ def score(
             "scoring": _tally(scored, empty),
             "baseline": _tally(baseline, empty),
             "other_metric_firsts": firsts,
+            "outside_scope": len(in_set) - len(entries),
         }
     return summary
+
+
+_SET_SCOPES = {
+    "dev": "Drawn under the wider scope and tuned on (ticket 05).",
+    "held-out": "Drawn under the wider scope; read before the narrowing (ticket 06).",
+    "confirm": "Drawn under the narrowed scope (ticket 06), unseen.",
+}
 
 
 def _rate(hits: int, of: int) -> str:
@@ -594,10 +664,23 @@ def report_markdown(summary: Mapping[str, Any], *, judge: str) -> str:
         "Bar: precision at 3 of 0.8 or better for the scoring, with no first-place paragraph "
         "about another metric.",
         "",
+        "Scope: phase A now covers year-over-year questions about amounts and gross margin "
+        "(ticket 06). Only those cases are counted below. **The dev and held-out figures "
+        "predate this narrowing:** both sets were drawn under the wider scope (margins, "
+        "ratios and sequential questions), and the narrowing was chosen after reading the "
+        "held-out set, so their figures on it are a hypothesis, not a result. The confirm "
+        "set was drawn after the narrowing, from the narrowed scope, and is the measure.",
+        "",
     ]
     for split, results in summary.items():
+        counted = results["scoring"]["cases"]
+        drawn = counted + results["outside_scope"]
+        under = _SET_SCOPES.get(split, "")
         lines += [
             f"## {split}",
+            "",
+            f"{under} Counted: {counted} of {drawn} cases; the rest are outside the "
+            "narrowed scope.",
             "",
             "| Method | Shown | Precision at 1 | Precision at 3 | Nothing found right |",
             "| --- | --- | --- | --- | --- |",
@@ -882,7 +965,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         _write_json(CASES_PATH, cases_payload(cases))
         moved = sum(case.direction is not None for case in cases)
         print(
-            f"wrote {len(cases)} cases (seeds {SEED}, {HELD_OUT_SEED}); "
+            f"wrote {len(cases)} cases (seeds {SEED}, {HELD_OUT_SEED}, {CONFIRM_SEED}); "
             f"{moved} with a recorded direction"
         )
         return

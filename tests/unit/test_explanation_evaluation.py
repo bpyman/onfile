@@ -40,8 +40,9 @@ def test_the_development_set_is_the_first_draws_with_a_covered_metric(
     first: list[ev.ExplanationCase], drawn: list[ev.ExplanationCase]
 ) -> None:
     dev = [case for case in drawn if case.set == "dev"]
+    # Covered when the development set was fixed (ticket 05), not now: it stays as it was.
     assert dev == [
-        case for case in first if case.set == "dev" and case.metric in ev.explained_metrics()
+        case for case in first if case.set == "dev" and case.metric in ev.SECOND_DRAW_METRICS
     ]
     assert len(dev) == 16
 
@@ -61,11 +62,34 @@ def test_the_fresh_held_out_draw_is_reproducible_and_unseen(
     assert not {case.id for case in held_out} & {case.id for case in first}
 
 
+def test_the_confirm_draw_is_reproducible_year_over_year_covered_and_unseen(
+    first: list[ev.ExplanationCase], drawn: list[ev.ExplanationCase]
+) -> None:
+    earlier = [case for case in drawn if case.set != "confirm"]
+    held_out = [case for case in earlier if case.set == "held-out"]
+    used = _triples(first) | _triples(held_out)
+    confirm = [case for case in drawn if case.set == "confirm"]
+    assert ev.draw_confirm(ev.CONFIRM_SEED, used) == confirm
+    assert ev.draw_confirm(ev.CONFIRM_SEED + 1, used) != confirm
+    assert len(confirm) == 20
+    assert {case.basis for case in confirm} == {"year_over_year"}
+    assert {case.metric for case in confirm} <= set(ev.explained_metrics())
+    # Nothing from the first draw (both halves) or the second held-out draw.
+    assert not _triples(confirm) & used
+    assert len(_triples(confirm)) == 20
+    assert max(Counter(case.cik for case in confirm).values()) <= 2
+    assert not {case.id for case in confirm} & {case.id for case in [*first, *held_out]}
+
+
 def test_the_committed_cases_are_the_draws_from_their_seeds(
     drawn: list[ev.ExplanationCase],
 ) -> None:
     committed = json.loads(ev.CASES_PATH.read_text(encoding="utf-8"))
-    assert committed["seeds"] == {"dev": ev.SEED, "held-out": ev.HELD_OUT_SEED}
+    assert committed["seeds"] == {
+        "dev": ev.SEED,
+        "held-out": ev.HELD_OUT_SEED,
+        "confirm": ev.CONFIRM_SEED,
+    }
     assert "leave the evaluation" in committed["notes"]
     assert ev.load_cases() == drawn
 
@@ -75,7 +99,8 @@ def test_every_case_is_a_metric_with_words_and_a_recorded_latest_10q(
 ) -> None:
     documents = ev.recorded_documents()
     for case in drawn:
-        assert case.metric in ev.explained_metrics()
+        covered = ev.explained_metrics() if case.set == "confirm" else ev.SECOND_DRAW_METRICS
+        assert case.metric in covered
         assert f"{case.cik}:{case.accession}:{case.document}" in documents
         assert case.latest is not None
 
@@ -178,7 +203,8 @@ def _candidate(case_id: str, scored: list[str], baseline: str | None) -> dict[st
     return {
         "id": case_id,
         "metric": "gross_margin",
-        "paragraphs": [{"id": pid, "text": f"Gross margin rose. ({pid})"} for pid in ids],
+        "basis": "year_over_year",
+        "paragraphs":[{"id": pid, "text": f"Gross margin rose. ({pid})"} for pid in ids],
         "scored": [
             {"paragraph": pid, "rank": n + 1, "score": 10 - n} for n, pid in enumerate(scored)
         ],
@@ -223,8 +249,37 @@ def test_score_computes_precision_at_one_and_three() -> None:
     assert held_out["scoring"]["nothing_found"] == 1
     assert held_out["scoring"]["nothing_found_right"] == 0
     assert held_out["baseline"]["at_1"] == 1
-    assert summary["all"]["scoring"]["shown"] == 3
-    assert summary["all"]["scoring"]["nothing_found"] == 2
+    # Seen sets and the unseen confirm set are never added together.
+    assert "all" not in summary
+
+
+def test_score_reports_confirm_beside_the_earlier_sets_and_counts_only_the_covered() -> None:
+    sequential = _candidate("b", [], "b9") | {"basis": "sequential"}
+    net_margin = _candidate("c", [], None) | {"metric": "net_margin"}
+    candidates = {
+        "cases": [_candidate("a", ["a1"], "a1"), sequential, net_margin, _candidate("d", [], None)]
+    }
+    labels = {
+        "labels": {
+            "a": {"nothing_to_find": False, "explains": {"a1": True}},
+            "b": {"nothing_to_find": False, "explains": {"b9": True}},
+            "c": {"nothing_to_find": False, "explains": {}},
+            "d": {"nothing_to_find": True, "explains": {}},
+        }
+    }
+    sets = {"a": "dev", "b": "dev", "c": "held-out", "d": "confirm"}
+    summary = ev.score(candidates, labels, sets)
+    assert list(summary) == ["dev", "held-out", "confirm"]
+    # The sequential case and the net margin case are outside the narrowed scope.
+    assert summary["dev"]["scoring"]["cases"] == 1
+    assert summary["dev"]["outside_scope"] == 1
+    assert summary["held-out"]["scoring"]["cases"] == 0
+    assert summary["held-out"]["outside_scope"] == 1
+    assert summary["confirm"]["scoring"]["nothing_found_right"] == 1
+    report = ev.report_markdown(summary, judge="test")
+    assert "predate" in report.split("## dev")[0]
+    assert "## confirm" in report
+    assert "1 of 2 cases" in report.split("## dev")[1].split("## held-out")[0]
 
 
 def test_score_needs_a_label_for_every_paragraph_shown() -> None:
