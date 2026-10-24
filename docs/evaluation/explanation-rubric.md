@@ -16,7 +16,7 @@ A paragraph states a cause when it says what drove the move: a product, a segmen
 
 It does not when:
 
-- **It restates the change without a cause.** "Revenue increased 9% to $2.1 billion" says what happened, not why. So does "the increase reflected growth across our segments" for revenue, or "higher sales" given as the reason sales rose. Restating a change, in any wording, is no.
+- **It restates the change without a cause.** "Revenue increased 9% to $2.1 billion" says what happened, not why. So does "the increase reflected growth across our segments" for revenue, or "higher sales" given as the reason sales rose. Restating a change, in any wording, is no. Naming where the change came from is not a restatement: "primarily due to increases in sales of both DRAM and NAND products" or "driven by higher sales of HIV products and Trodelvy" names the products that drove revenue, and is a cause.
 - **It explains another metric.** "Operating income rose on higher gross profit" explains operating income, not gross margin. A margin and the amount it is made from count as one subject: gross margin, gross profit and cost of sales; operating margin and operating income; net margin and net income; R&D and R&D to sales; SG&A and the SG&A ratio. Otherwise the cause must be stated for the metric asked about.
 - **It covers another period only.** A cause given only for the six or nine months to date, or only for a different quarter, is no, unless the paragraph says it also applies to this quarter ("in both periods").
 - **It covers the other basis only.** For a sequential question, a cause given only against the year-earlier quarter is no, and the other way round.
@@ -59,3 +59,4 @@ Return only this JSON object, with no other text:
 ## Changes
 
 - 23 October 2026, before any judge run (approved by Blake): the standard for a cause moved into its own section, so a paragraph prompt holds only "Judging one paragraph" and an MD&A prompt only "Judging the whole MD&A", each with the shared standard. Before, every prompt held both judgements and both answer shapes. The wording is unchanged apart from "It does when" becoming "A paragraph states a cause when", and the `scope` sentence moving to the paragraph judgement.
+- 24 October 2026, after the first run (approved by Blake): the restatement rule says naming the products that drove revenue is a cause, not a restatement. In the first run the judge called "primarily due to increases in sales of both DRAM and NAND products" a restatement, against the rubric's own list of causes. Every candidate was judged again under this version.
