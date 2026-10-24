@@ -3346,3 +3346,47 @@ Blockers / next:
   conversations differ from HEAD`. Ticket 03 (judge the set) is a person's: it runs the model
   judge after the rubric is reviewed. Nothing found for 9 cases; 3 first places are about another
   metric by code's reading (e05, e10, e19).
+
+
+## 2026-10-23 — why-from-the-filing 05: tune the choice on the development half, fresh held-out set
+
+Ticket: `docs/process/tickets/why-from-the-filing/issues/05-tune-the-choice-on-the-development-half.md`
+
+Key decisions:
+- A paragraph must compare on the basis asked: sequential needs it said (or two adjacent
+  quarters named); year over year drops only sequential-only paragraphs.
+- A cause only for the year to date is out unless the paragraph says it holds for the quarter
+  ("both periods", "three and six months").
+- A sequential question that finds nothing, where year over year would, returns
+  `basis_not_discussed` with those paragraphs as `alternative`.
+- Headings (fewer than eight words, or no verb) are never chosen. Cash-balance, liquidity,
+  financing and investing paragraphs are about another metric, via a new `cash_balance` family.
+- Operating cash flow, capex and free cash flow are commented out of `_METRIC_FAMILY`
+  (`metric_not_covered`). Their words stay, so cash-flow paragraphs still count as another metric.
+- Weights unchanged: on dev every hit is already first, and no remaining miss had a labelled
+  cause among the paragraphs that could be chosen.
+- Dev (16 kept), by the committed labels: precision at 1 and 3 went from 0.27 (3 of 11) to 0.43
+  (3 of 7), and "nothing found right" from 0.40 (2 of 5) to 0.67 (6 of 9). On all 20 dev cases
+  before, both precisions were 0.23 (3 of 13) and "nothing found right" was 0.57 (4 of 7).
+  No newly shown dev paragraph lacks a label.
+- Cases: dev is the first draw's 16 dev cases whose metric is still covered. The held-out set is
+  e41 to e60, seed 20261024, 10 year over year and 10 sequential, and shares no
+  (company, metric, basis) with either half of the first draw. The old held-out half leaves the
+  evaluation. Its candidates were not opened; only counts were checked.
+- Candidate paragraph ids are their MD&A place (`-mN`), so a stale label cannot attach to
+  another paragraph. `judge --carry-from` carries saved labels by text.
+
+Files changed:
+- `src/financial_analyst_agent/explanation.py`, `src/financial_analyst_agent/explanation_evaluation.py`
+- `tests/unit/test_explanation.py`, `tests/unit/test_explanation_evaluation.py`
+- `docs/evaluation/explanation-cases.json`, `docs/evaluation/explanation-candidates.json`
+- `CONTEXT.md` (Management's explanation)
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- The held-out set needs a judge run, which is a person's (paid). Write the old candidates out
+  with `git show 5f78089:docs/evaluation/explanation-candidates.json`, then run
+  `judge --carry-from` on them, then `score`. Until then `score` against the committed labels
+  fails, because the ids are new.
+- 2,661 tests pass; ruff and mypy are clean; compare_answers reports `0 of 893 conversations
+  differ from HEAD`.

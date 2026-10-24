@@ -13,44 +13,24 @@
       "reason": null,
       "paragraphs": [
         {
-          "id": "e01-p1",
+          "id": "e01-m16",
           "text": "Total revenue for the third quarter of 2026 increased 74% as compared to the second quarter of 2026, primarily due to increases in sales of both DRAM and NAND products.",
           "cause": "primarily due to increases in sales of both DRAM and NAND products"
         },
         {
-          "id": "e01-p2",
-          "text": "Total revenue for the third quarter of 2026 increased 346% as compared to the third quarter of 2025, primarily due to increases in sales of both DRAM and NAND products.",
-          "cause": "primarily due to increases in sales of both DRAM and NAND products"
-        },
-        {
-          "id": "e01-p3",
-          "text": "Total revenue for the first nine months of 2026 increased 203% as compared to the first nine months of 2025, primarily due to increases in sales of both DRAM and NAND products.",
-          "cause": "primarily due to increases in sales of both DRAM and NAND products"
-        },
-        {
-          "id": "e01-p4",
+          "id": "e01-m15",
           "text": "Total Revenue: Total revenue for the third quarter and first nine months of 2026 was impacted by the factors described in the section titled “Industry Conditions—Memory and Storage Demand” above.",
           "cause": null
         }
       ],
       "scored": [
         {
-          "paragraph": "e01-p1",
+          "paragraph": "e01-m16",
           "rank": 1,
           "score": 25
-        },
-        {
-          "paragraph": "e01-p2",
-          "rank": 2,
-          "score": 19
-        },
-        {
-          "paragraph": "e01-p3",
-          "rank": 3,
-          "score": 17
         }
       ],
-      "baseline": "e01-p4"
+      "baseline": "e01-m15"
     },
     {
       "id": "e02",
@@ -65,39 +45,29 @@
       "reason": null,
       "paragraphs": [
         {
-          "id": "e02-p1",
+          "id": "e02-m7",
           "text": "In the fourth quarter of 2025, the Company took various actions as a result of a strategic review of its assets and businesses aimed at advancing and scaling its core operations, including the value-based care business at Optum Health. For the three and six months ended June 30, 2026, these actions resulted in a net loss of $39 million and a net gain of $191 million, respectively. For the three and six months ended June 30, 2026, net portfolio divestitures included incremental losses on businesses held for sale, while the year-to-date results also included a net gain on the sales of businesses previously held for sale as of December 31, 2025. By segment, second quarter impacts consisted of net losses of $35 million and $4 million at Optum Health and Optum Insight, respectively. Year-to-date impacts consisted of gains of $524 million and $8 million at Optum Insight and Optum Rx, respectively, partially offset by a net loss of $341 million at Optum Health. Gains and losses on portfolio actions were recorded within operating costs on the Condensed Consolidated Statements of Operations.",
           "cause": "partially offset by a net loss of $341 million at Optum Health"
         },
         {
-          "id": "e02-p2",
-          "text": "(b)Net earnings margin attributable to UnitedHealth Group shareholders.",
-          "cause": "attributable to UnitedHealth Group shareholders"
-        },
-        {
-          "id": "e02-p3",
+          "id": "e02-m31",
           "text": "(c)Return on equity is calculated as annualized net earnings attributable to UnitedHealth Group common shareholders divided by average shareholders’ equity. Average shareholders’ equity is calculated using the shareholders’ equity balance at the end of the preceding year and the shareholders’ equity balances at the end of each of the quarters in the year presented.",
           "cause": "attributable to UnitedHealth Group common shareholders divided by average shareholders’ equity"
         }
       ],
       "scored": [
         {
-          "paragraph": "e02-p1",
+          "paragraph": "e02-m7",
           "rank": 1,
           "score": 16
         },
         {
-          "paragraph": "e02-p2",
+          "paragraph": "e02-m31",
           "rank": 2,
-          "score": 10
-        },
-        {
-          "paragraph": "e02-p3",
-          "rank": 3,
           "score": 6
         }
       ],
-      "baseline": "e02-p1"
+      "baseline": "e02-m7"
     },
     {
       "id": "e03",
@@ -109,47 +79,16 @@
       "report_date": "2026-06-27",
       "accession": "0000320193-26-000020",
       "url": "https://www.sec.gov/Archives/edgar/data/320193/000032019326000020/aapl-20260627.htm",
-      "reason": null,
+      "reason": "basis_not_discussed",
       "paragraphs": [
         {
-          "id": "e03-p1",
-          "text": "Products gross margin and gross margin percentage increased during the third quarter and first nine months of 2026 compared to the same periods in 2025 primarily due to a different mix of products and tariff refunds, partially offset by higher costs, including memory.",
-          "cause": "primarily due to a different mix of products and tariff refunds, partially offset by higher costs, including memory"
-        },
-        {
-          "id": "e03-p2",
-          "text": "Services gross margin increased during the third quarter and first nine months of 2026 compared to the same periods in 2025 primarily due to higher Services net sales and a different mix of services, partially offset by higher costs.",
-          "cause": "primarily due to higher Services net sales and a different mix of services, partially offset by higher costs"
-        },
-        {
-          "id": "e03-p3",
-          "text": "Services gross margin percentage was flat during the third quarter of 2026 compared to the third quarter of 2025. Year-over-year Services gross margin percentage increased during the first nine months of 2026 primarily due to a different mix of services, partially offset by higher costs.",
-          "cause": "primarily due to a different mix of services, partially offset by higher costs"
-        },
-        {
-          "id": "e03-p4",
+          "id": "e03-m5",
           "text": "The Company has historically experienced higher net sales in its first quarter compared to other quarters in its fiscal year due in part to seasonal holiday demand. Additionally, new product and service introductions can significantly impact net sales, cost of sales and operating expenses. The timing of product introductions can also impact the Company’s net sales to its indirect distribution channels as these channels are filled with new inventory following a product launch, and channel inventory of an older product often declines as the launch of a newer product approaches. Net sales can also be affected when consumers and distributors anticipate a product introduction.",
           "cause": null
         }
       ],
-      "scored": [
-        {
-          "paragraph": "e03-p1",
-          "rank": 1,
-          "score": 18
-        },
-        {
-          "paragraph": "e03-p2",
-          "rank": 2,
-          "score": 17
-        },
-        {
-          "paragraph": "e03-p3",
-          "rank": 3,
-          "score": 16
-        }
-      ],
-      "baseline": "e03-p4"
+      "scored": [],
+      "baseline": "e03-m5"
     },
     {
       "id": "e04",
@@ -164,44 +103,44 @@
       "reason": null,
       "paragraphs": [
         {
-          "id": "e04-p1",
+          "id": "e04-m73",
           "text": "Research and development expenses increased 18% and 9% to $1.8 billion and $3.1 billion for the three and six months ended June 30, 2026, respectively, compared to the same periods in 2025. Personnel, infrastructure and other support costs increased primarily due to integration expenses, including $229 million of stock-based compensation expenses related to our acquisitions of Arcellx, Ouro Medicines and Tubulis. Clinical studies and other costs decreased primarily due to lower oncology clinical study activity.",
           "cause": "primarily due to integration expenses, including $229 million of stock-based compensation expenses related to our acquisitions of Arcellx, Ouro Medicines and Tubulis"
         },
         {
-          "id": "e04-p2",
+          "id": "e04-m74",
           "text": "Acquired in-process research and development expenses are recorded when incurred and reflect costs of externally-developed IPR&D projects, acquired directly in a transaction other than a business combination, that do not have an alternative future use, including upfront and pre-commercialization milestone payments related to various collaborations and the costs of rights to IPR&D projects.",
           "cause": "reflect costs of externally-developed IPR&D projects, acquired directly in a transaction other than a business combination, that do not have an alternative future use, including upfront and pre-commercialization milestone payments related to various collaborations and the costs of rights to IPR&D projects"
         },
         {
-          "id": "e04-p3",
+          "id": "e04-m70",
           "text": "Research and development expenses consist primarily of personnel costs, including salaries, benefits and stock-based compensation expense, infrastructure, materials and supplies and other support costs, research and clinical studies performed by contract research organizations and our collaboration partners and other outside services.",
           "cause": null
         },
         {
-          "id": "e04-p4",
+          "id": "e04-m21",
           "text": "•Higher acquired in-process research and development (“IPR&D”) expenses related to our acquisitions of Arcellx, Tubulis and Ouro Medicines;",
           "cause": null
         }
       ],
       "scored": [
         {
-          "paragraph": "e04-p1",
+          "paragraph": "e04-m73",
           "rank": 1,
-          "score": 15
+          "score": 17
         },
         {
-          "paragraph": "e04-p2",
+          "paragraph": "e04-m74",
           "rank": 2,
           "score": 10
         },
         {
-          "paragraph": "e04-p3",
+          "paragraph": "e04-m70",
           "rank": 3,
           "score": 6
         }
       ],
-      "baseline": "e04-p4"
+      "baseline": "e04-m21"
     },
     {
       "id": "e05",
@@ -216,13 +155,13 @@
       "reason": "not_discussed",
       "paragraphs": [
         {
-          "id": "e05-p1",
+          "id": "e05-m14",
           "text": "Equity in net income (loss) of equity method investees 9 — % (4) — % 7 — % 13 — % 10 — %",
           "cause": null
         }
       ],
       "scored": [],
-      "baseline": "e05-p1"
+      "baseline": "e05-m14"
     },
     {
       "id": "e06",
@@ -237,29 +176,19 @@
       "reason": null,
       "paragraphs": [
         {
-          "id": "e06-p1",
-          "text": "Gross margin increased to 75.0% for the second quarter of fiscal year 2027 compared to 72.4% for the second quarter of fiscal year 2026, and 75.0% for the first half of fiscal year 2027 compared to 66.6% for the first half of fiscal year 2026 due to improved mix from Blackwell Ultra. Gross margin for the first half of fiscal year 2026 was also impacted by a $4.5 billion charge associated with H20 excess inventory and purchase obligations.",
-          "cause": "due to improved mix from Blackwell Ultra"
-        },
-        {
-          "id": "e06-p2",
+          "id": "e06-m32",
           "text": "Gross margin increased from a year ago on improved mix from Blackwell Ultra. Gross margin was approximately flat sequentially as our Blackwell architecture remains the vast majority of our revenue.",
           "cause": null
         }
       ],
       "scored": [
         {
-          "paragraph": "e06-p1",
+          "paragraph": "e06-m32",
           "rank": 1,
-          "score": 19
-        },
-        {
-          "paragraph": "e06-p2",
-          "rank": 2,
           "score": 13
         }
       ],
-      "baseline": "e06-p2"
+      "baseline": "e06-m32"
     },
     {
       "id": "e07",
@@ -274,29 +203,29 @@
       "reason": null,
       "paragraphs": [
         {
-          "id": "e07-p1",
+          "id": "e07-m39",
           "text": "R&D expenses of $2.5 billion for the three months ended June 27, 2026 increased by $0.6 billion, or 33%, compared to $1.9 billion for the prior year period. R&D expenses of $4.9 billion for the six months ended June 27, 2026 increased by $1.3 billion, or 36%, compared to $3.6 billion for the prior year period. The increase in both periods was primarily due to higher employee-related costs from an increase in headcount in support of our continued focus on our AI strategy and long-term growth opportunities.",
           "cause": "primarily due to higher employee-related costs from an increase in headcount in support of our continued focus on our AI strategy and long-term growth opportunities"
         },
         {
-          "id": "e07-p2",
+          "id": "e07-m46",
           "text": "For the three and six months ended June 27, 2026, we recorded an income tax provision from continuing operations of $252 million and $490 million representing an effective tax rate of 9.8% and 11.8%, respectively. The difference between the U.S. federal statutory tax rate of 21% and our estimated annual effective tax rate was primarily due to the income tax benefit from foreign-derived deduction eligible income (FDDEI) and research and development (R&D) tax credits.",
           "cause": "primarily due to the income tax benefit from foreign-derived deduction eligible income (FDDEI) and research and development (R&D) tax credits"
         }
       ],
       "scored": [
         {
-          "paragraph": "e07-p1",
+          "paragraph": "e07-m39",
           "rank": 1,
           "score": 17
         },
         {
-          "paragraph": "e07-p2",
+          "paragraph": "e07-m46",
           "rank": 2,
-          "score": 12
+          "score": 14
         }
       ],
-      "baseline": "e07-p1"
+      "baseline": "e07-m39"
     },
     {
       "id": "e08",
@@ -311,13 +240,13 @@
       "reason": "not_discussed",
       "paragraphs": [
         {
-          "id": "e08-p1",
+          "id": "e08-m13",
           "text": "However, we operate in a cyclical industry that is sensitive to shifting consumer trends, geopolitical conflicts, political and regulatory uncertainty, including with respect to trade and the environment, all of which can be compounded by inflationary pressures, rising energy prices, interest rate fluctuations and the liquidity of enterprise customers. For example, as inflationary pressures increased across the markets in which we operate, central banks in developed countries raised interest rates rapidly and substantially, which impacted the affordability of vehicle lease and finance arrangements. Further, sales of vehicles in the automotive industry also tend to be cyclical in many markets, which may expose us to increased volatility as we expand and adjust our operations. Moreover, as additional competitors enter the marketplace and help bring the world closer to sustainable transportation, we will have to adjust and continue to execute well to maintain our momentum. Additionally, our suppliers’ liquidity and allocation plans may be affected by current challenges in the automotive industry, which could reduce our access to components or result in unfavorable changes to cost. These macroeconomic and industry trends have had, and will likely continue to have, an impact on the pricing of, and order rate for our vehicles, and in turn our operating margin.",
           "cause": null
         }
       ],
       "scored": [],
-      "baseline": "e08-p1"
+      "baseline": "e08-m13"
     },
     {
       "id": "e09",
@@ -329,27 +258,16 @@
       "report_date": "2026-06-30",
       "accession": "0000059478-26-000081",
       "url": "https://www.sec.gov/Archives/edgar/data/59478/000005947826000081/lly-20260630.htm",
-      "reason": null,
+      "reason": "basis_not_discussed",
       "paragraphs": [
         {
-          "id": "e09-p1",
-          "text": "Research and development expenses increased 14 percent and 21 percent for the three and six months ended June 30, 2026, respectively, driven by continued investments in our early and late-stage portfolio.",
-          "cause": "driven by continued investments in our early and late-stage portfolio"
-        },
-        {
-          "id": "e09-p2",
+          "id": "e09-m6",
           "text": "Net income and earnings per share for the three months ended June 30, 2026 increased primarily due to higher gross margin, partially offset by higher acquired IPR&D charges, asset impairment, restructuring, and other special charges, and marketing, selling, and administrative expenses. Net income and earnings per share for the six months ended June 30, 2026 increased primarily due to higher gross margin, partially offset by higher acquired IPR&D charges, research and development expenses, and marketing, selling, and administrative expenses.",
           "cause": null
         }
       ],
-      "scored": [
-        {
-          "paragraph": "e09-p1",
-          "rank": 1,
-          "score": 14
-        }
-      ],
-      "baseline": "e09-p2"
+      "scored": [],
+      "baseline": "e09-m6"
     },
     {
       "id": "e10",
@@ -364,28 +282,13 @@
       "reason": "not_discussed",
       "paragraphs": [
         {
-          "id": "e10-p1",
+          "id": "e10-m6",
           "text": "During the three and six months ended June 30, 2026, we recognized total revenues of $28.24 billion and $50.62 billion, respectively, representing increases of $5.74 billion and $8.79 billion, respectively, compared to the same periods in the prior year. During the three and six months ended June 30, 2026, our net income attributable to common stockholders was $1.11 billion and $1.59 billion, respectively, representing a decrease of $58 million and an increase of $10 million, respectively, compared to the same periods in the prior year. We continue to ramp production and build and optimize our manufacturing capacity, expand our operations while focusing on further cost reductions and operational efficiencies, including through vertical integration of our battery and semiconductor supply chains, to enable increased deliveries and deployments of our products. We are also investing heavily in research and development to accelerate our AI, software and fleet-based profits for further revenue growth, which will negatively impact our profitability during this phase.",
           "cause": null
         }
       ],
       "scored": [],
-      "baseline": "e10-p1"
-    },
-    {
-      "id": "e11",
-      "set": "dev",
-      "question": "What caused Apple's free cash flow to rise sequentially last quarter?",
-      "company": "Apple",
-      "metric": "free_cash_flow",
-      "basis": "sequential",
-      "report_date": "2026-06-27",
-      "accession": "0000320193-26-000020",
-      "url": "https://www.sec.gov/Archives/edgar/data/320193/000032019326000020/aapl-20260627.htm",
-      "reason": "not_discussed",
-      "paragraphs": [],
-      "scored": [],
-      "baseline": null
+      "baseline": "e10-m6"
     },
     {
       "id": "e12",
@@ -397,47 +300,16 @@
       "report_date": "2026-04-25",
       "accession": "0000858877-26-000078",
       "url": "https://www.sec.gov/Archives/edgar/data/858877/000085887726000078/csco-20260425.htm",
-      "reason": null,
+      "reason": "basis_not_discussed",
       "paragraphs": [
         {
-          "id": "e12-p1",
-          "text": "Our services gross margin percentage increased by 0.5 percentage points in the third quarter of fiscal 2026 and increased by 0.1 percentage points in the first nine months of fiscal 2026. For each of the third quarter and first nine months of fiscal 2026, the increase in services gross margin was primarily due to cost efficiencies.",
-          "cause": "primarily due to cost efficiencies"
-        },
-        {
-          "id": "e12-p2",
-          "text": "Product gross margin decreased by 2.5 percentage points primarily driven by negative impacts from product mix and to a lesser extent, pricing, partially offset by productivity improvements. The negative impacts from product mix were primarily due to higher Networking revenue. Productivity benefits were adversely impacted by higher memory costs.",
-          "cause": "primarily driven by negative impacts from product mix and to a lesser extent, pricing, partially offset by productivity improvements"
-        },
-        {
-          "id": "e12-p3",
-          "text": "Gross margin percentage in our EMEA segment increased slightly primarily due to productivity improvements and to a lesser extent pricing, partially offset by negative impacts from product mix.",
-          "cause": "primarily due to productivity improvements and to a lesser extent pricing, partially offset by negative impacts from product mix"
-        },
-        {
-          "id": "e12-p4",
+          "id": "e12-m10",
           "text": "Total gross margin decreased by 2.0 percentage points. Product gross margin decreased by 2.5 percentage points, primarily driven by negative impacts from product mix and higher memory costs, partially offset by productivity improvements and lower amortization of purchased intangible assets. As a percentage of revenue, research and development, sales and marketing, and general and administrative expenses, collectively, decreased by 3.8 percentage points. Operating income as a percentage of revenue increased by 2.4 percentage points, primarily driven by revenue growth, partially offset by lower gross margin in the third quarter of fiscal 2026. Diluted earnings per share increased 37%, driven by revenue growth and operating margin improvement.",
           "cause": null
         }
       ],
-      "scored": [
-        {
-          "paragraph": "e12-p1",
-          "rank": 1,
-          "score": 20
-        },
-        {
-          "paragraph": "e12-p2",
-          "rank": 2,
-          "score": 17
-        },
-        {
-          "paragraph": "e12-p3",
-          "rank": 3,
-          "score": 17
-        }
-      ],
-      "baseline": "e12-p4"
+      "scored": [],
+      "baseline": "e12-m10"
     },
     {
       "id": "e13",
@@ -467,59 +339,39 @@
       "reason": null,
       "paragraphs": [
         {
-          "id": "e14-p1",
+          "id": "e14-m67",
           "text": "Operating income increased $6.4 billion or 20% driven by growth in Productivity and Business Processes and Intelligent Cloud.",
           "cause": "driven by growth in Productivity and Business Processes and Intelligent Cloud"
         },
         {
-          "id": "e14-p2",
+          "id": "e14-m76",
           "text": "Operating income increased $20.4 billion or 22% driven by growth in Productivity and Business Processes and Intelligent Cloud.",
           "cause": "driven by growth in Productivity and Business Processes and Intelligent Cloud"
         },
         {
-          "id": "e14-p3",
-          "text": "Operating income increased $3.6 billion or 21%.",
-          "cause": null
-        },
-        {
-          "id": "e14-p4",
+          "id": "e14-m19",
           "text": "The investments we are making in cloud and AI infrastructure and devices will continue to increase our operating costs and may decrease our operating margins. We continue to identify and evaluate opportunities to expand our datacenter locations and increase our server capacity to meet the evolving needs of our customers, particularly given the growing demand for AI services. Our datacenters depend on the availability of permitted and buildable land, predictable energy, networking supplies, and servers, including graphics processing units and other components. Our devices are primarily manufactured by third-party contract manufacturers. For the majority of our products, we have the ability to use other manufacturers if a current vendor becomes unavailable or unable to meet our requirements. However, some of our products contain certain components for which there are very few qualified suppliers. Extended disruptions at these suppliers could impact our ability to manufacture devices on time to meet consumer demand.",
           "cause": null
         }
       ],
       "scored": [
         {
-          "paragraph": "e14-p1",
+          "paragraph": "e14-m67",
           "rank": 1,
           "score": 15
         },
         {
-          "paragraph": "e14-p2",
+          "paragraph": "e14-m76",
           "rank": 2,
           "score": 15
         },
         {
-          "paragraph": "e14-p3",
+          "paragraph": "e14-m19",
           "rank": 3,
-          "score": 6
+          "score": 5
         }
       ],
-      "baseline": "e14-p4"
-    },
-    {
-      "id": "e15",
-      "set": "dev",
-      "question": "Why did UnitedHealth's capital spending fall year over year last quarter?",
-      "company": "UnitedHealth",
-      "metric": "capital_expenditure",
-      "basis": "year_over_year",
-      "report_date": "2026-06-30",
-      "accession": "0000731766-26-000197",
-      "url": "https://www.sec.gov/Archives/edgar/data/731766/000073176626000197/unh-20260630.htm",
-      "reason": "not_discussed",
-      "paragraphs": [],
-      "scored": [],
-      "baseline": null
+      "baseline": "e14-m19"
     },
     {
       "id": "e16",
@@ -531,111 +383,16 @@
       "report_date": "2026-06-30",
       "accession": "0000882095-26-000031",
       "url": "https://www.sec.gov/Archives/edgar/data/882095/000088209526000031/gild-20260630.htm",
-      "reason": null,
+      "reason": "basis_not_discussed",
       "paragraphs": [
         {
-          "id": "e16-p1",
+          "id": "e16-m19",
           "text": "Total revenues increased 10% and 7% to $7.8 billion and $14.8 billion for the three and six months ended June 30, 2026, respectively, compared to the same periods in 2025, primarily due to higher sales of HIV products, Trodelvy and Livdelzi, as well as higher royalty, contract and other revenues, partially offset by lower sales of Veklury as well as Cell Therapy and chronic hepatitis C virus (“HCV”) products.",
-          "cause": "primarily due to higher sales of HIV products, Trodelvy and Livdelzi, as well as higher royalty, contract and other revenues, partially offset by lower sales of Veklury as well as Cell Therapy and chronic hepatitis C virus (“HCV”) products"
-        },
-        {
-          "id": "e16-p2",
-          "text": "HIV product sales increased 12% to $5.7 billion for the three months ended June 30, 2026, compared to the same period in 2025, primarily due to higher average realized price and demand. In particular:",
-          "cause": "primarily due to higher average realized price and demand"
-        },
-        {
-          "id": "e16-p3",
-          "text": "Liver Disease product sales increased 10% and 6% to $877 million and $1.6 billion for the three and six months ended June 30, 2026, respectively, compared to the same periods in 2025, primarily due to higher demand for Livdelzi, as well as chronic hepatitis B virus products and Hepcludex, partially offset by lower sales for HCV products.",
-          "cause": "primarily due to higher demand for Livdelzi, as well as chronic hepatitis B virus products and Hepcludex, partially offset by lower sales for HCV products"
-        }
-      ],
-      "scored": [
-        {
-          "paragraph": "e16-p1",
-          "rank": 1,
-          "score": 19
-        },
-        {
-          "paragraph": "e16-p2",
-          "rank": 2,
-          "score": 14
-        },
-        {
-          "paragraph": "e16-p3",
-          "rank": 3,
-          "score": 14
-        }
-      ],
-      "baseline": "e16-p1"
-    },
-    {
-      "id": "e17",
-      "set": "dev",
-      "question": "What drove Applied Materials' operating cash flow up year over year this quarter?",
-      "company": "Applied Materials",
-      "metric": "operating_cash_flow",
-      "basis": "year_over_year",
-      "report_date": "2026-07-26",
-      "accession": "0001628280-26-058235",
-      "url": "https://www.sec.gov/Archives/edgar/data/6951/000162828026058235/amat-20260726.htm",
-      "reason": null,
-      "paragraphs": [
-        {
-          "id": "e17-p1",
-          "text": "Cash from operating activities for the nine months ended July 26, 2026 was $5.6 billion, which reflects net income adjusted for the effect of non-cash charges and changes in working capital components. Significant non-cash charges included depreciation, amortization, gain or loss on investments or asset sales, share-based compensation, deferred income taxes and restructuring charges. Cash provided by operating activities increased in the first nine months of fiscal 2026 compared to the same period in the prior fiscal year primarily due to higher net income and lower payments for income taxes, partially offset by a higher accounts receivable balance and higher vendor payments.",
-          "cause": "reflects net income adjusted for the effect of non-cash charges and changes in working capital components"
-        },
-        {
-          "id": "e17-p2",
-          "text": "Cash provided by operating activities $ 5,568 $ 5,130",
           "cause": null
         }
       ],
-      "scored": [
-        {
-          "paragraph": "e17-p1",
-          "rank": 1,
-          "score": 25
-        }
-      ],
-      "baseline": "e17-p2"
-    },
-    {
-      "id": "e18",
-      "set": "dev",
-      "question": "What drove Tesla's operating cash flow up year over year this quarter?",
-      "company": "Tesla",
-      "metric": "operating_cash_flow",
-      "basis": "year_over_year",
-      "report_date": "2026-06-30",
-      "accession": "0001628280-26-049270",
-      "url": "https://www.sec.gov/Archives/edgar/data/1318605/000162828026049270/tsla-20260630.htm",
-      "reason": null,
-      "paragraphs": [
-        {
-          "id": "e18-p1",
-          "text": "Our business has generally been consistently generating cash flow from operations in excess of our level of capital spend, and with better working capital management resulting in shorter days sales outstanding than days payable outstanding, our sales growth is also generally facilitating positive cash generation. We have and will continue to utilize such cash flows, among other things, to invest in autonomy and robotics, further vertically integrate our supply chain, expand our product roadmap and provide financing options to our customers. At the same time, periods of heightened levels of capital expenditures due to capital-intensive projects and other potential variables such as rising material prices and increases in supply chain and labor expenses resulting from changes in global trade conditions and labor availability, will necessitate additional funding beyond our operating cash flow.",
-          "cause": "due to capital-intensive projects and other potential variables such as rising material prices and increases in supply chain and labor expenses resulting from changes in global trade conditions and labor availability, will necessitate additional funding beyond our operating cash flow"
-        },
-        {
-          "id": "e18-p2",
-          "text": "Net cash provided by operating activities increased by $3.94 billion to $8.63 billion during the six months ended June 30, 2026 from $4.70 billion during the six months ended June 30, 2025. This increase was primarily due to favorable changes in net operating assets and liabilities of $3.01 billion and an increase in net income excluding non-cash expenses, gains and losses of $933 million.",
-          "cause": "primarily due to favorable changes in net operating assets and liabilities of $3.01 billion and an increase in net income excluding non-cash expenses, gains and losses of $933 million"
-        }
-      ],
-      "scored": [
-        {
-          "paragraph": "e18-p1",
-          "rank": 1,
-          "score": 17
-        },
-        {
-          "paragraph": "e18-p2",
-          "rank": 2,
-          "score": 7
-        }
-      ],
-      "baseline": "e18-p1"
+      "scored": [],
+      "baseline": "e16-m19"
     },
     {
       "id": "e19",
@@ -650,40 +407,13 @@
       "reason": "not_discussed",
       "paragraphs": [
         {
-          "id": "e19-p1",
+          "id": "e19-m13",
           "text": "Operating income for the three months ended June 27, 2026 was $2.0 billion compared to operating loss of $134 million for the prior year period. The increase in operating income was due to higher gross profit, partially offset by higher operating expenses. Net income for the three months ended June 27, 2026 was $2.3 billion compared to net income of $872 million for the prior year period. The increase in net income was primarily driven by higher operating income.",
           "cause": null
         }
       ],
       "scored": [],
-      "baseline": "e19-p1"
-    },
-    {
-      "id": "e20",
-      "set": "held-out",
-      "question": "What caused Eli Lilly's net margin to fall sequentially last quarter?",
-      "company": "Eli Lilly",
-      "metric": "net_margin",
-      "basis": "sequential",
-      "report_date": "2026-06-30",
-      "accession": "0000059478-26-000081",
-      "url": "https://www.sec.gov/Archives/edgar/data/59478/000005947826000081/lly-20260630.htm",
-      "reason": null,
-      "paragraphs": [
-        {
-          "id": "e20-p1",
-          "text": "Net income and earnings per share for the three months ended June 30, 2026 increased primarily due to higher gross margin, partially offset by higher acquired IPR&D charges, asset impairment, restructuring, and other special charges, and marketing, selling, and administrative expenses. Net income and earnings per share for the six months ended June 30, 2026 increased primarily due to higher gross margin, partially offset by higher acquired IPR&D charges, research and development expenses, and marketing, selling, and administrative expenses.",
-          "cause": "primarily due to higher gross margin, partially offset by higher acquired IPR&D charges, asset impairment, restructuring, and other special charges, and marketing, selling, and administrative expenses"
-        }
-      ],
-      "scored": [
-        {
-          "paragraph": "e20-p1",
-          "rank": 1,
-          "score": 27
-        }
-      ],
-      "baseline": "e20-p1"
+      "baseline": "e19-m13"
     },
     {
       "id": "e21",
@@ -698,470 +428,397 @@
       "reason": null,
       "paragraphs": [
         {
-          "id": "e21-p1",
+          "id": "e21-m33",
           "text": "Selling, general and administrative expense increased during the third quarter and first nine months of 2026 compared to the same periods in 2025. The increases were driven by various factors, none of which were significant individually or in the aggregate.",
           "cause": "driven by various factors, none of which were significant individually or in the aggregate"
         }
       ],
       "scored": [
         {
-          "paragraph": "e21-p1",
+          "paragraph": "e21-m33",
           "rank": 1,
           "score": 14
         }
       ],
-      "baseline": "e21-p1"
+      "baseline": "e21-m33"
     },
     {
-      "id": "e22",
+      "id": "e41",
       "set": "held-out",
-      "question": "What drove Palantir Technologies' operating cash flow up sequentially this quarter?",
-      "company": "Palantir Technologies",
-      "metric": "operating_cash_flow",
-      "basis": "sequential",
-      "report_date": "2026-06-30",
-      "accession": "0001321655-26-000041",
-      "url": "https://www.sec.gov/Archives/edgar/data/1321655/000132165526000041/pltr-20260630.htm",
-      "reason": null,
-      "paragraphs": [
-        {
-          "id": "e22-p1",
-          "text": "Net cash provided by operating activities was $2.1 billion and $0.8 billion for the six months ended June 30, 2026 and 2025, respectively. The increase was primarily driven by revenue growth, partially offset by timing of billings to and payments from customers.",
-          "cause": "primarily driven by revenue growth, partially offset by timing of billings to and payments from customers"
-        },
-        {
-          "id": "e22-p2",
-          "text": "As of June 30, 2026, our principal sources of liquidity were cash, cash equivalents, and short-term U.S. Treasury securities totaling $9.2 billion. We generated positive cash flow from operations for the six months ended June 30, 2026. We believe that we have sufficient liquidity to meet our operating requirements for at least the next twelve months and thereafter for the foreseeable future. We continue to evaluate our liquidity and capital resources, including our access to external capital, to ensure we can finance future capital requirements.",
-          "cause": null
-        }
-      ],
-      "scored": [
-        {
-          "paragraph": "e22-p1",
-          "rank": 1,
-          "score": 8
-        }
-      ],
-      "baseline": "e22-p2"
-    },
-    {
-      "id": "e23",
-      "set": "held-out",
-      "question": "Why did Oracle's capital spending rise year over year last quarter?",
-      "company": "Oracle",
-      "metric": "capital_expenditure",
+      "question": "What caused Alphabet's R&D spending to rise year over year last quarter?",
+      "company": "Alphabet",
+      "metric": "research_and_development",
       "basis": "year_over_year",
-      "report_date": "2026-08-31",
-      "accession": "0001193125-26-389274",
-      "url": "https://www.sec.gov/Archives/edgar/data/1341439/000119312526389274/orcl-20260831.htm",
+      "report_date": "2026-06-30",
+      "accession": "0001652044-26-000071",
+      "url": "https://www.sec.gov/Archives/edgar/data/1652044/000165204426000071/goog-20260630.htm",
       "reason": null,
       "paragraphs": [
         {
-          "id": "e23-p1",
-          "text": "Capital Expenditures: Cash used for capital expenditures increased from $8.5 billion in the first quarter of fiscal 2026 to $28.5 billion in the first quarter of fiscal 2027 primarily due to the expansion of our data centers. We expect our capital expenditures in fiscal 2027 to be higher than fiscal 2026 as we increase our existing data center capacity and establish data centers in new geographic locations in order to meet current and expected customer demand for our cloud offerings.",
-          "cause": "primarily due to the expansion of our data centers"
+          "id": "e41-m105",
+          "text": "Research and development expenses increased $4.4 billion and $7.9 billion from the three and six months ended June 30, 2025 to the three and six months ended June 30, 2026, primarily driven by increases in employee compensation expenses of $2.9 billion and $5.3 billion, as well as depreciation expense of $592 million and $1.1 billion, respectively.",
+          "cause": "primarily driven by increases in employee compensation expenses of $2.9 billion and $5.3 billion, as well as depreciation expense of $592 million and $1.1 billion, respectively"
         },
         {
-          "id": "e23-p2",
-          "text": "Net cash provided by financing activities increased by $12.9 billion in the first quarter of fiscal 2027, relative to the first quarter of fiscal 2026, primarily due to net proceeds from the issuance of common stock via the ATM Program of $19.9 billion, partially offset by higher repayments of borrowings of $2.9 billion; higher net repayments of short-term financing related to capital expenditures of $2.8 billion; lower net cash proceeds from our employee stock programs of $1.1 billion; and higher dividend payments of $152 million.",
-          "cause": "primarily due to net proceeds from the issuance of common stock via the ATM Program of $19.9 billion, partially offset by higher repayments of borrowings of $2.9 billion"
+          "id": "e41-m117",
+          "text": "(1)Alphabet-level activities primarily reflect expenses related to our shared AI research and development.",
+          "cause": "primarily reflect expenses related to our shared AI research and development"
         },
         {
-          "id": "e23-p3",
-          "text": "Cash, cash equivalents and marketable securities: Cash and cash equivalents primarily consist of deposits held at major banks, money market funds and other securities with original maturities of 90 days or less. Marketable securities consist primarily of time deposits with original maturities at the time of purchase greater than 90 days. The increase in cash, cash equivalents and marketable securities as of August 31, 2026 in comparison to May 31, 2026 was primarily due to $23.1 billion of cash inflows from our operations, which includes $11.4 billion of customer prepayments with a significant financing component; and $19.9 billion of cash proceeds from the issuance of common stock via the ATM Program, net of issuance costs, partially offset by $28.5 billion of cash used for capital expenditures; $3.1 billion of cash used for scheduled repayments of debt; $2.6 billion of restricted cash that was reclassed to prepaid expenses and other current assets; $1.6 billion of cash used to pay dividends to our common and preferred stockholders; $1.1 billion of cash used for repayment of commercial paper; $830 million of cash outflows for short-term financing related to capital expenditures, net; and $242 million of cash outflows for other financing activities, net, in each case during the first quarter of fiscal 2027. Our cash and cash equivalents may be impacted by some or all of the aforementioned factors in future periods, the amounts and timing of which are variable.",
-          "cause": "primarily due to $23.1 billion of cash inflows from our operations, which includes $11.4 billion of customer prepayments with a significant financing component"
-        },
-        {
-          "id": "e23-p4",
-          "text": "This Quarterly Report on Form 10-Q (Quarterly Report) contains forward-looking statements within the meaning of Section 27A of the Securities Act of 1933, as amended, and Section 21E of the Securities Exchange Act of 1934, as amended. All statements other than statements of historical fact, including statements regarding our business, strategy, customer demand, products and services, results of operations, financial condition, cash flows, capital expenditures and other future events or results, are forward-looking statements. Words such as “anticipates,” “believes,” “continues,” “could,” “expects,” “future,” “intends,” “may,” “plans,” “projects,” “seeks,” “should,” “will” and similar expressions are intended to identify forward-looking statements.",
+          "id": "e41-m2",
+          "text": "Alphabet is a collection of businesses — the largest of which is Google. We report Google in two segments, Google Services and Google Cloud, and all non-Google businesses collectively as Other Bets. Supporting these businesses, we have centralized certain AI-related research and development focused on advanced research in AI and developing the frontier models that serve our businesses, which is reported in Alphabet-level activities. For further details on our segments, see Note 15 of the Notes to Consolidated Financial Statements included in Item 1 of this Quarterly Report on Form 10-Q.",
           "cause": null
         }
       ],
       "scored": [
         {
-          "paragraph": "e23-p1",
+          "paragraph": "e41-m105",
           "rank": 1,
-          "score": 24
-        },
-        {
-          "paragraph": "e23-p2",
-          "rank": 2,
-          "score": 23
-        },
-        {
-          "paragraph": "e23-p3",
-          "rank": 3,
           "score": 20
+        },
+        {
+          "paragraph": "e41-m117",
+          "rank": 2,
+          "score": 10
         }
       ],
-      "baseline": "e23-p4"
+      "baseline": "e41-m2"
     },
     {
-      "id": "e24",
+      "id": "e42",
       "set": "held-out",
-      "question": "What caused Microsoft's operating margin to rise year over year last quarter?",
-      "company": "Microsoft",
-      "metric": "operating_margin",
+      "question": "What caused Thermo Fisher Scientific's net margin to fall year over year last quarter?",
+      "company": "Thermo Fisher Scientific",
+      "metric": "net_margin",
       "basis": "year_over_year",
-      "report_date": "2026-03-31",
-      "accession": "0001193125-26-191507",
-      "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526191507/msft-20260331.htm",
-      "reason": null,
-      "paragraphs": [
-        {
-          "id": "e24-p1",
-          "text": "Operating income increased $6.4 billion or 20% driven by growth in Productivity and Business Processes and Intelligent Cloud.",
-          "cause": "driven by growth in Productivity and Business Processes and Intelligent Cloud"
-        },
-        {
-          "id": "e24-p2",
-          "text": "Operating income increased $20.4 billion or 22% driven by growth in Productivity and Business Processes and Intelligent Cloud.",
-          "cause": "driven by growth in Productivity and Business Processes and Intelligent Cloud"
-        },
-        {
-          "id": "e24-p3",
-          "text": "Operating income increased $3.6 billion or 21%.",
-          "cause": null
-        },
-        {
-          "id": "e24-p4",
-          "text": "The investments we are making in cloud and AI infrastructure and devices will continue to increase our operating costs and may decrease our operating margins. We continue to identify and evaluate opportunities to expand our datacenter locations and increase our server capacity to meet the evolving needs of our customers, particularly given the growing demand for AI services. Our datacenters depend on the availability of permitted and buildable land, predictable energy, networking supplies, and servers, including graphics processing units and other components. Our devices are primarily manufactured by third-party contract manufacturers. For the majority of our products, we have the ability to use other manufacturers if a current vendor becomes unavailable or unable to meet our requirements. However, some of our products contain certain components for which there are very few qualified suppliers. Extended disruptions at these suppliers could impact our ability to manufacture devices on time to meet consumer demand.",
-          "cause": null
-        }
-      ],
-      "scored": [
-        {
-          "paragraph": "e24-p1",
-          "rank": 1,
-          "score": 15
-        },
-        {
-          "paragraph": "e24-p2",
-          "rank": 2,
-          "score": 15
-        },
-        {
-          "paragraph": "e24-p3",
-          "rank": 3,
-          "score": 6
-        }
-      ],
-      "baseline": "e24-p4"
-    },
-    {
-      "id": "e25",
-      "set": "held-out",
-      "question": "Why did Broadcom's operating cash flow rise sequentially last quarter?",
-      "company": "Broadcom",
-      "metric": "operating_cash_flow",
-      "basis": "sequential",
-      "report_date": "2026-08-02",
-      "accession": "0001730168-26-000080",
-      "url": "https://www.sec.gov/Archives/edgar/data/1730168/000173016826000080/avgo-20260802.htm",
-      "reason": null,
-      "paragraphs": [
-        {
-          "id": "e25-p1",
-          "text": "•Cash and cash equivalents increased to $23,975 million at August 2, 2026 from $16,178 million at November 2, 2025, primarily due to $32,950 million in net cash provided by operating activities, offset in part by $9,281 million of dividend payments, $8,450 million of stock repurchases and $6,054 million of net debt payments.",
-          "cause": "primarily due to $32,950 million in net cash provided by operating activities, offset in part by $9,281 million of dividend payments, $8,450 million of stock repurchases and $6,054 million of net debt payments"
-        },
-        {
-          "id": "e25-p2",
-          "text": "We believe that our cash and cash equivalents on hand, cash flows from operations and our revolving credit facility will provide sufficient liquidity to operate our business and fund our current obligations for at least the next 12 months. For additional information regarding our cash requirement from indebtedness, contractual commitments and backstops, see Note 6. “Borrowings” and Note 10. “Commitments and Contingencies” in Part I, Item 1 of this Form 10-Q.",
-          "cause": null
-        }
-      ],
-      "scored": [
-        {
-          "paragraph": "e25-p1",
-          "rank": 1,
-          "score": 11
-        },
-        {
-          "paragraph": "e25-p2",
-          "rank": 2,
-          "score": 3
-        }
-      ],
-      "baseline": "e25-p2"
-    },
-    {
-      "id": "e26",
-      "set": "held-out",
-      "question": "Why did Amgen's operating margin rise sequentially last quarter?",
-      "company": "Amgen",
-      "metric": "operating_margin",
-      "basis": "sequential",
-      "report_date": "2026-06-30",
-      "accession": "0000318154-26-000126",
-      "url": "https://www.sec.gov/Archives/edgar/data/318154/000031815426000126/amgn-20260630.htm",
+      "report_date": "2026-06-27",
+      "accession": "0000097745-26-000144",
+      "url": "https://www.sec.gov/Archives/edgar/data/97745/000009774526000144/tmo-20260627.htm",
       "reason": "not_discussed",
-      "paragraphs": [],
+      "paragraphs": [
+        {
+          "id": "e42-m59",
+          "text": "The company has operations and a taxable presence in approximately 70 countries outside the U.S. Some of these countries have lower tax rates than the U.S. The company’s ability to obtain a benefit from lower tax rates outside the U.S. is dependent on its relative levels of income in countries outside the U.S. and on the statutory tax rates in those countries. Based on the dispersion of the company’s non-U.S. income tax provision among many countries, the company believes that a change in the statutory tax rate in any individual country is not likely to materially affect the company’s income tax provision or net income.",
+          "cause": null
+        }
+      ],
       "scored": [],
-      "baseline": null
+      "baseline": "e42-m59"
     },
     {
-      "id": "e27",
+      "id": "e43",
       "set": "held-out",
-      "question": "What caused Eli Lilly's operating cash flow to rise sequentially last quarter?",
+      "question": "Why did Eli Lilly's gross margin rise sequentially last quarter?",
       "company": "Eli Lilly",
-      "metric": "operating_cash_flow",
+      "metric": "gross_margin",
       "basis": "sequential",
       "report_date": "2026-06-30",
       "accession": "0000059478-26-000081",
       "url": "https://www.sec.gov/Archives/edgar/data/59478/000005947826000081/lly-20260630.htm",
-      "reason": "not_discussed",
+      "reason": "basis_not_discussed",
       "paragraphs": [
         {
-          "id": "e27-p1",
-          "text": "We believe our available cash and cash equivalents, together with our ability to generate operating cash flow and our access to short-term and long-term borrowings, are sufficient to fund our existing and planned capital requirements. For a discussion of our capital requirements, see \"Management's Discussion and Analysis of Results of Operations and Financial Condition\" in Part II, Item 7 of our Annual Report on Form 10-K for the year ended December 31, 2025.",
+          "id": "e43-m6",
+          "text": "Net income and earnings per share for the three months ended June 30, 2026 increased primarily due to higher gross margin, partially offset by higher acquired IPR&D charges, asset impairment, restructuring, and other special charges, and marketing, selling, and administrative expenses. Net income and earnings per share for the six months ended June 30, 2026 increased primarily due to higher gross margin, partially offset by higher acquired IPR&D charges, research and development expenses, and marketing, selling, and administrative expenses.",
           "cause": null
         }
       ],
       "scored": [],
-      "baseline": "e27-p1"
+      "baseline": "e43-m6"
     },
     {
-      "id": "e28",
+      "id": "e44",
       "set": "held-out",
-      "question": "What drove Danaher's free cash flow up year over year this quarter?",
-      "company": "Danaher",
-      "metric": "free_cash_flow",
-      "basis": "year_over_year",
-      "report_date": "2026-06-26",
-      "accession": "0000313616-26-000161",
-      "url": "https://www.sec.gov/Archives/edgar/data/313616/000031361626000161/dhr-20260626.htm",
-      "reason": "not_discussed",
-      "paragraphs": [],
-      "scored": [],
-      "baseline": null
-    },
-    {
-      "id": "e29",
-      "set": "held-out",
-      "question": "What caused NVIDIA's gross profit to rise sequentially last quarter?",
+      "question": "Why did NVIDIA's gross profit rise year over year last quarter?",
       "company": "NVIDIA",
       "metric": "gross_profit",
-      "basis": "sequential",
+      "basis": "year_over_year",
       "report_date": "2026-07-26",
       "accession": "0001045810-26-000075",
       "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm",
       "reason": null,
       "paragraphs": [
         {
-          "id": "e29-p1",
+          "id": "e44-m47",
           "text": "Gross margin increased to 75.0% for the second quarter of fiscal year 2027 compared to 72.4% for the second quarter of fiscal year 2026, and 75.0% for the first half of fiscal year 2027 compared to 66.6% for the first half of fiscal year 2026 due to improved mix from Blackwell Ultra. Gross margin for the first half of fiscal year 2026 was also impacted by a $4.5 billion charge associated with H20 excess inventory and purchase obligations.",
           "cause": "due to improved mix from Blackwell Ultra"
         },
         {
-          "id": "e29-p2",
+          "id": "e44-m32",
           "text": "Gross margin increased from a year ago on improved mix from Blackwell Ultra. Gross margin was approximately flat sequentially as our Blackwell architecture remains the vast majority of our revenue.",
           "cause": null
         }
       ],
       "scored": [
         {
-          "paragraph": "e29-p1",
+          "paragraph": "e44-m47",
           "rank": 1,
-          "score": 19
+          "score": 25
         },
         {
-          "paragraph": "e29-p2",
+          "paragraph": "e44-m32",
           "rank": 2,
           "score": 13
         }
       ],
-      "baseline": "e29-p2"
+      "baseline": "e44-m32"
     },
     {
-      "id": "e30",
+      "id": "e45",
       "set": "held-out",
-      "question": "Why did Advanced Micro Devices' SG&A expenses rise sequentially last quarter?",
-      "company": "Advanced Micro Devices",
-      "metric": "selling_general_and_administrative",
+      "question": "What drove Applied Materials' revenue up year over year this quarter?",
+      "company": "Applied Materials",
+      "metric": "revenue",
+      "basis": "year_over_year",
+      "report_date": "2026-07-26",
+      "accession": "0001628280-26-058235",
+      "url": "https://www.sec.gov/Archives/edgar/data/6951/000162828026058235/amat-20260726.htm",
+      "reason": null,
+      "paragraphs": [
+        {
+          "id": "e45-m19",
+          "text": "Revenue in the three and nine months ended July 26, 2026 increased compared to the same periods in the prior year. Gross margin in the three and nine months ended July 26, 2026 increased compared to the same periods in the prior year primarily driven by higher revenue, increases in average selling prices, and lower material and manufacturing costs. The increase in gross margin in the three months ended July 26, 2026 was also driven by favorable changes in product mix.",
+          "cause": "primarily driven by higher revenue, increases in average selling prices, and lower material and manufacturing costs"
+        },
+        {
+          "id": "e45-m21",
+          "text": "Our AGS revenue increased in the three and nine months ended July 26, 2026 compared to the same periods in the prior year primarily due to higher long-term service agreement revenue and customer spending on spares.",
+          "cause": "primarily due to higher long-term service agreement revenue and customer spending on spares"
+        },
+        {
+          "id": "e45-m58",
+          "text": "Days sales outstanding of our accounts receivable at July 26, 2026 and July 27, 2025 were 77 days and 72 days, respectively. Days sales outstanding varies due to the timing of shipments and payment terms. The increase in days sales outstanding was primarily driven by higher down payment invoices for which revenue has not yet been recognized as of July 26, 2026 and lower accounts receivable factoring compared to the same period in the prior year.",
+          "cause": "due to the timing of shipments and payment terms"
+        },
+        {
+          "id": "e45-m5",
+          "text": "Our future operating results depend to a considerable extent on our ability to maintain a competitive advantage in the equipment and service products we provide. Development cycles depend on whether the product is an enhancement of an existing product, which typically has a shorter development cycle, or a new product, which typically has a longer development cycle. Most of our existing products resulted from internal development activities and innovations involving new technologies, materials and processes. In certain instances, we acquire technologies, either in existing or new product areas, to complement our existing technology capabilities and to reduce time to market. Product development and manufacturing activities occur primarily in the United States, Europe, Israel, and Asia. Our portfolio of equipment and service products is highly technical and is sold primarily through a direct sales force.",
+          "cause": null
+        }
+      ],
+      "scored": [
+        {
+          "paragraph": "e45-m19",
+          "rank": 1,
+          "score": 28
+        },
+        {
+          "paragraph": "e45-m21",
+          "rank": 2,
+          "score": 22
+        },
+        {
+          "paragraph": "e45-m58",
+          "rank": 3,
+          "score": 22
+        }
+      ],
+      "baseline": "e45-m5"
+    },
+    {
+      "id": "e46",
+      "set": "held-out",
+      "question": "Why did Micron Technology's operating income rise sequentially last quarter?",
+      "company": "Micron Technology",
+      "metric": "operating_income",
       "basis": "sequential",
-      "report_date": "2026-06-27",
-      "accession": "0000002488-26-000123",
-      "url": "https://www.sec.gov/Archives/edgar/data/2488/000000248826000123/amd-20260627.htm",
+      "report_date": "2026-05-28",
+      "accession": "0000723125-26-000015",
+      "url": "https://www.sec.gov/Archives/edgar/data/723125/000072312526000015/mu-20260528.htm",
+      "reason": "basis_not_discussed",
+      "paragraphs": [
+        {
+          "id": "e46-m38",
+          "text": "Percentages reflect operating income as a percentage of revenue for each business unit.",
+          "cause": null
+        }
+      ],
+      "scored": [],
+      "baseline": "e46-m38"
+    },
+    {
+      "id": "e47",
+      "set": "held-out",
+      "question": "What drove Tesla's operating margin down year over year this quarter?",
+      "company": "Tesla",
+      "metric": "operating_margin",
+      "basis": "year_over_year",
+      "report_date": "2026-06-30",
+      "accession": "0001628280-26-049270",
+      "url": "https://www.sec.gov/Archives/edgar/data/1318605/000162828026049270/tsla-20260630.htm",
+      "reason": "not_discussed",
+      "paragraphs": [
+        {
+          "id": "e47-m13",
+          "text": "However, we operate in a cyclical industry that is sensitive to shifting consumer trends, geopolitical conflicts, political and regulatory uncertainty, including with respect to trade and the environment, all of which can be compounded by inflationary pressures, rising energy prices, interest rate fluctuations and the liquidity of enterprise customers. For example, as inflationary pressures increased across the markets in which we operate, central banks in developed countries raised interest rates rapidly and substantially, which impacted the affordability of vehicle lease and finance arrangements. Further, sales of vehicles in the automotive industry also tend to be cyclical in many markets, which may expose us to increased volatility as we expand and adjust our operations. Moreover, as additional competitors enter the marketplace and help bring the world closer to sustainable transportation, we will have to adjust and continue to execute well to maintain our momentum. Additionally, our suppliers’ liquidity and allocation plans may be affected by current challenges in the automotive industry, which could reduce our access to components or result in unfavorable changes to cost. These macroeconomic and industry trends have had, and will likely continue to have, an impact on the pricing of, and order rate for our vehicles, and in turn our operating margin.",
+          "cause": null
+        }
+      ],
+      "scored": [],
+      "baseline": "e47-m13"
+    },
+    {
+      "id": "e48",
+      "set": "held-out",
+      "question": "Why did Applied Materials' operating income rise sequentially last quarter?",
+      "company": "Applied Materials",
+      "metric": "operating_income",
+      "basis": "sequential",
+      "report_date": "2026-07-26",
+      "accession": "0001628280-26-058235",
+      "url": "https://www.sec.gov/Archives/edgar/data/6951/000162828026058235/amat-20260726.htm",
+      "reason": "basis_not_discussed",
+      "paragraphs": [
+        {
+          "id": "e48-m12",
+          "text": "The Other category includes revenues, costs of products and operating expenses from other operating segments that do not meet the requirements for a reportable segment. We do not allocate to our reportable segments charges associated with restructuring actions, such as employee severance costs and asset impairment charges, unless the restructuring actions pertain to a specific reportable segment. Segment operating income also excludes interest income/expense and other financial charges and income taxes.",
+          "cause": null
+        }
+      ],
+      "scored": [],
+      "baseline": "e48-m12"
+    },
+    {
+      "id": "e49",
+      "set": "held-out",
+      "question": "What caused Micron Technology's R&D-to-sales ratio to fall sequentially last quarter?",
+      "company": "Micron Technology",
+      "metric": "rd_to_sales",
+      "basis": "sequential",
+      "report_date": "2026-05-28",
+      "accession": "0000723125-26-000015",
+      "url": "https://www.sec.gov/Archives/edgar/data/723125/000072312526000015/mu-20260528.htm",
+      "reason": null,
+      "paragraphs": [
+        {
+          "id": "e49-m50",
+          "text": "R&D expenses for the third quarter of 2026 increased 5% as compared to the second quarter of 2026, primarily due to increases in employee compensation. R&D expenses for the third quarter and first nine months of 2026 both increased 36%, as compared to the corresponding periods of 2025, primarily due to higher volumes of development and pre-qualification wafers, as we ramp R&D investments in support of long-term opportunities in memory and storage, and increases in employee compensation.",
+          "cause": "primarily due to increases in employee compensation"
+        },
+        {
+          "id": "e49-m3",
+          "text": "We manufacture our products at wholly-owned facilities and also utilize subcontractors for certain manufacturing processes. Our global network of manufacturing centers of excellence not only allows us to benefit from scale while streamlining processes and operations, but it also brings together some of the world’s brightest talent to work on the most advanced memory technology. Centers of excellence bring expertise together in one location, providing an efficient support structure for end-to-end manufacturing, with quicker cycle times, in partnership with teams, such as R&D, product development, human resources, procurement, and supply chain. For our locations in Singapore and Taiwan, this is also a combination of bringing fabrication and back-end manufacturing together. We continue to make significant investments to develop proprietary product and process technology, which generally increases bit density per wafer and reduces per-bit manufacturing costs of each generation of product. We continue to introduce new generations of products that offer improved performance characteristics, including higher data transfer rates, advanced packaging solutions, lower power consumption, improved read/write reliability, and increased memory density.",
+          "cause": null
+        }
+      ],
+      "scored": [
+        {
+          "paragraph": "e49-m50",
+          "rank": 1,
+          "score": 30
+        }
+      ],
+      "baseline": "e49-m3"
+    },
+    {
+      "id": "e50",
+      "set": "held-out",
+      "question": "What caused Palantir Technologies' R&D-to-sales ratio to rise sequentially last quarter?",
+      "company": "Palantir Technologies",
+      "metric": "rd_to_sales",
+      "basis": "sequential",
+      "report_date": "2026-06-30",
+      "accession": "0001321655-26-000041",
+      "url": "https://www.sec.gov/Archives/edgar/data/1321655/000132165526000041/pltr-20260630.htm",
+      "reason": "basis_not_discussed",
+      "paragraphs": [
+        {
+          "id": "e50-m42",
+          "text": "Research and development expenses (1)",
+          "cause": null
+        }
+      ],
+      "scored": [],
+      "baseline": "e50-m42"
+    },
+    {
+      "id": "e51",
+      "set": "held-out",
+      "question": "Why did General Motors' operating income fall sequentially last quarter?",
+      "company": "General Motors",
+      "metric": "operating_income",
+      "basis": "sequential",
+      "report_date": "2026-06-30",
+      "accession": "0001467858-26-000051",
+      "url": "https://www.sec.gov/Archives/edgar/data/1467858/000146785826000051/gm-20260630.htm",
       "reason": "not_discussed",
       "paragraphs": [],
       "scored": [],
       "baseline": null
     },
     {
-      "id": "e31",
+      "id": "e52",
       "set": "held-out",
-      "question": "What drove Danaher's capital spending up year over year this quarter?",
-      "company": "Danaher",
-      "metric": "capital_expenditure",
+      "question": "What caused Apple's net margin to rise year over year last quarter?",
+      "company": "Apple",
+      "metric": "net_margin",
       "basis": "year_over_year",
-      "report_date": "2026-06-26",
-      "accession": "0000313616-26-000161",
-      "url": "https://www.sec.gov/Archives/edgar/data/313616/000031361626000161/dhr-20260626.htm",
-      "reason": null,
-      "paragraphs": [
-        {
-          "id": "e31-p1",
-          "text": "Though the relative significance of particular categories of capital investment can change from period to period, capital expenditures are typically made for increasing manufacturing capacity, the manufacture of instruments that are used in OTL arrangements, replacing equipment, purchasing buildings, supporting new product development and improving information technology systems. Capital expenditures increased $13 million on a year-over-year basis for the six-month period ended June 26, 2026 compared to the comparable period in 2025.",
-          "cause": null
-        },
-        {
-          "id": "e31-p2",
-          "text": "Management assesses the Company’s liquidity in terms of its ability to generate cash to fund its operating, investing and financing activities. The Company continues to generate substantial cash from operating activities and believes that its operating cash flow, cash on hand and other sources of liquidity will be sufficient to allow it to continue investing in existing businesses (including capital expenditures), consummating strategic acquisitions and investments, paying interest and servicing debt, paying dividends and funding restructuring activities, as well as to repurchase common stock when deemed appropriate and manage its capital structure on a short-term and long-term basis.",
-          "cause": null
-        }
-      ],
-      "scored": [
-        {
-          "paragraph": "e31-p1",
-          "rank": 1,
-          "score": 10
-        }
-      ],
-      "baseline": "e31-p2"
+      "report_date": "2026-06-27",
+      "accession": "0000320193-26-000020",
+      "url": "https://www.sec.gov/Archives/edgar/data/320193/000032019326000020/aapl-20260627.htm",
+      "reason": "not_discussed",
+      "paragraphs": [],
+      "scored": [],
+      "baseline": null
     },
     {
-      "id": "e32",
+      "id": "e53",
       "set": "held-out",
-      "question": "Why did Pfizer's revenue rise year over year last quarter?",
-      "company": "Pfizer",
+      "question": "What drove Broadcom's revenue up year over year this quarter?",
+      "company": "Broadcom",
       "metric": "revenue",
       "basis": "year_over_year",
-      "report_date": "2026-06-28",
-      "accession": "0000078003-26-000095",
-      "url": "https://www.sec.gov/Archives/edgar/data/78003/000007800326000095/pfe-20260628.htm",
-      "reason": null,
-      "paragraphs": [
-        {
-          "id": "e32-p1",
-          "text": "Total Revenues––Total revenues increased $381 million, or 3%, in the second quarter of 2026 to $15.0 billion from $14.7 billion in the second quarter of 2025, reflecting an operational increase of $164 million, or 1%, as well as a favorable impact of foreign exchange of $217 million, or 1%. The operational increase was driven by an increase in revenues for Eliquis, Padcev, the Vyndaqel family, Lorbrena and several other products across categories, partially offset by a decline in COVID-19 product revenues and several other products across categories. Excluding contributions from Comirnaty and Paxlovid, Total revenues increased 5% operationally.",
-          "cause": "reflecting an operational increase of $164 million, or 1%, as well as a favorable impact of foreign exchange of $217 million, or 1%"
-        },
-        {
-          "id": "e32-p2",
-          "text": "Total revenues increased $1.1 billion, or 4%, in the first six months of 2026 to $29.5 billion from $28.4 billion in the first six months of 2025, reflecting an operational increase of $469 million, or 2%, as well as a favorable impact of foreign exchange of $648 million, or 2%. The operational increase was driven by an increase in revenues for Eliquis, Padcev, the Vyndaqel family, Lorbrena, Nurtec ODT/Vydura, Oncology biosimilars and several other products across categories, partially offset by a decline in COVID-19 product revenues and several other products across categories. Excluding contributions from Comirnaty and Paxlovid, Total revenues increased 6% operationally.",
-          "cause": "reflecting an operational increase of $469 million, or 2%, as well as a favorable impact of foreign exchange of $648 million, or 2%"
-        },
-        {
-          "id": "e32-p3",
-          "text": "The increase in Cost of sales as a percentage of revenues in the second quarter of 2026 was primarily driven by an unfavorable change in sales mix and higher amortization of the fair value step-up of acquired inventory, primarily driven by the Oxbryta impairment.",
-          "cause": "primarily driven by an unfavorable change in sales mix and higher amortization of the fair value step-up of acquired inventory, primarily driven by the Oxbryta impairment"
-        },
-        {
-          "id": "e32-p4",
-          "text": "Collaboration Agreement with Innovent––In May 2026, we entered into a strategic global licensing and collaboration agreement with Innovent, a Chinese biopharmaceutical company, for the research and development of 12 early-stage and de novo cancer medicines. The partnership includes licensing, co-development, and co-commercialization opportunities across a diverse portfolio of antibody-drug conjugates (ADCs) with novel differentiated payloads and multi-specific antibodies. Under the terms of the agreement, Innovent received a $650 million upfront payment and is eligible for up to $9.85 billion in development, regulatory and commercial milestone payments. Additionally, Innovent will receive up to double-digit royalties on sales of each licensed product if approved. For the four programs to be co-developed and co-commercialized by Pfizer and Innovent, the two companies will share the profits in the U.S., the U.K., and the European Union. The transaction closed on July 10, 2026.",
-          "cause": null
-        }
-      ],
-      "scored": [
-        {
-          "paragraph": "e32-p1",
-          "rank": 1,
-          "score": 32
-        },
-        {
-          "paragraph": "e32-p2",
-          "rank": 2,
-          "score": 24
-        },
-        {
-          "paragraph": "e32-p3",
-          "rank": 3,
-          "score": 21
-        }
-      ],
-      "baseline": "e32-p4"
-    },
-    {
-      "id": "e33",
-      "set": "held-out",
-      "question": "Why did Microsoft's gross profit rise sequentially last quarter?",
-      "company": "Microsoft",
-      "metric": "gross_profit",
-      "basis": "sequential",
-      "report_date": "2026-03-31",
-      "accession": "0001193125-26-191507",
-      "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526191507/msft-20260331.htm",
-      "reason": null,
-      "paragraphs": [
-        {
-          "id": "e33-p1",
-          "text": "Gross margin increased $4.4 billion or 18% driven by growth in Microsoft 365 Commercial cloud. Gross margin percentage increased slightly driven by efficiency gains in Microsoft 365 Commercial cloud even with continued investments in AI infrastructure and growing AI product usage.",
-          "cause": "driven by growth in Microsoft 365 Commercial cloud"
-        },
-        {
-          "id": "e33-p2",
-          "text": "Gross margin increased $3.1 billion or 19% driven by growth in Azure. Gross margin percentage decreased driven by the continued investments in AI infrastructure, offset in part by efficiency gains in Azure.",
-          "cause": "driven by growth in Azure"
-        },
-        {
-          "id": "e33-p3",
-          "text": "Gross margin increased $405 million or 6% driven by growth in Search advertising and Gaming. Gross margin percentage increased driven by sales mix shift to higher margin businesses.",
-          "cause": "driven by growth in Search advertising and Gaming"
-        },
-        {
-          "id": "e33-p4",
-          "text": "Microsoft Cloud gross margin percentage",
-          "cause": null
-        }
-      ],
-      "scored": [
-        {
-          "paragraph": "e33-p1",
-          "rank": 1,
-          "score": 20
-        },
-        {
-          "paragraph": "e33-p2",
-          "rank": 2,
-          "score": 20
-        },
-        {
-          "paragraph": "e33-p3",
-          "rank": 3,
-          "score": 20
-        }
-      ],
-      "baseline": "e33-p4"
-    },
-    {
-      "id": "e34",
-      "set": "held-out",
-      "question": "What caused Broadcom's gross profit to rise sequentially last quarter?",
-      "company": "Broadcom",
-      "metric": "gross_profit",
-      "basis": "sequential",
       "report_date": "2026-08-02",
       "accession": "0001730168-26-000080",
       "url": "https://www.sec.gov/Archives/edgar/data/1730168/000173016826000080/avgo-20260802.htm",
       "reason": null,
       "paragraphs": [
         {
-          "id": "e34-p1",
-          "text": "Gross margin was $20,456 million for the fiscal quarter ended August 2, 2026 compared to $10,703 million for the fiscal quarter ended August 3, 2025 and $49,028 million for the three fiscal quarters ended August 2, 2026 compared to $31,045 million for the three fiscal quarters ended August 3, 2025. The increases were primarily due to strong product demand for our AI-related semiconductor solutions.",
-          "cause": "primarily due to strong product demand for our AI-related semiconductor solutions"
+          "id": "e53-m50",
+          "text": "As a percentage of net revenue, gross margin was 69% for each of the fiscal quarter and three fiscal quarters ended August 2, 2026, and 67% and 68% for the fiscal quarter and three fiscal quarters ended August 3, 2025, respectively. The increases were primarily due to the gross margin benefit from our net revenue growth, partially offset by a higher mix of semiconductor solutions net revenue, which has a lower gross margin than infrastructure software.",
+          "cause": "primarily due to the gross margin benefit from our net revenue growth, partially offset by a higher mix of semiconductor solutions net revenue, which has a lower gross margin than infrastructure software"
         },
         {
-          "id": "e34-p2",
-          "text": "Cost of products sold",
+          "id": "e53-m48",
+          "text": "Net revenue from our infrastructure software segment increased in the fiscal quarter and three fiscal quarters ended August 2, 2026 compared to the prior year fiscal periods primarily due to strong demand for our VMware Cloud Foundation (“VCF”) product, including additional license revenue recognized on contracts where customers do not have the right to terminate. As of the fiscal quarter ended August 2, 2026, we no longer have termination for convenience provisions for the majority of new software contracts.",
+          "cause": "primarily due to strong demand for our VMware Cloud Foundation (“VCF”) product, including additional license revenue recognized on contracts where customers do not have the right to terminate"
+        },
+        {
+          "id": "e53-m47",
+          "text": "Net revenue from our semiconductor solutions segment increased in the fiscal quarter and three fiscal quarters ended August 2, 2026 compared to the prior year fiscal periods due to strong demand for our networking solutions, primarily custom AI accelerators and AI networking products.",
+          "cause": "due to strong demand for our networking solutions, primarily custom AI accelerators and AI networking products"
+        },
+        {
+          "id": "e53-m14",
+          "text": "The preparation of financial statements in accordance with generally accepted accounting principles in the United States requires us to make estimates and assumptions that affect the reported amounts of assets and liabilities and disclosure of contingent assets and liabilities at the date of the financial statements and the reported amounts of revenue and expenses during the reporting period. We base our estimates and assumptions on current facts, historical experience and various other factors that we believe to be reasonable under the circumstances, the results of which form the basis for making judgments about the carrying values of assets and liabilities and the accrual of costs and expenses that are not readily apparent from other sources. Our actual financial results may differ materially and adversely from our estimates. Our critical accounting policies are those that affect our financial statements materially and involve difficult, subjective or complex judgments by management. Those policies include revenue recognition, business combinations, valuation of goodwill and long-lived assets, and income taxes.",
           "cause": null
         }
       ],
       "scored": [
         {
-          "paragraph": "e34-p1",
+          "paragraph": "e53-m50",
           "rank": 1,
-          "score": 10
+          "score": 21
+        },
+        {
+          "paragraph": "e53-m48",
+          "rank": 2,
+          "score": 20
+        },
+        {
+          "paragraph": "e53-m47",
+          "rank": 3,
+          "score": 16
         }
       ],
-      "baseline": "e34-p2"
+      "baseline": "e53-m14"
     },
     {
-      "id": "e35",
+      "id": "e54",
       "set": "held-out",
-      "question": "Why did Thermo Fisher Scientific's operating margin rise year over year last quarter?",
+      "question": "What drove Thermo Fisher Scientific's revenue up year over year this quarter?",
       "company": "Thermo Fisher Scientific",
-      "metric": "operating_margin",
+      "metric": "revenue",
       "basis": "year_over_year",
       "report_date": "2026-06-27",
       "accession": "0000097745-26-000144",
@@ -1169,252 +826,201 @@
       "reason": null,
       "paragraphs": [
         {
-          "id": "e35-p1",
-          "text": "GAAP operating income margin and adjusted operating income margin increased in the second quarter of 2026 due primarily to strong productivity improvements, offset in part by unfavorable business mix.",
-          "cause": "due primarily to strong productivity improvements, offset in part by unfavorable business mix"
+          "id": "e54-m22",
+          "text": "During the second quarter of 2026, customer activity continued to strengthen across our end markets. Revenue growth was strong in the pharma and biotech market, with performance driven by strengthening underlying market conditions. Revenues in the academic and government market grew, and growth in the industrial and applied market was strong, both driven by customer demand for our innovative high-end instruments. Revenue to customers in the diagnostics and healthcare market was also strong. During the second quarter of 2026, sales increased across all major geographies. Revenue growth was strong in Europe and Asia-Pacific, including China. Contributions to organic revenue during the second quarter of 2026 were led by the Laboratory Products and Biopharma Services segment and the Analytical Instruments segment.",
+          "cause": "led by the Laboratory Products and Biopharma Services segment and the Analytical Instruments segment"
         },
         {
-          "id": "e35-p2",
-          "text": "GAAP operating income margin and adjusted operating income margin increased in the first six months of 2026 due primarily to very strong productivity improvements, offset in part by unfavorable business mix and strategic investments.",
-          "cause": "due primarily to very strong productivity improvements, offset in part by unfavorable business mix and strategic investments"
+          "id": "e54-m40",
+          "text": "The increase in organic revenues in the second quarter of 2026 was driven by growth across all three of the segment’s businesses, led by the electron microscopy business. On a reported basis, the electron microscopy, chromatography and mass spectrometry, and chemical analysis businesses increased $55 million, $37 million, and $26 million, respectively. The increase in segment income margin was driven by very strong productivity improvements, favorable volume leverage, and the favorable impact of foreign exchange.",
+          "cause": "driven by growth across all three of the segment’s businesses, led by the electron microscopy business"
         },
         {
-          "id": "e35-p3",
-          "text": "Adjusted operating income (non-GAAP measure)",
+          "id": "e54-m48",
+          "text": "The increase in organic revenues in the second quarter of 2026 was primarily due to growth in the research and safety market channel and the clinical research business. On a reported basis, the clinical research business grew $441 million, which contributed 7 percentage points of reported growth in the segment, primarily driven by the impact of the Clario acquisition. The research and safety market channel and pharma services business grew $153 million and $99 million, respectively, which contributed 3 percentage points and 2 percentage points, respectively, of reported growth in the segment. The increase in segment income margin was driven by strong productivity improvements and the impact of acquisitions, partially offset by unfavorable business mix and strategic investments.",
+          "cause": "primarily due to growth in the research and safety market channel and the clinical research business"
+        },
+        {
+          "id": "e54-m3",
+          "text": "•financial expectations, including projections of revenues, expenses, margins, earnings, cash flows, liquidity, capital allocation plans, and tax matters;",
           "cause": null
         }
       ],
       "scored": [
         {
-          "paragraph": "e35-p1",
+          "paragraph": "e54-m22",
           "rank": 1,
-          "score": 19
+          "score": 26
         },
         {
-          "paragraph": "e35-p2",
+          "paragraph": "e54-m40",
           "rank": 2,
-          "score": 14
-        }
-      ],
-      "baseline": "e35-p3"
-    },
-    {
-      "id": "e36",
-      "set": "held-out",
-      "question": "What caused Palantir Technologies' cost of revenue to rise year over year last quarter?",
-      "company": "Palantir Technologies",
-      "metric": "cost_of_revenue",
-      "basis": "year_over_year",
-      "report_date": "2026-06-30",
-      "accession": "0001321655-26-000041",
-      "url": "https://www.sec.gov/Archives/edgar/data/1321655/000132165526000041/pltr-20260630.htm",
-      "reason": null,
-      "paragraphs": [
-        {
-          "id": "e36-p1",
-          "text": "In the three months ended June 30, 2026 and 2025, our gross profit was $1.6 billion and $0.8 billion, respectively, reflecting a gross margin of 85% and 81%, respectively, or 86% and 82%, respectively, when excluding stock-based compensation. In the six months ended June 30, 2026 and 2025, our gross profit was $3.1 billion and $1.5 billion, respectively, reflecting a gross margin of 86% and 81%, respectively, or 87% and 82%, respectively, when excluding stock-based compensation.",
-          "cause": "reflecting a gross margin of 85% and 81%, respectively, or 86% and 82%, respectively, when excluding stock-based compensation"
+          "score": 22
         },
         {
-          "id": "e36-p2",
-          "text": "Cost of revenue for the three months ended June 30, 2026 increased by $104 million, or 54%, compared to the same period in 2025. The increase was primarily due to increases of $89 million in third-party cloud hosting services and $13 million in stock-based compensation and related expenses, partially offset by a decrease of $13 million in subcontractor expenses.",
-          "cause": "primarily due to increases of $89 million in third-party cloud hosting services and $13 million in stock-based compensation and related expenses, partially offset by a decrease of $13 million in subcontractor expenses"
-        },
-        {
-          "id": "e36-p3",
-          "text": "Cost of revenue for the six months ended June 30, 2026 increased by $147 million, or 40%, compared to the same period in 2025. The increase was primarily due to increases of $128 million in third-party cloud hosting services and $16 million in payroll and other payroll-related costs, partially offset by a decrease of $19 million in subcontractor expenses.",
-          "cause": "primarily due to increases of $128 million in third-party cloud hosting services and $16 million in payroll and other payroll-related costs, partially offset by a decrease of $19 million in subcontractor expenses"
-        }
-      ],
-      "scored": [
-        {
-          "paragraph": "e36-p1",
-          "rank": 1,
-          "score": 21
-        },
-        {
-          "paragraph": "e36-p2",
-          "rank": 2,
-          "score": 17
-        },
-        {
-          "paragraph": "e36-p3",
+          "paragraph": "e54-m48",
           "rank": 3,
-          "score": 15
+          "score": 22
         }
       ],
-      "baseline": "e36-p1"
+      "baseline": "e54-m3"
     },
     {
-      "id": "e37",
+      "id": "e55",
       "set": "held-out",
-      "question": "What drove Tesla's capital spending up year over year this quarter?",
-      "company": "Tesla",
-      "metric": "capital_expenditure",
-      "basis": "year_over_year",
-      "report_date": "2026-06-30",
-      "accession": "0001628280-26-049270",
-      "url": "https://www.sec.gov/Archives/edgar/data/1318605/000162828026049270/tsla-20260630.htm",
-      "reason": null,
-      "paragraphs": [
-        {
-          "id": "e37-p1",
-          "text": "Our capital expenditures are typically difficult to project beyond the short-term given the number and breadth of our core projects at any given time, and may further be impacted by uncertainties in future global market conditions and shifting global trade and fiscal policy. We are simultaneously developing and ramping new products, building or ramping manufacturing facilities on three continents, piloting the development and manufacture of new battery cell technologies, expanding our Supercharger network and investing in autonomy, robotics and other artificial intelligence enabled training and products and its supporting infrastructure, and the pace of our capital spend may vary depending on overall priority among projects, the pace at which we meet milestones, production adjustments to and among our various products, increased capital efficiencies and the addition of new projects. We are focused on long-term growth opportunities through critical, high-value investments. We currently expect our capital expenditures to be in excess of $25 billion in 2026, driven by our AI initiatives, including investments in compute infrastructure and data centers, the expansion and ramp of our manufacturing and R&D production lines and facilities, and growth in our fleet of company-operated AI-enabled assets and our retail, service and charging footprint. We believe this strategy will position our Company for further growth as we make investments in a capital efficient manner.",
-          "cause": "driven by our AI initiatives, including investments in compute infrastructure and data centers, the expansion and ramp of our manufacturing and R&D production lines and facilities, and growth in our fleet of company-operated AI-enabled assets and our retail, service and charging footprint"
-        },
-        {
-          "id": "e37-p2",
-          "text": "As discussed in and subject to the considerations referenced in Part I, Item 2, Management's Discussion and Analysis of Financial Condition and Results of Operations—Management Opportunities, Challenges and Uncertainties and 2026 Outlook—Cash Flow and Capital Expenditure Trends in this Quarterly Report on Form 10-Q, we currently expect our capital expenditures to be in excess of $25 billion in 2026 driven by our AI initiatives, including investments in compute infrastructure and data centers, the expansion and ramp of our manufacturing and R&D production lines and facilities, and growth in our fleet of company-operated AI-enabled assets and our retail, service and charging footprint. Changes in trade policy may necessitate adjustments to our project timelines, potentially impacting our capital expenditure expectations.",
-          "cause": "driven by our AI initiatives, including investments in compute infrastructure and data centers, the expansion and ramp of our manufacturing and R&D production lines and facilities, and growth in our fleet of company-operated AI-enabled assets and our retail, service and charging footprint"
-        },
-        {
-          "id": "e37-p3",
-          "text": "In addition, because a large portion of our future expenditures will be to fund our growth, we expect that if needed we will be able to adjust our capital and operating expenditures by operating segment. For example, if our near-term manufacturing operations decrease in scale or ramp more slowly than expected, including due to global economic, tax, trade or business conditions, we may choose to correspondingly slow the pace of our capital expenditures. Finally, we continually evaluate our cash needs and the evolving nature of our business and may decide it is best to raise additional capital or seek alternative financing sources to fund the rapid growth of our business, including through drawdowns on existing or new debt facilities or financing funds. Conversely, we may also from time to time determine that it is in our best interests to voluntarily repay certain indebtedness early.",
-          "cause": "due to global economic, tax, trade or business conditions, we may choose to correspondingly slow the pace of our capital expenditures"
-        },
-        {
-          "id": "e37-p4",
-          "text": "We ended the second quarter of 2026 with $43.52 billion in cash and cash equivalents and short-term investments, representing a decrease of $535 million from the end of 2025. Our cash flows provided by operating activities were $8.63 billion during the six months ended June 30, 2026, compared to $4.70 billion during the same period ended June 30, 2025, representing an increase of $3.94 billion. Capital expenditures amounted to $8.28 billion during the six months ended June 30, 2026, compared to $3.89 billion during the same period ended June 30, 2025, representing an increase of $4.40 billion. Overall growth has allowed our business to generally fund itself. As we make critical high-value investments in our AI initiatives and expand manufacturing capabilities, including for our semiconductor, Optimus and solar operations, we intend to manage the business such that we maintain a strong balance sheet and sufficient liquidity, which may include additional funding.",
-          "cause": null
-        }
-      ],
-      "scored": [
-        {
-          "paragraph": "e37-p1",
-          "rank": 1,
-          "score": 18
-        },
-        {
-          "paragraph": "e37-p2",
-          "rank": 2,
-          "score": 11
-        },
-        {
-          "paragraph": "e37-p3",
-          "rank": 3,
-          "score": 9
-        }
-      ],
-      "baseline": "e37-p4"
-    },
-    {
-      "id": "e38",
-      "set": "held-out",
-      "question": "What drove Amgen's operating income up year over year this quarter?",
-      "company": "Amgen",
+      "question": "What drove Advanced Micro Devices' operating income up year over year this quarter?",
+      "company": "Advanced Micro Devices",
       "metric": "operating_income",
       "basis": "year_over_year",
-      "report_date": "2026-06-30",
-      "accession": "0000318154-26-000126",
-      "url": "https://www.sec.gov/Archives/edgar/data/318154/000031815426000126/amgn-20260630.htm",
+      "report_date": "2026-06-27",
+      "accession": "0000002488-26-000123",
+      "url": "https://www.sec.gov/Archives/edgar/data/2488/000000248826000123/amd-20260627.htm",
+      "reason": null,
+      "paragraphs": [
+        {
+          "id": "e55-m13",
+          "text": "Operating income for the three months ended June 27, 2026 was $2.0 billion compared to operating loss of $134 million for the prior year period. The increase in operating income was due to higher gross profit, partially offset by higher operating expenses. Net income for the three months ended June 27, 2026 was $2.3 billion compared to net income of $872 million for the prior year period. The increase in net income was primarily driven by higher operating income.",
+          "cause": "due to higher gross profit, partially offset by higher operating expenses"
+        },
+        {
+          "id": "e55-m25",
+          "text": "Data Center operating income was $2.1 billion for the three months ended June 27, 2026, compared to operating loss of $155 million for the prior year period. Data Center operating income was $3.7 billion for the six months ended June 27, 2026, compared to operating income of $777 million for the prior year period. The increase in operating income in both periods was primarily driven by higher revenue and the absence of inventory and related charges associated with the U.S. government export control on AMD Instinct MI308 Data Center GPU products that was recorded in the prior year period, partially offset by higher cost of sales and operating expenses.",
+          "cause": "primarily driven by higher revenue and the absence of inventory and related charges associated with the U.S. government export control on AMD Instinct MI308 Data Center GPU products that was recorded in the prior year period, partially offset by higher cost of sales and operating expenses"
+        },
+        {
+          "id": "e55-m31",
+          "text": "Embedded operating income was $386 million for the three months ended June 27, 2026, compared to operating income of $275 million for the prior year period. Embedded operating income was $724 million for the six months ended June 27, 2026, compared to operating income of $603 million for the prior year period. The increase in operating income in both periods was primarily driven by higher revenue, partially offset by higher cost of sales and operating expenses.",
+          "cause": "primarily driven by higher revenue, partially offset by higher cost of sales and operating expenses"
+        }
+      ],
+      "scored": [
+        {
+          "paragraph": "e55-m13",
+          "rank": 1,
+          "score": 29
+        },
+        {
+          "paragraph": "e55-m25",
+          "rank": 2,
+          "score": 24
+        },
+        {
+          "paragraph": "e55-m31",
+          "rank": 3,
+          "score": 24
+        }
+      ],
+      "baseline": "e55-m13"
+    },
+    {
+      "id": "e56",
+      "set": "held-out",
+      "question": "Why did NVIDIA's net margin fall sequentially last quarter?",
+      "company": "NVIDIA",
+      "metric": "net_margin",
+      "basis": "sequential",
+      "report_date": "2026-07-26",
+      "accession": "0001045810-26-000075",
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm",
       "reason": "not_discussed",
       "paragraphs": [],
       "scored": [],
       "baseline": null
     },
     {
-      "id": "e39",
+      "id": "e57",
       "set": "held-out",
-      "question": "Why did Alphabet's revenue rise sequentially last quarter?",
-      "company": "Alphabet",
-      "metric": "revenue",
+      "question": "Why did Gilead Sciences' SG&A ratio rise sequentially last quarter?",
+      "company": "Gilead Sciences",
+      "metric": "sga_ratio",
       "basis": "sequential",
       "report_date": "2026-06-30",
-      "accession": "0001652044-26-000071",
-      "url": "https://www.sec.gov/Archives/edgar/data/1652044/000165204426000071/goog-20260630.htm",
-      "reason": null,
+      "accession": "0000882095-26-000031",
+      "url": "https://www.sec.gov/Archives/edgar/data/882095/000088209526000031/gild-20260630.htm",
+      "reason": "basis_not_discussed",
       "paragraphs": [
         {
-          "id": "e39-p1",
-          "text": "The increase in TAC from the three and six months ended June 30, 2025 to the three and six months ended June 30, 2026 was largely due to an increase in TAC paid to distribution partners, primarily driven by growth in revenues subject to TAC. The TAC rate decreased from 20.6% to 19.8% from the three and six months ended June 30, 2025 to the three and six months ended June 30, 2026, primarily due to a revenue mix shift from Google Network properties to Google Search & other properties. The TAC rate on Google Search & other revenues was substantially consistent from the three and six months ended June 30, 2025 to the three and six months ended June 30, 2026. The TAC rates on Google Network revenues reflected a slight increase from the three and six months ended June 30, 2025 to the three and six months ended June 30, 2026 due to a combination of factors, none of which were individually significant.",
-          "cause": "largely due to an increase in TAC paid to distribution partners, primarily driven by growth in revenues subject to TAC"
-        },
-        {
-          "id": "e39-p2",
-          "text": "Google Network revenues decreased $51 million and $336 million from the three and six months ended June 30, 2025 to the three and six months ended June 30, 2026, primarily due to a decrease in AdSense revenues, partially offset by an increase in AdMob revenues.",
-          "cause": "primarily due to a decrease in AdSense revenues, partially offset by an increase in AdMob revenues"
-        },
-        {
-          "id": "e39-p3",
-          "text": "Google subscriptions, platforms, and devices revenues increased $1.7 billion and $3.7 billion from the three and six months ended June 30, 2025 to the three and six months ended June 30, 2026. The growth was primarily driven by an increase in subscriptions revenues. This increase was primarily due to the contribution from growth in paid subscriptions across both YouTube services and Google One.",
-          "cause": "primarily driven by an increase in subscriptions revenues"
-        },
-        {
-          "id": "e39-p4",
-          "text": "We generate revenues by delivering relevant, cost-effective online advertising; cloud-based solutions that provide enterprise customers of all sizes with infrastructure, platform services, and applications; and sales of products and services, such as fees received for subscription-based products, apps and in-app purchases, devices, and TPU systems. For additional information on how we recognize revenue, see Note 1 of the Notes to Consolidated Financial Statements included in Part II, Item 8 in our Annual Report on Form 10-K for the fiscal year ended December 31, 2025.",
+          "id": "e57-m86",
+          "text": "Selling, general and administrative expenses are recorded when incurred and consist primarily of personnel costs, facilities and overhead costs, and selling, marketing and advertising expenses, as well as other general and administrative costs related to finance, human resources, legal and other administrative activities.",
           "cause": null
         }
       ],
-      "scored": [
-        {
-          "paragraph": "e39-p1",
-          "rank": 1,
-          "score": 21
-        },
-        {
-          "paragraph": "e39-p2",
-          "rank": 2,
-          "score": 19
-        },
-        {
-          "paragraph": "e39-p3",
-          "rank": 3,
-          "score": 17
-        }
-      ],
-      "baseline": "e39-p4"
+      "scored": [],
+      "baseline": "e57-m86"
     },
     {
-      "id": "e40",
+      "id": "e58",
       "set": "held-out",
-      "question": "What drove Danaher's revenue up year over year this quarter?",
-      "company": "Danaher",
-      "metric": "revenue",
+      "question": "What drove Oracle's net margin up year over year this quarter?",
+      "company": "Oracle",
+      "metric": "net_margin",
       "basis": "year_over_year",
-      "report_date": "2026-06-26",
-      "accession": "0000313616-26-000161",
-      "url": "https://www.sec.gov/Archives/edgar/data/313616/000031361626000161/dhr-20260626.htm",
+      "report_date": "2026-08-31",
+      "accession": "0001193125-26-389274",
+      "url": "https://www.sec.gov/Archives/edgar/data/1341439/000119312526389274/orcl-20260831.htm",
       "reason": null,
       "paragraphs": [
         {
-          "id": "e40-p1",
-          "text": "During the second quarter of 2026, the Company’s overall revenues and core sales increased 5.5% and 3.0%, respectively, compared to the comparable period of 2025. Core sales excluding respiratory testing increased 4.5% during the second quarter of 2026 compared to the comparable period of 2025. The increase in core sales in the second quarter of 2026 was due to higher core sales in the Life Sciences segment, and to a lesser extent in the Biotechnology and Diagnostics segments. Acquisitions contributed 1.5% to the increase in sales and the impact of foreign currency increased reported sales by 1.0% during the three-month period ended June 26, 2026. For the six-month period ended June 26, 2026, the Company’s overall revenues and core sales increased 4.5% and 2.0%, respectively, compared to the comparable period of 2025. Core sales excluding respiratory testing increased 4.0% during the six-month period ended June 26, 2026 compared to the comparable period of 2025. The increase in core sales was due to higher core sales in the Biotechnology and Life Sciences segments, partially offset by lower core sales in the Diagnostics segment. During the six-month period ended June 26, 2026, acquisitions contributed 0.5% to the increase in sales and the impact of foreign currency increased reported sales by 2.0%. Price decreases of 0.5% negatively impacted sales growth on a year-over-year basis during the three-month period ended June 26, 2026 while price changes did not have a significant impact on sales growth on a year-over-year basis during the six-month period. Price changes are reflected as a component of core sales above. For the definitions of “core sales,” “core sales excluding respiratory testing” and “acquisitions” refer to “—Results of Operations” below.",
-          "cause": "due to higher core sales in the Life Sciences segment, and to a lesser extent in the Biotechnology and Diagnostics segments"
+          "id": "e58-m105",
+          "text": "Working capital: The increase in working capital as of August 31, 2026 in comparison to May 31, 2026 was primarily due to favorable impacts from net income; $19.9 billion of cash proceeds from the issuance of common stock via the ATM Program (defined below under Recent Financing Activities), net of issuance costs; and $11.4 billion of customer prepayments with a significant financing component, partially offset by $28.5 billion of cash used for capital expenditures; $4.6 billion of long-term borrowings that were reclassified to current liabilities; and $1.6 billion of cash used to pay dividends to our preferred and common stockholders, in each case during the first quarter of fiscal 2027. Our working capital may be impacted by some or all of the aforementioned factors in future periods, the amounts and timing of which are variable.",
+          "cause": "primarily due to favorable impacts from net income"
         },
         {
-          "id": "e40-p2",
-          "text": "The year-over-year increase in core sales in the segment in the three and six-month periods was led by low-single digit and mid-single digit core growth, respectively, in the bioprocessing business. This growth was primarily driven by improved consumables demand and to a lesser extent, improved equipment sales in the three-month period, which more than offset the impact of certain large commercial customers moving the timing of shipments out of the quarter. Core sales in the discovery and medical business increased year-over-year in both periods, driven by increased consumables in both periods, led by pharma and biopharma customers and an improving academic and research funding environment.",
-          "cause": "primarily driven by improved consumables demand and to a lesser extent, improved equipment sales in the three-month period, which more than offset the impact of certain large commercial customers moving the timing of shipments out of the quarter"
-        },
-        {
-          "id": "e40-p3",
-          "text": "Geographically, the Company’s sales in the three-month period ended June 26, 2026 in developed markets increased year-over-year by 2% and core sales in developed markets were down slightly due to a low-single digit core sales decrease in Western Europe and a slight decline in core sales in North America. The decrease in core sales in developed markets was primarily driven by the Biotechnology segment due to difficult prior year comparisons and the Diagnostics segment due to lower respiratory sales. For the same period, sales in high-growth markets increased year-over-year by 15% and core sales were up more than 10% driven by increases across all three segments and across all major high-growth market regions. High-growth markets represented approximately 31% of the Company’s total sales in the second quarter of 2026. For additional information regarding the Company’s sales by geographical region during the three and six-month periods ended June 26, 2026 and June 27, 2025, refer to Note 4 to the accompanying Consolidated Condensed Financial Statements.",
-          "cause": "due to a low-single digit core sales decrease in Western Europe and a slight decline in core sales in North America"
-        },
-        {
-          "id": "e40-p4",
-          "text": "Certain statements included or incorporated by reference in this Report, in other documents we file with or furnish to the Securities and Exchange Commission, in our press releases, webcasts, conference calls, presentations, materials delivered to shareholders and other communications, are “forward-looking statements” within the meaning of the U.S. federal securities laws. All statements other than historical factual information are forward-looking statements, including without limitation statements regarding: projections of tariff or other trade-related impacts, revenue, expenses, profit, profit margins, asset values, pricing, tax rates, tax provisions, cash flows, pension and benefit obligations and funding requirements, our liquidity position or other projected financial measures; management’s plans and strategies for future operations, including statements relating to anticipated operating performance, customer demand, cost reductions, restructuring activities, new product and service developments, competitive strengths or market position, acquisitions and the integration thereof (including our integration of Masimo and the anticipated benefits of such acquisition, which is further described in Note 2), divestitures, spin-offs, split-offs, initial public offerings, other securities offerings or other distributions, strategic opportunities, stock repurchases, dividends, executive compensation and potential executive stock sales or purchases; growth, declines and other trends in markets we sell into; future, new or modified laws, regulations, accounting pronouncements or public policy changes; regulatory approvals and the timing and conditionality thereof; outstanding claims, legal proceedings, tax audits and assessments and other contingent liabilities; future currency exchange rates and fluctuations in those rates; the potential or anticipated direct or indirect impact of public health crises, climate change, military or geopolitical conflicts or other man-made or natural disasters on our business, results of operations and/or financial condition; general economic and capital markets conditions; the anticipated timing of any of the foregoing; assumptions underlying any of the foregoing; and any other statements that address events or developments that Danaher intends or believes will or may occur in the future. Terminology such as “believe,” “anticipate,” “assume,” “continue,” “should,” “could,” “intend,” “will,” “plan,” “aim,” “expect,” “estimate,” “project,” “target,” “can,” “may,” “possible,” “potential,” “upcoming,” “forecast” and “positioned” and similar references to future periods are intended to identify forward-looking statements, although not all forward-looking statements are accompanied by such words.",
+          "id": "e58-m41",
+          "text": "Our operating results reported pursuant to GAAP included the following items that affected our GAAP net income:",
           "cause": null
         }
       ],
       "scored": [
         {
-          "paragraph": "e40-p1",
+          "paragraph": "e58-m105",
           "rank": 1,
-          "score": 29
-        },
-        {
-          "paragraph": "e40-p2",
-          "rank": 2,
-          "score": 29
-        },
-        {
-          "paragraph": "e40-p3",
-          "rank": 3,
-          "score": 26
+          "score": 18
         }
       ],
-      "baseline": "e40-p4"
+      "baseline": "e58-m41"
+    },
+    {
+      "id": "e59",
+      "set": "held-out",
+      "question": "Why did General Motors' net margin fall sequentially last quarter?",
+      "company": "General Motors",
+      "metric": "net_margin",
+      "basis": "sequential",
+      "report_date": "2026-06-30",
+      "accession": "0001467858-26-000051",
+      "url": "https://www.sec.gov/Archives/edgar/data/1467858/000146785826000051/gm-20260630.htm",
+      "reason": "basis_not_discussed",
+      "paragraphs": [
+        {
+          "id": "e59-m10",
+          "text": "For the year ending December 31, 2026, we expect Net income attributable to stockholders of between $8.4 billion and $9.8 billion, EBIT-adjusted of between $14.0 billion and $16.0 billion, EPS-diluted of between $8.98 and $10.98, and EPS-diluted-adjusted of between $12.00 and $14.00. Refer to the \"Non-GAAP Measures\" section of this MD&A for additional information.",
+          "cause": null
+        }
+      ],
+      "scored": [],
+      "baseline": "e59-m10"
+    },
+    {
+      "id": "e60",
+      "set": "held-out",
+      "question": "Why did Tesla's operating income fall sequentially last quarter?",
+      "company": "Tesla",
+      "metric": "operating_income",
+      "basis": "sequential",
+      "report_date": "2026-06-30",
+      "accession": "0001628280-26-049270",
+      "url": "https://www.sec.gov/Archives/edgar/data/1318605/000162828026049270/tsla-20260630.htm",
+      "reason": "not_discussed",
+      "paragraphs": [
+        {
+          "id": "e60-m13",
+          "text": "However, we operate in a cyclical industry that is sensitive to shifting consumer trends, geopolitical conflicts, political and regulatory uncertainty, including with respect to trade and the environment, all of which can be compounded by inflationary pressures, rising energy prices, interest rate fluctuations and the liquidity of enterprise customers. For example, as inflationary pressures increased across the markets in which we operate, central banks in developed countries raised interest rates rapidly and substantially, which impacted the affordability of vehicle lease and finance arrangements. Further, sales of vehicles in the automotive industry also tend to be cyclical in many markets, which may expose us to increased volatility as we expand and adjust our operations. Moreover, as additional competitors enter the marketplace and help bring the world closer to sustainable transportation, we will have to adjust and continue to execute well to maintain our momentum. Additionally, our suppliers’ liquidity and allocation plans may be affected by current challenges in the automotive industry, which could reduce our access to components or result in unfavorable changes to cost. These macroeconomic and industry trends have had, and will likely continue to have, an impact on the pricing of, and order rate for our vehicles, and in turn our operating margin.",
+          "cause": null
+        }
+      ],
+      "scored": [],
+      "baseline": "e60-m13"
     }
   ]
 }

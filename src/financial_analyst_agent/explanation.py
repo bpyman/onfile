@@ -5,7 +5,18 @@ No model reads the filing and nothing is fetched here: the caller passes the fil
 HTML, the catalog metric and the comparison base the question asked for.
 
 A paragraph is chosen only when it names the metric in the MD&A's own words, and that
-sentence or the next says the metric changed or why. It is scored on:
+sentence or the next says the metric changed or why. It must also:
+
+- compare on the basis asked: a sequential question needs a paragraph that says it
+  compares with the quarter before ("sequentially", "compared to the second quarter of
+  2026" beside the third); a year-over-year question takes any paragraph but one that
+  compares only sequentially, since a 10-Q compares with a year earlier by default;
+- explain the quarter: a cause given only for the year to date ("first nine months")
+  does not count, unless the paragraph says it holds for both periods;
+- be prose: a block of fewer than eight words, or with no verb, is a heading.
+
+A sequential question that finds nothing, where a year-over-year one would, gets
+``basis_not_discussed`` with those paragraphs as the alternative. It is scored on:
 
 - how often it names the metric;
 - whether a sentence naming the metric gives a cause ("primarily due to", "driven by"),
@@ -19,7 +30,9 @@ sentence or the next says the metric changed or why. It is scored on:
 A paragraph whose subject is another metric ("Operating income was $2.0 billion … The
 increase in operating income was due to higher gross profit") is never chosen
 (``is_about_another_metric``): with nothing about this metric, the answer is that the
-MD&A does not discuss it. Ties keep the filing's order.
+MD&A does not discuss it. A paragraph about the cash balance, liquidity, or financing or
+investing cash flows is about another metric for every metric covered. Ties keep the
+filing's order. Cash flow and capex are not covered for now (``_METRIC_FAMILY``).
 The weights are a first cut; the explanation evaluation measures them.
 """
 
@@ -38,7 +51,11 @@ from financial_analyst_agent.filing_change import (
 
 MAX_PARAGRAPHS = 3
 
-NothingFound = Literal["mda_not_found", "not_discussed", "metric_not_covered"]
+# ``basis_not_discussed``: a sequential question found nothing, but the MD&A explains
+# the same metric against a year earlier; those paragraphs come as the alternative.
+NothingFound = Literal[
+    "mda_not_found", "not_discussed", "basis_not_discussed", "metric_not_covered"
+]
 
 
 def _words(*phrases: str) -> re.Pattern[str]:
@@ -101,6 +118,18 @@ _FAMILY_WORDS: tuple[tuple[str, re.Pattern[str]], ...] = (
         ),
     ),
     ("free_cash", _words(r"free cash flows?")),
+    # No catalog metric: a paragraph whose subject is the cash balance, liquidity, or
+    # financing or investing cash flows is about another metric, whatever was asked.
+    (
+        "cash_balance",
+        _words(
+            r"cash,? (?:and )?cash equivalents",
+            r"cash balances?",
+            r"cash position",
+            r"liquidity",
+            r"(?:financing|investing) activities",
+        ),
+    ),
 )
 
 _FAMILY_PATTERNS = dict(_FAMILY_WORDS)
@@ -119,9 +148,12 @@ _METRIC_FAMILY: dict[str, str] = {
     "rd_to_sales": "rd",
     "selling_general_and_administrative": "sga",
     "sga_ratio": "sga",
-    "operating_cash_flow": "operating_cash",
-    "capital_expenditure": "capex",
-    "free_cash_flow": "free_cash",
+    # Left out for now: the first judge run found these questions landing on cash-balance
+    # and financing paragraphs, and the causes MD&As give are for the year to date. Their
+    # words stay above, so a cash-flow paragraph is still about another metric.
+    # "operating_cash_flow": "operating_cash",
+    # "capital_expenditure": "capex",
+    # "free_cash_flow": "free_cash",
 }
 
 # Wording that gives a cause. The qualifier ("primarily", "partially") belongs to the clause.
@@ -153,7 +185,24 @@ _NAMED_QUARTER = re.compile(
     re.IGNORECASE,
 )
 _ORDINALS = {"first": 1, "second": 2, "third": 3, "fourth": 4}
-_QUARTER = re.compile(r"\b(?:quarter|three months)\b", re.IGNORECASE)
+_QUARTER = re.compile(r"\b(?:quarter|three (?:and (?:six|nine) )?months)\b", re.IGNORECASE)
+_YEAR_TO_DATE = re.compile(
+    r"\b(?:(?:six|nine) months|first (?:half|three quarters)|year[- ]to[- ]date)\b",
+    re.IGNORECASE,
+)
+# "The increase in both periods was driven by …": a year-to-date cause said of the quarter.
+_BOTH_PERIODS = re.compile(r"\b(?:both|each of the|all) periods\b", re.IGNORECASE)
+# A block of fewer words, or with no verb, is a heading or a caption ("Cost of products sold").
+_FEWEST_WORDS = 8
+_VERB = re.compile(
+    r"\b(?:is|are|was|were|be|been|being|has|have|had|will|would|could|may|might|can|"
+    r"grew|grow|grows|rose|rise|rises|fell|fall|falls|drove|drives|remains?|reflects?|"
+    r"includes?|"
+    # A past tense; not the participles of a caption ("three months ended", "related").
+    r"(?!(?:ended|based|related|consolidated|combined|selected|unaudited|diluted|adjusted|"
+    r"weighted|limited|united|detailed)\b)\w{3,}ed)\b",
+    re.IGNORECASE,
+)
 _LOOKING_AHEAD = re.compile(
     r"\b(?:we (?:expect|anticipate|plan|intend)|outlook|guidance)\b", re.IGNORECASE
 )
@@ -188,10 +237,15 @@ class ExplainingParagraph:
 
 @dataclass(frozen=True)
 class ManagementExplanation:
-    """Up to three paragraphs in score order, or none and the reason."""
+    """Up to three paragraphs in score order, or none and the reason.
+
+    With ``basis_not_discussed``, ``alternative`` holds the paragraphs a year-over-year
+    question on the same filing and metric gets.
+    """
 
     paragraphs: tuple[ExplainingParagraph, ...]
     reason: NothingFound | None = None
+    alternative: tuple[ExplainingParagraph, ...] = ()
 
 
 def explained_metrics() -> tuple[str, ...]:
@@ -336,11 +390,58 @@ def _says_metric_moved(paragraph: str, family: str) -> bool:
     return False
 
 
+def _is_heading(paragraph: str) -> bool:
+    """A block of fewer than eight words, or with no verb: a heading or a caption."""
+    return len(paragraph.split()) < _FEWEST_WORDS or _VERB.search(paragraph) is None
+
+
+def _compares_on(paragraph: str, basis: ComparisonBase | None) -> bool:
+    """Whether the paragraph's comparison can answer the basis asked.
+
+    Sequential needs the paragraph to say it compares with the quarter before. Year
+    over year takes any paragraph but one comparing only sequentially: a 10-Q's MD&A
+    compares with the year-earlier quarter unless it says otherwise.
+    """
+    if basis is None:
+        return True
+    bases = _bases(paragraph)
+    if basis == "sequential":
+        return "sequential" in bases
+    return bases != {"sequential"}
+
+
+def _only_for_the_year_to_date(paragraph: str) -> bool:
+    """Whether the paragraph explains only the year to date, not the quarter.
+
+    Each sentence's period is the one it names (the quarter, or the year to date:
+    "first nine months", "six months ended"), or else the last one named before it.
+    The paragraph is the year to date's when every causal sentence is, or, with no
+    cause, every sentence is, unless it says its cause holds "in both periods".
+    """
+    if _BOTH_PERIODS.search(paragraph):
+        return False
+    period: str | None = None
+    periods: list[str | None] = []
+    causal: list[str | None] = []
+    for start, end in _sentences(paragraph):
+        sentence = paragraph[start:end]
+        if _QUARTER.search(sentence):
+            period = "quarter"
+        elif _YEAR_TO_DATE.search(sentence):
+            period = "year_to_date"
+        periods.append(period)
+        if _CAUSAL.search(sentence):
+            causal.append(period)
+    return all(named == "year_to_date" for named in causal or periods)
+
+
 def _score(
     paragraph: str, family: str, basis: ComparisonBase | None
 ) -> tuple[int, tuple[int, int] | None] | None:
     """A paragraph's score and first causal clause, or None when it cannot be chosen."""
-    if not _says_metric_moved(paragraph, family):
+    if _is_heading(paragraph) or not _says_metric_moved(paragraph, family):
+        return None
+    if not _compares_on(paragraph, basis) or _only_for_the_year_to_date(paragraph):
         return None
     mentions = _family_mentions(paragraph)[family]
     causes = len(_CAUSAL.findall(paragraph))
@@ -348,12 +449,8 @@ def _score(
     cause, strength = _first_cause(paragraph, family)
     score = 2 * min(mentions, _CAPPED) + 2 * min(causes, _CAPPED) + min(changes, _CAPPED)
     score += _CAUSE_BESIDE_METRIC[strength]
-    if basis is not None:
-        bases = _bases(paragraph)
-        if basis in bases:
-            score += 3
-        elif bases:
-            score -= 3
+    if basis is not None and basis in _bases(paragraph):
+        score += 3
     if _QUARTER.search(paragraph):
         score += 2
     if _opens_on_whole_company(paragraph, family):
@@ -375,6 +472,24 @@ def management_explanation(
     paragraphs = section_paragraphs(extract_section(html, "mda"))
     if not paragraphs:
         return ManagementExplanation((), "mda_not_found")
+    chosen = _choose(paragraphs, metric, family, basis, source_url)
+    if chosen:
+        return ManagementExplanation(chosen)
+    if basis == "sequential":
+        # 10-Qs explain the quarter against a year earlier; say so, and offer that.
+        alternative = _choose(paragraphs, metric, family, "year_over_year", source_url)
+        if alternative:
+            return ManagementExplanation((), "basis_not_discussed", alternative)
+    return ManagementExplanation((), "not_discussed")
+
+
+def _choose(
+    paragraphs: list[str],
+    metric: str,
+    family: str,
+    basis: ComparisonBase | None,
+    source_url: str,
+) -> tuple[ExplainingParagraph, ...]:
     ranked: list[tuple[int, int, ExplainingParagraph]] = []
     for position, paragraph in enumerate(paragraphs):
         # A paragraph about another metric is never shown: with nothing about this
@@ -393,7 +508,4 @@ def management_explanation(
         )
         ranked.append((-score, position, chosen))
     ranked.sort(key=lambda entry: entry[:2])
-    chosen_paragraphs = tuple(entry[2] for entry in ranked[:MAX_PARAGRAPHS])
-    if not chosen_paragraphs:
-        return ManagementExplanation((), "not_discussed")
-    return ManagementExplanation(chosen_paragraphs)
+    return tuple(entry[2] for entry in ranked[:MAX_PARAGRAPHS])

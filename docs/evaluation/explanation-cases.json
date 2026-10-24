@@ -1,5 +1,9 @@
 {
-  "seed": 20261023,
+  "seeds": {
+    "dev": 20261023,
+    "held-out": 20261024
+  },
+  "notes": "The development set is the first draw's development half (seed 20261023), less its operating cash flow, capex and free cash flow cases, whose metrics are no longer covered. The first draw's held-out half (e20, e22 to e40) was read while diagnosing the first judge run, so it and its labels leave the evaluation. The held-out set is a fresh draw (seed 20261024, ids from e41) from the narrowed pool, sharing no (company, metric, basis) with either half of the first draw: 10 year over year and 10 sequential.",
   "cases": [
     {
       "id": "e01",
@@ -212,27 +216,6 @@
       }
     },
     {
-      "id": "e11",
-      "set": "dev",
-      "company": "Apple",
-      "cik": "0000320193",
-      "metric": "free_cash_flow",
-      "basis": "sequential",
-      "question": "What caused Apple's free cash flow to rise sequentially last quarter?",
-      "direction": "rose",
-      "report_date": "2026-06-27",
-      "accession": "0000320193-26-000020",
-      "document": "aapl-20260627.htm",
-      "latest": {
-        "end_date": "2026-06-27",
-        "value": "31914000000"
-      },
-      "compared": {
-        "end_date": "2026-03-28",
-        "value": "26731000000"
-      }
-    },
-    {
       "id": "e12",
       "set": "dev",
       "company": "Cisco Systems",
@@ -296,27 +279,6 @@
       }
     },
     {
-      "id": "e15",
-      "set": "dev",
-      "company": "UnitedHealth",
-      "cik": "0000731766",
-      "metric": "capital_expenditure",
-      "basis": "year_over_year",
-      "question": "Why did UnitedHealth's capital spending fall year over year last quarter?",
-      "direction": "fell",
-      "report_date": "2026-06-30",
-      "accession": "0000731766-26-000197",
-      "document": "unh-20260630.htm",
-      "latest": {
-        "end_date": "2026-06-30",
-        "value": "799000000"
-      },
-      "compared": {
-        "end_date": "2025-06-30",
-        "value": "886000000"
-      }
-    },
-    {
       "id": "e16",
       "set": "dev",
       "company": "Gilead Sciences",
@@ -335,48 +297,6 @@
       "compared": {
         "end_date": "2026-03-31",
         "value": "6960000000"
-      }
-    },
-    {
-      "id": "e17",
-      "set": "dev",
-      "company": "Applied Materials",
-      "cik": "0000006951",
-      "metric": "operating_cash_flow",
-      "basis": "year_over_year",
-      "question": "What drove Applied Materials' operating cash flow up year over year this quarter?",
-      "direction": "rose",
-      "report_date": "2026-07-26",
-      "accession": "0001628280-26-058235",
-      "document": "amat-20260726.htm",
-      "latest": {
-        "end_date": "2026-07-26",
-        "value": "3037000000"
-      },
-      "compared": {
-        "end_date": "2025-07-27",
-        "value": "2634000000"
-      }
-    },
-    {
-      "id": "e18",
-      "set": "dev",
-      "company": "Tesla",
-      "cik": "0001318605",
-      "metric": "operating_cash_flow",
-      "basis": "year_over_year",
-      "question": "What drove Tesla's operating cash flow up year over year this quarter?",
-      "direction": "rose",
-      "report_date": "2026-06-30",
-      "accession": "0001628280-26-049270",
-      "document": "tsla-20260630.htm",
-      "latest": {
-        "end_date": "2026-06-30",
-        "value": "4697000000"
-      },
-      "compared": {
-        "end_date": "2025-06-30",
-        "value": "2540000000"
       }
     },
     {
@@ -401,27 +321,6 @@
       }
     },
     {
-      "id": "e20",
-      "set": "held-out",
-      "company": "Eli Lilly",
-      "cik": "0000059478",
-      "metric": "net_margin",
-      "basis": "sequential",
-      "question": "What caused Eli Lilly's net margin to fall sequentially last quarter?",
-      "direction": "fell",
-      "report_date": "2026-06-30",
-      "accession": "0000059478-26-000081",
-      "document": "lly-20260630.htm",
-      "latest": {
-        "end_date": "2026-06-30",
-        "value": "0.308827"
-      },
-      "compared": {
-        "end_date": "2026-03-31",
-        "value": "0.373554"
-      }
-    },
-    {
       "id": "e21",
       "set": "dev",
       "company": "Apple",
@@ -443,160 +342,76 @@
       }
     },
     {
-      "id": "e22",
+      "id": "e41",
       "set": "held-out",
-      "company": "Palantir Technologies",
-      "cik": "0001321655",
-      "metric": "operating_cash_flow",
-      "basis": "sequential",
-      "question": "What drove Palantir Technologies' operating cash flow up sequentially this quarter?",
+      "company": "Alphabet",
+      "cik": "0001652044",
+      "metric": "research_and_development",
+      "basis": "year_over_year",
+      "question": "What caused Alphabet's R&D spending to rise year over year last quarter?",
       "direction": "rose",
       "report_date": "2026-06-30",
-      "accession": "0001321655-26-000041",
-      "document": "pltr-20260630.htm",
+      "accession": "0001652044-26-000071",
+      "document": "goog-20260630.htm",
       "latest": {
         "end_date": "2026-06-30",
-        "value": "1216167000"
+        "value": "18219000000"
       },
       "compared": {
-        "end_date": "2026-03-31",
-        "value": "899165000"
+        "end_date": "2025-06-30",
+        "value": "13808000000"
       }
     },
     {
-      "id": "e23",
+      "id": "e42",
       "set": "held-out",
-      "company": "Oracle",
-      "cik": "0001341439",
-      "metric": "capital_expenditure",
+      "company": "Thermo Fisher Scientific",
+      "cik": "0000097745",
+      "metric": "net_margin",
       "basis": "year_over_year",
-      "question": "Why did Oracle's capital spending rise year over year last quarter?",
-      "direction": "rose",
-      "report_date": "2026-08-31",
-      "accession": "0001193125-26-389274",
-      "document": "orcl-20260831.htm",
+      "question": "What caused Thermo Fisher Scientific's net margin to fall year over year last quarter?",
+      "direction": "fell",
+      "report_date": "2026-06-27",
+      "accession": "0000097745-26-000144",
+      "document": "tmo-20260627.htm",
       "latest": {
-        "end_date": "2026-08-31",
-        "value": "28499000000"
+        "end_date": "2026-06-27",
+        "value": "0.144739"
       },
       "compared": {
-        "end_date": "2025-08-31",
-        "value": "8502000000"
+        "end_date": "2025-06-28",
+        "value": "0.148964"
       }
     },
     {
-      "id": "e24",
-      "set": "held-out",
-      "company": "Microsoft",
-      "cik": "0000789019",
-      "metric": "operating_margin",
-      "basis": "year_over_year",
-      "question": "What caused Microsoft's operating margin to rise year over year last quarter?",
-      "direction": "rose",
-      "report_date": "2026-03-31",
-      "accession": "0001193125-26-191507",
-      "document": "msft-20260331.htm",
-      "latest": {
-        "end_date": "2026-03-31",
-        "value": "0.463263"
-      },
-      "compared": {
-        "end_date": "2025-03-31",
-        "value": "0.456712"
-      }
-    },
-    {
-      "id": "e25",
-      "set": "held-out",
-      "company": "Broadcom",
-      "cik": "0001730168",
-      "metric": "operating_cash_flow",
-      "basis": "sequential",
-      "question": "Why did Broadcom's operating cash flow rise sequentially last quarter?",
-      "direction": "rose",
-      "report_date": "2026-08-02",
-      "accession": "0001730168-26-000080",
-      "document": "avgo-20260802.htm",
-      "latest": {
-        "end_date": "2026-08-02",
-        "value": "14197000000"
-      },
-      "compared": {
-        "end_date": "2026-05-03",
-        "value": "10493000000"
-      }
-    },
-    {
-      "id": "e26",
-      "set": "held-out",
-      "company": "Amgen",
-      "cik": "0000318154",
-      "metric": "operating_margin",
-      "basis": "sequential",
-      "question": "Why did Amgen's operating margin rise sequentially last quarter?",
-      "direction": "rose",
-      "report_date": "2026-06-30",
-      "accession": "0000318154-26-000126",
-      "document": "amgn-20260630.htm",
-      "latest": {
-        "end_date": "2026-06-30",
-        "value": "0.349513"
-      },
-      "compared": {
-        "end_date": "2026-03-31",
-        "value": "0.309353"
-      }
-    },
-    {
-      "id": "e27",
+      "id": "e43",
       "set": "held-out",
       "company": "Eli Lilly",
       "cik": "0000059478",
-      "metric": "operating_cash_flow",
+      "metric": "gross_margin",
       "basis": "sequential",
-      "question": "What caused Eli Lilly's operating cash flow to rise sequentially last quarter?",
+      "question": "Why did Eli Lilly's gross margin rise sequentially last quarter?",
       "direction": "rose",
       "report_date": "2026-06-30",
       "accession": "0000059478-26-000081",
       "document": "lly-20260630.htm",
       "latest": {
         "end_date": "2026-06-30",
-        "value": "10690000000"
+        "value": "0.857752"
       },
       "compared": {
         "end_date": "2026-03-31",
-        "value": "5333000000"
+        "value": "0.819334"
       }
     },
     {
-      "id": "e28",
-      "set": "held-out",
-      "company": "Danaher",
-      "cik": "0000313616",
-      "metric": "free_cash_flow",
-      "basis": "year_over_year",
-      "question": "What drove Danaher's free cash flow up year over year this quarter?",
-      "direction": "rose",
-      "report_date": "2026-06-26",
-      "accession": "0000313616-26-000161",
-      "document": "dhr-20260626.htm",
-      "latest": {
-        "end_date": "2026-06-26",
-        "value": "1265000000"
-      },
-      "compared": {
-        "end_date": "2025-06-27",
-        "value": "1090000000"
-      }
-    },
-    {
-      "id": "e29",
+      "id": "e44",
       "set": "held-out",
       "company": "NVIDIA",
       "cik": "0001045810",
       "metric": "gross_profit",
-      "basis": "sequential",
-      "question": "What caused NVIDIA's gross profit to rise sequentially last quarter?",
+      "basis": "year_over_year",
+      "question": "Why did NVIDIA's gross profit rise year over year last quarter?",
       "direction": "rose",
       "report_date": "2026-07-26",
       "accession": "0001045810-26-000075",
@@ -606,239 +421,344 @@
         "value": "72142000000"
       },
       "compared": {
-        "end_date": "2026-04-26",
-        "value": "61157000000"
+        "end_date": "2025-07-27",
+        "value": "33853000000"
       }
     },
     {
-      "id": "e30",
+      "id": "e45",
       "set": "held-out",
-      "company": "Advanced Micro Devices",
-      "cik": "0000002488",
-      "metric": "selling_general_and_administrative",
-      "basis": "sequential",
-      "question": "Why did Advanced Micro Devices' SG&A expenses rise sequentially last quarter?",
-      "direction": "rose",
-      "report_date": "2026-06-27",
-      "accession": "0000002488-26-000123",
-      "document": "amd-20260627.htm",
-      "latest": {
-        "end_date": "2026-06-27",
-        "value": "1401000000"
-      },
-      "compared": {
-        "end_date": "2026-03-28",
-        "value": "1253000000"
-      }
-    },
-    {
-      "id": "e31",
-      "set": "held-out",
-      "company": "Danaher",
-      "cik": "0000313616",
-      "metric": "capital_expenditure",
-      "basis": "year_over_year",
-      "question": "What drove Danaher's capital spending up year over year this quarter?",
-      "direction": "rose",
-      "report_date": "2026-06-26",
-      "accession": "0000313616-26-000161",
-      "document": "dhr-20260626.htm",
-      "latest": {
-        "end_date": "2026-06-26",
-        "value": "269000000"
-      },
-      "compared": {
-        "end_date": "2025-06-27",
-        "value": "248000000"
-      }
-    },
-    {
-      "id": "e32",
-      "set": "held-out",
-      "company": "Pfizer",
-      "cik": "0000078003",
+      "company": "Applied Materials",
+      "cik": "0000006951",
       "metric": "revenue",
       "basis": "year_over_year",
-      "question": "Why did Pfizer's revenue rise year over year last quarter?",
+      "question": "What drove Applied Materials' revenue up year over year this quarter?",
       "direction": "rose",
-      "report_date": "2026-06-28",
-      "accession": "0000078003-26-000095",
-      "document": "pfe-20260628.htm",
+      "report_date": "2026-07-26",
+      "accession": "0001628280-26-058235",
+      "document": "amat-20260726.htm",
       "latest": {
-        "end_date": "2026-06-28",
-        "value": "15034000000"
+        "end_date": "2026-07-26",
+        "value": "9115000000"
       },
       "compared": {
-        "end_date": "2025-06-29",
-        "value": "14653000000"
+        "end_date": "2025-07-27",
+        "value": "7302000000"
       }
     },
     {
-      "id": "e33",
+      "id": "e46",
       "set": "held-out",
-      "company": "Microsoft",
-      "cik": "0000789019",
-      "metric": "gross_profit",
+      "company": "Micron Technology",
+      "cik": "0000723125",
+      "metric": "operating_income",
       "basis": "sequential",
-      "question": "Why did Microsoft's gross profit rise sequentially last quarter?",
+      "question": "Why did Micron Technology's operating income rise sequentially last quarter?",
       "direction": "rose",
-      "report_date": "2026-03-31",
-      "accession": "0001193125-26-191507",
-      "document": "msft-20260331.htm",
+      "report_date": "2026-05-28",
+      "accession": "0000723125-26-000015",
+      "document": "mu-20260528.htm",
       "latest": {
-        "end_date": "2026-03-31",
-        "value": "56058000000"
+        "end_date": "2026-05-28",
+        "value": "33318000000"
       },
       "compared": {
-        "end_date": "2025-12-31",
-        "value": "55295000000"
+        "end_date": "2026-02-26",
+        "value": "16135000000"
       }
     },
     {
-      "id": "e34",
+      "id": "e47",
       "set": "held-out",
-      "company": "Broadcom",
-      "cik": "0001730168",
-      "metric": "gross_profit",
-      "basis": "sequential",
-      "question": "What caused Broadcom's gross profit to rise sequentially last quarter?",
-      "direction": "rose",
-      "report_date": "2026-08-02",
-      "accession": "0001730168-26-000080",
-      "document": "avgo-20260802.htm",
-      "latest": {
-        "end_date": "2026-08-02",
-        "value": "20456000000"
-      },
-      "compared": {
-        "end_date": "2026-05-03",
-        "value": "15415000000"
-      }
-    },
-    {
-      "id": "e35",
-      "set": "held-out",
-      "company": "Thermo Fisher Scientific",
-      "cik": "0000097745",
+      "company": "Tesla",
+      "cik": "0001318605",
       "metric": "operating_margin",
       "basis": "year_over_year",
-      "question": "Why did Thermo Fisher Scientific's operating margin rise year over year last quarter?",
-      "direction": "rose",
-      "report_date": "2026-06-27",
-      "accession": "0000097745-26-000144",
-      "document": "tmo-20260627.htm",
+      "question": "What drove Tesla's operating margin down year over year this quarter?",
+      "direction": "fell",
+      "report_date": "2026-06-30",
+      "accession": "0001628280-26-049270",
+      "document": "tsla-20260630.htm",
       "latest": {
-        "end_date": "2026-06-27",
-        "value": "0.174004"
+        "end_date": "2026-06-30",
+        "value": "0.014095"
       },
       "compared": {
-        "end_date": "2025-06-28",
-        "value": "0.168954"
+        "end_date": "2025-06-30",
+        "value": "0.041030"
       }
     },
     {
-      "id": "e36",
+      "id": "e48",
+      "set": "held-out",
+      "company": "Applied Materials",
+      "cik": "0000006951",
+      "metric": "operating_income",
+      "basis": "sequential",
+      "question": "Why did Applied Materials' operating income rise sequentially last quarter?",
+      "direction": "rose",
+      "report_date": "2026-07-26",
+      "accession": "0001628280-26-058235",
+      "document": "amat-20260726.htm",
+      "latest": {
+        "end_date": "2026-07-26",
+        "value": "3075000000"
+      },
+      "compared": {
+        "end_date": "2026-04-26",
+        "value": "2523000000"
+      }
+    },
+    {
+      "id": "e49",
+      "set": "held-out",
+      "company": "Micron Technology",
+      "cik": "0000723125",
+      "metric": "rd_to_sales",
+      "basis": "sequential",
+      "question": "What caused Micron Technology's R&D-to-sales ratio to fall sequentially last quarter?",
+      "direction": "fell",
+      "report_date": "2026-05-28",
+      "accession": "0000723125-26-000015",
+      "document": "mu-20260528.htm",
+      "latest": {
+        "end_date": "2026-05-28",
+        "value": "0.031745"
+      },
+      "compared": {
+        "end_date": "2026-02-26",
+        "value": "0.052389"
+      }
+    },
+    {
+      "id": "e50",
       "set": "held-out",
       "company": "Palantir Technologies",
       "cik": "0001321655",
-      "metric": "cost_of_revenue",
-      "basis": "year_over_year",
-      "question": "What caused Palantir Technologies' cost of revenue to rise year over year last quarter?",
+      "metric": "rd_to_sales",
+      "basis": "sequential",
+      "question": "What caused Palantir Technologies' R&D-to-sales ratio to rise sequentially last quarter?",
       "direction": "rose",
       "report_date": "2026-06-30",
       "accession": "0001321655-26-000041",
       "document": "pltr-20260630.htm",
       "latest": {
         "end_date": "2026-06-30",
-        "value": "296870000"
+        "value": "0.099466"
       },
       "compared": {
-        "end_date": "2025-06-30",
-        "value": "192934000"
+        "end_date": "2026-03-31",
+        "value": "0.098605"
       }
     },
     {
-      "id": "e37",
+      "id": "e51",
+      "set": "held-out",
+      "company": "General Motors",
+      "cik": "0001467858",
+      "metric": "operating_income",
+      "basis": "sequential",
+      "question": "Why did General Motors' operating income fall sequentially last quarter?",
+      "direction": "fell",
+      "report_date": "2026-06-30",
+      "accession": "0001467858-26-000051",
+      "document": "gm-20260630.htm",
+      "latest": {
+        "end_date": "2026-06-30",
+        "value": "1459000000"
+      },
+      "compared": {
+        "end_date": "2026-03-31",
+        "value": "2926000000"
+      }
+    },
+    {
+      "id": "e52",
+      "set": "held-out",
+      "company": "Apple",
+      "cik": "0000320193",
+      "metric": "net_margin",
+      "basis": "year_over_year",
+      "question": "What caused Apple's net margin to rise year over year last quarter?",
+      "direction": "rose",
+      "report_date": "2026-06-27",
+      "accession": "0000320193-26-000020",
+      "document": "aapl-20260627.htm",
+      "latest": {
+        "end_date": "2026-06-27",
+        "value": "0.272252"
+      },
+      "compared": {
+        "end_date": "2025-06-28",
+        "value": "0.249202"
+      }
+    },
+    {
+      "id": "e53",
+      "set": "held-out",
+      "company": "Broadcom",
+      "cik": "0001730168",
+      "metric": "revenue",
+      "basis": "year_over_year",
+      "question": "What drove Broadcom's revenue up year over year this quarter?",
+      "direction": "rose",
+      "report_date": "2026-08-02",
+      "accession": "0001730168-26-000080",
+      "document": "avgo-20260802.htm",
+      "latest": {
+        "end_date": "2026-08-02",
+        "value": "29591000000"
+      },
+      "compared": {
+        "end_date": "2025-08-03",
+        "value": "15952000000"
+      }
+    },
+    {
+      "id": "e54",
+      "set": "held-out",
+      "company": "Thermo Fisher Scientific",
+      "cik": "0000097745",
+      "metric": "revenue",
+      "basis": "year_over_year",
+      "question": "What drove Thermo Fisher Scientific's revenue up year over year this quarter?",
+      "direction": "rose",
+      "report_date": "2026-06-27",
+      "accession": "0000097745-26-000144",
+      "document": "tmo-20260627.htm",
+      "latest": {
+        "end_date": "2026-06-27",
+        "value": "11994000000"
+      },
+      "compared": {
+        "end_date": "2025-06-28",
+        "value": "10855000000"
+      }
+    },
+    {
+      "id": "e55",
+      "set": "held-out",
+      "company": "Advanced Micro Devices",
+      "cik": "0000002488",
+      "metric": "operating_income",
+      "basis": "year_over_year",
+      "question": "What drove Advanced Micro Devices' operating income up year over year this quarter?",
+      "direction": "rose",
+      "report_date": "2026-06-27",
+      "accession": "0000002488-26-000123",
+      "document": "amd-20260627.htm",
+      "latest": {
+        "end_date": "2026-06-27",
+        "value": "1990000000"
+      },
+      "compared": {
+        "end_date": "2025-06-28",
+        "value": "-134000000"
+      }
+    },
+    {
+      "id": "e56",
+      "set": "held-out",
+      "company": "NVIDIA",
+      "cik": "0001045810",
+      "metric": "net_margin",
+      "basis": "sequential",
+      "question": "Why did NVIDIA's net margin fall sequentially last quarter?",
+      "direction": "fell",
+      "report_date": "2026-07-26",
+      "accession": "0001045810-26-000075",
+      "document": "nvda-20260726.htm",
+      "latest": {
+        "end_date": "2026-07-26",
+        "value": "0.620322"
+      },
+      "compared": {
+        "end_date": "2026-04-26",
+        "value": "0.714587"
+      }
+    },
+    {
+      "id": "e57",
+      "set": "held-out",
+      "company": "Gilead Sciences",
+      "cik": "0000882095",
+      "metric": "sga_ratio",
+      "basis": "sequential",
+      "question": "Why did Gilead Sciences' SG&A ratio rise sequentially last quarter?",
+      "direction": "rose",
+      "report_date": "2026-06-30",
+      "accession": "0000882095-26-000031",
+      "document": "gild-20260630.htm",
+      "latest": {
+        "end_date": "2026-06-30",
+        "value": "0.246187"
+      },
+      "compared": {
+        "end_date": "2026-03-31",
+        "value": "0.208477"
+      }
+    },
+    {
+      "id": "e58",
+      "set": "held-out",
+      "company": "Oracle",
+      "cik": "0001341439",
+      "metric": "net_margin",
+      "basis": "year_over_year",
+      "question": "What drove Oracle's net margin up year over year this quarter?",
+      "direction": "rose",
+      "report_date": "2026-08-31",
+      "accession": "0001193125-26-389274",
+      "document": "orcl-20260831.htm",
+      "latest": {
+        "end_date": "2026-08-31",
+        "value": "0.246058"
+      },
+      "compared": {
+        "end_date": "2025-08-31",
+        "value": "0.196101"
+      }
+    },
+    {
+      "id": "e59",
+      "set": "held-out",
+      "company": "General Motors",
+      "cik": "0001467858",
+      "metric": "net_margin",
+      "basis": "sequential",
+      "question": "Why did General Motors' net margin fall sequentially last quarter?",
+      "direction": "fell",
+      "report_date": "2026-06-30",
+      "accession": "0001467858-26-000051",
+      "document": "gm-20260630.htm",
+      "latest": {
+        "end_date": "2026-06-30",
+        "value": "0.027173"
+      },
+      "compared": {
+        "end_date": "2026-03-31",
+        "value": "0.060219"
+      }
+    },
+    {
+      "id": "e60",
       "set": "held-out",
       "company": "Tesla",
       "cik": "0001318605",
-      "metric": "capital_expenditure",
-      "basis": "year_over_year",
-      "question": "What drove Tesla's capital spending up year over year this quarter?",
-      "direction": "rose",
+      "metric": "operating_income",
+      "basis": "sequential",
+      "question": "Why did Tesla's operating income fall sequentially last quarter?",
+      "direction": "fell",
       "report_date": "2026-06-30",
       "accession": "0001628280-26-049270",
       "document": "tsla-20260630.htm",
       "latest": {
         "end_date": "2026-06-30",
-        "value": "5789000000"
-      },
-      "compared": {
-        "end_date": "2025-06-30",
-        "value": "2394000000"
-      }
-    },
-    {
-      "id": "e38",
-      "set": "held-out",
-      "company": "Amgen",
-      "cik": "0000318154",
-      "metric": "operating_income",
-      "basis": "year_over_year",
-      "question": "What drove Amgen's operating income up year over year this quarter?",
-      "direction": "rose",
-      "report_date": "2026-06-30",
-      "accession": "0000318154-26-000126",
-      "document": "amgn-20260630.htm",
-      "latest": {
-        "end_date": "2026-06-30",
-        "value": "3514000000"
-      },
-      "compared": {
-        "end_date": "2025-06-30",
-        "value": "2656000000"
-      }
-    },
-    {
-      "id": "e39",
-      "set": "held-out",
-      "company": "Alphabet",
-      "cik": "0001652044",
-      "metric": "revenue",
-      "basis": "sequential",
-      "question": "Why did Alphabet's revenue rise sequentially last quarter?",
-      "direction": "rose",
-      "report_date": "2026-06-30",
-      "accession": "0001652044-26-000071",
-      "document": "goog-20260630.htm",
-      "latest": {
-        "end_date": "2026-06-30",
-        "value": "119796000000"
+        "value": "398000000"
       },
       "compared": {
         "end_date": "2026-03-31",
-        "value": "109896000000"
-      }
-    },
-    {
-      "id": "e40",
-      "set": "held-out",
-      "company": "Danaher",
-      "cik": "0000313616",
-      "metric": "revenue",
-      "basis": "year_over_year",
-      "question": "What drove Danaher's revenue up year over year this quarter?",
-      "direction": "rose",
-      "report_date": "2026-06-26",
-      "accession": "0000313616-26-000161",
-      "document": "dhr-20260626.htm",
-      "latest": {
-        "end_date": "2026-06-26",
-        "value": "6265000000"
-      },
-      "compared": {
-        "end_date": "2025-06-27",
-        "value": "5936000000"
+        "value": "941000000"
       }
     }
   ]

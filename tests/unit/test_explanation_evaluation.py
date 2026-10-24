@@ -10,33 +10,64 @@ from financial_analyst_agent import explanation_evaluation as ev
 
 
 @pytest.fixture(scope="module")
-def drawn() -> list[ev.ExplanationCase]:
+def first() -> list[ev.ExplanationCase]:
     return ev.draw_cases(ev.SEED)
 
 
-def test_the_draw_is_reproducible_from_the_seed(drawn: list[ev.ExplanationCase]) -> None:
-    assert ev.draw_cases(ev.SEED) == drawn
-    assert ev.draw_cases(ev.SEED + 1) != drawn
+@pytest.fixture(scope="module")
+def drawn() -> list[ev.ExplanationCase]:
+    return ev.evaluation_cases()
 
 
-def test_the_committed_cases_are_the_draw_from_their_seed(
-    drawn: list[ev.ExplanationCase],
-) -> None:
-    committed = json.loads(ev.CASES_PATH.read_text(encoding="utf-8"))
-    assert committed["seed"] == ev.SEED
-    assert ev.load_cases() == drawn
+def _triples(cases: list[ev.ExplanationCase]) -> set[tuple[str, str, str]]:
+    return {(case.cik, case.metric, case.basis) for case in cases}
 
 
-def test_forty_cases_split_evenly_by_set_and_basis(drawn: list[ev.ExplanationCase]) -> None:
-    assert len(drawn) == 40
-    assert len({(case.cik, case.metric) for case in drawn}) == 40
-    assert Counter(case.set for case in drawn) == {"dev": 20, "held-out": 20}
-    assert Counter((case.set, case.basis) for case in drawn) == {
+def test_the_first_draw_is_reproducible_from_its_seed(first: list[ev.ExplanationCase]) -> None:
+    assert ev.draw_cases(ev.SEED) == first
+    assert ev.draw_cases(ev.SEED + 1) != first
+    assert len(first) == 40
+    assert len({(case.cik, case.metric) for case in first}) == 40
+    assert Counter((case.set, case.basis) for case in first) == {
         ("dev", "year_over_year"): 10,
         ("dev", "sequential"): 10,
         ("held-out", "year_over_year"): 10,
         ("held-out", "sequential"): 10,
     }
+
+
+def test_the_development_set_is_the_first_draws_with_a_covered_metric(
+    first: list[ev.ExplanationCase], drawn: list[ev.ExplanationCase]
+) -> None:
+    dev = [case for case in drawn if case.set == "dev"]
+    assert dev == [
+        case for case in first if case.set == "dev" and case.metric in ev.explained_metrics()
+    ]
+    assert len(dev) == 16
+
+
+def test_the_fresh_held_out_draw_is_reproducible_and_unseen(
+    first: list[ev.ExplanationCase], drawn: list[ev.ExplanationCase]
+) -> None:
+    held_out = [case for case in drawn if case.set == "held-out"]
+    assert ev.draw_held_out(ev.HELD_OUT_SEED, _triples(first)) == held_out
+    assert ev.draw_held_out(ev.HELD_OUT_SEED + 1, _triples(first)) != held_out
+    # Nothing in either half of the first draw, whatever its basis split.
+    assert not _triples(held_out) & _triples(first)
+    assert len(held_out) == 20
+    assert len({(case.cik, case.metric) for case in held_out}) == 20
+    assert Counter(case.basis for case in held_out) == {"year_over_year": 10, "sequential": 10}
+    # Fresh ids: no label from the first held-out half can attach to a new case.
+    assert not {case.id for case in held_out} & {case.id for case in first}
+
+
+def test_the_committed_cases_are_the_draws_from_their_seeds(
+    drawn: list[ev.ExplanationCase],
+) -> None:
+    committed = json.loads(ev.CASES_PATH.read_text(encoding="utf-8"))
+    assert committed["seeds"] == {"dev": ev.SEED, "held-out": ev.HELD_OUT_SEED}
+    assert "leave the evaluation" in committed["notes"]
+    assert ev.load_cases() == drawn
 
 
 def test_every_case_is_a_metric_with_words_and_a_recorded_latest_10q(
@@ -99,6 +130,47 @@ def test_candidates_are_offline_deterministic_and_committed() -> None:
         assert len(entry["scored"]) <= 3
         assert {rank["paragraph"] for rank in entry["scored"]} <= ids
         assert entry["baseline"] is None or entry["baseline"] in ids
+
+
+def test_a_paragraph_id_is_its_place_in_the_mda() -> None:
+    case = ev.load_cases()[0]
+    entry = ev.build_candidates([case])["cases"][0]
+    html, _ = ev._source(case)
+    paragraphs = ev.section_paragraphs(ev.extract_section(html, "mda"))
+    assert entry["paragraphs"]
+    for paragraph in entry["paragraphs"]:
+        index = int(paragraph["id"].removeprefix(f"{case.id}-m"))
+        assert paragraphs[index] == paragraph["text"]
+
+
+def test_judgements_carry_only_to_the_same_text_of_the_same_case() -> None:
+    def entry(case_id: str, basis: str, **texts: str) -> dict[str, object]:
+        paragraphs = [{"id": pid, "text": text} for pid, text in texts.items()]
+        question = {"metric": "revenue", "basis": basis, "accession": "1"}
+        return {"id": case_id, **question, "paragraphs": paragraphs}
+
+    previous = {
+        "cases": [
+            entry("a", "sequential", **{"a-p1": "X", "a-p2": "Y"}),
+            entry("b", "sequential", **{"b-p1": "W"}),
+        ]
+    }
+    candidates = {
+        "cases": [
+            entry("a", "sequential", **{"a-m4": "Y", "a-m9": "Z"}),
+            # The same id, but another question: nothing carries.
+            entry("b", "year_over_year", **{"b-m1": "W"}),
+        ]
+    }
+    judgements = {
+        "a-p1": {"explains": False},
+        "a-p2": {"explains": True},
+        "a-mda": {"nothing_to_find": False},
+        "b-p1": {"explains": True},
+        "b-mda": {"nothing_to_find": True},
+    }
+    carried = ev.carry_judgements(previous, candidates, judgements)
+    assert carried == {"a-m4": {"explains": True}, "a-mda": {"nothing_to_find": False}}
 
 
 def _candidate(case_id: str, scored: list[str], baseline: str | None) -> dict[str, object]:

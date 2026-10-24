@@ -9,11 +9,12 @@ no model: the labels come from a judge a person runs (ticket 03).
     uv run python -m financial_analyst_agent.explanation_evaluation brief [--case e01]
     uv run python -m financial_analyst_agent.explanation_evaluation score --labels labels.json
 
-``cases`` draws 40 why questions from the recorded companies and metrics with a fixed seed
-and writes ``explanation-cases.json``. ``candidates`` writes, for each case, the paragraphs
-``explanation.py`` chooses and the baseline's to ``explanation-candidates.json``. ``brief``
-prints the judge's instructions. ``score`` reads the judge's labels and writes
-``explanation.md``.
+``cases`` writes ``explanation-cases.json``: the development set, from the first draw's seed,
+and a fresh held-out set from its own seed (ticket 05). ``candidates`` writes, for each case,
+the paragraphs ``explanation.py`` chooses and the baseline's to ``explanation-candidates.json``.
+``brief`` prints the judge's instructions. ``score`` reads the judge's labels and writes
+``explanation.md``. ``judge --carry-from old-candidates.json`` keeps the saved labels of
+paragraphs the judge has already seen, by text, after the candidates change.
 """
 
 from __future__ import annotations
@@ -25,7 +26,7 @@ import re
 import subprocess
 import tempfile
 import threading
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass
 from datetime import date
@@ -62,10 +63,44 @@ REPORT_PATH = EVALUATION / "explanation.md"
 RUBRIC_PATH = EVALUATION / "explanation-rubric.md"
 RECORDINGS = Path(__file__).parent / "data" / "sec_fixture_recordings.json"
 
+# The first draw (ticket 02): its development half, less the metrics no longer
+# covered, is the development set.
 SEED = 20261023
 CASE_COUNT = 40
+# The fresh held-out set (ticket 05): the first draw's held-out half was read while
+# diagnosing the first judge run, so it left the evaluation.
+HELD_OUT_SEED = 20261024
+HELD_OUT_COUNT = 20
+HELD_OUT_FIRST_ID = 41
 SETS = ("dev", "held-out")
 BASES: tuple[ComparisonBase, ...] = ("year_over_year", "sequential")
+# The metrics the first draw's pool was built from: ``explanation.py``'s at the time,
+# cash flow and capex included, so the first draw stays reproducible from its seed.
+_FIRST_DRAW_METRICS = (
+    "revenue",
+    "gross_margin",
+    "gross_profit",
+    "cost_of_revenue",
+    "operating_income",
+    "operating_margin",
+    "net_income",
+    "net_margin",
+    "research_and_development",
+    "rd_to_sales",
+    "selling_general_and_administrative",
+    "sga_ratio",
+    "operating_cash_flow",
+    "capital_expenditure",
+    "free_cash_flow",
+)
+CASES_NOTES = (
+    "The development set is the first draw's development half (seed 20261023), less its "
+    "operating cash flow, capex and free cash flow cases, whose metrics are no longer "
+    "covered. The first draw's held-out half (e20, e22 to e40) was read while diagnosing the "
+    "first judge run, so it and its labels leave the evaluation. The held-out set is a fresh "
+    "draw (seed 20261024, ids from e41) from the narrowed pool, sharing no (company, metric, "
+    "basis) with either half of the first draw: 10 year over year and 10 sequential."
+)
 
 Direction = Literal["rose", "fell"]
 
@@ -265,26 +300,66 @@ def question_for(
 # --- the case draw -------------------------------------------------------------------
 
 
-def draw_cases(seed: int = SEED) -> list[ExplanationCase]:
-    """40 why questions drawn by code from the recorded companies and metrics.
+_Quarterlies = Mapping[str, tuple[str, str, str]]
 
-    The pool is every recorded company with its latest 10-Q's document, crossed
-    with the metrics ``explanation.py`` has words for, where the recorded facts
-    hold that metric for that quarter (an answer shows a figure before a why).
-    Half the cases are year over year and half sequential; each half splits
-    evenly between the development and held-out sets.
+
+def _pool(
+    facts: SecFactLookup, quarterlies: _Quarterlies, metrics: Sequence[str]
+) -> list[tuple[str, str]]:
+    """Every recorded company with its latest 10-Q's document, crossed with the metrics,
+    where the recorded facts hold that metric for that quarter (an answer shows a figure
+    before a why)."""
+    pool: list[tuple[str, str]] = []
+    for cik in sorted(quarterlies):
+        report_date = quarterlies[cik][2]
+        for metric in sorted(metrics):
+            latest, _ = figure_move(facts, cik, metric, report_date, "year_over_year")
+            if latest is not None:
+                pool.append((cik, metric))
+    return pool
+
+
+def _case(
+    facts: SecFactLookup,
+    quarterlies: _Quarterlies,
+    case_id: str,
+    split: str,
+    pick: tuple[str, str, ComparisonBase],
+    template: int,
+) -> ExplanationCase:
+    cik, metric, basis = pick
+    accession, document, report_date = quarterlies[cik]
+    latest, compared = figure_move(facts, cik, metric, report_date, basis)
+    direction = _direction(latest, compared)
+    company = _company_name(facts, cik, report_date, metric)
+    return ExplanationCase(
+        id=case_id,
+        set=split,
+        company=company,
+        cik=cik,
+        metric=metric,
+        basis=basis,
+        question=question_for(company, metric, basis, direction, template),
+        direction=direction,
+        report_date=report_date,
+        accession=accession,
+        document=document,
+        latest=latest,
+        compared=compared,
+    )
+
+
+def draw_cases(seed: int = SEED) -> list[ExplanationCase]:
+    """The first draw (ticket 02): 40 why questions drawn by code from the recorded data.
+
+    The pool is ``_pool`` over the metrics covered at the time. Half the cases are
+    year over year and half sequential; each half splits evenly between the
+    development and held-out sets.
     """
     facts = recorded_facts()
     quarterlies = latest_quarterlies()
     rng = random.Random(seed)
-    pool: list[tuple[str, str]] = []
-    for cik in sorted(quarterlies):
-        report_date = quarterlies[cik][2]
-        for metric in sorted(explained_metrics()):
-            latest, _ = figure_move(facts, cik, metric, report_date, "year_over_year")
-            if latest is not None:
-                pool.append((cik, metric))
-    pairs = rng.sample(pool, CASE_COUNT)
+    pairs = rng.sample(_pool(facts, quarterlies, _FIRST_DRAW_METRICS), CASE_COUNT)
     bases = [basis for basis in BASES for _ in range(CASE_COUNT // len(BASES))]
     rng.shuffle(bases)
     templates = [rng.randrange(len(_TEMPLATES)) for _ in pairs]
@@ -296,28 +371,44 @@ def draw_cases(seed: int = SEED) -> list[ExplanationCase]:
         order = seen.get(basis, 0)
         seen[basis] = order + 1
         split = SETS[0] if order < CASE_COUNT // (2 * len(BASES)) else SETS[1]
-        accession, document, report_date = quarterlies[cik]
-        latest, compared = figure_move(facts, cik, metric, report_date, basis)
-        direction = _direction(latest, compared)
-        company = _company_name(facts, cik, report_date, metric)
         cases.append(
-            ExplanationCase(
-                id=f"e{index + 1:02d}",
-                set=split,
-                company=company,
-                cik=cik,
-                metric=metric,
-                basis=basis,
-                question=question_for(company, metric, basis, direction, template),
-                direction=direction,
-                report_date=report_date,
-                accession=accession,
-                document=document,
-                latest=latest,
-                compared=compared,
-            )
+            _case(facts, quarterlies, f"e{index + 1:02d}", split, (cik, metric, basis), template)
         )
     return cases
+
+
+def draw_held_out(seed: int, used: Collection[tuple[str, str, str]]) -> list[ExplanationCase]:
+    """A fresh held-out set: 20 why questions, 10 per basis, none already ``used``.
+
+    ``used`` holds the (company, metric, basis) of every case drawn before. The pool
+    is ``_pool`` over the metrics ``explanation.py`` covers now; no (company, metric)
+    is drawn twice. Ids follow on from the first draw's.
+    """
+    facts = recorded_facts()
+    quarterlies = latest_quarterlies()
+    rng = random.Random(seed)
+    pool = _pool(facts, quarterlies, explained_metrics())
+    picked: list[tuple[str, str, ComparisonBase]] = []
+    taken: set[tuple[str, str]] = set()
+    for basis in BASES:
+        open_pairs = [pair for pair in pool if (*pair, basis) not in used and pair not in taken]
+        for cik, metric in rng.sample(open_pairs, HELD_OUT_COUNT // len(BASES)):
+            picked.append((cik, metric, basis))
+            taken.add((cik, metric))
+    rng.shuffle(picked)
+    templates = [rng.randrange(len(_TEMPLATES)) for _ in picked]
+    return [
+        _case(facts, quarterlies, f"e{HELD_OUT_FIRST_ID + index:02d}", SETS[1], pick, template)
+        for index, (pick, template) in enumerate(zip(picked, templates, strict=True))
+    ]
+
+
+def evaluation_cases() -> list[ExplanationCase]:
+    """The development set (the first draw's, with a covered metric) and the fresh held-out set."""
+    first = draw_cases(SEED)
+    dev = [case for case in first if case.set == SETS[0] and case.metric in explained_metrics()]
+    used = {(case.cik, case.metric, case.basis) for case in first}
+    return dev + draw_held_out(HELD_OUT_SEED, used)
 
 
 def _company_name(facts: SecFactLookup, cik: str, report_date: str, metric: str) -> str:
@@ -326,8 +417,12 @@ def _company_name(facts: SecFactLookup, cik: str, report_date: str, metric: str)
     return short_name(fact.company_name)
 
 
-def cases_payload(cases: Sequence[ExplanationCase], seed: int = SEED) -> dict[str, Any]:
-    return {"seed": seed, "cases": [asdict(case) for case in cases]}
+def cases_payload(cases: Sequence[ExplanationCase]) -> dict[str, Any]:
+    return {
+        "seeds": {SETS[0]: SEED, SETS[1]: HELD_OUT_SEED},
+        "notes": CASES_NOTES,
+        "cases": [asdict(case) for case in cases],
+    }
 
 
 def _case_from(raw: Mapping[str, Any]) -> ExplanationCase:
@@ -361,13 +456,20 @@ def baseline_paragraph(html: str, metric: str) -> str | None:
 def _case_candidates(case: ExplanationCase) -> dict[str, Any]:
     html, url = _source(case)
     explanation = management_explanation(html, case.metric, case.basis, url)
+    places: dict[str, int] = {}
+    for place, text in enumerate(section_paragraphs(extract_section(html, "mda"))):
+        places.setdefault(text, place)
     paragraphs: list[dict[str, Any]] = []
     ids: dict[str, str] = {}
 
     def paragraph_id(text: str, cause: str | None) -> str:
-        """Each distinct paragraph once, so the judge labels it once."""
+        """Each distinct paragraph once, so the judge labels it once.
+
+        Its id is its place in the MD&A, so a changed choice never gives a label to
+        another paragraph (``carry_judgements`` moves labels across by text).
+        """
         if text not in ids:
-            ids[text] = f"{case.id}-p{len(ids) + 1}"
+            ids[text] = f"{case.id}-m{places[text]}"
             paragraphs.append({"id": ids[text], "text": text, "cause": cause})
         return ids[text]
 
@@ -686,6 +788,31 @@ def judge_candidates(
     return record
 
 
+def carry_judgements(
+    previous: Mapping[str, Any], candidates: Mapping[str, Any], judgements: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Judgements made on ``previous`` candidates, under the ids the same text has now.
+
+    A judgement carries only within the same question (case id, metric, basis and
+    filing): a paragraph's to the same text, and the MD&A's whole.
+    """
+    before = {entry["id"]: entry for entry in previous["cases"]}
+    carried: dict[str, Any] = {}
+    for entry in candidates["cases"]:
+        old = before.get(entry["id"])
+        if old is None or any(old[key] != entry[key] for key in ("metric", "basis", "accession")):
+            continue
+        whole = f"{entry['id']}-mda"
+        if whole in judgements:
+            carried[whole] = judgements[whole]
+        old_ids = {paragraph["text"]: paragraph["id"] for paragraph in old["paragraphs"]}
+        for paragraph in entry["paragraphs"]:
+            old_id = old_ids.get(paragraph["text"])
+            if old_id is not None and old_id in judgements:
+                carried[paragraph["id"]] = judgements[old_id]
+    return carried
+
+
 def labels_from(candidates: Mapping[str, Any], judgements: Mapping[str, Any]) -> dict[str, Any]:
     """The judgements in the shape ``score`` reads."""
     return {
@@ -724,7 +851,12 @@ def main(argv: Sequence[str] | None = None) -> None:
     bri.add_argument("--case", help="print the filled prompts for one case instead")
     sco = sub.add_parser("score", help="score the judge's labels")
     sco.add_argument("--labels", required=True, type=Path)
-    sub.add_parser("judge", help=f"label every candidate with {JUDGE_MODEL} (a paid run)")
+    jud = sub.add_parser("judge", help=f"label every candidate with {JUDGE_MODEL} (a paid run)")
+    jud.add_argument(
+        "--carry-from",
+        type=Path,
+        help="the candidates the saved labels were made on; their labels carry by text",
+    )
     args = parser.parse_args(argv)
 
     if args.command == "judge":
@@ -734,6 +866,9 @@ def main(argv: Sequence[str] | None = None) -> None:
         saved = (
             json.loads(LABELS_PATH.read_text(encoding="utf-8")) if LABELS_PATH.exists() else None
         )
+        if saved is not None and args.carry_from is not None:
+            previous = json.loads(args.carry_from.read_text(encoding="utf-8"))
+            saved = {"judgements": carry_judgements(previous, candidates, saved["judgements"])}
         record = judge_candidates(
             candidates, sources, claude_judge, saved, lambda done: _write_json(LABELS_PATH, done)
         )
@@ -743,10 +878,13 @@ def main(argv: Sequence[str] | None = None) -> None:
         return
 
     if args.command == "cases":
-        cases = draw_cases(SEED)
-        _write_json(CASES_PATH, cases_payload(cases, SEED))
+        cases = evaluation_cases()
+        _write_json(CASES_PATH, cases_payload(cases))
         moved = sum(case.direction is not None for case in cases)
-        print(f"wrote {len(cases)} cases (seed {SEED}); {moved} with a recorded direction")
+        print(
+            f"wrote {len(cases)} cases (seeds {SEED}, {HELD_OUT_SEED}); "
+            f"{moved} with a recorded direction"
+        )
         return
     if args.command == "candidates":
         built = build_candidates(load_cases())

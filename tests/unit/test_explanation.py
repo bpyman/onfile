@@ -184,7 +184,6 @@ def test_on_a_tie_the_metric_named_first_is_the_subject() -> None:
         "first half of last year due to higher revenue."
     )
     assert is_about_another_metric(cash, "revenue")
-    assert not is_about_another_metric(cash, "operating_cash_flow")
 
 
 def test_a_first_sentence_about_another_metric_makes_it_the_subject() -> None:
@@ -255,10 +254,134 @@ def test_every_ticket_metric_has_words() -> None:
         "net_income",
         "research_and_development",
         "selling_general_and_administrative",
-        "operating_cash_flow",
-        "capital_expenditure",
-        "free_cash_flow",
     } <= set(explained_metrics())
+
+
+@pytest.mark.parametrize("metric", ["operating_cash_flow", "capital_expenditure", "free_cash_flow"])
+def test_cash_flow_metrics_are_not_covered(metric: str) -> None:
+    html = _mda(
+        "Net cash provided by operating activities increased $1.2 billion in the quarter "
+        "compared to the prior year quarter, primarily due to higher net income. Capital "
+        "expenditures increased, driven by investment in new plants."
+    )
+    explanation = management_explanation(html, metric, "year_over_year", URL)
+    assert explanation.paragraphs == ()
+    assert explanation.reason == "metric_not_covered"
+    assert metric not in explained_metrics()
+
+
+YEAR_OVER_YEAR = (
+    "Revenue for the third quarter of 2026 increased 12% compared to the third quarter of "
+    "2025, primarily due to higher volumes in every region."
+)
+SEQUENTIAL = (
+    "Revenue for the third quarter of 2026 increased 4% compared to the second quarter of "
+    "2026, primarily due to higher prices."
+)
+
+
+def test_a_sequential_question_never_gets_a_year_over_year_only_paragraph() -> None:
+    unnamed = "Revenue increased 12% in the quarter, primarily due to higher volumes."
+    html = _mda(YEAR_OVER_YEAR, unnamed, SEQUENTIAL)
+    explanation = management_explanation(html, "revenue", "sequential", URL)
+    assert [chosen.text for chosen in explanation.paragraphs] == [SEQUENTIAL]
+
+
+def test_the_sequential_half_of_a_sentence_giving_both_counts() -> None:
+    both = (
+        "Data Center revenue was up 117% from a year ago and up 18% sequentially, driven by "
+        "demand for our Blackwell platform."
+    )
+    explanation = management_explanation(_mda(YEAR_OVER_YEAR, both), "revenue", "sequential", URL)
+    assert [chosen.text for chosen in explanation.paragraphs] == [both]
+
+
+def test_a_year_over_year_question_drops_a_sequential_only_paragraph() -> None:
+    unnamed = "Revenue increased 12% in the quarter, primarily due to higher volumes."
+    html = _mda(SEQUENTIAL, unnamed, YEAR_OVER_YEAR)
+    explanation = management_explanation(html, "revenue", "year_over_year", URL)
+    assert {chosen.text for chosen in explanation.paragraphs} == {YEAR_OVER_YEAR, unnamed}
+
+
+def test_a_sequential_question_with_only_year_over_year_causes_offers_them() -> None:
+    explanation = management_explanation(_mda(YEAR_OVER_YEAR), "revenue", "sequential", URL)
+    assert explanation.paragraphs == ()
+    assert explanation.reason == "basis_not_discussed"
+    assert [chosen.text for chosen in explanation.alternative] == [YEAR_OVER_YEAR]
+    # With nothing for either basis, it is plainly not discussed.
+    nothing = management_explanation(
+        _mda("Research and development expenses increased, driven by higher headcount."),
+        "revenue",
+        "sequential",
+        URL,
+    )
+    assert nothing.reason == "not_discussed" and nothing.alternative == ()
+
+
+def test_a_cause_only_for_the_year_to_date_is_out() -> None:
+    year_to_date = (
+        "Total revenue for the first nine months of 2026 increased 203% as compared to the "
+        "first nine months of 2025, primarily due to higher sales of DRAM."
+    )
+    quarter_flat = (
+        "Revenue was flat in the third quarter of 2026 compared to the third quarter of "
+        "2025. Revenue increased during the first nine months of 2026 primarily due to a "
+        "different mix of services."
+    )
+    explanation = management_explanation(_mda(year_to_date, quarter_flat), "revenue", None, URL)
+    assert explanation.reason == "not_discussed"
+
+
+def test_a_year_to_date_cause_said_to_apply_to_the_quarter_counts() -> None:
+    both = (
+        "Revenue for the three months ended June 30, 2026 was $5.0 billion, and for the six "
+        "months ended June 30, 2026 was $9.8 billion. The increase in both periods was "
+        "primarily due to higher volumes."
+    )
+    three_and_six = (
+        "Research and development expenses increased 14 percent and 21 percent for the "
+        "three and six months ended June 30, 2026, respectively, driven by investment."
+    )
+    assert management_explanation(_mda(both), "revenue", None, URL).paragraphs
+    rd = management_explanation(_mda(three_and_six), "research_and_development", None, URL)
+    assert rd.paragraphs
+
+
+@pytest.mark.parametrize(
+    "block",
+    [
+        "Cost of products sold",
+        "Gross margin increased to 54%.",
+        "Higher gross margin on a richer mix of data center products and lower costs",
+        "Increase in gross margin for the three months ended June 30, 2026",
+    ],
+)
+def test_a_heading_or_a_block_without_a_verb_is_never_chosen(block: str) -> None:
+    explanation = management_explanation(_mda(block), "gross_margin", None, URL)
+    assert explanation.reason == "not_discussed"
+
+
+def test_a_sentence_of_eight_words_with_a_verb_can_be_chosen() -> None:
+    sentence = "Gross margin increased to 54% in the quarter."
+    assert management_explanation(_mda(sentence), "gross_margin", None, URL).paragraphs
+
+
+@pytest.mark.parametrize(
+    "paragraph",
+    [
+        "Cash and cash equivalents increased $2.1 billion during the quarter, primarily due "
+        "to net cash provided by operating activities and higher revenue.",
+        "Net cash provided by financing activities increased in the quarter compared to the "
+        "prior year quarter, primarily due to debt issued, partially offset by revenue "
+        "declines in the quarter.",
+        "Our liquidity remains strong: revenue increased in the quarter, driven by demand, "
+        "and our liquidity is supported by our credit facility.",
+    ],
+)
+def test_a_cash_balance_or_financing_paragraph_is_about_another_metric(paragraph: str) -> None:
+    for metric in ("revenue", "net_income", "operating_income"):
+        assert is_about_another_metric(paragraph, metric)
+    assert management_explanation(_mda(paragraph), "revenue", None, URL).reason == "not_discussed"
 
 
 _HASH_PROBE = """
