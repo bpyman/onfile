@@ -22,7 +22,11 @@ import argparse
 import json
 import random
 import re
-from collections.abc import Mapping, Sequence
+import subprocess
+import tempfile
+import threading
+from collections.abc import Callable, Mapping, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass
 from datetime import date
 from decimal import Decimal
@@ -36,6 +40,7 @@ from financial_analyst_agent.contracts import (
     ComparisonBase,
 )
 from financial_analyst_agent.domain.errors import FinancialAnalystError
+from financial_analyst_agent.essay_evaluation import parse_judgement
 from financial_analyst_agent.explanation import (
     explained_metrics,
     is_about_another_metric,
@@ -599,6 +604,108 @@ def _case_lines(entry: Mapping[str, Any]) -> list[str]:
     ]
 
 
+# --- the judge -----------------------------------------------------------------------
+
+# Blake's choice for this evaluation (ticket 03).
+JUDGE_MODEL = "claude-opus-5-5"
+LABELS_PATH = EVALUATION / "explanation-labels.json"
+_JUDGE_WORKERS = 6
+
+
+def claude_judge(prompt: str) -> str:
+    """One judgement from the ``claude`` CLI: no tools, in an empty directory, so no
+    project instructions reach the judge, and a fresh context per prompt."""
+    with tempfile.TemporaryDirectory() as empty:
+        done = subprocess.run(
+            ["claude", "-p", "--model", JUDGE_MODEL, "--tools", ""],
+            input=prompt,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            cwd=empty,
+            timeout=900,
+        )
+    if done.returncode != 0:
+        raise RuntimeError(done.stderr[-500:] or done.stdout[-500:])
+    return done.stdout
+
+
+def _judgement(
+    judge: Callable[[str], str], prompt: str, key: str, tries: int = 3
+) -> dict[str, Any]:
+    """The judge's JSON object, holding a boolean ``key``; retried on a malformed reply."""
+    error: Exception | None = None
+    for _ in range(tries):
+        try:
+            reply = parse_judgement(judge(prompt))
+            if not isinstance(reply.get(key), bool):
+                raise ValueError(f"{key} is not true or false: {reply!r}")
+            return reply
+        except (ValueError, RuntimeError, subprocess.TimeoutExpired) as exc:
+            error = exc
+    raise RuntimeError(f"judge failed {tries} times: {error}")
+
+
+def judge_candidates(
+    candidates: Mapping[str, Any],
+    sources: Mapping[str, str],
+    judge: Callable[[str], str],
+    saved: Mapping[str, Any] | None = None,
+    on_label: Callable[[dict[str, Any]], None] | None = None,
+) -> dict[str, Any]:
+    """Every paragraph and every case's MD&A, judged once each, in its own prompt.
+
+    ``sources`` is each case's filing HTML by case id. ``saved`` holds judgements
+    already made (a resumed run asks for none of them again); ``on_label`` gets the
+    whole record after each new one, so a run can be saved as it goes.
+    """
+    record: dict[str, Any] = {
+        "judge": JUDGE_MODEL,
+        "judgements": dict((saved or {}).get("judgements", {})),
+    }
+    jobs: list[tuple[str, str, str]] = []
+    for entry in candidates["cases"]:
+        for paragraph in entry["paragraphs"]:
+            jobs.append((paragraph["id"], paragraph_prompt(entry, paragraph), "explains"))
+        whole = mda_prompt(entry, sources[entry["id"]])
+        jobs.append((f"{entry['id']}-mda", whole, "nothing_to_find"))
+    pending = [job for job in jobs if job[0] not in record["judgements"]]
+    lock = threading.Lock()
+
+    def run(job: tuple[str, str, str]) -> None:
+        key, prompt, field = job
+        reply = _judgement(judge, prompt, field)
+        with lock:
+            record["judgements"][key] = reply
+            if on_label is not None:
+                on_label(record)
+
+    with ThreadPoolExecutor(max_workers=_JUDGE_WORKERS) as pool:
+        list(pool.map(run, pending))
+    record["labels"] = labels_from(candidates, record["judgements"])
+    return record
+
+
+def labels_from(candidates: Mapping[str, Any], judgements: Mapping[str, Any]) -> dict[str, Any]:
+    """The judgements in the shape ``score`` reads."""
+    return {
+        entry["id"]: {
+            "nothing_to_find": bool(judgements[f"{entry['id']}-mda"]["nothing_to_find"]),
+            "explains": {
+                paragraph["id"]: bool(judgements[paragraph["id"]]["explains"])
+                for paragraph in entry["paragraphs"]
+            },
+        }
+        for entry in candidates["cases"]
+    }
+
+
+def spot_check(record: Mapping[str, Any], count: int = 10, seed: int = SEED) -> list[str]:
+    """The paragraph judgements a person checks, drawn with a fixed seed."""
+    keys = sorted(key for key in record["judgements"] if not key.endswith("-mda"))
+    return sorted(random.Random(seed).sample(keys, min(count, len(keys))))
+
+
 # --- command line --------------------------------------------------------------------
 
 
@@ -617,7 +724,23 @@ def main(argv: Sequence[str] | None = None) -> None:
     bri.add_argument("--case", help="print the filled prompts for one case instead")
     sco = sub.add_parser("score", help="score the judge's labels")
     sco.add_argument("--labels", required=True, type=Path)
+    sub.add_parser("judge", help=f"label every candidate with {JUDGE_MODEL} (a paid run)")
     args = parser.parse_args(argv)
+
+    if args.command == "judge":
+        candidates = json.loads(CANDIDATES_PATH.read_text(encoding="utf-8"))
+        by_id = {case.id: case for case in load_cases()}
+        sources = {entry["id"]: _source(by_id[entry["id"]])[0] for entry in candidates["cases"]}
+        saved = (
+            json.loads(LABELS_PATH.read_text(encoding="utf-8")) if LABELS_PATH.exists() else None
+        )
+        record = judge_candidates(
+            candidates, sources, claude_judge, saved, lambda done: _write_json(LABELS_PATH, done)
+        )
+        record["spot_check"] = spot_check(record)
+        _write_json(LABELS_PATH, record)
+        print(f"{len(record['judgements'])} judgements -> {LABELS_PATH}")
+        return
 
     if args.command == "cases":
         cases = draw_cases(SEED)

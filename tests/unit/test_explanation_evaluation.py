@@ -204,3 +204,46 @@ def test_the_prompts_show_the_case_and_only_the_text_judged() -> None:
     assert not any(text in prompt for text in others)
     html = "<html><body><div>Item 1. Financial Statements</div></body></html>"
     assert "(no MD&A text was found)" in ev.mda_prompt(entry, html)
+
+
+def test_the_judge_labels_every_paragraph_and_mda_once_and_resumes() -> None:
+    candidates = {
+        "cases": [
+            {
+                "id": "a",
+                "question": "Why?",
+                "company": "Apple",
+                "metric": "gross_margin",
+                "basis": "year_over_year",
+                "report_date": "2026-06-27",
+                "paragraphs": [
+                    {"id": "a-p1", "text": "Gross margin rose due to mix."},
+                    {"id": "a-p2", "text": "Gross margin rose."},
+                ],
+            }
+        ]
+    }
+    asked: list[str] = []
+    failures = iter([True])
+
+    def fake(prompt: str) -> str:
+        asked.append(prompt)
+        if "MD&A to judge" in prompt:
+            return 'Here: {"nothing_to_find": false, "where": "Gross margin rose", "reason": "x"}'
+        if next(failures, False):
+            return "not JSON"  # retried
+        explains = "due to mix" in prompt
+        return json.dumps({"explains": explains, "scope": "company", "reason": "x"})
+
+    saved: list[dict[str, object]] = []
+    record = ev.judge_candidates(candidates, {"a": "<html></html>"}, fake, None, saved.append)
+    assert record["judge"] == ev.JUDGE_MODEL
+    assert record["labels"] == {
+        "a": {"nothing_to_find": False, "explains": {"a-p1": True, "a-p2": False}}
+    }
+    assert len(saved) == 3
+    # A resumed run asks for nothing it already has.
+    asked.clear()
+    again = ev.judge_candidates(candidates, {"a": "<html></html>"}, fake, record)
+    assert asked == [] and again["labels"] == record["labels"]
+    assert ev.spot_check(record, count=1) in (["a-p1"], ["a-p2"])
