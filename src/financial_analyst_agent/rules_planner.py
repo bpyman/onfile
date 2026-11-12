@@ -24,8 +24,14 @@ from financial_analyst_agent.filing_change import (
     requested_sections,
 )
 from financial_analyst_agent.graph.analysis_spec import AnalysisSpec, RankedRequest, SpecPatch
-from financial_analyst_agent.guide import short_display_name
-from financial_analyst_agent.issuer_index import CompanyMention, IssuerIndex, normalize
+from financial_analyst_agent.guide import private_note, short_display_name
+from financial_analyst_agent.issuer_index import (
+    CompanyMention,
+    IssuerIndex,
+    normalize,
+    private_companies_in,
+    without_private_companies,
+)
 from financial_analyst_agent.period_selection import read
 from financial_analyst_agent.providers.sec.submissions import ACCESSION_PATTERN
 from financial_analyst_agent.ranked_wording import (
@@ -39,8 +45,10 @@ from financial_analyst_agent.ranked_wording import (
     without_preamble,
 )
 from financial_analyst_agent.request_wording import (
+    FORM_NAME,
     OVERVIEW_METRICS,
     OVERVIEW_PLAN,
+    PEERS,
     asks_for_explanation,
     asks_speculatively,
     asks_to_swap,
@@ -280,10 +288,6 @@ def _is_exploratory_query(normalized: str) -> bool:
     return "exploratory" in normalized
 
 
-_PEERS = re.compile(
-    r"\b(?:peers?|competitors?|rivals?|comparables?|similar (?:companies|firms|to)"
-    r"|companies like)\b"
-)
 _SORT_BY = re.compile(r"^(?:sort|order|rank)(?:ed)?\s+(?:them\s+|it\s+|these\s+)?by\s+.+$")
 _LIST_WORDING = re.compile(r"\b(?:vs|versus|compare[ds]?|and|or|against)\b|,")
 _ORDER_WORDING = re.compile(
@@ -410,6 +414,12 @@ class DemoCompleter:
         self, query: str, current_spec: object = None, *, _nested: bool = False
     ) -> WorkflowPlan | SpecPatch:
         query, count_notes = prepared(query)
+        private = private_companies_in(query)
+        if private:
+            # "Compare Visa and Stripe revenue": Stripe files nothing with the SEC,
+            # and its name is never corrected to a listed company's (Stride).
+            query = without_private_companies(query)
+            count_notes = [*count_notes, private_note(private)]
         normalized = query.strip().casefold()
         metric = _metric_from_query(normalized)
         mentions = self.index.find(query)
@@ -518,7 +528,7 @@ class DemoCompleter:
             # "iPhone sales": a segment one company reports names it.
             companies = list(segment_companies(query))
         segment = segment_term(query)
-        if len(companies) == 1 and _PEERS.search(normalized):
+        if len(companies) == 1 and PEERS.search(normalized):
             # "Compare Nvidia to its peers": the conversation adds the peers.
             return WorkflowPlan(
                 intent=Intent.COMPARE,
@@ -732,9 +742,11 @@ def _unknown_term(query: str, mentions: list[CompanyMention]) -> str | None:
     It keeps the analyst's own spelling: "CEO", not "ceo".
     """
     named = _typed_words(mentions)
+    # "Apple 10-K" names a filing, not a measure called "K".
+    words = FORM_NAME.sub(" ", re.sub(r"['’]s\b", "", query))
     left = [
         typed
-        for typed in re.findall(r"[\w&]+", re.sub(r"['’]s\b", "", query))
+        for typed in re.findall(r"[\w&]+", words)
         if (word := typed.casefold()) not in named
         and word not in _QUESTION_WORDS
         and word not in _COMPARE_FILLER
@@ -802,6 +814,11 @@ def _follow_up(
     """Short edits that lean on the current analysis ("and net margin", "what about MSFT?")."""
     if len(normalized.split()) > _FOLLOW_UP_MAX_WORDS:
         return None
+    if PEERS.search(normalized) and spec.companies:
+        # "compare to its peers": the turn adds the peers of the company on screen
+        # (``with_peers``). "Compare NVIDIA to its peers" is planned as it is
+        # asked fresh, and the turn adds them on screen when NVIDIA is there.
+        return None if companies else SpecPatch(mode="extend")
     text = normalized.strip(" .?!")
     top = _TOP_N.search(normalized)
     if (

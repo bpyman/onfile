@@ -1,5 +1,5 @@
 import { Check, MessageCircleQuestion } from "lucide-react";
-import type { ClarifyChoice } from "@/lib/clarify";
+import { slugNote, type ClarifyChoice } from "@/lib/clarify";
 import { cn } from "@/lib/format";
 import { useRegionName } from "./answer-scope";
 
@@ -87,10 +87,7 @@ export function Clarify({
               >
                 {choice.label}
               </span>
-              {/* The slug is what the button sends; shown when it reads differently from the label. */}
-              {choice.slug.replaceAll("_", " ").toLowerCase() !== choice.label.toLowerCase() && (
-                <span className="num mt-0.5 block text-[10.5px] text-subtle">{choice.slug}</span>
-              )}
+              <SlugNote choice={choice} />
             </span>
             {choice.chosen && <Check className="size-4 shrink-0 text-primary" aria-label="Chosen" />}
           </button>
@@ -98,4 +95,10 @@ export function Clarify({
       </div>
     </section>
   );
+}
+
+/** What the button sends, as words, when the label does not already say them. */
+function SlugNote({ choice }: { choice: ClarifyChoice }) {
+  const note = slugNote(choice.slug, choice.label);
+  return note && <span className="num mt-0.5 block text-[10.5px] text-subtle">{note}</span>;
 }

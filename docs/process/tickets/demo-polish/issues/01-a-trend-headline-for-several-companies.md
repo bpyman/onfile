@@ -19,4 +19,38 @@ From the product review (`docs/process/tickets/product-review/review.md`, Tier 1
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+`comparison_headline` hands a comparison (not a ranking) of one amount over two to four companies,
+each with three or more quarters, to a new `_trends_headline`. It names each company's first and
+last amount in the table's own cells (with † where the cell has it), "rose" / "fell" / "was
+unchanged at" (unchanged when the two cells read the same), and ", its highest in the window" or
+", its lowest" where the latest quarter is above or below every earlier one and no earlier cell
+reads the same. Companies come in table order. Five or more companies, rankings, changes and
+several metrics keep their headlines; one company keeps `_trend_headline`.
+
+The window opens the sentence: "Over 8 quarters to Jun 30, 2026," when every company's latest
+quarter ends on one date; "Over each company's last 8 quarters," when the dates differ (Apple's
+quarter ends Jun 27, Microsoft's Jun 30, so the ticket's "to Jun 30, 2026" would misdate Apple's);
+"Over the quarters shown" when the companies show different numbers of quarters. With three or four
+clauses and an appositive, the clauses are joined with semicolons.
+
+Recorded: "Compare Apple and Microsoft gross margin over the last 8 quarters" → "Over each
+company's last 8 quarters, Apple's gross margin rose from 46.2% † to 50.1%, its highest in the
+window, and Microsoft's fell from 69.4% to 67.2% †, its lowest." (pinned in
+`tests/test_presentation.py`; unit tests in `tests/unit/test_answer_card.py` pin the dated window,
+"unchanged", highest/lowest and the five-company fallback).
+
+`compare_answers.py` (against HEAD, the previous commit): 53 of 893 conversations differ, all in
+`.answers[n].headline` only, and every one is a comparison of one amount over a window of several
+quarters for two or three companies: the two-company follow-ups that default to the last 4 quarters
+("Apple | add Microsoft" and its phrasings, "Apple and Microsoft | remove Microsoft" and the like,
+whose first answer compares both), the "AAPL vs MSFT … over the past two years / 18 months / fiscal
+2025" and "Nvidia, AMD and Intel … for the last 18 months / fiscal 2025" phrase cases, the
+evaluation cases with a two-company window (`calendars_differ`, `h2_*`, `h3_*`, `h4_fu_*`,
+`ho_pfe_mrk_six_quarters`, `follow_up_metric_and_company`), and the extras "Tesla vs GM revenue
+last 4 quarters", "Apple and Microsoft revenue last 4 quarters / fiscal 2025 / since fiscal 2025",
+"Apple revenue | add Tesla | last 4 quarters" and "Apple, Microsoft and NVIDIA net margin last 6
+quarters". The README quotes no headline that changed.

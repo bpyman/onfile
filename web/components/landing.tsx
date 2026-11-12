@@ -12,7 +12,7 @@ import {
   ScanSearch,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { loadDemoAnswers } from "@/lib/demo-answers";
 import { cn } from "@/lib/format";
 import type { Meta, QuarterlyFactCard } from "@/lib/types";
@@ -59,9 +59,11 @@ const DEFAULT_CAPABILITIES: Meta["capabilities"] = [
   },
 ];
 
-// "What you can ask" shows a few lines and examples; the rest stays a click away.
+// "What you can ask" opens on three lines, with a button for the rest. A line
+// shows every example; on a phone, where four wrap past two rows, three show
+// and a "+N" chip opens the rest.
 const CAPABILITIES_SHOWN = 3;
-const EXAMPLES_SHOWN = 3;
+const EXAMPLES_SHOWN_ON_A_PHONE = 3;
 
 /** First screen: guided stories, what you can ask, and the metric catalogue behind a disclosure. */
 export function Landing({
@@ -85,7 +87,11 @@ export function Landing({
   onRetry: () => void;
 }) {
   const stories = meta?.guided_stories.length ? meta.guided_stories : DEFAULT_STORIES;
-  const capabilities = (meta?.capabilities.length ? meta.capabilities : DEFAULT_CAPABILITIES).slice(0, CAPABILITIES_SHOWN);
+  const allCapabilities = meta?.capabilities.length ? meta.capabilities : DEFAULT_CAPABILITIES;
+  const [allShown, setAllShown] = useState(false);
+  const hidden = allCapabilities.length - CAPABILITIES_SHOWN;
+  const capabilities = allShown ? allCapabilities : allCapabilities.slice(0, CAPABILITIES_SHOWN);
+  const listId = useId();
   return (
     <div className="animate-fade-up">
       <section className="grid gap-10 pb-7 pt-6 sm:pb-12 sm:pt-14 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-center">
@@ -165,26 +171,26 @@ export function Landing({
           <SectionLabel className="mb-3">
             <span id="ask-label">What you can ask</span>
           </SectionLabel>
-          <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
+          <ul
+            id={listId}
+            className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface"
+          >
             {capabilities.map((capability) => (
-              <li key={capability.description} className="px-4 py-3.5">
-                <p className="text-[13px] leading-snug text-fg">{capability.description}</p>
-                <div className="mt-2.5 flex flex-wrap gap-1.5">
-                  {capability.examples.slice(0, EXAMPLES_SHOWN).map((example) => (
-                    <button
-                      key={example}
-                      type="button"
-                      onClick={() => onDraft(example)}
-                      title="Put this in the question box"
-                      className="max-w-full break-words rounded-md border border-border bg-surface-2 px-2 py-1 text-left text-xs text-muted transition-colors [overflow-wrap:anywhere] hover:border-border-strong hover:text-fg"
-                    >
-                      {example}
-                    </button>
-                  ))}
-                </div>
-              </li>
+              <Capability key={capability.description} capability={capability} onDraft={onDraft} />
             ))}
           </ul>
+          {hidden > 0 && (
+            <button
+              type="button"
+              aria-expanded={allShown}
+              aria-controls={listId}
+              onClick={() => setAllShown((shown) => !shown)}
+              className="mt-2 inline-flex min-h-9 items-center gap-1 rounded-md px-1 text-[13px] font-medium text-muted underline-offset-4 hover:text-fg hover:underline"
+            >
+              {allShown ? "Show fewer" : `Show ${hidden} more`}
+              <ChevronDown className={cn("size-3.5 transition-transform", allShown && "rotate-180")} aria-hidden />
+            </button>
+          )}
         </section>
         {meta && meta.metric_groups.length > 0 && (
           <section aria-labelledby="metrics-label">
@@ -223,6 +229,52 @@ export function Landing({
         )}
       </div>
     </div>
+  );
+}
+
+/** One line of "What you can ask": its examples put a question in the box. */
+function Capability({
+  capability,
+  onDraft,
+}: {
+  capability: Meta["capabilities"][number];
+  onDraft: (question: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const rest = capability.examples.length - EXAMPLES_SHOWN_ON_A_PHONE;
+  const groupId = useId();
+  return (
+    <li className="px-4 py-3.5">
+      <p className="text-[13px] leading-snug text-fg">{capability.description}</p>
+      <div id={groupId} className="mt-2.5 flex flex-wrap gap-1.5">
+        {capability.examples.map((example, index) => (
+          <button
+            key={example}
+            type="button"
+            onClick={() => onDraft(example)}
+            title="Put this in the question box"
+            className={cn(
+              "max-w-full break-words rounded-md border border-border bg-surface-2 px-2 py-1 text-left text-xs text-muted transition-colors [overflow-wrap:anywhere] hover:border-border-strong hover:text-fg",
+              !open && index >= EXAMPLES_SHOWN_ON_A_PHONE && "max-sm:hidden",
+            )}
+          >
+            {example}
+          </button>
+        ))}
+        {rest > 0 && (
+          <button
+            type="button"
+            aria-expanded={open}
+            aria-controls={groupId}
+            aria-label={open ? "Show fewer examples" : `Show ${rest} more example${rest === 1 ? "" : "s"}`}
+            onClick={() => setOpen((shown) => !shown)}
+            className="num rounded-md border border-dashed border-border-strong px-2 py-1 text-xs font-medium text-muted transition-colors hover:border-primary/50 hover:text-fg sm:hidden"
+          >
+            {open ? "Fewer" : `+${rest}`}
+          </button>
+        )}
+      </div>
+    </li>
   );
 }
 

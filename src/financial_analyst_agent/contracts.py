@@ -548,6 +548,10 @@ class TurnResult(BaseModel):
     # The same quarter a year earlier as first filed, for a lone fact whose own
     # filing reports no year-earlier figure (ADR 0009).
     year_earlier_rows: list[TableRow] = Field(default_factory=list)
+    # The comparison bases the analyst asked for, so the headline states the
+    # asked one: the table also shows a year-over-year change on the latest
+    # quarter of a sequential view. Empty when no change was asked.
+    change_bases: tuple[ComparisonBase, ...] = ()
     refusal: Refusal | None = None
     # Management's explanation, for a why question about a figure (ADR 0017).
     explanation: Explanation | None = None

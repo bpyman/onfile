@@ -165,6 +165,20 @@ Each entry: date, ticket, where, the rule, why it looks wrong, what the agent di
 - **What you did:** kept the behaviour, as the ticket says to when a step would change it. `Periods.notes` reads `reading.year_of_quarters` and `reading.year_to_date` as designed. `spec_turn.annotate_analysis` passes a copy of the stored reading with those two fields read from the wording (`read(compiled.wording).reading`), as before. A test in `test_calendars_clarification_and_formatting.py` pins master's answer. To take the fix, a person decides; it is then a deletion of the copy in `annotate_analysis` and a flip of that test.
 - **Decided (2026-10-08):** take the fix. It is the #103 class: a clarified answer losing a note about the window it keeps. `annotate_analysis` passes the stored reading unchanged, and the test now asserts the reply shows the same last-year or year-to-date note as the question naming the metric itself.
 
+## 2026-10-23 — demo-polish 02: a sequential change alone is not `sequential` in the spec's operations
+
+- **Where:** `docs/process/tickets/demo-polish/issues/02-a-sequential-question-gets-a-sequential-headline.md`, What to build ("When the analysis asks for sequential change (`sequential` in the spec's operations ...)").
+- **The rule:** the analysis asks for a sequential change when `sequential` is in the spec's operations.
+- **Why it looks wrong:** `sequential` is in the operations only when both bases are asked ("sequentially or versus last year"); `analysis_spec.SUPPORTED_OPERATIONS` says alone "it is the quarter-over-quarter view, which `across_periods` already means". "Microsoft revenue quarter over quarter" reads as `("across_periods",)`. Read as the ticket says, the ticket's own example would keep its year-over-year headline.
+- **What you did:** worked around it. `merge_analysis` already decides the sequential change as "`year_over_year` not in the operations, or `sequential` in them"; the bases it records on the result (`TurnResult.change_bases`) come from that same reading, so the headline and the table's change columns cannot disagree.
+
+## 2026-10-23 — demo-polish 04: the file list leaves out where "compare to its peers" becomes a company
+
+- **Where:** `docs/process/tickets/demo-polish/issues/04-its-peers-as-a-follow-up.md`, **Files (this ticket only)**.
+- **The rule:** the change is in `rules_planner.py`, `graph/turn_graph.py`, `planner.py` (schema only) and tests.
+- **Why it looks wrong:** the row named "its peers" comes from `request_wording._refine_against`, whose "compare to X" and "add X" readings take X as a company whatever the planner proposed. "Peers must never be read as a company name" cannot hold without changing it. The ticket's "say which one's peers is unclear and ask" needs a reply; the guide (`guide.py`) is where replies that ask the analyst live.
+- **What you did:** moved the peers wording into `request_wording` (`PEERS`) and made the edit reading skip it; added `PEERS_MESSAGE` and one branch to `guide.guide_reply`. Said so in the Answer.
+
 ## 2026-11-11 — why-from-the-filing 07: a withheld model explanation shows nothing, against ADR 0017
 
 - **Where:** `docs/adr/0017-management-explanation-is-quoted-from-the-filing.md`, Decision ("Otherwise it is withheld, and the paragraphs still show"), and `docs/process/tickets/why-from-the-filing/design.md`, phase B ("Any failure withholds the explanation, with a line saying why, and the Phase A paragraphs still show").

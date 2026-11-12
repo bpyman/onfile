@@ -9,6 +9,7 @@ per word n-gram; typo matching runs only when nothing matched exactly.
 from __future__ import annotations
 
 import difflib
+import json
 import re
 from collections.abc import Iterable, Mapping, Sequence
 from collections.abc import Set as AbstractSet
@@ -248,6 +249,36 @@ def expand_groups(question: str) -> str:
     for pattern, names in _GROUPS:
         question = pattern.sub(names, question)
     return question
+
+
+_PRIVATE_COMPANIES_PATH = Path(__file__).parent / "data" / "private_companies.json"
+
+
+@lru_cache(maxsize=1)
+def _private_companies() -> tuple[dict[str, str], re.Pattern[str]]:
+    """The hand-kept private companies by casefolded name, and a pattern naming any."""
+    names = json.loads(_PRIVATE_COMPANIES_PATH.read_text(encoding="utf-8"))["companies"]
+    by_folded = {name.casefold(): name for name in names}
+    # Longest first, and whole names only: "Mars" is not "Marshall".
+    alternatives = "|".join(re.escape(name) for name in sorted(names, key=len, reverse=True))
+    return by_folded, re.compile(rf"(?<![\w&-])(?:{alternatives})(?![\w&-])", re.IGNORECASE)
+
+
+def private_companies_in(question: str) -> tuple[str, ...]:
+    """The well-known private companies a question names, as the list spells them.
+
+    Matched whole and case-insensitively, before any spelling correction, so
+    "Stripe" is never read as Stride (data/private_companies.json).
+    """
+    by_folded, pattern = _private_companies()
+    found = (by_folded[match.group(0).casefold()] for match in pattern.finditer(question))
+    return tuple(dict.fromkeys(found))
+
+
+def without_private_companies(question: str) -> str:
+    """The question with each private company's name blanked, keeping every offset."""
+    _, pattern = _private_companies()
+    return pattern.sub(lambda match: " " * len(match.group(0)), question)
 
 
 # Markdown a pasted question carries: "**Apple** _revenue_" is "Apple revenue".

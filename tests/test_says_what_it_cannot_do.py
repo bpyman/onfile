@@ -157,6 +157,62 @@ def test_an_unsupported_metric_is_named_not_swapped(runtime, question: str, name
     assert "Apple" in " ".join(answer.suggestions)
 
 
+@pytest.mark.parametrize(
+    ("question", "company", "form"),
+    [
+        ("Apple 10-K", "Apple", "10-K"),
+        ("Apple's latest 10-K", "Apple", "10-K"),
+        ("show me Microsoft's 10-Q", "Microsoft", "10-Q"),
+        ("Apple annual report", "Apple", "10-K"),
+    ],
+)
+def test_a_form_name_is_about_the_filing_not_a_metric(  # type: ignore[no-untyped-def]
+    runtime, question: str, company: str, form: str
+) -> None:
+    (answer,) = ask(runtime, question)
+    assert answer.message is not None
+    assert "“K”" not in answer.message and "“Q”" not in answer.message
+    assert "can't look up" not in answer.message
+    assert form in answer.message
+    # What the app can show from that filing, for that company.
+    assert answer.suggestions[0] == f"What changed in {company}'s latest {form}?"
+    assert any(company in suggestion for suggestion in answer.suggestions[1:])
+
+
+@pytest.mark.parametrize(("question", "form"), [("Apple 8-K", "8-K"), ("Toyota 20-F", "20-F")])
+def test_a_form_the_app_does_not_read_says_so(runtime, question: str, form: str) -> None:  # type: ignore[no-untyped-def]
+    (answer,) = ask(runtime, question)
+    assert answer.message is not None
+    assert answer.message.startswith(f"I don't read {form}s")
+    assert "can't look up" not in answer.message
+
+
+@pytest.mark.parametrize("company", ["Stripe", "OpenAI"])
+def test_a_private_company_is_named_as_private(runtime, company: str) -> None:  # type: ignore[no-untyped-def]
+    (answer,) = ask(runtime, f"{company} revenue")
+    assert answer.message == (
+        f"{company} is a private company: it files no reports with the SEC, so there are "
+        "no figures to show."
+    )
+    assert answer.suggestions
+    assert "Stride" not in str(answer)
+
+
+def test_a_private_company_beside_a_listed_one_is_left_out_with_a_note(runtime) -> None:  # type: ignore[no-untyped-def]
+    (answer,) = ask(runtime, "Compare Visa and Stripe revenue")
+    # Visa is listed but not recorded: the recorded runtime says so, as for "Visa revenue".
+    (visa,) = ask(runtime, "Visa revenue")
+    assert answer.message == visa.message
+    assert answer.banners == (
+        "Stripe is a private company: it files no reports with the SEC, so it is left out.",
+    )
+
+
+def test_what_changed_in_a_10_k_keeps_its_filing_change_answer(runtime) -> None:  # type: ignore[no-untyped-def]
+    (answer,) = ask(runtime, "What changed in Apple's latest 10-K")
+    assert answer.intent == "filing_change", answer.message
+
+
 def test_an_unsupported_metric_after_another_answer_does_not_repeat_it(runtime) -> None:  # type: ignore[no-untyped-def]
     answers = ask(runtime, "Apple capex", "Apple buybacks")
     assert answers[1].fact_card is None and answers[1].table is None
@@ -377,6 +433,30 @@ def test_which_grew_faster_leads_with_the_answer(runtime) -> None:  # type: igno
     assert "Apple's grew" in answer.headline
 
 
+def test_a_sequential_question_gets_a_sequential_headline(runtime) -> None:  # type: ignore[no-untyped-def]
+    (sequential,) = ask(runtime, "Microsoft revenue quarter over quarter")
+    assert sequential.headline == (
+        "Quarter over quarter, Microsoft's revenue grew 8.6% † in the quarter ended Jun 30, 2026."
+    )
+    (yearly,) = ask(runtime, "Microsoft revenue year over year")
+    assert yearly.headline == (
+        "Year over year, Microsoft's revenue grew 17.7% † in the quarter ended Jun 30, 2026."
+    )
+    # Both bases asked: year over year, with the sequential change for the same quarter.
+    _, both = ask(
+        runtime, "Apple revenue over the last 6 quarters", "sequentially and year over year"
+    )
+    assert both.headline == (
+        "Year over year, Apple's revenue grew 16.4% in the quarter ended Jun 27, 2026; "
+        "quarter over quarter, it fell 1.6%."
+    )
+    (several,) = ask(runtime, "Apple and Microsoft revenue quarter over quarter")
+    assert several.headline == (
+        "Quarter over quarter, Microsoft's revenue grew 8.6% and Apple's fell 1.6%, "
+        "each in its latest quarter."
+    )
+
+
 def test_quarter_lengths_are_not_misreported(runtime) -> None:  # type: ignore[no-untyped-def]
     (answer,) = ask(runtime, "Which grew faster, Apple or Microsoft?")
     assert not any("65 weeks" in banner for banner in answer.banners)
@@ -464,6 +544,46 @@ def test_compare_to_peers_adds_peers(runtime) -> None:  # type: ignore[no-untype
     (answer,) = ask(runtime, "Compare Nvidia to its peers")
     tickers = set(tickers_of(answer))
     assert "NVDA" in tickers and len(tickers) >= 3
+
+
+@pytest.mark.parametrize(
+    ("first", "follow_up", "header"),
+    [
+        ("Nvidia revenue", "compare to its peers", "Revenue"),
+        ("Nvidia gross margin", "compare it with its peers", "Gross margin"),
+        ("Nvidia revenue", "add its peers", "Revenue"),
+        ("Nvidia revenue last 4 quarters", "how does it stack up against peers?", "Revenue"),
+        ("Nvidia revenue", "compare to peers", "Revenue"),
+    ],
+)
+def test_its_peers_as_a_follow_up_adds_the_peers(  # type: ignore[no-untyped-def]
+    runtime, first: str, follow_up: str, header: str
+) -> None:
+    (fresh,) = ask(runtime, "Compare Nvidia to its peers")
+    shown = replay(runtime, first, follow_up)
+    before, answer = shown.answers
+    # Nvidia and the peers the fresh question adds, on the metric and window on screen.
+    assert set(tickers_of(answer)) == set(tickers_of(fresh))
+    assert answer.table is not None and answer.table.headers[2] == header
+    quarters = len(before.table.rows) if before.table is not None else 1
+    assert len(answer.table.rows) == quarters * len(set(tickers_of(answer)))
+    names = {name.casefold() for name in column_of(answer, "Company")}
+    assert not names & {"its peers", "peers"}
+    assert "Company not found" not in str(answer.table.rows)
+
+
+def test_peers_with_several_companies_on_screen_asks_whose(runtime) -> None:  # type: ignore[no-untyped-def]
+    _, asked = ask(runtime, "Nvidia and AMD revenue", "compare to their peers")
+    assert asked.table is None
+    assert asked.message is not None and "peers" in asked.message
+    assert asked.suggestions == (
+        "compare NVIDIA to its peers",
+        "compare Advanced Micro Devices to its peers",
+    )
+    _, _, answered = ask(
+        runtime, "Nvidia and AMD revenue", "compare to their peers", "compare NVIDIA to its peers"
+    )
+    assert {"NVDA", "AMD"} <= set(tickers_of(answered)) and len(tickers_of(answered)) >= 4
 
 
 # Parts of a question the answer cannot act on

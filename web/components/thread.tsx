@@ -2,7 +2,7 @@
 
 import { Loader2, RotateCcw, RotateCw } from "lucide-react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
-import { clarifyChoices, shownMessage } from "@/lib/clarify";
+import { clarifyChoices, shownMessage, slugNote } from "@/lib/clarify";
 import { progressLabel, type TurnState } from "@/lib/turn-state";
 import type { Presentation, RuntimeKind, Turn } from "@/lib/types";
 import { Answer } from "./answer";
@@ -299,11 +299,13 @@ function Question({ message, sent }: { message: string; sent?: string }) {
   const [open, setOpen] = useState(false);
   const id = useId();
   const long = message.length > LONG_QUESTION_CHARS || message.split("\n").length > LONG_QUESTION_LINES;
+  // A clarify answer shows its label; what it sent is named, as words, only when the label lacks them.
+  const sentAs = sent && sent !== message ? slugNote(sent, message) : null;
   return (
     <div className="flex max-w-[88%] flex-col items-end gap-1 sm:max-w-[75%]">
       <p
         id={id}
-        title={sent && sent !== message ? `Sent as ${sent}` : undefined}
+        title={sentAs ? `Sent as ${sentAs}` : undefined}
         className="whitespace-pre-wrap break-words rounded-2xl [overflow-wrap:anywhere] rounded-br-md border border-border bg-surface-2 px-4 py-2.5 text-[15px] leading-relaxed text-fg"
       >
         {/* Clamped inside the padding, so no part of a ninth line shows below it. */}

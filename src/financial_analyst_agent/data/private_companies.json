@@ -1,0 +1,21 @@
+{
+  "about": "Well-known private companies an analyst might ask about. They file no reports with the SEC, so a question naming one is told so rather than corrected to a listed company. Kept by hand; a company in universe_snapshot.json is public here and must not be listed (Klarna is, as KLAR).",
+  "checked": "2026-10-23 against universe_snapshot.json and sec_filer_names.json",
+  "companies": [
+    "Stripe",
+    "OpenAI",
+    "Anthropic",
+    "Databricks",
+    "ByteDance",
+    "Shein",
+    "Epic Games",
+    "Cargill",
+    "Mars",
+    "Koch Industries",
+    "Bloomberg",
+    "Fidelity Investments",
+    "Chick-fil-A",
+    "Valve",
+    "Revolut"
+  ]
+}

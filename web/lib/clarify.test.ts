@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clarifyChoices, shownMessage } from "./clarify";
+import { clarifyChoices, shownMessage, slugNote } from "./clarify";
 import type { Presentation, Turn } from "./types";
 
 function turn(index: number, message: string, slugs: string[] = [], labels: string[] = []): Turn {
@@ -44,6 +44,10 @@ describe("clarifyChoices", () => {
       { slug: "replace", label: "replace", chosen: false },
     ]);
   });
+
+  it("falls back to the slug's words, never its underscores", () => {
+    expect(clarifyChoices(turn(0, "margin", ["year_over_year"], []))[0].label).toBe("year over year");
+  });
 });
 
 describe("shownMessage", () => {
@@ -54,5 +58,23 @@ describe("shownMessage", () => {
   it("keeps any other message as sent", () => {
     expect(shownMessage(turn(1, "add Apple"), ASKED)).toBe("add Apple");
     expect(shownMessage(turn(0, "net_income"))).toBe("net_income");
+  });
+});
+
+describe("slugNote", () => {
+  it("is empty when the label already says the slug's words", () => {
+    expect(slugNote("year_over_year", "The same quarter a year earlier (year over year)")).toBeNull();
+    expect(slugNote("sequential", "The quarter before (sequential)")).toBeNull();
+    expect(slugNote("net_income", "Net income")).toBeNull();
+    expect(slugNote("KO", "Coca-Cola Co (KO)")).toBeNull();
+  });
+
+  it("ignores punctuation the label adds", () => {
+    expect(slugNote("shareholders_equity", "Shareholders' equity")).toBeNull();
+    expect(slugNote("selling_general_and_administrative", "Selling, general and administrative")).toBeNull();
+  });
+
+  it("gives the slug as words when the label reads differently", () => {
+    expect(slugNote("eps_diluted", "Diluted EPS")).toBe("eps diluted");
   });
 });

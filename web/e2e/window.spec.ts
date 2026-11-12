@@ -95,8 +95,11 @@ test("a clarify button answers the question and closes it", async ({ page }) => 
   await expect(analyst.factCards(/^Net income, /)).toBeVisible();
   await expect(clarify.getByRole("button", { name: /Net income/ })).toBeDisabled();
   await expect(clarify).toContainText("Answered below.");
-  // The answer bubble shows the chosen label, not the slug it sent.
-  await expect(page.getByTitle("Sent as net_income")).toHaveText("Net income");
+  // The answer bubble shows the chosen label, not the slug it sent; the label already
+  // says what was sent, so there is no "Sent as" note on it.
+  const reply = analyst.conversation().getByRole("listitem").nth(1).locator("p").first();
+  await expect(reply).toHaveText("Net income");
+  await expect(page.getByTitle(/^Sent as/)).toHaveCount(0);
 });
 
 test("a reload resumes the thread and Start over clears it", async ({ page }) => {
