@@ -710,6 +710,676 @@
       "explains": false,
       "scope": null,
       "reason": "The paragraph gives causes only for the first six months of 2026 (including a royalty revision that happened in Q1 2025) and never says they apply to the quarter ended June 28, 2026."
+    },
+    "e45-m10": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only describes the AGS business, what generally drives its demand and its subscription strategy; it gives no cause for this quarter's year-over-year revenue change."
+    },
+    "e53-m41": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only describes in general terms why quarterly revenue can fluctuate (order timing, deployment timing, software renewals) and names no driver of this quarter's year-over-year revenue increase."
+    },
+    "e04-m71": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only describes how Gilead manages and prioritizes R&D spending and doesn't name any driver of the year-over-year increase this quarter."
+    },
+    "e04-m100": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph covers liquidity and capital priorities, mentioning R&D only as an investment priority, and gives no cause for the year-over-year rise in R&D spending this quarter."
+    },
+    "e45-m20": {
+      "explains": true,
+      "scope": "part",
+      "reason": "For the quarter, it attributes the year-over-year rise in Semiconductor Systems segment revenue to higher foundry and logic spending, which reflected stronger demand for leading-edge technologies, and to higher memory spending from customer investments in DRAM technology transitions."
+    },
+    "e53-m38": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only reports upfront license revenue amounts and their reclassification from subscriptions and services to products revenue for presentation. It does not say what drove total revenue up year over year."
+    },
+    "e54-m30": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only defines the terms 'strategic investments' and 'productivity improvements' (PPI) and names no driver of this quarter's year-over-year revenue change."
+    },
+    "e54-m79": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only defines the non-GAAP measure organic revenue growth and explains why management reports it; it names no driver of this quarter's year-over-year revenue increase."
+    },
+    "e53-m76": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph explains the rise in trade accounts receivable since November 2, 2025, citing higher semiconductor revenue and collection timing, but it gives no cause for revenue's year-over-year increase."
+    },
+    "e54-m44": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It says the second-quarter 2026 increase in organic revenue was driven mainly by growth in the healthcare market channel and the immunodiagnostics business, and it gives each one's reported dollar increase; these are causes for parts of the company's revenue, not for its total."
+    },
+    "e54-m36": {
+      "explains": true,
+      "scope": "part",
+      "reason": "For one segment, it says second-quarter 2026 revenue growth came mainly from the bioproduction business, which grew $196 million on higher demand from pharma and biotech customers and the 2025 acquisition of the filtration and separation business."
+    },
+    "e55-m29": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It says Client and Gaming segment operating income fell year over year in the quarter ($582M vs. $767M), primarily because of higher operating expenses. The paragraph applies this cause to both periods, so it covers the quarter, but it explains only one segment's decline, not the company-wide increase."
+    },
+    "e61-m80": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It explains the rise in Microsoft 365 Commercial products and cloud services revenue, which is part of company revenue, by higher revenue per user from Microsoft 365 E5 and Copilot and by 6% seat growth from small and medium businesses and frontline worker offerings."
+    },
+    "e61-m107": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It explains growth in Microsoft 365 Commercial products and cloud services revenue, one part of company revenue, by higher revenue per user from Microsoft 365 E5 and Copilot, continued seat growth, more Office 2024 transactional purchasing and growth in Windows Commercial on-premises components."
+    },
+    "e61-m99": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It explains part of the revenue change: Gaming revenue fell $380 million because Xbox content and services declined against a strong first-party prior-year quarter and fewer consoles were sold, though this segment held revenue back rather than driving the overall increase."
+    },
+    "e61-m90": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It says Server products and cloud services revenue rose $7.8 billion (32%), driven by Azure and other cloud services growing 40% on demand across all workloads; this explains only part of Microsoft's total revenue, and the paragraph does not itself say which period it covers."
+    },
+    "e61-m117": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It says Server products and cloud services revenue rose because of Azure and other cloud services, where demand grew across all workloads, and because more licenses were bought for multi-cloud use; this explains one part of company revenue, though the paragraph never says which period the $21.8 billion (31%) increase covers."
+    },
+    "e62-m93": {
+      "explains": true,
+      "scope": "company",
+      "reason": "It attributes the rise in cost of revenue, which counts as the same subject as gross margin, to investment in AI infrastructure and higher GitHub Copilot usage."
+    },
+    "e62-m113": {
+      "explains": true,
+      "scope": "company",
+      "reason": "The paragraph says the company's gross margin rose, not fell, and gives two causes: the dollar increase came from growth in Microsoft 365 Commercial cloud, and the percentage increase came from efficiency gains there, partly offset by AI infrastructure investment and growing AI usage."
+    },
+    "e62-m121": {
+      "explains": true,
+      "scope": "company",
+      "reason": "It says the gross margin percentage fell because of continued investment in AI infrastructure, partly offset by efficiency gains in Azure."
+    },
+    "e69-m49": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It says HIV product sales rose 12% year over year in the quarter mainly because of higher average realized price and demand, which explains one product line within total revenue."
+    },
+    "e62-m129": {
+      "explains": true,
+      "scope": "company",
+      "reason": "It says cost of revenue fell $1.3 billion because of lower hardware sales, partly offset by growth in Search advertising, and cost of revenue counts as the same subject as gross margin."
+    },
+    "e69-m50": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It attributes Biktarvy's 7% sales increase to higher average realized price, favorable inventory dynamics and higher demand, including patients switching from other Gilead HIV products. That explains one product's share of the revenue rise, not the company's total."
+    },
+    "e69-m60": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It says Trodelvy, one product within Gilead's revenue, grew 26% year over year in the three months ended June 30, 2026, and attributes that growth primarily to higher demand."
+    },
+    "e62-m130": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph attributes a gross margin increase to growth in Search advertising and Windows OEM and a mix shift, but it does not name a segment, quarter or basis, so as written it explains a rise rather than the year-over-year fall the analyst asked about."
+    },
+    "e69-m58": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph explains why Veklury sales fell (lower COVID-19 hospitalizations), which pulled against revenue, but it gives no cause for the year-over-year rise in Gilead's revenue that the analyst asked about."
+    },
+    "e69-m64": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It says royalty, contract and other revenues, one part of total revenue, rose year over year in the quarter mainly because $156 million of previously constrained revenue from a sale of intellectual property was recognized."
+    },
+    "e70-m74": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It attributes the 1.0-point fall in product gross margin, one part of Cisco's gross margin, mainly to unfavorable product mix and pricing, partly offset by productivity gains that higher memory costs reduced and by lower amortization of purchased intangibles; the paragraph does not say which period or comparison basis it covers, so it is taken to be this quarter year over year."
+    },
+    "e70-m78": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph describes general factors that normally cause services gross margin to fluctuate, without stating what drove this quarter's year-over-year decline."
+    },
+    "e70-m85": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It attributes the Americas segment's gross margin percentage decrease to unfavorable product mix and pricing, partially offset by productivity improvements."
+    },
+    "e78-m48": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only explains why TAC as a share of revenue is higher for Google Network than for Google Search & other, and gives no cause for Alphabet's year-over-year revenue increase this quarter."
+    },
+    "e70-m82": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It attributes the Americas segment's gross margin percentage decrease mainly to unfavorable product mix and, to a lesser extent, pricing, partly offset by productivity gains. It does not explicitly state the comparison period."
+    },
+    "e78-m85": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It attributes the year-over-year rise in Google Search & other revenues, one part of total revenue, to more search queries from mobile adoption and usage, higher advertiser spending, and improvements in ad formats and delivery, and applies these causes to both the three-month and six-month periods."
+    },
+    "e78-m86": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It attributes YouTube ads revenue growth for the quarter, year over year, to direct response and brand advertising products benefiting from higher advertiser spending, which is a cause for one part of total revenue."
+    },
+    "e70-m86": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It gives a cause for the EMEA segment's gross margin move: productivity improvements, partly offset by negative product mix and pricing. The paragraph does not state the period or basis, and the segment's margin rose while the company's fell."
+    },
+    "e78-m93": {
+      "explains": true,
+      "scope": "part",
+      "reason": "For the Google subscriptions, platforms, and devices revenue line, the paragraph says the $1.7 billion year-over-year rise this quarter came mainly from growth in paid subscriptions to YouTube services and Google One."
+    },
+    "e80-m97": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph refers the reader to Notes 3A and 3B, describes ongoing cost-reduction monitoring and states a long-term gross margin goal, but it never says what drove this quarter's year-over-year rise in cost of revenue."
+    },
+    "e78-m94": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It says Google Cloud revenue rose $11.1 billion year over year in the quarter, primarily because Google Cloud Platform grew, largely in infrastructure and platform services, and because Google began recognizing revenue from TPU system sales in Q2 2026; this explains one segment of Alphabet's revenue, not the whole company."
+    },
+    "e81-m14": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph covers the first nine months of fiscal 2026, not the quarter, and it only splits the 10% revenue rise into product (+13%) and services (flat) without saying what drove it."
+    },
+    "e81-m66": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph explains why services revenue fell 1% (lower support services, partly offset by professional services), but that segment worked against the company's year-over-year increase and does not explain why total revenue rose."
+    },
+    "e81-m49": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It says Americas product revenue grew 20%, led by the Service Provider and Cloud market and largely driven by revenue from AI Infrastructure solutions, which names a product driver for one segment, though the paragraph itself never says the comparison is year over year."
+    },
+    "e81-m5": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph is only a table row of percentage-of-revenue figures. It gives no cause for the year-over-year rise in revenue."
+    },
+    "e81-m12": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It says product revenue rose 17% mainly because Networking grew 25%, especially AI Infrastructure and Campus Networking, with a smaller gain from Observability, offset slightly by Collaboration; this explains product revenue, which is part of total revenue."
+    },
+    "e81-m47": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only breaks the 10% increase into product (+13%) and flat services revenue and says growth came from every geographic segment, which restates the change without naming a driver such as products, price, volume or mix."
+    },
+    "e81-m45": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only splits the 12% rise into product revenue (up 17%) and services revenue (down 1%) and says growth came from every geographic segment, which is a breakdown of the change rather than a reason for it (no product, price, volume or other driver is named)."
+    },
+    "e81-m50": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It says the 15% rise in Americas product revenue came from growth across customer markets, led by Service Provider and Cloud, which was driven mostly by AI Infrastructure solutions; this covers one segment, and the paragraph does not itself say the comparison is year over year."
+    },
+    "e81-m62": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It says Collaboration product revenue rose because of growth in Collaboration Devices and CPaaS, partly offset by lower Webex Suite revenue; this explains only one product category, not Cisco's total revenue."
+    },
+    "e81-mda": {
+      "nothing_to_find": false,
+      "where": "From a product category perspective, the product revenue increase of 17% was driven by growth in Networking",
+      "reason": "For the third quarter against the year-earlier quarter, this paragraph says the 17% product revenue growth was driven by 25% Networking growth, especially AI Infrastructure and Campus Networking, which names a cause of part of total revenue's rise."
+    },
+    "e82-m88": {
+      "explains": true,
+      "scope": "part",
+      "reason": "For the three months, it attributes the rise in selling and marketing expenses to higher HIV promotional expenses and the rise in G&A to integration expenses, including $332 million of stock-based compensation tied to the Arcellx, Ouro Medicines and Tubulis acquisitions; the equity donations are cited only for the six months."
+    },
+    "e82-m86": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only defines what SG&A expenses consist of and how they are recorded; it states no cause of this quarter's year-over-year rise."
+    },
+    "e82-mda": {
+      "nothing_to_find": false,
+      "where": "Selling, general and administrative expenses increased 41% and 29% to $1.9 billion",
+      "reason": "The paragraph says the year-over-year rise in SG&A for the three months ended June 30, 2026 came from higher HIV promotional spending in selling and marketing, and from acquisition integration costs in general and administrative, including $332 million of stock-based compensation tied to the Arcellx, Ouro Medicines and Tubulis acquisitions."
+    },
+    "e83-m22": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph explains changes in operating expenses, not revenue, and states no cause of the year-over-year revenue increase."
+    },
+    "e83-m18": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It says total product sales, a component of Amgen's revenue, rose 9% in the quarter ended June 30, 2026, driven by volume growth."
+    },
+    "e83-m49": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It attributes the quarter's decline in ENBREL sales, one product within revenue, to a 22% lower net selling price from IRA Medicare Part D price setting (effective January 1, 2026) and a higher 340B Program mix, partly offset by favorable changes in estimated sales deductions; this partial cause of revenue's move works against the overall rise."
+    },
+    "e83-m3": {
+      "explains": false,
+      "scope": null,
+      "reason": "This is a boilerplate forward-looking-statements disclaimer and gives no cause for Amgen's year-over-year revenue increase in the quarter."
+    },
+    "e83-m41": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It explains the rise in TEPEZZA sales, one product within Amgen's revenue, for the three months ended June 30, 2026: a 6% higher net selling price, 6% volume growth and 4% from favorable changes to estimated sales deductions, partly offset by 4% from lower inventory."
+    },
+    "e83-m52": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It says BLINCYTO sales rose in the quarter because volume grew 16%, estimated sales deductions changed favorably by 4% and net selling price was higher, which explains one product's part of Amgen's revenue."
+    },
+    "e83-m67": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It says global KRYSTEXXA sales rose in the three months ended June 30, 2026 because net selling price was 23% higher, partly offset by lower inventory, which explains one product's part of the revenue increase."
+    },
+    "e83-m80": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph explains why cost of sales fell as a share of revenue (lower amortization, offset by profit share, manufacturing costs and mix), not what caused total revenue to rise."
+    },
+    "e83-m44": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It gives the causes of this quarter's lower Otezla sales, one part of revenue that held back the rise: net selling price down 9%, volume down 6%, and unfavorable changes to estimated sales deductions."
+    },
+    "e83-mda": {
+      "nothing_to_find": false,
+      "where": "Total product sales increased 9% for the three months ended June 30, 2026, driven by volume growth.",
+      "reason": "This paragraph says volume growth drove the 9% year-over-year rise in Q2 2026 product sales, the main part of revenue; the paragraphs after it name the brands behind that growth and say higher corporate partner revenue and royalty income lifted other revenues."
+    },
+    "e84-m171": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph is a footnote that describes how EBIT-adjusted reconciliation adjustments and their tax effects are determined, and it states no cause of the year-over-year fall in net income."
+    },
+    "e84-m149": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only defines EBIT-adjusted and explains how it is adjusted; it gives no cause for the year-over-year fall in net income this quarter."
+    },
+    "e84-m11": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only introduces a table that reconciles expected net income to expected EBIT-adjusted; it looks ahead and gives no cause for this quarter's year-over-year fall in net income."
+    },
+    "e84-m10": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph gives full-year 2026 guidance for net income and other measures, which looks ahead and states no cause of the quarter's year-over-year decline in net income."
+    },
+    "e84-m17": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only points to a reconciliation elsewhere in the MD&A and describes what expected results exclude, without stating any cause of the year-over-year decline in net income."
+    },
+    "e84-m150": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only defines the non-GAAP measure EPS-diluted-adjusted and how it is calculated, stating no cause of the year-over-year change in net income."
+    },
+    "e84-m172": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only defines return on equity and introduces a calculation table; it states no cause for the year-over-year change in net income this quarter."
+    },
+    "e84-m174": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph is a table footnote defining what equity of noncontrolling interests includes, and states no cause of the year-over-year fall in net income."
+    },
+    "e85-m68": {
+      "explains": false,
+      "scope": null,
+      "reason": "It reports that product gross margin held flat at 79.3% versus the year-earlier quarter, but it does not say what drove gross profit up."
+    },
+    "e86-m49": {
+      "explains": true,
+      "scope": "company",
+      "reason": "It says the quarter's year-over-year rise in gross margin, which the rubric treats as the same subject as cost of revenue, was primarily due to strong demand for Broadcom's AI-related semiconductor products."
+    },
+    "e86-m23": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph is only a heading ('Cost of products sold') and states no driver of the year-over-year rise in cost of revenue."
+    },
+    "e84-mda": {
+      "nothing_to_find": false,
+      "where": "In the three months ended June 30, 2026, increased Cost was primarily due to:",
+      "reason": "For the June 2026 quarter against a year earlier, this paragraph says costs rose mainly because of $1.9 billion of EV strategic realignment charges, lower Ultium Cells equity earnings, and higher engineering and manufacturing costs; cost of sales is a part of net income, so this counts as a cause of the fall."
+    },
+    "e85-mda": {
+      "nothing_to_find": false,
+      "where": "Total revenues increased 10% and 7% to $7.8 billion and $14.8 billion",
+      "reason": "Product gross margin stayed flat at 79.3% for the quarter, so the year-over-year rise in gross profit came from revenue, which is one of its parts, and this paragraph says the quarter's 10% revenue increase was driven by higher sales of HIV products, Trodelvy and Livdelzi and higher royalty revenues, partly offset by lower sales of Veklury, Cell Therapy and HCV products."
+    },
+    "e86-mda": {
+      "nothing_to_find": false,
+      "where": "Gross margin was $20,456 million for the fiscal quarter ended August 2, 2026",
+      "reason": "The rubric counts gross margin, gross profit and cost of sales as one subject, and this paragraph says the year-over-year gross margin increase in the fiscal quarter came primarily from strong product demand for AI-related semiconductor solutions; the next paragraph also names a higher mix of lower-margin semiconductor revenue."
+    },
+    "e87-mda": {
+      "nothing_to_find": false,
+      "where": "MG&A expenses of $1.4 billion for the three months ended June 27, 2026",
+      "reason": "AMD reports SG&A as marketing, general and administrative (MG&A) expense. This paragraph says the year-over-year rise in this quarter and in the six months was primarily due to more go-to-market activities to support revenue growth."
+    },
+    "e88-m24": {
+      "explains": true,
+      "scope": "part",
+      "reason": "For Products only, it attributes the gross margin change in the third quarter versus the same quarter of 2025 to product mix, tariff refunds and higher costs, including memory, and gross margin is treated as the same subject as cost of revenue."
+    },
+    "e88-m25": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph explains why Services gross margin rose (higher Services net sales and a different mix of services). It mentions 'higher costs' only as an offset and gives no reason why cost of revenue rose."
+    },
+    "e88-m5": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph describes general seasonality and how product introductions can affect cost of sales, but it names no specific driver of this quarter's year-over-year rise in cost of revenue."
+    },
+    "e89-m12": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only restates the revenue amounts and the 93% year-over-year growth rate and names no driver of the increase."
+    },
+    "e88-mda": {
+      "nothing_to_find": false,
+      "where": "Products gross margin and gross margin percentage increased during the third quarter",
+      "reason": "Gross margin and cost of sales count as one subject, and this paragraph says that in the third quarter, compared with the same quarter of 2025, higher costs (including memory) and a different product mix affected Products gross margin, which names drivers of the rise in cost of sales."
+    },
+    "e89-m51": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph describes the accounting policy for On-Premises Software revenue recognition and states no cause of the year-over-year revenue increase."
+    },
+    "e89-m80": {
+      "explains": true,
+      "scope": "company",
+      "reason": "It attributes the $932 million year-over-year increase to government customers (+$437 million, mostly from existing customers, with U.S. government revenue nearly doubling) and commercial customers (+$495 million, mostly from existing customers, with U.S. commercial up 149%), which names where the growth came from."
+    },
+    "e89-m11": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph describes Palantir's business model and revenue recognition policy but states no cause of the year-over-year revenue increase in the quarter."
+    },
+    "e89-m18": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph gives trailing-twelve-month growth in average revenue from the top twenty customers, which covers a different period. It does not state what drove this quarter's year-over-year revenue increase."
+    },
+    "e89-m25": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph describes macroeconomic risks and the company's exposure to U.S. conditions, but it states no cause for this quarter's year-over-year revenue increase."
+    },
+    "e89-m30": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph describes general foreign-currency exposure and says the impacts were not material for the six months, without stating any cause of this quarter's year-over-year revenue increase."
+    },
+    "e89-m34": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph describes how revenue and costs are allocated to customer accounts and segments, and names no driver of the year-over-year revenue increase."
+    },
+    "e89-m55": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph defines what sales and marketing costs include and how they are expensed; it states no cause of the year-over-year revenue increase."
+    },
+    "e89-mda": {
+      "nothing_to_find": false,
+      "where": "Revenue increased by $932 million, or 93%, for the three months ended June 30, 2026",
+      "reason": "For the quarter, year over year, the paragraph splits the revenue increase by segment: $437 million from government customers ($428 million of it from existing ones) and $495 million from commercial customers (including growth in U.S. commercial). Naming the segments that drove the move counts as a cause under the rubric."
+    },
+    "e90-m70": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only says cost of sales rose $314 million and ends at \"primarily due to:\" without naming any driver, so it gives no cause for the move in gross profit."
+    },
+    "e90-m155": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only defines which acquisition-related items are excluded from adjusted income. It names no cause of the year-over-year change in Pfizer's gross profit for the quarter."
+    },
+    "e90-m7": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only describes a cost-reduction program announced in the third quarter of 2026 and the savings and costs expected through 2029, so it gives no cause for the year-over-year rise in gross profit for the quarter ended June 28, 2026."
+    },
+    "e90-m79": {
+      "explains": false,
+      "scope": null,
+      "reason": "It gives causes (the absence of a favorable royalty-accrual revision from Q1 2025, and unfavorable foreign exchange) only for the first six months of 2026, not for the quarter ended June 28, 2026, and it does not say they also apply to this quarter."
+    },
+    "e90-m97": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph refers readers to Notes 3A and 3B for cost-reduction program details and states a forward-looking focus on improving gross margin, but it gives no cause for this quarter's year-over-year rise in gross profit."
+    },
+    "e91-m35": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph describes general opportunities, challenges and long-term strategy, and names no cause of this quarter's year-over-year gross profit change."
+    },
+    "e90-mda": {
+      "nothing_to_find": false,
+      "where": "Cost of sales increased $314 million in the second quarter of 2026, primarily due to:",
+      "reason": "The rubric treats cost of sales and gross profit as one subject, and this paragraph gives second-quarter, year-over-year causes for the cost of sales increase: an unfavorable sales mix, higher amortization of the inventory step-up tied to the Oxbryta impairment, and foreign exchange."
+    },
+    "e92-m14": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph is just a table row of equity-method investee income percentages with no narrative and no stated driver of the year-over-year change in net income."
+    },
+    "e91-m129": {
+      "explains": true,
+      "scope": "company",
+      "reason": "It says cost of sales rose year over year in the quarter mainly because of higher sales volumes, recently acquired businesses and a $46 million Masimo inventory fair-value charge, and the rubric treats cost of sales and gross profit as one subject."
+    },
+    "e91-mda": {
+      "nothing_to_find": false,
+      "where": "Cost of sales increased year-over-year during both the three and six-month periods",
+      "reason": "The rubric treats cost of sales as the same subject as gross profit, and this paragraph gives this quarter's year-over-year causes for both periods: higher sales volumes, recently acquired businesses and the $46 million Masimo inventory fair-value charge. The next paragraph adds that gross margin fell because of product mix and that inventory charge."
+    },
+    "e91-m130": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph explains why gross profit margin fell this quarter (product mix and the 2026 inventory fair-value adjustment), but it gives no reason for the year-over-year rise in gross profit the analyst asked about; those factors held gross profit back."
+    },
+    "e93-m49": {
+      "explains": true,
+      "scope": "company",
+      "reason": "It attributes the year-over-year rise in company gross margin, for both the quarter and the year to date, primarily to strong demand for Broadcom's AI-related semiconductor solutions."
+    },
+    "e93-m23": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph is only a heading ('Cost of products sold') and states no cause of the year-over-year gross margin change."
+    },
+    "e93-mda": {
+      "nothing_to_find": false,
+      "where": "Gross margin was $20,456 million for the fiscal quarter ended August 2, 2026",
+      "reason": "The MD&A gives two year-over-year causes for this quarter: gross margin dollars rose mainly on strong demand for AI-related semiconductor solutions, and the next paragraph credits the higher gross margin percentage to the benefit of net revenue growth, partly offset by a higher mix of semiconductor revenue."
+    },
+    "e94-m13": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph is forward-looking: it gives management's expectations about future gross margins under strategic customer agreements and says nothing about what drove this quarter's year-over-year rise in gross profit."
+    },
+    "e94-m26": {
+      "explains": true,
+      "scope": "company",
+      "reason": "It says consolidated gross margin rose for the third quarter of 2026 against the third quarter of 2025 because DRAM and NAND margins improved, mainly on higher average selling prices and, to a lesser extent, on favorable mix and lower manufacturing costs."
+    },
+    "e92-mda": {
+      "nothing_to_find": true,
+      "where": null,
+      "reason": "No paragraph gives a cause for the year-over-year change in net income for the third quarter: the year-over-year causes cover gross margin, operating income by business unit, R&D, SG&A, interest and the tax rate, which are other metrics, while net income itself is mentioned only for nine-month operating cash flow, and the profitability remarks in the industry section name no comparison basis."
+    },
+    "e94-mda": {
+      "nothing_to_find": false,
+      "where": "Our consolidated gross margin percentage improved to 85% for the third",
+      "reason": "This paragraph says the year-over-year gain in third-quarter gross margin came from better DRAM and NAND margins, driven mainly by higher average selling prices and, to a lesser extent, favorable mix and manufacturing cost reductions; gross margin and gross profit count as the same subject."
+    },
+    "e96-m64": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only defines net income attributable to noncontrolling interests and states no cause of the year-over-year change in net income for the quarter."
+    },
+    "e97-m32": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It attributes the year-over-year rise in cost of automotive sales revenue, one part of total cost of revenue, to higher deliveries (volume); the reference to the discussion above only adds detail, since the cause is already stated."
+    },
+    "e95-mda": {
+      "nothing_to_find": false,
+      "where": "Reportable segment operating income – The year-over-year increase in Compute & Networking segment operating income",
+      "reason": "Operating income is part of net income, and this paragraph says the second-quarter year-over-year rise in Compute & Networking and Graphics segment operating income was driven by revenue growth; no paragraph explains net income directly."
+    },
+    "e97-m37": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It attributes the year-over-year rise in cost of energy generation and storage revenue, one part of total cost of revenue, to a higher average cost per MWh driven by sales mix and unfavorable warranty adjustments; the 'deployment fluctuations as discussed above' only points elsewhere and is not counted as a cause."
+    },
+    "e96-mda": {
+      "nothing_to_find": false,
+      "where": "Revenue increased by $932 million, or 93%, for the three months ended June 30, 2026",
+      "reason": "Net income is built from revenue, costs, interest income, other income and taxes, and the MD&A gives a year-over-year cause for several of these in the second quarter: revenue grew on $437 million more from government customers and $495 million more from commercial customers. Interest income rose because the company held more cash and Treasuries, and other income rose on gains from equity securities."
+    },
+    "e97-m38": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph says energy generation and storage gross margin fell, but its only cause is a pointer to revenue and cost changes \"discussed above\", so it names no actual driver of the rise in cost of revenue."
+    },
+    "e97-m27": {
+      "explains": false,
+      "scope": null,
+      "reason": "This is a table row of figures showing automotive & services and other segment cost of revenues rising $4,311 million (26%) year over year, but it gives no reason for the increase."
+    },
+    "e97-mda": {
+      "nothing_to_find": false,
+      "where": "Cost of automotive sales revenue increased $3.30 billion, or 24%, in the three months ended June 30, 2026",
+      "reason": "This paragraph says cost of automotive sales revenue, one part of cost of revenue, rose year over year this quarter because deliveries increased; separate paragraphs also give causes for this quarter's rise in the cost of services and other revenue and of energy generation and storage revenue."
+    },
+    "e98-m51": {
+      "explains": true,
+      "scope": "company",
+      "reason": "The paragraph says the year-over-year SG&A increases in both the second quarter and the first half were primarily driven by higher compensation and benefits, including stock-based compensation, reflecting employee growth and pay increases."
+    },
+    "e98-m20": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph describes Israel operations and the possible risk from the Middle East conflict, and gives no cause for the year-over-year rise in SG&A expenses."
+    },
+    "e98-mda": {
+      "nothing_to_find": false,
+      "where": "The increases in sales, general and administrative expenses for the second quarter",
+      "reason": "This paragraph says the second-quarter fiscal 2027 rise in SG&A was primarily driven by compensation and benefits, including stock-based compensation, which reflected employee growth and pay increases."
+    },
+    "e99-m86": {
+      "explains": true,
+      "scope": "company",
+      "reason": "It attributes the 30 basis point year-over-year rise in operating profit margin, which counts as the same subject as operating income, to higher Q2 2026 core sales, net of the impact of product mix."
+    },
+    "e99-m87": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only gives the change in operating profit margin for the six-month period, not this quarter, and it ends before naming any of the favorable factors it introduces."
+    },
+    "e99-m101": {
+      "explains": false,
+      "scope": null,
+      "reason": "It only says operating profit margin rose 2,640 basis points year over year and introduces a list of favorable factors, but the paragraph itself names none of them."
+    },
+    "e99-m46": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only defines how sales and operating profit from acquisitions and currency translation are calculated, and it gives no cause for the year-over-year rise in operating income."
+    },
+    "e99-m59": {
+      "explains": false,
+      "scope": null,
+      "reason": "It only restates that operating profit margin rose 520 basis points, from 12.8% to 18.0%, and names no driver such as volume, mix, costs, charges or a segment."
+    },
+    "e99-m66": {
+      "explains": false,
+      "scope": null,
+      "reason": "It only restates the change in operating profit margin for the six-month period, with no cause and nothing specific to the quarter."
+    },
+    "e99-m104": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph covers the six-month period, not the quarter, and only introduces factors without stating any cause itself."
+    },
+    "e99-m120": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only says operating profit margin fell 710 basis points year over year and introduces 'the following factors', but it names none of them, so no cause is given."
+    },
+    "e99-m124": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph gives only the six-month change in operating profit margin and introduces a list of factors that it does not include, so it states no cause of this quarter's year-over-year move in operating income."
+    },
+    "e100-m99": {
+      "explains": true,
+      "scope": "company",
+      "reason": "It attributes the $6.9 billion year-over-year rise in Q2 2026 cost of revenues to a $5.4 billion increase in other cost of revenues and a $1.5 billion increase in TAC."
+    },
+    "e100-m71": {
+      "explains": true,
+      "scope": "company",
+      "reason": "It attributes the year-over-year rise in cost of revenues to higher depreciation expense, TAC, inventory and other costs, content acquisition costs, and other technical infrastructure operations costs."
+    },
+    "e100-m101": {
+      "explains": true,
+      "scope": "part",
+      "reason": "It explains the year-over-year rise in other cost of revenues, which is one component of total cost of revenue, by pointing to higher depreciation expense, inventory and other costs, content acquisition costs (mostly for YouTube) and other technical infrastructure operations costs."
+    },
+    "e100-m38": {
+      "explains": false,
+      "scope": null,
+      "reason": "The paragraph only describes Alphabet's cost structure and that certain costs are less variable, without stating any cause of the year-over-year rise in cost of revenues for the quarter."
+    },
+    "e99-mda": {
+      "nothing_to_find": false,
+      "where": "Second quarter 2026 vs. second quarter 2025 operating profit margin comparisons were favorably impacted by:",
+      "reason": "Operating margin and operating income count as one subject, and the MD&A says the second-quarter year-over-year rise in operating margin came mainly from the absence of the second-quarter 2025 Life Sciences trade-name impairment (730 bps), partly offset by Masimo acquisition-related charges (175 bps) and dilution from acquired businesses (30 bps)."
+    },
+    "e100-mda": {
+      "nothing_to_find": false,
+      "where": "Cost of revenues was $45.9 billion, an increase of 18% year over year, primarily driven by",
+      "reason": "For this quarter year over year, the MD&A says cost of revenues rose mainly because of higher depreciation expense, TAC, inventory and other costs, content acquisition costs and other technical infrastructure operations costs; later paragraphs give the same causes in more detail for the three months to June 30, 2026."
     }
   },
   "labels": {
@@ -738,7 +1408,9 @@
         "e04-m73": true,
         "e04-m74": false,
         "e04-m70": false,
-        "e04-m21": false
+        "e04-m21": false,
+        "e04-m71": false,
+        "e04-m100": false
       }
     },
     "e05": {
@@ -839,7 +1511,9 @@
         "e45-m19": false,
         "e45-m21": true,
         "e45-m58": false,
-        "e45-m5": false
+        "e45-m5": false,
+        "e45-m10": false,
+        "e45-m20": true
       }
     },
     "e46": {
@@ -880,7 +1554,10 @@
         "e53-m50": false,
         "e53-m48": true,
         "e53-m47": true,
-        "e53-m14": false
+        "e53-m14": false,
+        "e53-m38": false,
+        "e53-m41": false,
+        "e53-m76": false
       }
     },
     "e54": {
@@ -889,7 +1566,11 @@
         "e54-m22": true,
         "e54-m40": true,
         "e54-m48": true,
-        "e54-m3": false
+        "e54-m3": false,
+        "e54-m30": false,
+        "e54-m36": true,
+        "e54-m44": true,
+        "e54-m79": false
       }
     },
     "e55": {
@@ -897,7 +1578,8 @@
       "explains": {
         "e55-m13": true,
         "e55-m25": true,
-        "e55-m31": true
+        "e55-m31": true,
+        "e55-m29": true
       }
     },
     "e56": {
@@ -928,7 +1610,12 @@
         "e61-m61": true,
         "e61-m70": true,
         "e61-m24": false,
-        "e61-m4": false
+        "e61-m4": false,
+        "e61-m80": true,
+        "e61-m90": true,
+        "e61-m99": true,
+        "e61-m107": true,
+        "e61-m117": true
       }
     },
     "e62": {
@@ -937,7 +1624,12 @@
         "e62-m86": true,
         "e62-m94": true,
         "e62-m103": true,
-        "e62-m34": false
+        "e62-m34": false,
+        "e62-m93": true,
+        "e62-m113": true,
+        "e62-m121": true,
+        "e62-m129": true,
+        "e62-m130": false
       }
     },
     "e63": {
@@ -983,7 +1675,12 @@
       "explains": {
         "e69-m19": true,
         "e69-m57": true,
-        "e69-m59": false
+        "e69-m59": false,
+        "e69-m49": true,
+        "e69-m50": true,
+        "e69-m58": false,
+        "e69-m60": true,
+        "e69-m64": true
       }
     },
     "e70": {
@@ -992,7 +1689,12 @@
         "e70-m77": false,
         "e70-m73": true,
         "e70-m83": true,
-        "e70-m10": true
+        "e70-m10": true,
+        "e70-m74": true,
+        "e70-m78": false,
+        "e70-m82": true,
+        "e70-m85": true,
+        "e70-m86": true
       }
     },
     "e71": {
@@ -1044,7 +1746,12 @@
         "e78-m100": false,
         "e78-m87": true,
         "e78-m70": true,
-        "e78-m3": false
+        "e78-m3": false,
+        "e78-m48": false,
+        "e78-m85": true,
+        "e78-m86": true,
+        "e78-m93": true,
+        "e78-m94": true
       }
     },
     "e79": {
@@ -1059,20 +1766,195 @@
         "e80-m70": false,
         "e80-m79": false,
         "e80-m155": false,
-        "e80-m7": false
+        "e80-m7": false,
+        "e80-m97": false
+      }
+    },
+    "e81": {
+      "nothing_to_find": false,
+      "explains": {
+        "e81-m66": false,
+        "e81-m14": false,
+        "e81-m49": true,
+        "e81-m5": false,
+        "e81-m12": true,
+        "e81-m45": false,
+        "e81-m47": false,
+        "e81-m50": true,
+        "e81-m62": true
+      }
+    },
+    "e82": {
+      "nothing_to_find": false,
+      "explains": {
+        "e82-m88": true,
+        "e82-m86": false
+      }
+    },
+    "e83": {
+      "nothing_to_find": false,
+      "explains": {
+        "e83-m18": true,
+        "e83-m49": true,
+        "e83-m22": false,
+        "e83-m3": false,
+        "e83-m41": true,
+        "e83-m44": true,
+        "e83-m52": true,
+        "e83-m67": true,
+        "e83-m80": false
+      }
+    },
+    "e84": {
+      "nothing_to_find": false,
+      "explains": {
+        "e84-m171": false,
+        "e84-m149": false,
+        "e84-m11": false,
+        "e84-m10": false,
+        "e84-m17": false,
+        "e84-m150": false,
+        "e84-m172": false,
+        "e84-m174": false
+      }
+    },
+    "e85": {
+      "nothing_to_find": false,
+      "explains": {
+        "e85-m68": false
+      }
+    },
+    "e86": {
+      "nothing_to_find": false,
+      "explains": {
+        "e86-m49": true,
+        "e86-m23": false
+      }
+    },
+    "e87": {
+      "nothing_to_find": false,
+      "explains": {}
+    },
+    "e88": {
+      "nothing_to_find": false,
+      "explains": {
+        "e88-m24": true,
+        "e88-m25": false,
+        "e88-m5": false
+      }
+    },
+    "e89": {
+      "nothing_to_find": false,
+      "explains": {
+        "e89-m12": false,
+        "e89-m80": true,
+        "e89-m51": false,
+        "e89-m11": false,
+        "e89-m18": false,
+        "e89-m25": false,
+        "e89-m30": false,
+        "e89-m34": false,
+        "e89-m55": false
+      }
+    },
+    "e90": {
+      "nothing_to_find": false,
+      "explains": {
+        "e90-m70": false,
+        "e90-m79": false,
+        "e90-m155": false,
+        "e90-m7": false,
+        "e90-m97": false
+      }
+    },
+    "e91": {
+      "nothing_to_find": false,
+      "explains": {
+        "e91-m129": true,
+        "e91-m130": false,
+        "e91-m35": false
+      }
+    },
+    "e92": {
+      "nothing_to_find": true,
+      "explains": {
+        "e92-m14": false
+      }
+    },
+    "e93": {
+      "nothing_to_find": false,
+      "explains": {
+        "e93-m49": true,
+        "e93-m23": false
+      }
+    },
+    "e94": {
+      "nothing_to_find": false,
+      "explains": {
+        "e94-m26": true,
+        "e94-m13": false
+      }
+    },
+    "e95": {
+      "nothing_to_find": false,
+      "explains": {}
+    },
+    "e96": {
+      "nothing_to_find": false,
+      "explains": {
+        "e96-m64": false
+      }
+    },
+    "e97": {
+      "nothing_to_find": false,
+      "explains": {
+        "e97-m32": true,
+        "e97-m37": true,
+        "e97-m38": false,
+        "e97-m27": false
+      }
+    },
+    "e98": {
+      "nothing_to_find": false,
+      "explains": {
+        "e98-m51": true,
+        "e98-m20": false
+      }
+    },
+    "e99": {
+      "nothing_to_find": false,
+      "explains": {
+        "e99-m86": true,
+        "e99-m87": false,
+        "e99-m101": false,
+        "e99-m46": false,
+        "e99-m59": false,
+        "e99-m66": false,
+        "e99-m104": false,
+        "e99-m120": false,
+        "e99-m124": false
+      }
+    },
+    "e100": {
+      "nothing_to_find": false,
+      "explains": {
+        "e100-m99": true,
+        "e100-m101": true,
+        "e100-m71": true,
+        "e100-m38": false
       }
     }
   },
   "spot_check": [
-    "e02-m7",
-    "e45-m19",
-    "e48-m12",
-    "e53-m47",
-    "e53-m48",
-    "e61-m61",
+    "e04-m21",
+    "e54-m44",
+    "e61-m24",
     "e61-m70",
-    "e64-m27",
-    "e71-m6",
-    "e75-m81"
+    "e61-m99",
+    "e69-m58",
+    "e69-m64",
+    "e81-m66",
+    "e83-m67",
+    "e99-m87"
   ]
 }

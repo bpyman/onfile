@@ -1,0 +1,393 @@
+{
+  "model": "gpt-6.1-sol",
+  "instructions": "c0132f88bc71",
+  "cases": [
+    {
+      "id": "e81",
+      "set": "final",
+      "metric": "revenue",
+      "basis": "year_over_year",
+      "offered": [
+        "e81-m12",
+        "e81-m14",
+        "e81-m45",
+        "e81-m47",
+        "e81-m49",
+        "e81-m50",
+        "e81-m62",
+        "e81-m66"
+      ],
+      "chosen": [
+        {
+          "id": "e81-m12",
+          "text": "From a product category perspective, the product revenue increase of 17% was driven by growth in Networking of 25%, particularly within our AI Infrastructure and Campus Networking solutions. We also saw product revenue growth in Observability of 3%. This growth was partially offset by a product revenue decline in Collaboration of 1%. Product revenue in Security was flat."
+        },
+        {
+          "id": "e81-m49",
+          "text": "Product revenue in the Americas segment increased by 20%, with growth across each of our customer markets, led by the Service Provider and Cloud customer market which was largely driven by revenue from our AI Infrastructure solutions. From a country perspective, product revenue increased in the United States, Canada and Mexico by 22%, 9% and 32%, respectively, partially offset by a decline in Brazil of 10%."
+        }
+      ],
+      "explanation": "Revenue growth was driven by product sales, led by \"growth in Networking of 25%, particularly within our AI Infrastructure and Campus Networking solutions\" and growth in Observability. In the Americas, growth was led by the Service Provider and Cloud customer market, \"largely driven by revenue from our AI Infrastructure solutions.\" The product gains were partially offset by \"a product revenue decline in Collaboration of 1%.\"",
+      "reason": null,
+      "failed": [],
+      "reply": "{\"paragraphs\":[1,5],\"explanation\":\"Revenue growth was driven by product sales, led by \\\"growth in Networking of 25%, particularly within our AI Infrastructure and Campus Networking solutions\\\" and growth in Observability. In the Americas, growth was led by the Service Provider and Cloud customer market, \\\"largely driven by revenue from our AI Infrastructure solutions.\\\" The product gains were partially offset by \\\"a product revenue decline in Collaboration of 1%.\\\"\"}"
+    },
+    {
+      "id": "e82",
+      "set": "final",
+      "metric": "selling_general_and_administrative",
+      "basis": "year_over_year",
+      "offered": [
+        "e82-m88"
+      ],
+      "chosen": [
+        {
+          "id": "e82-m88",
+          "text": "Selling, general and administrative expenses increased 41% and 29% to $1.9 billion and $3.4 billion for the three and six months ended June 30, 2026, respectively, compared to the same periods in 2025. Selling and marketing expenses increased primarily due to higher HIV promotional expenses. General and administrative expenses increased primarily due to integration expenses, including $332 million of stock-based compensation expenses related to our acquisitions of Arcellx, Ouro Medicines and Tubulis. General and administrative expenses also increased for the six months ended June 30, 2026 due to donations of equity securities made to the Gilead Foundation."
+        }
+      ],
+      "explanation": "SG&A expenses rose as general and administrative costs increased \"primarily due to integration expenses,\" including stock-based compensation related to the acquisitions of Arcellx, Ouro Medicines and Tubulis. Selling and marketing expenses also increased \"primarily due to higher HIV promotional expenses.\"",
+      "reason": null,
+      "failed": [],
+      "reply": "{\"paragraphs\":[1],\"explanation\":\"SG&A expenses rose as general and administrative costs increased \\\"primarily due to integration expenses,\\\" including stock-based compensation related to the acquisitions of Arcellx, Ouro Medicines and Tubulis. Selling and marketing expenses also increased \\\"primarily due to higher HIV promotional expenses.\\\"\"}"
+    },
+    {
+      "id": "e83",
+      "set": "final",
+      "metric": "revenue",
+      "basis": "year_over_year",
+      "offered": [
+        "e83-m18",
+        "e83-m22",
+        "e83-m41",
+        "e83-m44",
+        "e83-m49",
+        "e83-m52",
+        "e83-m67",
+        "e83-m80"
+      ],
+      "chosen": [
+        {
+          "id": "e83-m18",
+          "text": "Total product sales increased 9% for the three months ended June 30, 2026, driven by volume growth. Total product sales increased 7% for the six months ended June 30, 2026, driven by volume growth of 9%, partially offset by lower net selling price."
+        },
+        {
+          "id": "e83-m41",
+          "text": "The increase in global TEPEZZA sales for the three months ended June 30, 2026 was driven by higher net selling price of 6%, volume growth of 6% and favorable changes to estimated sales deductions of 4%, partially offset by 4% from lower inventory."
+        },
+        {
+          "id": "e83-m52",
+          "text": "The increase in global BLINCYTO sales for the three months ended June 30, 2026 was driven by volume growth of 16%, favorable changes to estimated sales deductions of 4% and higher net selling price."
+        }
+      ],
+      "explanation": "Management said total product sales increased, \"driven by volume growth.\" TEPEZZA sales rose because of \"higher net selling price of 6%, volume growth of 6% and favorable changes to estimated sales deductions of 4%, partially offset by 4% from lower inventory.\" BLINCYTO sales also increased, driven by \"volume growth of 16%, favorable changes to estimated sales deductions of 4% and higher net selling price.\"",
+      "reason": null,
+      "failed": [],
+      "reply": "{\"paragraphs\":[1,3,6],\"explanation\":\"Management said total product sales increased, \\\"driven by volume growth.\\\" TEPEZZA sales rose because of \\\"higher net selling price of 6%, volume growth of 6% and favorable changes to estimated sales deductions of 4%, partially offset by 4% from lower inventory.\\\" BLINCYTO sales also increased, driven by \\\"volume growth of 16%, favorable changes to estimated sales deductions of 4% and higher net selling price.\\\"\"}"
+    },
+    {
+      "id": "e84",
+      "set": "final",
+      "metric": "net_income",
+      "basis": "year_over_year",
+      "offered": [
+        "e84-m11",
+        "e84-m17",
+        "e84-m149",
+        "e84-m150",
+        "e84-m171",
+        "e84-m172",
+        "e84-m174"
+      ],
+      "chosen": [],
+      "explanation": "",
+      "reason": "nothing_found",
+      "failed": [],
+      "reply": "{\"paragraphs\":[],\"explanation\":\"\"}"
+    },
+    {
+      "id": "e85",
+      "set": "final",
+      "metric": "gross_profit",
+      "basis": "year_over_year",
+      "offered": [
+        "e85-m68"
+      ],
+      "chosen": [],
+      "explanation": "",
+      "reason": "nothing_found",
+      "failed": [],
+      "reply": "{\"paragraphs\":[],\"explanation\":\"\"}"
+    },
+    {
+      "id": "e86",
+      "set": "final",
+      "metric": "cost_of_revenue",
+      "basis": "year_over_year",
+      "offered": [
+        "e86-m49"
+      ],
+      "chosen": [],
+      "explanation": "",
+      "reason": "nothing_found",
+      "failed": [],
+      "reply": "{\"paragraphs\":[],\"explanation\":\"\"}"
+    },
+    {
+      "id": "e87",
+      "set": "final",
+      "metric": "selling_general_and_administrative",
+      "basis": "year_over_year",
+      "offered": [],
+      "chosen": [],
+      "explanation": "",
+      "reason": "not_discussed",
+      "failed": [],
+      "reply": ""
+    },
+    {
+      "id": "e88",
+      "set": "final",
+      "metric": "cost_of_revenue",
+      "basis": "year_over_year",
+      "offered": [
+        "e88-m24",
+        "e88-m25"
+      ],
+      "chosen": [],
+      "explanation": "",
+      "reason": "nothing_found",
+      "failed": [],
+      "reply": "{\"paragraphs\":[],\"explanation\":\"\"}"
+    },
+    {
+      "id": "e89",
+      "set": "final",
+      "metric": "revenue",
+      "basis": "year_over_year",
+      "offered": [
+        "e89-m12",
+        "e89-m18",
+        "e89-m25",
+        "e89-m30",
+        "e89-m34",
+        "e89-m51",
+        "e89-m55",
+        "e89-m80"
+      ],
+      "chosen": [
+        {
+          "id": "e89-m80",
+          "text": "Revenue increased by $932 million, or 93%, for the three months ended June 30, 2026 compared to the same period in 2025. Revenue from government customers increased by $437 million, or 79%, for the three months ended June 30, 2026 compared to the same period in 2025. Of the increase, $428 million was from government customers existing as of December 31, 2025. Revenue from U.S. government customers was $809 million for the three months ended June 30, 2026 compared to $426 million for the same period in 2025. Revenue from commercial customers increased by $495 million, or 110%, for the three months ended June 30, 2026 compared to the same period in 2025. Of the increase, $407 million was from commercial customers existing as of December 31, 2025. Revenue from U.S. commercial customers was $764 million for the three months ended June 30, 2026 compared to $306 million for the same period in 2025, a 149% increase."
+        }
+      ],
+      "explanation": "Commercial customers were the larger driver of revenue growth; management said, \"Of the increase, $407 million was from commercial customers existing as of December 31, 2025.\" Government customers also contributed, largely through existing relationships: \"Of the increase, $428 million was from government customers existing as of December 31, 2025.\"",
+      "reason": null,
+      "failed": [],
+      "reply": "{\"paragraphs\":[8],\"explanation\":\"Commercial customers were the larger driver of revenue growth; management said, \\\"Of the increase, $407 million was from commercial customers existing as of December 31, 2025.\\\" Government customers also contributed, largely through existing relationships: \\\"Of the increase, $428 million was from government customers existing as of December 31, 2025.\\\"\"}"
+    },
+    {
+      "id": "e90",
+      "set": "final",
+      "metric": "gross_profit",
+      "basis": "year_over_year",
+      "offered": [
+        "e90-m70",
+        "e90-m79",
+        "e90-m97",
+        "e90-m155"
+      ],
+      "chosen": [],
+      "explanation": "",
+      "reason": "nothing_found",
+      "failed": [],
+      "reply": "{\"paragraphs\":[],\"explanation\":\"\"}"
+    },
+    {
+      "id": "e91",
+      "set": "final",
+      "metric": "gross_profit",
+      "basis": "year_over_year",
+      "offered": [
+        "e91-m35",
+        "e91-m129",
+        "e91-m130"
+      ],
+      "chosen": [],
+      "explanation": "",
+      "reason": "nothing_found",
+      "failed": [],
+      "reply": "{\"paragraphs\":[],\"explanation\":\"\"}"
+    },
+    {
+      "id": "e92",
+      "set": "final",
+      "metric": "net_income",
+      "basis": "year_over_year",
+      "offered": [],
+      "chosen": [],
+      "explanation": "",
+      "reason": "not_discussed",
+      "failed": [],
+      "reply": ""
+    },
+    {
+      "id": "e93",
+      "set": "final",
+      "metric": "gross_margin",
+      "basis": "year_over_year",
+      "offered": [
+        "e93-m49"
+      ],
+      "chosen": [
+        {
+          "id": "e93-m49",
+          "text": "Gross margin was $20,456 million for the fiscal quarter ended August 2, 2026 compared to $10,703 million for the fiscal quarter ended August 3, 2025 and $49,028 million for the three fiscal quarters ended August 2, 2026 compared to $31,045 million for the three fiscal quarters ended August 3, 2025. The increases were primarily due to strong product demand for our AI-related semiconductor solutions."
+        }
+      ],
+      "explanation": "Gross margin rose primarily because of \"strong product demand for our AI-related semiconductor solutions.\" Management explicitly attributed the increases to that demand, saying, \"The increases were primarily due to strong product demand for our AI-related semiconductor solutions.\"",
+      "reason": null,
+      "failed": [],
+      "reply": "{\"paragraphs\":[1],\"explanation\":\"Gross margin rose primarily because of \\\"strong product demand for our AI-related semiconductor solutions.\\\" Management explicitly attributed the increases to that demand, saying, \\\"The increases were primarily due to strong product demand for our AI-related semiconductor solutions.\\\"\"}"
+    },
+    {
+      "id": "e94",
+      "set": "final",
+      "metric": "gross_profit",
+      "basis": "year_over_year",
+      "offered": [
+        "e94-m26"
+      ],
+      "chosen": [
+        {
+          "id": "e94-m26",
+          "text": "Our consolidated gross margin percentage improved to 85% for the third quarter of 2026 from 38% for the third quarter of 2025 and improved to 77% for the first nine months of 2026 from 38% for the first nine months of 2025. Improvements in our consolidated gross margins for the third quarter and first nine months of 2026 as compared to corresponding periods of 2025 were due to improvements in margins for both DRAM and NAND products. Margins improved, primarily due to increases in average selling prices and, to a lesser extent, favorable mix and manufacturing cost reductions."
+        }
+      ],
+      "explanation": "Management attributed the improvement to \"improvements in margins for both DRAM and NAND products.\" Those margins improved \"primarily due to increases in average selling prices and, to a lesser extent, favorable mix and manufacturing cost reductions.\"",
+      "reason": null,
+      "failed": [],
+      "reply": "{\"paragraphs\":[1],\"explanation\":\"Management attributed the improvement to \\\"improvements in margins for both DRAM and NAND products.\\\" Those margins improved \\\"primarily due to increases in average selling prices and, to a lesser extent, favorable mix and manufacturing cost reductions.\\\"\"}"
+    },
+    {
+      "id": "e95",
+      "set": "final",
+      "metric": "net_income",
+      "basis": "year_over_year",
+      "offered": [],
+      "chosen": [],
+      "explanation": "",
+      "reason": "not_discussed",
+      "failed": [],
+      "reply": ""
+    },
+    {
+      "id": "e96",
+      "set": "final",
+      "metric": "net_income",
+      "basis": "year_over_year",
+      "offered": [
+        "e96-m64"
+      ],
+      "chosen": [],
+      "explanation": "",
+      "reason": "nothing_found",
+      "failed": [],
+      "reply": "{\"paragraphs\":[],\"explanation\":\"\"}"
+    },
+    {
+      "id": "e97",
+      "set": "final",
+      "metric": "cost_of_revenue",
+      "basis": "year_over_year",
+      "offered": [
+        "e97-m32",
+        "e97-m37",
+        "e97-m38"
+      ],
+      "chosen": [
+        {
+          "id": "e97-m32",
+          "text": "Cost of automotive sales revenue increased $3.30 billion, or 24%, in the three months ended June 30, 2026 as compared to the three months ended June 30, 2025, due to the increase in deliveries year over year as discussed above."
+        },
+        {
+          "id": "e97-m37",
+          "text": "Cost of energy generation and storage revenue increased $556 million, or 29%, in the three months ended June 30, 2026 as compared to the three months ended June 30, 2025, primarily due to the deployment fluctuations as discussed above, as well as an increase in average cost per MWh primarily driven by sales mix and unfavorable warranty adjustments."
+        }
+      ],
+      "explanation": "Automotive sales cost of revenue rose \"due to the increase in deliveries year over year as discussed above.\" Energy generation and storage cost of revenue also rose, \"primarily due to the deployment fluctuations as discussed above,\" along with higher average cost per MWh driven by \"sales mix and unfavorable warranty adjustments.\"",
+      "reason": null,
+      "failed": [],
+      "reply": "{\"paragraphs\":[1,2],\"explanation\":\"Automotive sales cost of revenue rose \\\"due to the increase in deliveries year over year as discussed above.\\\" Energy generation and storage cost of revenue also rose, \\\"primarily due to the deployment fluctuations as discussed above,\\\" along with higher average cost per MWh driven by \\\"sales mix and unfavorable warranty adjustments.\\\"\"}"
+    },
+    {
+      "id": "e98",
+      "set": "final",
+      "metric": "selling_general_and_administrative",
+      "basis": "year_over_year",
+      "offered": [
+        "e98-m51"
+      ],
+      "chosen": [
+        {
+          "id": "e98-m51",
+          "text": "The increases in sales, general and administrative expenses for the second quarter and first half of fiscal year 2027 were primarily driven by compensation and benefits, including stock-based compensation, reflecting employee growth and compensation increases."
+        }
+      ],
+      "explanation": "SG&A expenses rose primarily because of \"compensation and benefits, including stock-based compensation\". Management attributed the increase to \"employee growth and compensation increases.\"",
+      "reason": null,
+      "failed": [],
+      "reply": "{\"paragraphs\":[1],\"explanation\":\"SG&A expenses rose primarily because of \\\"compensation and benefits, including stock-based compensation\\\". Management attributed the increase to \\\"employee growth and compensation increases.\\\"\"}"
+    },
+    {
+      "id": "e99",
+      "set": "final",
+      "metric": "operating_income",
+      "basis": "year_over_year",
+      "offered": [
+        "e99-m59",
+        "e99-m66",
+        "e99-m86",
+        "e99-m87",
+        "e99-m101",
+        "e99-m104",
+        "e99-m120",
+        "e99-m124"
+      ],
+      "chosen": [],
+      "explanation": "",
+      "reason": "nothing_found",
+      "failed": [],
+      "reply": "{\"paragraphs\":[],\"explanation\":\"\"}"
+    },
+    {
+      "id": "e100",
+      "set": "final",
+      "metric": "cost_of_revenue",
+      "basis": "year_over_year",
+      "offered": [
+        "e100-m71",
+        "e100-m99",
+        "e100-m101"
+      ],
+      "chosen": [
+        {
+          "id": "e100-m71",
+          "text": "•Cost of revenues was $45.9 billion, an increase of 18% year over year, primarily driven by increases in depreciation expense, TAC, inventory and other costs, content acquisition costs, and other technical infrastructure operations costs."
+        },
+        {
+          "id": "e100-m101",
+          "text": "The increase in other cost of revenues from the three months ended June 30, 2025 to the three months ended June 30, 2026 was primarily due to increases in depreciation expense, inventory and other costs, content acquisition costs, largely for YouTube, and other technical infrastructure operations costs."
+        },
+        {
+          "id": "e100-m99",
+          "text": "Cost of revenues increased $6.9 billion from the three months ended June 30, 2025 to the three months ended June 30, 2026 due to an increase in other cost of revenues and TAC of $5.4 billion and $1.5 billion, respectively. Cost of revenues increased $11.8 billion from the six months ended June 30, 2025 to the six months ended June 30, 2026 due to an increase in other cost of revenues and TAC of $8.9 billion and $3.0 billion, respectively."
+        }
+      ],
+      "explanation": "The rise was driven by “increases in depreciation expense, TAC, inventory and other costs, content acquisition costs, and other technical infrastructure operations costs.” Management attributed the quarterly increase to “an increase in other cost of revenues and TAC of $5.4 billion and $1.5 billion, respectively.” Within other cost of revenues, content acquisition costs were “largely for YouTube,” alongside the depreciation, inventory and infrastructure cost increases.",
+      "reason": null,
+      "failed": [],
+      "reply": "{\"paragraphs\":[1,3,2],\"explanation\":\"The rise was driven by “increases in depreciation expense, TAC, inventory and other costs, content acquisition costs, and other technical infrastructure operations costs.” Management attributed the quarterly increase to “an increase in other cost of revenues and TAC of $5.4 billion and $1.5 billion, respectively.” Within other cost of revenues, content acquisition costs were “largely for YouTube,” alongside the depreciation, inventory and infrastructure cost increases.\"}"
+    }
+  ]
+}

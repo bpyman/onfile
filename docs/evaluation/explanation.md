@@ -50,3 +50,39 @@ First-place paragraphs about another metric (by code's reading):
 
 - None.
 
+## final
+
+Drawn for phase B (ticket 07) under the narrowed scope; scored once. Counted: 20 of 20 cases; the rest are outside the narrowed scope.
+
+| Method | Shown | Precision at 1 | Precision at 3 | Nothing found right |
+| --- | --- | --- | --- | --- |
+| scoring | 17 of 20 | 0.65 (11 of 17) | 0.76 (13 of 17) | 0.33 (1 of 3) |
+| scoring, company-wide causes only | 17 of 20 | 0.41 (7 of 17) | 0.47 (8 of 17) | 0.33 (1 of 3) |
+| baseline | 18 of 20 | 0.00 (0 of 18) | 0.00 (0 of 18) | 0.00 (0 of 2) |
+
+First-place paragraphs about another metric (by code's reading):
+
+- None.
+
+## Phase B, tuning: gpt-6.1-sol chooses (ticket 07)
+
+Instructions `c0132f88bc71`. 32 in-scope cases answered; 32 counted, the rest wait for labels. A withheld answer shows nothing, so it counts as nothing found, as the analyst sees it.
+
+| Method | Shown | Precision at 1 | Precision at 3 | Nothing found right |
+| --- | --- | --- | --- | --- |
+| model | 18 of 32 | 1.00 (18 of 18) | 1.00 (18 of 18) | 0.07 (1 of 14) |
+| model, company-wide causes only | 18 of 32 | 0.67 (12 of 18) | 0.67 (12 of 18) | 0.07 (1 of 14) |
+
+Outcomes: not_discussed 8, nothing_found 5, quote_outside 1, shown 18. Withheld: 0.03 (1 of 32).
+
+## Phase B, final: gpt-6.1-sol chooses (ticket 07)
+
+Instructions `c0132f88bc71`. 20 in-scope cases answered; 20 counted, the rest wait for labels. A withheld answer shows nothing, so it counts as nothing found, as the analyst sees it.
+
+| Method | Shown | Precision at 1 | Precision at 3 | Nothing found right |
+| --- | --- | --- | --- | --- |
+| model | 9 of 20 | 1.00 (9 of 9) | 1.00 (9 of 9) | 0.09 (1 of 11) |
+| model, company-wide causes only | 9 of 20 | 0.56 (5 of 9) | 0.56 (5 of 9) | 0.09 (1 of 11) |
+
+Outcomes: not_discussed 3, nothing_found 8, shown 9. Withheld: 0.00 (0 of 20).
+
