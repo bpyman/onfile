@@ -90,3 +90,19 @@ Shipped, calling no model. Scoring weights are unchanged.
 3. `uv run python -m financial_analyst_agent.explanation_evaluation score --labels docs/evaluation/explanation-labels.json`
 
 Until then, the committed `explanation.md` is the second run's report, and `score` fails for want of confirm labels.
+
+## Comments
+
+11 November 2026, confirm set scored once (`explanation.md`):
+
+- **Lenient** (company-wide and part causes): precision at 3 of 0.86, 12 of 14.
+- **Strict** (company-wide only): 0.57, 8 of 14.
+- **Same direction**, classified by hand from the four cases that count only on a part cause:
+  - e66 Nvidia, Compute & Networking up on revenue growth: counts.
+  - e70 Cisco, product gross margin down on mix and pricing: counts. The EMEA paragraph, where the segment rose, does not.
+  - e76 Broadcom, both segments up on demand: counts.
+  - e64 Tesla, cost of sales up on deliveries: does not explain gross profit rising.
+  - That gives 11 of 14, 0.79, a hair under the 0.8 bar.
+- **"Nothing found":** right in 1 of 6 cases. In five, the MD&A states a cause the wording rules missed.
+
+The bar stays where it was set. Phase A does not ship as a panel on its own: it becomes the retrieval stage for phase B (ADR 0017), where the model chooses among a wider set of candidate paragraphs under a quote lock. For the next rubric, record that a part's cause counts only when the part moved the same way as the figure asked about.

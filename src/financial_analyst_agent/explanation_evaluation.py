@@ -604,6 +604,17 @@ def score(
     are never added together: the earlier ones were read before the narrowing.
     """
     by_case = labels["labels"]
+    judged = labels.get("judgements", {})
+
+    def company_wide(case_id: str, paragraph: str) -> bool:
+        """Strict: the judge's cause is for the company's figure, not a part of it.
+
+        The confirm spot-check found "part" causes that moved the other way (a
+        segment whose margin rose, given for a company margin that fell).
+        """
+        scope = judged.get(paragraph, {}).get("scope")
+        return _explains(by_case, case_id, paragraph) and scope == "company"
+
     summary: dict[str, Any] = {}
     for split in SETS:
         in_set = [entry for entry in candidates["cases"] if sets[entry["id"]] == split]
@@ -611,6 +622,7 @@ def score(
             continue
         entries = [entry for entry in in_set if covers(entry["metric"], entry["basis"])]
         scored: list[Sequence[bool] | None] = []
+        strict: list[Sequence[bool] | None] = []
         baseline: list[Sequence[bool] | None] = []
         empty = []
         firsts = []
@@ -621,6 +633,7 @@ def score(
             empty.append(bool(by_case[case_id]["nothing_to_find"]))
             ranked = [rank["paragraph"] for rank in entry["scored"]]
             scored.append([_explains(by_case, case_id, pid) for pid in ranked])
+            strict.append([company_wide(case_id, pid) for pid in ranked])
             base = entry["baseline"]
             baseline.append([_explains(by_case, case_id, base)] if base else None)
             if ranked:
@@ -629,6 +642,7 @@ def score(
                     firsts.append({"case": case_id, "metric": entry["metric"], "text": text})
         summary[split] = {
             "scoring": _tally(scored, empty),
+            "scoring_strict": _tally(strict, empty),
             "baseline": _tally(baseline, empty),
             "other_metric_firsts": firsts,
             "outside_scope": len(in_set) - len(entries),
@@ -662,7 +676,10 @@ def report_markdown(summary: Mapping[str, Any], *, judge: str) -> str:
         "\"Nothing found\" is right when the judge found no cause anywhere in the MD&A.",
         "",
         "Bar: precision at 3 of 0.8 or better for the scoring, with no first-place paragraph "
-        "about another metric.",
+        "about another metric. From the confirm set on, the bar is held against the strict "
+        "row, which counts only causes the judge gave for the company's figure: the confirm "
+        "spot-check found the judge counting a segment that moved the other way as \"part\" "
+        "of the cause.",
         "",
         "Scope: phase A now covers year-over-year questions about amounts and gross margin "
         "(ticket 06). Only those cases are counted below. **The dev and held-out figures "
@@ -685,10 +702,17 @@ def report_markdown(summary: Mapping[str, Any], *, judge: str) -> str:
             "| Method | Shown | Precision at 1 | Precision at 3 | Nothing found right |",
             "| --- | --- | --- | --- | --- |",
         ]
-        for method in ("scoring", "baseline"):
+        names = {
+            "scoring": "scoring",
+            "scoring_strict": "scoring, company-wide causes only",
+            "baseline": "baseline",
+        }
+        for method in ("scoring", "scoring_strict", "baseline"):
+            if method not in results:
+                continue
             tally = results[method]
             lines.append(
-                f"| {method} | {tally['shown']} of {tally['cases']} "
+                f"| {names[method]} | {tally['shown']} of {tally['cases']} "
                 f"| {_rate(tally['at_1'], tally['shown'])} "
                 f"| {_rate(tally['at_3'], tally['shown'])} "
                 f"| {_rate(tally['nothing_found_right'], tally['nothing_found'])} |"
