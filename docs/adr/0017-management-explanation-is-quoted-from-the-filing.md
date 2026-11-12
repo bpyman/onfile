@@ -1,5 +1,11 @@
 # Management's explanation is quoted from the filing a figure came from
 
+> **Revised (11 November 2026, after phase A's evaluation):**
+>
+> - **Phase A did not clear its bar.** On an unseen confirmation set it reached a precision at 3 of 0.79 when a cause given for part of the company counts only if that part moved the same way as the figure, against a bar of 0.8. Its "nothing found" was right in 1 of 6 cases.
+> - **Phase A does not ship as a panel on its own.** It is the retrieval stage for phase B, offering the model up to eight candidate paragraphs.
+> - **The fallback changes.** When the model's answer fails the quote lock or the numeral lock, the panel says it could not find management's explanation and links the MD&A. It does not fall back to phase A's paragraphs, which the evaluation did not clear. The Decision's "the paragraphs still show" is replaced (ticket 07, `docs/process/rules-to-review.md`, 11 November 2026).
+
 "Why?" is the most common follow-up to a figure, and the app answered it by saying where the answer is: the 10-Q's MD&A (ADR 0016, `guide.WHY_MESSAGE`). It did not show it. A product review on 23 October 2026 ranked answering it as the largest gain in usefulness left. A prototype on the recorded 10-Qs found a paragraph stating the cause, using only code, for Apple's and Micron's gross margin and Pfizer's and Nvidia's revenue.
 
 ## Decision
