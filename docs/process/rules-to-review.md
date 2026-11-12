@@ -179,3 +179,4 @@ Each entry: date, ticket, where, the rule, why it looks wrong, what the agent di
 - **The rule:** the explanation prompt is a draft, and no model is called with it until it is approved.
 - **Why it looks wrong:** the tuning and final runs used it (instructions `c0132f88bc71`, `docs/evaluation/explanation.md`), and ticket 04 ships it: the live runtime now sends it on every why question it can explain. The prompt file still calls itself a draft no model runs, and `explanation.py` called it one too.
 - **What you did:** followed the ticket. The comment above `EXPLANATION_INSTRUCTIONS` now says it is the prompt the runs used and ticket 04 ships. The prompt file is not this ticket's, so its Status line is unchanged: a person should mark it approved.
+- **Decided (2026-11-12):** Blake approved the prompt on 11 November 2026; the file now says so.

@@ -1,6 +1,6 @@
-# Phase B prompt (draft for review)
+# Phase B prompt
 
-Status: draft, 11 November 2026. No model runs until Blake approves it.
+Status: approved by Blake, 11 November 2026, and run on the tuning and final sets (ticket 07, `docs/evaluation/explanation.md`).
 
 These are the instructions sent to gpt-6.1-sol. The input follows them: the question and the numbered paragraphs.
 
