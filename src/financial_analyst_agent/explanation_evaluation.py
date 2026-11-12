@@ -1,32 +1,40 @@
 """The explanation evaluation: does Management's explanation show a paragraph that states a cause?
 
 The design is ``docs/process/tickets/why-from-the-filing/design.md`` ("Evaluation") and the
-judge's brief ``docs/evaluation/explanation-rubric.md``. Everything here is offline and calls
-no model: the labels come from a judge a person runs (ticket 03).
+judge's brief ``docs/evaluation/explanation-rubric.md``. Only ``judge`` and ``generate`` call
+a model, and only when a person runs them (both are paid); everything else is offline.
 
     uv run python -m financial_analyst_agent.explanation_evaluation cases
     uv run python -m financial_analyst_agent.explanation_evaluation candidates
     uv run python -m financial_analyst_agent.explanation_evaluation brief [--case e01]
+    uv run python -m financial_analyst_agent.explanation_evaluation generate --model --set tuning
+    uv run python -m financial_analyst_agent.explanation_evaluation judge
     uv run python -m financial_analyst_agent.explanation_evaluation score --labels labels.json
 
 ``cases`` writes ``explanation-cases.json``: the development set, from the first draw's seed,
-a fresh held-out set from its own seed (ticket 05), and a confirmation set, year over year
-only, from a third (ticket 06). ``candidates`` writes, for each case,
-the paragraphs ``explanation.py`` chooses and the baseline's to ``explanation-candidates.json``.
-``brief`` prints the judge's instructions. ``score`` reads the judge's labels and writes
-``explanation.md``. ``judge --carry-from old-candidates.json`` keeps the saved labels of
-paragraphs the judge has already seen, by text, after the candidates change.
+a fresh held-out set from its own seed (ticket 05), a confirmation set, year over year
+only, from a third (ticket 06), and phase B's final set from a fourth (ticket 07).
+``candidates`` writes, for each case, the paragraphs ``explanation.py`` chooses, the
+baseline's and phase B's candidates (``offered``) to ``explanation-candidates.json``.
+``brief`` prints the judge's instructions. ``generate --model --set tuning|final`` asks
+the essay model (phase B) to choose and explain, over the in-scope cases of the earlier
+sets or of the final set, and writes ``explanation-model-<set>.json``; ``--model NAME``
+names another OpenAI model. ``score`` reads the judge's labels, scores phase A and any
+phase B answers, and writes ``explanation.md``. ``judge`` labels only what has no label
+yet; ``--carry-from old-candidates.json`` keeps saved labels by text after ids change.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import random
 import re
 import subprocess
 import tempfile
 import threading
+from collections import Counter
 from collections.abc import Callable, Collection, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass
@@ -34,28 +42,37 @@ from datetime import date
 from decimal import Decimal
 from functools import cache
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
+from financial_analyst_agent.config import get_settings
 from financial_analyst_agent.contracts import (
     DIFFERENCE_FORMULAS,
     FORMULA_COMPONENTS,
     ComparisonBase,
+    EssayCompleter,
 )
 from financial_analyst_agent.domain.errors import FinancialAnalystError
 from financial_analyst_agent.essay_evaluation import parse_judgement
 from financial_analyst_agent.explanation import (
+    EXPLANATION_INSTRUCTIONS,
+    Direction,
+    ExplainingParagraph,
+    WhyQuestion,
     covers,
+    everyday_metric,
     explained_metrics,
+    explanation_candidates,
+    explanation_completer,
     is_about_another_metric,
     management_explanation,
     mentions_metric,
+    model_explanation,
 )
 from financial_analyst_agent.filing_change import extract_section, section_paragraphs
 from financial_analyst_agent.prose import possessive, short_name
 from financial_analyst_agent.providers.sec.urls import build_filing_document_url
 from financial_analyst_agent.runtime import recorded_runtime
 from financial_analyst_agent.sec_facts import SecFactLookup
-from financial_analyst_agent.services.metric_catalog import METRIC_DISPLAY
 
 ROOT = Path(__file__).resolve().parents[2]
 EVALUATION = ROOT / "docs" / "evaluation"
@@ -79,8 +96,12 @@ HELD_OUT_FIRST_ID = 41
 CONFIRM_SEED = 20261025
 CONFIRM_COUNT = 20
 CONFIRM_FIRST_ID = 61
+# The final set (ticket 07): drawn before phase B's prompt is tuned, and scored once.
+FINAL_SEED = 20261111
+FINAL_COUNT = 20
+FINAL_FIRST_ID = 81
 _MOST_PER_COMPANY = 2
-SETS = ("dev", "held-out", "confirm")
+SETS = ("dev", "held-out", "confirm", "final")
 BASES: tuple[ComparisonBase, ...] = ("year_over_year", "sequential")
 # The metrics the first draw's pool was built from: ``explanation.py``'s at the time,
 # cash flow and capex included, so the first draw stays reproducible from its seed.
@@ -119,18 +140,11 @@ CASES_NOTES = (
     "after reading the held-out set; the development and held-out sets stay for the record, "
     "drawn under the wider scope. The confirm set (seed 20261025, ids from e61) is 20 year-"
     "over-year cases from the covered metrics, sharing no (company, metric, basis) with any "
-    "earlier set, and no company more than twice."
+    "earlier set, and no company more than twice. The final set (seed 20261111, ids from "
+    "e81) is drawn the same way for phase B (ticket 07), sharing nothing with the confirm "
+    "set either; it is scored once. The earlier sets' in-scope cases tune phase B's prompt."
 )
 
-Direction = Literal["rose", "fell"]
-
-# How a question names a metric, where the catalog's label is not everyday wording.
-_EVERYDAY_NAMES = {
-    "research_and_development": "R&D spending",
-    "selling_general_and_administrative": "SG&A expenses",
-    "capital_expenditure": "capital spending",
-    "rd_to_sales": "R&D-to-sales ratio",
-}
 _BASIS_WORDS: dict[ComparisonBase, str] = {
     "year_over_year": "year over year",
     "sequential": "sequentially",
@@ -300,13 +314,6 @@ def _direction(latest: Figure | None, compared: Figure | None) -> Direction | No
     return None
 
 
-def everyday_metric(metric: str) -> str:
-    """ "gross margin", "R&D spending": the metric as a question would name it."""
-    return _EVERYDAY_NAMES.get(metric) or METRIC_DISPLAY[metric].label.lower().replace(
-        "sg&a", "SG&A"
-    )
-
-
 def question_for(
     company: str, metric: str, basis: ComparisonBase, direction: Direction | None, template: int
 ) -> str:
@@ -429,6 +436,17 @@ def draw_confirm(seed: int, used: Collection[tuple[str, str, str]]) -> list[Expl
     The pool is ``_pool`` over the metrics ``explanation.py`` covers now. No company
     is drawn more than twice while the pool allows it. Ids follow on from the held-out set's.
     """
+    return _draw_year_over_year(seed, used, CONFIRM_COUNT, CONFIRM_FIRST_ID, SETS[2])
+
+
+def draw_final(seed: int, used: Collection[tuple[str, str, str]]) -> list[ExplanationCase]:
+    """Phase B's final set: drawn as the confirmation set was, ids following on from it."""
+    return _draw_year_over_year(seed, used, FINAL_COUNT, FINAL_FIRST_ID, SETS[3])
+
+
+def _draw_year_over_year(
+    seed: int, used: Collection[tuple[str, str, str]], count: int, first_id: int, split: str
+) -> list[ExplanationCase]:
     facts = recorded_facts()
     quarterlies = latest_quarterlies()
     rng = random.Random(seed)
@@ -442,18 +460,18 @@ def draw_confirm(seed: int, used: Collection[tuple[str, str, str]]) -> list[Expl
     picked: list[tuple[str, str]] = []
     per_company: dict[str, int] = {}
     for cik, metric in pool:
-        if len(picked) < CONFIRM_COUNT and per_company.get(cik, 0) < _MOST_PER_COMPANY:
+        if len(picked) < count and per_company.get(cik, 0) < _MOST_PER_COMPANY:
             picked.append((cik, metric))
             per_company[cik] = per_company.get(cik, 0) + 1
     # Where the pool cannot spread them that far, the rest come in the shuffled order.
-    picked += [pair for pair in pool if pair not in picked][: CONFIRM_COUNT - len(picked)]
+    picked += [pair for pair in pool if pair not in picked][: count - len(picked)]
     templates = [rng.randrange(len(_TEMPLATES)) for _ in picked]
     return [
         _case(
             facts,
             quarterlies,
-            f"e{CONFIRM_FIRST_ID + index:02d}",
-            SETS[2],
+            f"e{first_id + index:02d}",
+            split,
             (cik, metric, basis),
             template,
         )
@@ -461,15 +479,21 @@ def draw_confirm(seed: int, used: Collection[tuple[str, str, str]]) -> list[Expl
     ]
 
 
+def _triples(cases: Sequence[ExplanationCase]) -> set[tuple[str, str, str]]:
+    return {(case.cik, case.metric, case.basis) for case in cases}
+
+
 def evaluation_cases() -> list[ExplanationCase]:
     """The development set (the first draw's, with a metric covered in ticket 05), the
-    fresh held-out set, and the confirmation set."""
+    fresh held-out set, the confirmation set and phase B's final set."""
     first = draw_cases(SEED)
     dev = [case for case in first if case.set == SETS[0] and case.metric in SECOND_DRAW_METRICS]
-    used = {(case.cik, case.metric, case.basis) for case in first}
+    used = _triples(first)
     held_out = draw_held_out(HELD_OUT_SEED, used)
-    used |= {(case.cik, case.metric, case.basis) for case in held_out}
-    return dev + held_out + draw_confirm(CONFIRM_SEED, used)
+    used |= _triples(held_out)
+    confirm = draw_confirm(CONFIRM_SEED, used)
+    used |= _triples(confirm)
+    return dev + held_out + confirm + draw_final(FINAL_SEED, used)
 
 
 def _company_name(facts: SecFactLookup, cik: str, report_date: str, metric: str) -> str:
@@ -480,7 +504,12 @@ def _company_name(facts: SecFactLookup, cik: str, report_date: str, metric: str)
 
 def cases_payload(cases: Sequence[ExplanationCase]) -> dict[str, Any]:
     return {
-        "seeds": {SETS[0]: SEED, SETS[1]: HELD_OUT_SEED, SETS[2]: CONFIRM_SEED},
+        "seeds": {
+            SETS[0]: SEED,
+            SETS[1]: HELD_OUT_SEED,
+            SETS[2]: CONFIRM_SEED,
+            SETS[3]: FINAL_SEED,
+        },
         "notes": CASES_NOTES,
         "cases": [asdict(case) for case in cases],
     }
@@ -514,12 +543,24 @@ def baseline_paragraph(html: str, metric: str) -> str | None:
     return None
 
 
-def _case_candidates(case: ExplanationCase) -> dict[str, Any]:
-    html, url = _source(case)
-    explanation = management_explanation(html, case.metric, case.basis, url)
+def _places(html: str) -> dict[str, int]:
+    """Each MD&A paragraph's place, by its text: a paragraph id is ``<case>-m<place>``."""
     places: dict[str, int] = {}
     for place, text in enumerate(section_paragraphs(extract_section(html, "mda"))):
         places.setdefault(text, place)
+    return places
+
+
+def _cause(paragraph: ExplainingParagraph) -> str | None:
+    if paragraph.cause is None:
+        return None
+    return paragraph.text[paragraph.cause[0] : paragraph.cause[1]]
+
+
+def _case_candidates(case: ExplanationCase) -> dict[str, Any]:
+    html, url = _source(case)
+    explanation = management_explanation(html, case.metric, case.basis, url)
+    places = _places(html)
     paragraphs: list[dict[str, Any]] = []
     ids: dict[str, str] = {}
 
@@ -536,11 +577,21 @@ def _case_candidates(case: ExplanationCase) -> dict[str, Any]:
 
     scored = []
     for rank, chosen in enumerate(explanation.paragraphs, start=1):
-        cause = chosen.text[chosen.cause[0] : chosen.cause[1]] if chosen.cause else None
         scored.append(
-            {"paragraph": paragraph_id(chosen.text, cause), "rank": rank, "score": chosen.score}
+            {
+                "paragraph": paragraph_id(chosen.text, _cause(chosen)),
+                "rank": rank,
+                "score": chosen.score,
+            }
         )
     baseline = baseline_paragraph(html, case.metric)
+    baseline_id = paragraph_id(baseline, None) if baseline is not None else None
+    # Phase B's candidates, in the order the model sees them (ticket 07), so the judge
+    # labels whichever the model chooses.
+    offered = [
+        paragraph_id(paragraph.text, _cause(paragraph))
+        for paragraph in explanation_candidates(html, case.metric, case.basis, url)
+    ]
     return {
         "id": case.id,
         "set": case.set,
@@ -554,7 +605,8 @@ def _case_candidates(case: ExplanationCase) -> dict[str, Any]:
         "reason": explanation.reason,
         "paragraphs": paragraphs,
         "scored": scored,
-        "baseline": paragraph_id(baseline, None) if baseline is not None else None,
+        "baseline": baseline_id,
+        "offered": offered,
     }
 
 
@@ -601,19 +653,14 @@ def score(
 
     Only the cases the narrowed scope covers are counted (``covers``: year over year,
     a covered metric); ``outside_scope`` says how many of a set's are not. The sets
-    are never added together: the earlier ones were read before the narrowing.
+    are never added together: the earlier ones were read before the narrowing. A set
+    none of whose cases has labels yet is reported as ``unjudged``.
     """
     by_case = labels["labels"]
     judged = labels.get("judgements", {})
 
     def company_wide(case_id: str, paragraph: str) -> bool:
-        """Strict: the judge's cause is for the company's figure, not a part of it.
-
-        The confirm spot-check found "part" causes that moved the other way (a
-        segment whose margin rose, given for a company margin that fell).
-        """
-        scope = judged.get(paragraph, {}).get("scope")
-        return _explains(by_case, case_id, paragraph) and scope == "company"
+        return _company_wide(by_case, judged, case_id, paragraph)
 
     summary: dict[str, Any] = {}
     for split in SETS:
@@ -621,6 +668,9 @@ def score(
         if not in_set:
             continue
         entries = [entry for entry in in_set if covers(entry["metric"], entry["basis"])]
+        if entries and not any(entry["id"] in by_case for entry in entries):
+            summary[split] = {"unjudged": len(entries), "outside_scope": len(in_set) - len(entries)}
+            continue
         scored: list[Sequence[bool] | None] = []
         strict: list[Sequence[bool] | None] = []
         baseline: list[Sequence[bool] | None] = []
@@ -650,10 +700,130 @@ def score(
     return summary
 
 
+def _company_wide(
+    by_case: Mapping[str, Any], judged: Mapping[str, Any], case_id: str, paragraph: str
+) -> bool:
+    """Strict: the judge's cause is for the company's figure, not a part of it.
+
+    The confirm spot-check found "part" causes that moved the other way (a
+    segment whose margin rose, given for a company margin that fell).
+    """
+    scope = judged.get(paragraph, {}).get("scope")
+    return _explains(by_case, case_id, paragraph) and scope == "company"
+
+
+# --- phase B: the model's answers (ticket 07) ----------------------------------------
+
+# The tuning set is the earlier sets' in-scope cases; the final set is scored once.
+MODEL_SETS: dict[str, tuple[str, ...]] = {"tuning": SETS[:3], "final": (SETS[3],)}
+# Why an answer shows nothing although the model was asked: the analyst then reads
+# NOT_FOUND_MESSAGE. "nothing_found" is the model's own answer, not a failure.
+WITHHELD = ("quote_outside", "numeral_lock", "bad_choice", "unparseable")
+
+
+def model_path(split: str) -> Path:
+    """Where ``generate`` writes the model's answers for ``tuning`` or ``final``."""
+    return EVALUATION / f"explanation-model-{split}.json"
+
+
+def model_cases(split: str, cases: Sequence[ExplanationCase]) -> list[ExplanationCase]:
+    """The in-scope cases (``covers``) of the sets ``split`` names."""
+    return [
+        case
+        for case in cases
+        if case.set in MODEL_SETS[split] and covers(case.metric, case.basis)
+    ]
+
+
+def instructions_version() -> str:
+    """A short hash of ``EXPLANATION_INSTRUCTIONS``, so a result names the prompt it used."""
+    return hashlib.sha256(EXPLANATION_INSTRUCTIONS.encode("utf-8")).hexdigest()[:12]
+
+
+def model_answers(
+    cases: Sequence[ExplanationCase], completer: EssayCompleter, model: str
+) -> dict[str, Any]:
+    """``model_explanation`` over each case, with paragraphs named by their candidates' ids."""
+    answers = []
+    for case in cases:
+        html, url = _source(case)
+        places = _places(html)
+        asked = WhyQuestion(case.company, case.question, case.report_date, case.direction)
+        result = model_explanation(html, case.metric, case.basis, url, completer, asked=asked)
+        ids = {
+            paragraph.text: f"{case.id}-m{places[paragraph.text]}"
+            for paragraph in result.offered
+        }
+        answers.append(
+            {
+                "id": case.id,
+                "set": case.set,
+                "metric": case.metric,
+                "basis": case.basis,
+                "offered": [ids[paragraph.text] for paragraph in result.offered],
+                "chosen": [
+                    {"id": ids[paragraph.text], "text": paragraph.text}
+                    for paragraph in result.paragraphs
+                ],
+                "explanation": result.explanation,
+                "reason": result.reason,
+                "failed": list(result.failed),
+                "reply": result.reply,
+            }
+        )
+    return {"model": model, "instructions": instructions_version(), "cases": answers}
+
+
+def score_model(answers: Mapping[str, Any], labels: Mapping[str, Any]) -> dict[str, Any]:
+    """The model's chosen paragraphs, scored as ``score`` scores phase A's.
+
+    A withheld answer shows nothing, so it counts as "nothing found", as the analyst
+    sees it; ``outcomes`` counts each case by its reason. A case whose chosen
+    paragraphs, or whose MD&A, the judge has not labelled is left out of the tally
+    and listed in ``unlabelled``, for ``judge`` to label.
+    """
+    by_case = labels["labels"]
+    judged = labels.get("judgements", {})
+    lenient: list[Sequence[bool] | None] = []
+    strict: list[Sequence[bool] | None] = []
+    empty: list[bool] = []
+    unlabelled: list[dict[str, str]] = []
+    outcomes: Counter[str] = Counter()
+    for entry in answers["cases"]:
+        case_id = entry["id"]
+        outcomes[entry["reason"] or "shown"] += 1
+        explains = by_case.get(case_id, {}).get("explains", {})
+        missing = [
+            {"case": case_id, "paragraph": chosen["id"]}
+            for chosen in entry["chosen"]
+            if chosen["id"] not in explains
+        ]
+        if case_id not in by_case:
+            missing.append({"case": case_id, "paragraph": f"{case_id}-mda"})
+        if missing:
+            unlabelled += missing
+            continue
+        ids = [chosen["id"] for chosen in entry["chosen"]]
+        empty.append(bool(by_case[case_id]["nothing_to_find"]))
+        lenient.append([_explains(by_case, case_id, pid) for pid in ids])
+        strict.append([_company_wide(by_case, judged, case_id, pid) for pid in ids])
+    return {
+        "model": answers.get("model"),
+        "instructions": answers.get("instructions"),
+        "answered": len(answers["cases"]),
+        "scoring": _tally(lenient, empty),
+        "scoring_strict": _tally(strict, empty),
+        "outcomes": dict(sorted(outcomes.items())),
+        "withheld": sum(outcomes[reason] for reason in WITHHELD),
+        "unlabelled": unlabelled,
+    }
+
+
 _SET_SCOPES = {
     "dev": "Drawn under the wider scope and tuned on (ticket 05).",
     "held-out": "Drawn under the wider scope; read before the narrowing (ticket 06).",
     "confirm": "Drawn under the narrowed scope (ticket 06), unseen.",
+    "final": "Drawn for phase B (ticket 07) under the narrowed scope; scored once.",
 }
 
 
@@ -661,7 +831,9 @@ def _rate(hits: int, of: int) -> str:
     return f"{hits / of:.2f} ({hits} of {of})" if of else "n/a (0 of 0)"
 
 
-def report_markdown(summary: Mapping[str, Any], *, judge: str) -> str:
+def report_markdown(
+    summary: Mapping[str, Any], *, judge: str, model: Mapping[str, Any] | None = None
+) -> str:
     """The evaluation's report, ``docs/evaluation/explanation.md``."""
     lines = [
         "# Management's explanation: evaluation",
@@ -690,33 +862,34 @@ def report_markdown(summary: Mapping[str, Any], *, judge: str) -> str:
         "",
     ]
     for split, results in summary.items():
+        under = _SET_SCOPES.get(split, "")
+        if "scoring" not in results:
+            drawn = results["unjudged"] + results["outside_scope"]
+            lines += [
+                f"## {split}",
+                "",
+                f"{under} Not judged yet: none of its {results['unjudged']} covered cases "
+                f"(of {drawn}) has labels.",
+                "",
+            ]
+            continue
         counted = results["scoring"]["cases"]
         drawn = counted + results["outside_scope"]
-        under = _SET_SCOPES.get(split, "")
         lines += [
             f"## {split}",
             "",
             f"{under} Counted: {counted} of {drawn} cases; the rest are outside the "
             "narrowed scope.",
             "",
-            "| Method | Shown | Precision at 1 | Precision at 3 | Nothing found right |",
-            "| --- | --- | --- | --- | --- |",
+            *_table(
+                results,
+                {
+                    "scoring": "scoring",
+                    "scoring_strict": "scoring, company-wide causes only",
+                    "baseline": "baseline",
+                },
+            ),
         ]
-        names = {
-            "scoring": "scoring",
-            "scoring_strict": "scoring, company-wide causes only",
-            "baseline": "baseline",
-        }
-        for method in ("scoring", "scoring_strict", "baseline"):
-            if method not in results:
-                continue
-            tally = results[method]
-            lines.append(
-                f"| {names[method]} | {tally['shown']} of {tally['cases']} "
-                f"| {_rate(tally['at_1'], tally['shown'])} "
-                f"| {_rate(tally['at_3'], tally['shown'])} "
-                f"| {_rate(tally['nothing_found_right'], tally['nothing_found'])} |"
-            )
         lines += ["", "First-place paragraphs about another metric (by code's reading):", ""]
         firsts = results["other_metric_firsts"]
         if not firsts:
@@ -725,7 +898,58 @@ def report_markdown(summary: Mapping[str, Any], *, judge: str) -> str:
             text = " ".join(first["text"].split())
             lines.append(f"- {first['case']} ({first['metric']}): {text[:200]}")
         lines.append("")
+    for split, results in (model or {}).items():
+        lines += _model_section(split, results)
     return "\n".join(lines)
+
+
+def _table(results: Mapping[str, Any], names: Mapping[str, str]) -> list[str]:
+    lines = [
+        "| Method | Shown | Precision at 1 | Precision at 3 | Nothing found right |",
+        "| --- | --- | --- | --- | --- |",
+    ]
+    for method, name in names.items():
+        if method not in results:
+            continue
+        tally = results[method]
+        lines.append(
+            f"| {name} | {tally['shown']} of {tally['cases']} "
+            f"| {_rate(tally['at_1'], tally['shown'])} "
+            f"| {_rate(tally['at_3'], tally['shown'])} "
+            f"| {_rate(tally['nothing_found_right'], tally['nothing_found'])} |"
+        )
+    return lines
+
+
+def _model_section(split: str, results: Mapping[str, Any]) -> list[str]:
+    """Phase B's results for the tuning or the final set."""
+    answered = results["answered"]
+    counted = results["scoring"]["cases"]
+    outcomes = ", ".join(f"{reason} {count}" for reason, count in results["outcomes"].items())
+    lines = [
+        f"## Phase B, {split}: {results['model']} chooses (ticket 07)",
+        "",
+        f"Instructions `{results['instructions']}`. {answered} in-scope cases answered; "
+        f"{counted} counted, the rest wait for labels. A withheld answer shows nothing, so "
+        "it counts as nothing found, as the analyst sees it.",
+        "",
+        *_table(
+            results,
+            {
+                "scoring": "model",
+                "scoring_strict": "model, company-wide causes only",
+            },
+        ),
+        "",
+        f"Outcomes: {outcomes or 'none'}. Withheld: {_rate(results['withheld'], answered)}.",
+        "",
+    ]
+    unlabelled = results["unlabelled"]
+    if unlabelled:
+        lines += ["Not yet labelled (`judge` labels them):", ""]
+        lines += [f"- {item['paragraph']} ({item['case']})" for item in unlabelled]
+        lines.append("")
+    return lines
 
 
 # --- the judge's brief ---------------------------------------------------------------
@@ -943,6 +1167,14 @@ def spot_check(record: Mapping[str, Any], count: int = 10, seed: int = SEED) -> 
 # --- command line --------------------------------------------------------------------
 
 
+def _model_completer(model: str | None) -> tuple[EssayCompleter, str]:
+    """The phase B completer from the settings: the app's OpenAI client, essay model and
+    daily spend cap (its budget and spend file), so a run counts against the same day."""
+    settings = get_settings()
+    name = model or settings.essay_model()
+    return explanation_completer(settings, model=name), name
+
+
 def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
@@ -964,8 +1196,27 @@ def main(argv: Sequence[str] | None = None) -> None:
         type=Path,
         help="the candidates the saved labels were made on; their labels carry by text",
     )
+    gen = sub.add_parser(
+        "generate", help="phase B: the essay model chooses and explains (a paid run)"
+    )
+    gen.add_argument(
+        "--model",
+        nargs="?",
+        const="",
+        default="",
+        help="the OpenAI model; the app's essay model when no name is given",
+    )
+    gen.add_argument("--set", dest="split", choices=tuple(MODEL_SETS), required=True)
     args = parser.parse_args(argv)
 
+    if args.command == "generate":
+        cases = model_cases(args.split, load_cases())
+        completer, model = _model_completer(args.model or None)
+        answers = model_answers(cases, completer, model)
+        _write_json(model_path(args.split), answers)
+        outcomes = Counter(entry["reason"] or "shown" for entry in answers["cases"])
+        print(f"{len(cases)} {args.split} cases -> {model_path(args.split)}: {dict(outcomes)}")
+        return
     if args.command == "judge":
         candidates = json.loads(CANDIDATES_PATH.read_text(encoding="utf-8"))
         by_id = {case.id: case for case in load_cases()}
@@ -989,7 +1240,8 @@ def main(argv: Sequence[str] | None = None) -> None:
         _write_json(CASES_PATH, cases_payload(cases))
         moved = sum(case.direction is not None for case in cases)
         print(
-            f"wrote {len(cases)} cases (seeds {SEED}, {HELD_OUT_SEED}, {CONFIRM_SEED}); "
+            f"wrote {len(cases)} cases (seeds {SEED}, {HELD_OUT_SEED}, {CONFIRM_SEED}, "
+            f"{FINAL_SEED}); "
             f"{moved} with a recorded direction"
         )
         return
@@ -1015,11 +1267,21 @@ def main(argv: Sequence[str] | None = None) -> None:
         labels = json.loads(args.labels.read_text(encoding="utf-8"))
         sets = {case.id: case.set for case in load_cases()}
         summary = score(candidates, labels, sets)
+        phase_b = {
+            split: score_model(json.loads(model_path(split).read_text(encoding="utf-8")), labels)
+            for split in MODEL_SETS
+            if model_path(split).exists()
+        }
+        judge = str(labels.get("judge", "an unnamed judge"))
         REPORT_PATH.write_text(
-            report_markdown(summary, judge=str(labels.get("judge", "an unnamed judge"))) + "\n",
-            encoding="utf-8",
+            report_markdown(summary, judge=judge, model=phase_b) + "\n", encoding="utf-8"
         )
-        print(json.dumps({split: result["scoring"] for split, result in summary.items()}))
+        tallies = {split: result.get("scoring", "unjudged") for split, result in summary.items()}
+        tallies |= {f"model-{split}": result["scoring"] for split, result in phase_b.items()}
+        print(json.dumps(tallies))
+        unlabelled = [item for result in phase_b.values() for item in result["unlabelled"]]
+        if unlabelled:
+            print(f"{len(unlabelled)} chosen paragraphs or MD&As have no label; run `judge`.")
 
 
 if __name__ == "__main__":

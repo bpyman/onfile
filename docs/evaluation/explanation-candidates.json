@@ -19,7 +19,8 @@
         }
       ],
       "scored": [],
-      "baseline": "e01-m15"
+      "baseline": "e01-m15",
+      "offered": []
     },
     {
       "id": "e02",
@@ -56,7 +57,11 @@
           "score": 6
         }
       ],
-      "baseline": "e02-m7"
+      "baseline": "e02-m7",
+      "offered": [
+        "e02-m7",
+        "e02-m31"
+      ]
     },
     {
       "id": "e03",
@@ -77,7 +82,8 @@
         }
       ],
       "scored": [],
-      "baseline": "e03-m5"
+      "baseline": "e03-m5",
+      "offered": []
     },
     {
       "id": "e04",
@@ -110,6 +116,16 @@
           "id": "e04-m21",
           "text": "•Higher acquired in-process research and development (“IPR&D”) expenses related to our acquisitions of Arcellx, Tubulis and Ouro Medicines;",
           "cause": null
+        },
+        {
+          "id": "e04-m71",
+          "text": "We manage these expenses by identifying the research and development (“R&D”) activities we expect to be performed during a given period and then prioritizing efforts based on scientific data, probability of successful technical development and regulatory approval, market potential, available human and capital resources and other considerations. We regularly review our R&D activities based on unmet medical need and, as necessary, reallocate resources among our internal R&D portfolio and external opportunities that we believe will best support the long-term growth of our business. We do not track total R&D expenses by product candidate, therapeutic area or development phase.",
+          "cause": null
+        },
+        {
+          "id": "e04-m100",
+          "text": "We regularly analyze our ability to generate and obtain adequate amounts of cash to meet our short-term and long-term requirements and plans. Our capital priorities include: (i) investing in our business and R&D pipeline, (ii) continuing select partnerships and business development transactions, (iii) growing our dividend over time and (iv) repurchasing shares to offset dilution and opportunistically reduce share count. Based on our evaluation of our current position of liquidity, available capital resources and our material cash requirements, we believe that we can satisfy our capital needs for the next 12 months and the foreseeable future.",
+          "cause": null
         }
       ],
       "scored": [
@@ -129,7 +145,15 @@
           "score": 6
         }
       ],
-      "baseline": "e04-m21"
+      "baseline": "e04-m21",
+      "offered": [
+        "e04-m21",
+        "e04-m70",
+        "e04-m71",
+        "e04-m73",
+        "e04-m74",
+        "e04-m100"
+      ]
     },
     {
       "id": "e05",
@@ -144,7 +168,8 @@
       "reason": "metric_not_covered",
       "paragraphs": [],
       "scored": [],
-      "baseline": null
+      "baseline": null,
+      "offered": []
     },
     {
       "id": "e06",
@@ -165,7 +190,8 @@
         }
       ],
       "scored": [],
-      "baseline": "e06-m32"
+      "baseline": "e06-m32",
+      "offered": []
     },
     {
       "id": "e07",
@@ -202,7 +228,11 @@
           "score": 14
         }
       ],
-      "baseline": "e07-m39"
+      "baseline": "e07-m39",
+      "offered": [
+        "e07-m39",
+        "e07-m46"
+      ]
     },
     {
       "id": "e08",
@@ -217,7 +247,8 @@
       "reason": "metric_not_covered",
       "paragraphs": [],
       "scored": [],
-      "baseline": null
+      "baseline": null,
+      "offered": []
     },
     {
       "id": "e09",
@@ -238,7 +269,8 @@
         }
       ],
       "scored": [],
-      "baseline": "e09-m6"
+      "baseline": "e09-m6",
+      "offered": []
     },
     {
       "id": "e10",
@@ -259,7 +291,8 @@
         }
       ],
       "scored": [],
-      "baseline": "e10-m6"
+      "baseline": "e10-m6",
+      "offered": []
     },
     {
       "id": "e12",
@@ -280,7 +313,8 @@
         }
       ],
       "scored": [],
-      "baseline": "e12-m10"
+      "baseline": "e12-m10",
+      "offered": []
     },
     {
       "id": "e13",
@@ -295,7 +329,8 @@
       "reason": "not_discussed",
       "paragraphs": [],
       "scored": [],
-      "baseline": null
+      "baseline": null,
+      "offered": []
     },
     {
       "id": "e14",
@@ -342,7 +377,12 @@
           "score": 5
         }
       ],
-      "baseline": "e14-m19"
+      "baseline": "e14-m19",
+      "offered": [
+        "e14-m19",
+        "e14-m67",
+        "e14-m76"
+      ]
     },
     {
       "id": "e16",
@@ -363,7 +403,8 @@
         }
       ],
       "scored": [],
-      "baseline": "e16-m19"
+      "baseline": "e16-m19",
+      "offered": []
     },
     {
       "id": "e19",
@@ -384,7 +425,8 @@
         }
       ],
       "scored": [],
-      "baseline": "e19-m13"
+      "baseline": "e19-m13",
+      "offered": []
     },
     {
       "id": "e21",
@@ -399,7 +441,8 @@
       "reason": "metric_not_covered",
       "paragraphs": [],
       "scored": [],
-      "baseline": null
+      "baseline": null,
+      "offered": []
     },
     {
       "id": "e41",
@@ -441,7 +484,11 @@
           "score": 10
         }
       ],
-      "baseline": "e41-m2"
+      "baseline": "e41-m2",
+      "offered": [
+        "e41-m105",
+        "e41-m117"
+      ]
     },
     {
       "id": "e42",
@@ -456,7 +503,8 @@
       "reason": "metric_not_covered",
       "paragraphs": [],
       "scored": [],
-      "baseline": null
+      "baseline": null,
+      "offered": []
     },
     {
       "id": "e43",
@@ -477,7 +525,8 @@
         }
       ],
       "scored": [],
-      "baseline": "e43-m6"
+      "baseline": "e43-m6",
+      "offered": []
     },
     {
       "id": "e44",
@@ -514,7 +563,11 @@
           "score": 13
         }
       ],
-      "baseline": "e44-m32"
+      "baseline": "e44-m32",
+      "offered": [
+        "e44-m32",
+        "e44-m47"
+      ]
     },
     {
       "id": "e45",
@@ -547,6 +600,16 @@
           "id": "e45-m5",
           "text": "Our future operating results depend to a considerable extent on our ability to maintain a competitive advantage in the equipment and service products we provide. Development cycles depend on whether the product is an enhancement of an existing product, which typically has a shorter development cycle, or a new product, which typically has a longer development cycle. Most of our existing products resulted from internal development activities and innovations involving new technologies, materials and processes. In certain instances, we acquire technologies, either in existing or new product areas, to complement our existing technology capabilities and to reduce time to market. Product development and manufacturing activities occur primarily in the United States, Europe, Israel, and Asia. Our portfolio of equipment and service products is highly technical and is sold primarily through a direct sales force.",
           "cause": null
+        },
+        {
+          "id": "e45-m10",
+          "text": "The AGS segment provides services, spares and factory automation software to customer fabrication plants globally to help customers optimize performance of our large, global installed base of semiconductor and other products. Demand for AGS’ service and spares is driven by our large and growing installed base of manufacturing systems, and customers’ needs to shorten ramp times, improve system performance, and optimize factory output and operating costs. Industry conditions that affect AGS’ sales of spares and services are primarily characterized by changes in semiconductor manufacturers’ wafer starts and utilization rates, growth of the installed base of equipment and growing service intensity of newer tools. Our strategy is to continue to shift the AGS’ service and spares business to a subscription agreement model, improving customer factory performance and optimizing operating costs, and providing us a more predictable revenue stream.",
+          "cause": "driven by our large and growing installed base of manufacturing systems, and customers’ needs to shorten ramp times, improve system performance, and optimize factory output and operating costs"
+        },
+        {
+          "id": "e45-m20",
+          "text": "The Semiconductor Systems segment remained our largest revenue contributor for which revenue increased for the three and nine months ended July 26, 2026, compared to the same periods in the prior year. The increase in foundry and logic customers’ spending for the three and nine months ended July 26, 2026 reflected stronger demand for leading-edge manufacturing technologies. For the nine months ended July 26, 2026, this increase was partially offset by lower customer demand for trailing-edge logic systems. Memory customers’ spending in the three and nine months ended July 26, 2026 was higher compared to the same periods in the prior year due to increased customer investments in DRAM technology transitions.",
+          "cause": "reflected stronger demand for leading-edge manufacturing technologies"
         }
       ],
       "scored": [
@@ -566,7 +629,14 @@
           "score": 22
         }
       ],
-      "baseline": "e45-m5"
+      "baseline": "e45-m5",
+      "offered": [
+        "e45-m10",
+        "e45-m19",
+        "e45-m20",
+        "e45-m21",
+        "e45-m58"
+      ]
     },
     {
       "id": "e46",
@@ -587,7 +657,8 @@
         }
       ],
       "scored": [],
-      "baseline": "e46-m38"
+      "baseline": "e46-m38",
+      "offered": []
     },
     {
       "id": "e47",
@@ -602,7 +673,8 @@
       "reason": "metric_not_covered",
       "paragraphs": [],
       "scored": [],
-      "baseline": null
+      "baseline": null,
+      "offered": []
     },
     {
       "id": "e48",
@@ -623,7 +695,8 @@
         }
       ],
       "scored": [],
-      "baseline": "e48-m12"
+      "baseline": "e48-m12",
+      "offered": []
     },
     {
       "id": "e49",
@@ -638,7 +711,8 @@
       "reason": "metric_not_covered",
       "paragraphs": [],
       "scored": [],
-      "baseline": null
+      "baseline": null,
+      "offered": []
     },
     {
       "id": "e50",
@@ -653,7 +727,8 @@
       "reason": "metric_not_covered",
       "paragraphs": [],
       "scored": [],
-      "baseline": null
+      "baseline": null,
+      "offered": []
     },
     {
       "id": "e51",
@@ -668,7 +743,8 @@
       "reason": "not_discussed",
       "paragraphs": [],
       "scored": [],
-      "baseline": null
+      "baseline": null,
+      "offered": []
     },
     {
       "id": "e52",
@@ -683,7 +759,8 @@
       "reason": "metric_not_covered",
       "paragraphs": [],
       "scored": [],
-      "baseline": null
+      "baseline": null,
+      "offered": []
     },
     {
       "id": "e53",
@@ -716,6 +793,21 @@
           "id": "e53-m14",
           "text": "The preparation of financial statements in accordance with generally accepted accounting principles in the United States requires us to make estimates and assumptions that affect the reported amounts of assets and liabilities and disclosure of contingent assets and liabilities at the date of the financial statements and the reported amounts of revenue and expenses during the reporting period. We base our estimates and assumptions on current facts, historical experience and various other factors that we believe to be reasonable under the circumstances, the results of which form the basis for making judgments about the carrying values of assets and liabilities and the accrual of costs and expenses that are not readily apparent from other sources. Our actual financial results may differ materially and adversely from our estimates. Our critical accounting policies are those that affect our financial statements materially and involve difficult, subjective or complex judgments by management. Those policies include revenue recognition, business combinations, valuation of goodwill and long-lived assets, and income taxes.",
           "cause": null
+        },
+        {
+          "id": "e53-m38",
+          "text": "We included upfront license revenue of $3,465 million and $7,184 million within products revenue for the fiscal quarter and three fiscal quarters ended August 2, 2026, respectively. We included the related costs, which were immaterial, in cost of products sold. To conform to the current period presentation, we reclassified $1,916 million and $5,691 million of upfront license revenue from subscriptions and services revenue to products revenue for the fiscal quarter and three fiscal quarters ended August 3, 2025, respectively. We also reclassified the related costs for the upfront license revenue, which were immaterial for the periods presented. See Note 2. “Revenue from Contracts with Customers” in Part I, Item 1. of this Form 10-Q for additional information.",
+          "cause": null
+        },
+        {
+          "id": "e53-m41",
+          "text": "From time to time, some of our key semiconductor customers place large orders or delay orders, causing our quarterly net revenue to fluctuate significantly. This is particularly true of our products used in AI and wireless applications as fluctuations may be magnified by the timing of customer deployments, as well as product launches. For infrastructure software, the timing and extent of renewals and relative volume of customer contracts without the right to terminate causes variations in revenue recognized in each period.",
+          "cause": null
+        },
+        {
+          "id": "e53-m76",
+          "text": "•Trade accounts receivable, net increased to $13,707 million at August 2, 2026 from $7,145 million at November 2, 2025 primarily due to higher semiconductor revenue and the timing of collections.",
+          "cause": "primarily due to higher semiconductor revenue and the timing of collections"
         }
       ],
       "scored": [
@@ -735,7 +827,15 @@
           "score": 16
         }
       ],
-      "baseline": "e53-m14"
+      "baseline": "e53-m14",
+      "offered": [
+        "e53-m38",
+        "e53-m41",
+        "e53-m47",
+        "e53-m48",
+        "e53-m50",
+        "e53-m76"
+      ]
     },
     {
       "id": "e54",
@@ -768,6 +868,26 @@
           "id": "e54-m3",
           "text": "•financial expectations, including projections of revenues, expenses, margins, earnings, cash flows, liquidity, capital allocation plans, and tax matters;",
           "cause": null
+        },
+        {
+          "id": "e54-m30",
+          "text": "The company’s references to strategic investments generally refer to targeted spending for enhancing commercial capabilities, including expansion of geographic sales reach and e-commerce platforms, marketing initiatives, expanded service and operational infrastructure, research and development projects and other expenditures to enhance the customer experience, as well as incentive compensation and recognition for employees. The company’s references throughout this discussion to productivity improvements generally refer to the impact of its Practical Process Improvement (PPI) Business System to address inflation, drive cost efficiencies and improve profitability. The benefits of PPI include optimized price realization, reduced costs resulting from implementing continuous improvement methodologies, global sourcing initiatives, a lower cost structure following restructuring actions including headcount reductions and consolidation of facilities, and low cost region manufacturing.",
+          "cause": "resulting from implementing continuous improvement methodologies, global sourcing initiatives, a lower cost structure following restructuring actions including headcount reductions and consolidation of facilities, and low cost region manufacturing"
+        },
+        {
+          "id": "e54-m36",
+          "text": "The increase in organic revenues in the second quarter of 2026 was primarily driven by the bioproduction business. On a reported basis, the bioproduction business grew $196 million, which contributed 8 percentage points of reported growth in the segment, driven by higher demand from pharma and biotech customers, as well as the impact from the 2025 acquisition of the filtration and separation business. The increase in segment income margin resulted primarily from very strong productivity improvements, offset in part by the impact from the acquisition of the filtration and separation business and unfavorable business mix.",
+          "cause": "primarily driven by the bioproduction business"
+        },
+        {
+          "id": "e54-m44",
+          "text": "The increase in organic revenues in the second quarter of 2026 was primarily driven by growth in the healthcare market channel and immunodiagnostics business. On a reported basis, the healthcare market channel, clinical diagnostics business, and immunodiagnostics business increased $36 million, $14 million, and $14 million, respectively. The increase in segment income margin was driven by favorable volume leverage and strong productivity, offset in part by unfavorable business mix.",
+          "cause": "primarily driven by growth in the healthcare market channel and immunodiagnostics business"
+        },
+        {
+          "id": "e54-m79",
+          "text": "In addition to the financial measures prepared in accordance with GAAP, we use certain non-GAAP financial measures such as organic revenue growth, which is reported revenue growth, excluding the impacts of revenues from acquired/divested businesses and the effects of currency translation. We report organic revenue growth because Thermo Fisher management believes that in order to understand the company’s short-term and long-term financial trends, investors may wish to consider the impact of acquisitions/divestitures and foreign currency translation on revenues. Thermo Fisher management uses organic revenue growth to forecast and evaluate the operational performance of the company as well as to compare revenues of current periods to prior periods.",
+          "cause": null
         }
       ],
       "scored": [
@@ -787,7 +907,16 @@
           "score": 22
         }
       ],
-      "baseline": "e54-m3"
+      "baseline": "e54-m3",
+      "offered": [
+        "e54-m22",
+        "e54-m30",
+        "e54-m36",
+        "e54-m40",
+        "e54-m44",
+        "e54-m48",
+        "e54-m79"
+      ]
     },
     {
       "id": "e55",
@@ -815,6 +944,11 @@
           "id": "e55-m31",
           "text": "Embedded operating income was $386 million for the three months ended June 27, 2026, compared to operating income of $275 million for the prior year period. Embedded operating income was $724 million for the six months ended June 27, 2026, compared to operating income of $603 million for the prior year period. The increase in operating income in both periods was primarily driven by higher revenue, partially offset by higher cost of sales and operating expenses.",
           "cause": "primarily driven by higher revenue, partially offset by higher cost of sales and operating expenses"
+        },
+        {
+          "id": "e55-m29",
+          "text": "Client and Gaming operating income was $582 million for the three months ended June 27, 2026, compared to operating income of $767 million for the prior year period. Client and Gaming operating income was $1.2 billion for the six months ended June 27, 2026, compared to operating income of $1.3 billion for the prior year period. The decrease in operating income in both periods was primarily due to higher operating expenses.",
+          "cause": "primarily due to higher operating expenses"
         }
       ],
       "scored": [
@@ -834,7 +968,13 @@
           "score": 24
         }
       ],
-      "baseline": "e55-m13"
+      "baseline": "e55-m13",
+      "offered": [
+        "e55-m13",
+        "e55-m25",
+        "e55-m29",
+        "e55-m31"
+      ]
     },
     {
       "id": "e56",
@@ -849,7 +989,8 @@
       "reason": "metric_not_covered",
       "paragraphs": [],
       "scored": [],
-      "baseline": null
+      "baseline": null,
+      "offered": []
     },
     {
       "id": "e57",
@@ -864,7 +1005,8 @@
       "reason": "metric_not_covered",
       "paragraphs": [],
       "scored": [],
-      "baseline": null
+      "baseline": null,
+      "offered": []
     },
     {
       "id": "e58",
@@ -879,7 +1021,8 @@
       "reason": "metric_not_covered",
       "paragraphs": [],
       "scored": [],
-      "baseline": null
+      "baseline": null,
+      "offered": []
     },
     {
       "id": "e59",
@@ -894,7 +1037,8 @@
       "reason": "metric_not_covered",
       "paragraphs": [],
       "scored": [],
-      "baseline": null
+      "baseline": null,
+      "offered": []
     },
     {
       "id": "e60",
@@ -915,7 +1059,8 @@
         }
       ],
       "scored": [],
-      "baseline": "e60-m13"
+      "baseline": "e60-m13",
+      "offered": []
     },
     {
       "id": "e61",
@@ -948,6 +1093,31 @@
           "id": "e61-m4",
           "text": "We generate revenue by offering a wide range of cloud-based solutions, content, and other services to people and businesses; licensing and supporting an array of software products; delivering relevant online advertising to a global audience; and designing and selling devices. Our most significant expenses are related to compensating employees; supporting and investing in our cloud-based services, including datacenter operations; designing, manufacturing, marketing, and selling our other products and services; and income taxes.",
           "cause": null
+        },
+        {
+          "id": "e61-m80",
+          "text": "Microsoft 365 Commercial products and cloud services revenue increased $3.7 billion or 17%. Microsoft 365 Commercial cloud revenue grew 19% with growth in revenue per user driven by Microsoft 365 E5 and Microsoft 365 Copilot. Microsoft 365 Commercial seats grew 6% driven by small and medium businesses and frontline worker offerings. Microsoft 365 Commercial products revenue grew 1%.",
+          "cause": "driven by Microsoft 365 E5 and Microsoft 365 Copilot"
+        },
+        {
+          "id": "e61-m90",
+          "text": "Server products and cloud services revenue increased $7.8 billion or 32% driven by Azure and other cloud services. Azure and other cloud services revenue grew 40% driven by demand for services across the platform with continued growth across all workloads. Server products revenue increased slightly, primarily driven by higher purchases of licenses running in multi-cloud environments, offset in part by renewals with lower in-period revenue recognition from the mix of contracts and continued customer shift to cloud.",
+          "cause": "driven by Azure and other cloud services"
+        },
+        {
+          "id": "e61-m99",
+          "text": "Gaming revenue decreased $380 million or 7% driven by declines in Xbox content and services and Xbox hardware. Xbox content and services revenue decreased 5% on a prior year comparable that benefited from strong first-party content performance. Xbox hardware revenue decreased 33% driven by lower volume of consoles sold.",
+          "cause": "driven by declines in Xbox content and services and Xbox hardware"
+        },
+        {
+          "id": "e61-m107",
+          "text": "Microsoft 365 Commercial products and cloud services revenue increased $10.6 billion or 17%. Microsoft 365 Commercial cloud revenue grew 18% with growth in revenue per user driven by Microsoft 365 E5 and Microsoft 365 Copilot, and continued Microsoft 365 Commercial seat growth. Microsoft 365 Commercial products revenue grew 10% driven by an increase in Office 2024 transactional purchasing, as well as growth in the Windows Commercial on-premises components of Microsoft 365 suite sales.",
+          "cause": "driven by Microsoft 365 E5 and Microsoft 365 Copilot, and continued Microsoft 365 Commercial seat growth"
+        },
+        {
+          "id": "e61-m117",
+          "text": "Server products and cloud services revenue increased $21.8 billion or 31% driven by Azure and other cloud services. Azure and other cloud services revenue grew 40% driven by demand for services across the platform with continued growth across all workloads. Server products revenue increased 1% primarily driven by higher purchases of licenses running in multi-cloud environments.",
+          "cause": "driven by Azure and other cloud services"
         }
       ],
       "scored": [
@@ -967,7 +1137,17 @@
           "score": 23
         }
       ],
-      "baseline": "e61-m4"
+      "baseline": "e61-m4",
+      "offered": [
+        "e61-m24",
+        "e61-m61",
+        "e61-m70",
+        "e61-m80",
+        "e61-m90",
+        "e61-m99",
+        "e61-m107",
+        "e61-m117"
+      ]
     },
     {
       "id": "e62",
@@ -1000,6 +1180,31 @@
           "id": "e62-m34",
           "text": "Microsoft Cloud gross margin percentage",
           "cause": null
+        },
+        {
+          "id": "e62-m93",
+          "text": "Cost of revenue increased $4.8 billion or 47% driven by investments in AI infrastructure to support growing customer demand and increased GitHub Copilot usage.",
+          "cause": "driven by investments in AI infrastructure to support growing customer demand and increased GitHub Copilot usage"
+        },
+        {
+          "id": "e62-m113",
+          "text": "Gross margin increased $12.8 billion or 18% driven by growth in Microsoft 365 Commercial cloud. Gross margin percentage increased driven by efficiency gains in Microsoft 365 Commercial cloud even with continued investments in AI infrastructure and growing AI product usage.",
+          "cause": "driven by growth in Microsoft 365 Commercial cloud"
+        },
+        {
+          "id": "e62-m121",
+          "text": "Gross margin increased $9.4 billion or 20% driven by growth in Azure. Gross margin percentage decreased driven by the continued investments in AI infrastructure, offset in part by efficiency gains in Azure.",
+          "cause": "driven by growth in Azure"
+        },
+        {
+          "id": "e62-m129",
+          "text": "Cost of revenue decreased $1.3 billion or 7% driven by lower hardware sales, offset in part by growth in Search advertising.",
+          "cause": "driven by lower hardware sales, offset in part by growth in Search advertising"
+        },
+        {
+          "id": "e62-m130",
+          "text": "Gross margin increased $1.3 billion or 6% driven by growth in Search advertising and Windows OEM. Gross margin percentage increased driven by sales mix shift to higher margin businesses.",
+          "cause": "driven by growth in Search advertising and Windows OEM"
         }
       ],
       "scored": [
@@ -1019,7 +1224,17 @@
           "score": 20
         }
       ],
-      "baseline": "e62-m34"
+      "baseline": "e62-m34",
+      "offered": [
+        "e62-m86",
+        "e62-m93",
+        "e62-m94",
+        "e62-m103",
+        "e62-m113",
+        "e62-m121",
+        "e62-m129",
+        "e62-m130"
+      ]
     },
     {
       "id": "e63",
@@ -1046,7 +1261,10 @@
           "score": 23
         }
       ],
-      "baseline": "e63-m53"
+      "baseline": "e63-m53",
+      "offered": [
+        "e63-m53"
+      ]
     },
     {
       "id": "e64",
@@ -1098,7 +1316,12 @@
           "score": 19
         }
       ],
-      "baseline": "e64-m27"
+      "baseline": "e64-m27",
+      "offered": [
+        "e64-m32",
+        "e64-m37",
+        "e64-m38"
+      ]
     },
     {
       "id": "e65",
@@ -1113,7 +1336,8 @@
       "reason": "not_discussed",
       "paragraphs": [],
       "scored": [],
-      "baseline": null
+      "baseline": null,
+      "offered": []
     },
     {
       "id": "e66",
@@ -1140,7 +1364,10 @@
           "score": 29
         }
       ],
-      "baseline": "e66-m39"
+      "baseline": "e66-m39",
+      "offered": [
+        "e66-m39"
+      ]
     },
     {
       "id": "e67",
@@ -1177,7 +1404,11 @@
           "score": 19
         }
       ],
-      "baseline": "e67-m32"
+      "baseline": "e67-m32",
+      "offered": [
+        "e67-m32",
+        "e67-m36"
+      ]
     },
     {
       "id": "e68",
@@ -1198,7 +1429,8 @@
         }
       ],
       "scored": [],
-      "baseline": "e68-m56"
+      "baseline": "e68-m56",
+      "offered": []
     },
     {
       "id": "e69",
@@ -1226,6 +1458,31 @@
           "id": "e69-m59",
           "text": "Cell Therapy product sales decreased 14% and 13% to $417 million and $824 million for the three and six months ended June 30, 2026, respectively, compared to the same periods in 2025, primarily due to lower demand reflecting ongoing competitive headwinds.",
           "cause": "primarily due to lower demand reflecting ongoing competitive headwinds"
+        },
+        {
+          "id": "e69-m49",
+          "text": "HIV product sales increased 12% to $5.7 billion for the three months ended June 30, 2026, compared to the same period in 2025, primarily due to higher average realized price and demand. In particular:",
+          "cause": "primarily due to higher average realized price and demand"
+        },
+        {
+          "id": "e69-m50",
+          "text": "•Biktarvy sales increased 7% primarily due to higher average realized price, favorable inventory dynamics and higher demand, including patients switching from Genvoya and other Gilead HIV products;",
+          "cause": "primarily due to higher average realized price, favorable inventory dynamics and higher demand, including patients switching from Genvoya and other Gilead HIV products"
+        },
+        {
+          "id": "e69-m58",
+          "text": "Veklury product sales decreased 81% and 60% to $23 million and $167 million for the three and six months ended June 30, 2026, respectively, compared to the same periods in 2025, primarily due to lower rates of COVID-19-related hospitalizations.",
+          "cause": "primarily due to lower rates of COVID-19-related hospitalizations"
+        },
+        {
+          "id": "e69-m60",
+          "text": "Trodelvy product sales increased 26% and 31% to $457 million and $859 million for the three and six months ended June 30, 2026, respectively, compared to the same periods in 2025, primarily due to higher demand.",
+          "cause": "primarily due to higher demand"
+        },
+        {
+          "id": "e69-m64",
+          "text": "Royalty, contract and other revenues increased to $176 million and $189 million for the three and six months ended June 30, 2026, respectively, compared to the same periods in 2025, primarily due to recognition of $156 million of previously constrained revenues from the sale of certain intellectual property.",
+          "cause": "primarily due to recognition of $156 million of previously constrained revenues from the sale of certain intellectual property"
         }
       ],
       "scored": [
@@ -1245,7 +1502,17 @@
           "score": 22
         }
       ],
-      "baseline": "e69-m19"
+      "baseline": "e69-m19",
+      "offered": [
+        "e69-m19",
+        "e69-m49",
+        "e69-m50",
+        "e69-m57",
+        "e69-m58",
+        "e69-m59",
+        "e69-m60",
+        "e69-m64"
+      ]
     },
     {
       "id": "e70",
@@ -1278,6 +1545,31 @@
           "id": "e70-m10",
           "text": "Total gross margin decreased by 2.0 percentage points. Product gross margin decreased by 2.5 percentage points, primarily driven by negative impacts from product mix and higher memory costs, partially offset by productivity improvements and lower amortization of purchased intangible assets. As a percentage of revenue, research and development, sales and marketing, and general and administrative expenses, collectively, decreased by 3.8 percentage points. Operating income as a percentage of revenue increased by 2.4 percentage points, primarily driven by revenue growth, partially offset by lower gross margin in the third quarter of fiscal 2026. Diluted earnings per share increased 37%, driven by revenue growth and operating margin improvement.",
           "cause": null
+        },
+        {
+          "id": "e70-m74",
+          "text": "Product gross margin decreased by 1.0 percentage points primarily driven by negative impacts from product mix and pricing, partially offset by productivity improvements and lower amortization of purchased intangible assets. Productivity benefits were adversely impacted by higher memory costs.",
+          "cause": "primarily driven by negative impacts from product mix and pricing, partially offset by productivity improvements and lower amortization of purchased intangible assets"
+        },
+        {
+          "id": "e70-m78",
+          "text": "Our services gross margin normally experiences some fluctuations due to various factors such as the timing of contract initiations in our renewals, our strategic investments in headcount, and the resources we deploy to support the overall service business. Other factors include the mix of service offerings, as the gross margin from our advanced services is typically lower than the gross margin from technical support services.",
+          "cause": "due to various factors such as the timing of contract initiations in our renewals, our strategic investments in headcount, and the resources we deploy to support the overall service business"
+        },
+        {
+          "id": "e70-m82",
+          "text": "We experienced a gross margin percentage decrease in our Americas segment due to negative impacts from product mix and to a lesser extent pricing, partially offset by positive impacts from productivity improvements.",
+          "cause": "due to negative impacts from product mix and to a lesser extent pricing, partially offset by positive impacts from productivity improvements"
+        },
+        {
+          "id": "e70-m85",
+          "text": "We experienced a gross margin percentage decrease in our Americas segment due to negative impacts from product mix and pricing, partially offset by positive impacts from productivity improvements.",
+          "cause": "due to negative impacts from product mix and pricing, partially offset by positive impacts from productivity improvements"
+        },
+        {
+          "id": "e70-m86",
+          "text": "Gross margin percentage in our EMEA segment increased primarily due to productivity improvements, partially offset by negative impacts from product mix and pricing.",
+          "cause": "primarily due to productivity improvements, partially offset by negative impacts from product mix and pricing"
         }
       ],
       "scored": [
@@ -1297,7 +1589,17 @@
           "score": 17
         }
       ],
-      "baseline": "e70-m10"
+      "baseline": "e70-m10",
+      "offered": [
+        "e70-m73",
+        "e70-m74",
+        "e70-m77",
+        "e70-m78",
+        "e70-m82",
+        "e70-m83",
+        "e70-m85",
+        "e70-m86"
+      ]
     },
     {
       "id": "e71",
@@ -1329,7 +1631,10 @@
           "score": 19
         }
       ],
-      "baseline": "e71-m6"
+      "baseline": "e71-m6",
+      "offered": [
+        "e71-m59"
+      ]
     },
     {
       "id": "e72",
@@ -1366,7 +1671,11 @@
           "score": 16
         }
       ],
-      "baseline": "e72-m12"
+      "baseline": "e72-m12",
+      "offered": [
+        "e72-m12",
+        "e72-m38"
+      ]
     },
     {
       "id": "e73",
@@ -1381,7 +1690,8 @@
       "reason": "not_discussed",
       "paragraphs": [],
       "scored": [],
-      "baseline": null
+      "baseline": null,
+      "offered": []
     },
     {
       "id": "e74",
@@ -1402,7 +1712,8 @@
         }
       ],
       "scored": [],
-      "baseline": "e74-m13"
+      "baseline": "e74-m13",
+      "offered": []
     },
     {
       "id": "e75",
@@ -1434,7 +1745,10 @@
           "score": 19
         }
       ],
-      "baseline": "e75-m25"
+      "baseline": "e75-m25",
+      "offered": [
+        "e75-m81"
+      ]
     },
     {
       "id": "e76",
@@ -1476,7 +1790,11 @@
           "score": 18
         }
       ],
-      "baseline": "e76-m58"
+      "baseline": "e76-m58",
+      "offered": [
+        "e76-m62",
+        "e76-m63"
+      ]
     },
     {
       "id": "e77",
@@ -1491,7 +1809,8 @@
       "reason": "not_discussed",
       "paragraphs": [],
       "scored": [],
-      "baseline": null
+      "baseline": null,
+      "offered": []
     },
     {
       "id": "e78",
@@ -1524,6 +1843,31 @@
           "id": "e78-m3",
           "text": "We generate revenues by delivering relevant, cost-effective online advertising; cloud-based solutions that provide enterprise customers of all sizes with infrastructure, platform services, and applications; and sales of products and services, such as fees received for subscription-based products, apps and in-app purchases, devices, and TPU systems. For additional information on how we recognize revenue, see Note 1 of the Notes to Consolidated Financial Statements included in Part II, Item 8 in our Annual Report on Form 10-K for the fiscal year ended December 31, 2025.",
           "cause": null
+        },
+        {
+          "id": "e78-m48",
+          "text": "TAC as a percentage of revenues generated from ads placed on Google Network properties are significantly higher than TAC as a percentage of revenues generated from ads placed on Google Search & other properties, because most of the advertiser revenues from ads served on Google Network properties are paid as TAC to our Google Network partners.",
+          "cause": null
+        },
+        {
+          "id": "e78-m85",
+          "text": "Google Search & other revenues increased $9.1 billion and $18.8 billion from the three and six months ended June 30, 2025 to the three and six months ended June 30, 2026. The overall growth was driven by interrelated factors including increases in search queries resulting from growth in user adoption and usage on mobile devices; growth in advertiser spending; and improvements we have made in ad formats and delivery.",
+          "cause": "driven by interrelated factors including increases in search queries resulting from growth in user adoption and usage on mobile devices"
+        },
+        {
+          "id": "e78-m86",
+          "text": "YouTube ads revenues increased $1.3 billion and $2.2 billion from the three and six months ended June 30, 2025 to the three and six months ended June 30, 2026. The growth was driven by our direct response advertising products followed by our brand advertising products, both of which benefited from increased spending by our advertisers.",
+          "cause": "driven by our direct response advertising products followed by our brand advertising products, both of which benefited from increased spending by our advertisers"
+        },
+        {
+          "id": "e78-m93",
+          "text": "Google subscriptions, platforms, and devices revenues increased $1.7 billion and $3.7 billion from the three and six months ended June 30, 2025 to the three and six months ended June 30, 2026. The growth was primarily driven by an increase in subscriptions revenues. This increase was primarily due to the contribution from growth in paid subscriptions across both YouTube services and Google One.",
+          "cause": "primarily driven by an increase in subscriptions revenues"
+        },
+        {
+          "id": "e78-m94",
+          "text": "Google Cloud revenues increased $11.1 billion and $18.9 billion from the three and six months ended June 30, 2025 to the three and six months ended June 30, 2026 primarily driven by growth in Google Cloud Platform largely from infrastructure and platform services. In addition, in the second quarter of 2026, we began recognizing revenue from the sale of TPU systems.",
+          "cause": "primarily driven by growth in Google Cloud Platform largely from infrastructure and platform services"
         }
       ],
       "scored": [
@@ -1543,7 +1887,17 @@
           "score": 20
         }
       ],
-      "baseline": "e78-m3"
+      "baseline": "e78-m3",
+      "offered": [
+        "e78-m48",
+        "e78-m70",
+        "e78-m85",
+        "e78-m86",
+        "e78-m87",
+        "e78-m93",
+        "e78-m94",
+        "e78-m100"
+      ]
     },
     {
       "id": "e79",
@@ -1564,7 +1918,8 @@
         }
       ],
       "scored": [],
-      "baseline": "e79-m92"
+      "baseline": "e79-m92",
+      "offered": []
     },
     {
       "id": "e80",
@@ -1597,6 +1952,11 @@
           "id": "e80-m7",
           "text": "Manufacturing Optimization Program––In the third quarter of 2026, we announced the next phase of our multi-year program designed to reduce our cost of goods sold focused on network structure changes, product portfolio enhancements and additional operational efficiencies which is expected to deliver additional anticipated savings of approximately $1.5 billion through 2029, some of which is expected to begin being realized in 2027. The one-time costs to achieve the savings associated with this phase of the program are expected to be approximately $4.0 billion, with approximately 60% of non-cash expenditures. The costs to achieve these savings are expected to be incurred through 2029.",
           "cause": null
+        },
+        {
+          "id": "e80-m97",
+          "text": "For a description of our programs, as well as the anticipated and actual costs, see Notes 3A and 3B. The program savings discussed above may be rounded and represent approximations. In addition to these programs, we continuously monitor our operations for cost reduction and/or productivity opportunities, especially in light of patent-based and regulatory exclusivity expiries as well as the expiration of collaborative arrangements for various products. Long-term improvement in gross margin will remain a key focus for the Company over the next few years.",
+          "cause": null
         }
       ],
       "scored": [
@@ -1616,7 +1976,1006 @@
           "score": 7
         }
       ],
-      "baseline": "e80-m7"
+      "baseline": "e80-m7",
+      "offered": [
+        "e80-m70",
+        "e80-m79",
+        "e80-m97",
+        "e80-m155"
+      ]
+    },
+    {
+      "id": "e81",
+      "set": "final",
+      "question": "Why did Cisco Systems' revenue rise year over year last quarter?",
+      "company": "Cisco Systems",
+      "metric": "revenue",
+      "basis": "year_over_year",
+      "report_date": "2026-04-25",
+      "accession": "0000858877-26-000078",
+      "url": "https://www.sec.gov/Archives/edgar/data/858877/000085887726000078/csco-20260425.htm",
+      "reason": null,
+      "paragraphs": [
+        {
+          "id": "e81-m66",
+          "text": "Services revenue decreased by 1% in the third quarter of fiscal 2026 compared with the third quarter of fiscal 2025, with the decline primarily driven by lower revenue from support services, partially offset by higher professional services. Services revenue declined in the Americas and APJC segments, partially offset by an increase in the EMEA segment for the third quarter of fiscal 2026.",
+          "cause": "primarily driven by lower revenue from support services, partially offset by higher professional services"
+        },
+        {
+          "id": "e81-m14",
+          "text": "Total revenue increased 10%, with product revenue increasing 13% and services revenue was flat. Total gross margin decreased 0.8 percentage points, primarily driven by negative impacts from product mix and to a lesser extent pricing, partially offset by productivity improvements and lower amortization of purchased intangible assets. As a percentage of revenue, research and development, sales and marketing, and general and administrative expenses, collectively, decreased by 2.6 percentage points. Operating income as a percentage of revenue increased by 3.4 percentage points, primarily driven by higher revenue, lower restructuring and other charges and lower amortization of purchased intangible assets, partially offset by lower gross margin in the first nine months of fiscal 2026. Diluted earnings per share increased 24%, driven by revenue growth and operating margin improvement, partially offset by the income tax benefit of $720 million we had in the first nine months of fiscal 2025.",
+          "cause": "primarily driven by higher revenue, lower restructuring and other charges and lower amortization of purchased intangible assets, partially offset by lower gross margin in the first nine months of fiscal 2026"
+        },
+        {
+          "id": "e81-m49",
+          "text": "Product revenue in the Americas segment increased by 20%, with growth across each of our customer markets, led by the Service Provider and Cloud customer market which was largely driven by revenue from our AI Infrastructure solutions. From a country perspective, product revenue increased in the United States, Canada and Mexico by 22%, 9% and 32%, respectively, partially offset by a decline in Brazil of 10%.",
+          "cause": "led by the Service Provider and Cloud customer market which was largely driven by revenue from our AI Infrastructure solutions"
+        },
+        {
+          "id": "e81-m5",
+          "text": "Total as a percentage of revenue 37.2 % 41.0 % (3.8) pts 38.7 % 41.3 % (2.6) pts",
+          "cause": null
+        },
+        {
+          "id": "e81-m12",
+          "text": "From a product category perspective, the product revenue increase of 17% was driven by growth in Networking of 25%, particularly within our AI Infrastructure and Campus Networking solutions. We also saw product revenue growth in Observability of 3%. This growth was partially offset by a product revenue decline in Collaboration of 1%. Product revenue in Security was flat.",
+          "cause": "driven by growth in Networking of 25%, particularly within our AI Infrastructure and Campus Networking solutions"
+        },
+        {
+          "id": "e81-m45",
+          "text": "Total revenue increased by 12%. Product revenue increased by 17% and services revenue decreased by 1%. Our total revenue reflected growth across each of our geographic segments.",
+          "cause": "reflected growth across each of our geographic segments"
+        },
+        {
+          "id": "e81-m47",
+          "text": "Total revenue increased by 10%. Product revenue increased by 13% and services revenue was flat. Our total revenue reflected growth across each of our geographic segments.",
+          "cause": "reflected growth across each of our geographic segments"
+        },
+        {
+          "id": "e81-m50",
+          "text": "Product revenue in the Americas segment increased by 15%, with growth across each of our customer markets, led by the Service Provider and Cloud customer market which was largely driven by revenue from our AI Infrastructure solutions. From a country perspective, product revenue increased in the United States, Canada and Mexico by 16%, 4%, and 31%, respectively, partially offset by a decline in Brazil of 13%.",
+          "cause": "led by the Service Provider and Cloud customer market which was largely driven by revenue from our AI Infrastructure solutions"
+        },
+        {
+          "id": "e81-m62",
+          "text": "Revenue from the Collaboration product category increased by 1%, or $21 million, primarily driven by revenue growth in our Collaboration Devices and CPaaS offerings, partially offset by declines in Webex Suite offerings.",
+          "cause": "primarily driven by revenue growth in our Collaboration Devices and CPaaS offerings, partially offset by declines in Webex Suite offerings"
+        }
+      ],
+      "scored": [
+        {
+          "paragraph": "e81-m66",
+          "rank": 1,
+          "score": 29
+        },
+        {
+          "paragraph": "e81-m14",
+          "rank": 2,
+          "score": 24
+        },
+        {
+          "paragraph": "e81-m49",
+          "rank": 3,
+          "score": 21
+        }
+      ],
+      "baseline": "e81-m5",
+      "offered": [
+        "e81-m12",
+        "e81-m14",
+        "e81-m45",
+        "e81-m47",
+        "e81-m49",
+        "e81-m50",
+        "e81-m62",
+        "e81-m66"
+      ]
+    },
+    {
+      "id": "e82",
+      "set": "final",
+      "question": "Why did Gilead Sciences' SG&A expenses rise year over year last quarter?",
+      "company": "Gilead Sciences",
+      "metric": "selling_general_and_administrative",
+      "basis": "year_over_year",
+      "report_date": "2026-06-30",
+      "accession": "0000882095-26-000031",
+      "url": "https://www.sec.gov/Archives/edgar/data/882095/000088209526000031/gild-20260630.htm",
+      "reason": null,
+      "paragraphs": [
+        {
+          "id": "e82-m88",
+          "text": "Selling, general and administrative expenses increased 41% and 29% to $1.9 billion and $3.4 billion for the three and six months ended June 30, 2026, respectively, compared to the same periods in 2025. Selling and marketing expenses increased primarily due to higher HIV promotional expenses. General and administrative expenses increased primarily due to integration expenses, including $332 million of stock-based compensation expenses related to our acquisitions of Arcellx, Ouro Medicines and Tubulis. General and administrative expenses also increased for the six months ended June 30, 2026 due to donations of equity securities made to the Gilead Foundation.",
+          "cause": "primarily due to higher HIV promotional expenses"
+        },
+        {
+          "id": "e82-m86",
+          "text": "Selling, general and administrative expenses are recorded when incurred and consist primarily of personnel costs, facilities and overhead costs, and selling, marketing and advertising expenses, as well as other general and administrative costs related to finance, human resources, legal and other administrative activities.",
+          "cause": null
+        }
+      ],
+      "scored": [
+        {
+          "paragraph": "e82-m88",
+          "rank": 1,
+          "score": 29
+        }
+      ],
+      "baseline": "e82-m86",
+      "offered": [
+        "e82-m88"
+      ]
+    },
+    {
+      "id": "e83",
+      "set": "final",
+      "question": "What caused Amgen's revenue to rise year over year last quarter?",
+      "company": "Amgen",
+      "metric": "revenue",
+      "basis": "year_over_year",
+      "report_date": "2026-06-30",
+      "accession": "0000318154-26-000126",
+      "url": "https://www.sec.gov/Archives/edgar/data/318154/000031815426000126/amgn-20260630.htm",
+      "reason": null,
+      "paragraphs": [
+        {
+          "id": "e83-m18",
+          "text": "Total product sales increased 9% for the three months ended June 30, 2026, driven by volume growth. Total product sales increased 7% for the six months ended June 30, 2026, driven by volume growth of 9%, partially offset by lower net selling price.",
+          "cause": "driven by volume growth"
+        },
+        {
+          "id": "e83-m49",
+          "text": "The decrease in ENBREL sales for the three months ended June 30, 2026 was primarily driven by lower net selling price of 22% resulting from the impact of U.S. Medicare Part D price setting under the IRA, effective January 1, 2026, as well as an increase in 340B Program mix, partially offset by favorable changes in estimated sales deductions of 16%.",
+          "cause": "primarily driven by lower net selling price of 22% resulting from the impact of U.S"
+        },
+        {
+          "id": "e83-m22",
+          "text": "Operating expenses remained relatively unchanged for the three months ended June 30, 2026, as lower amortization expense from acquisition-related assets was offset by higher profit share expense and changes in our sales mix, as well as higher R&D, SG&A and litigation expenses. Operating expenses decreased 7% for the six months ended June 30, 2026, reflecting lower amortization expense from acquisition-related assets and the impact of the Otezla intangible asset impairment charge recorded in the first quarter of 2025, partially offset by higher spend in Later-Stage Clinical Programs and higher profit share expense. See Note 8, Goodwill and other intangible assets, to the condensed consolidated financial statements, for additional information related to the Otezla intangible asset impairment charge.",
+          "cause": "offset by higher profit share expense and changes in our sales mix, as well as higher R&D, SG&A and litigation expenses"
+        },
+        {
+          "id": "e83-m3",
+          "text": "This report and other documents we file with the SEC contain forward-looking statements that are based on current expectations, estimates, forecasts and projections about us, our future performance, our business, our beliefs and our management’s assumptions. In addition, we, or others on our behalf, may make forward-looking statements in press releases, written statements or our communications and discussions with investors and analysts in the normal course of business through meetings, webcasts, phone calls and conference calls. Such words as “expect,” “anticipate,” “outlook,” “could,” “target,” “project,” “intend,” “plan,” “believe,” “seek,” “estimate,” “should,” “may,” “assume” and “continue” as well as variations of such words and similar expressions are intended to identify such forward-looking statements. These statements are not guarantees of future performance, and they involve certain risks, uncertainties and assumptions that are difficult to predict. We describe our respective risks, uncertainties and assumptions that could affect the outcome or results of operations in Item 1A. Risk Factors in Part II herein and in Part I, Item 1A. Risk Factors of our Annual Report on Form 10-K for the year ended December 31, 2025, and in Part II, Item 1A. Risk Factors of our Quarterly Report on Form 10-Q for the quarter ended March 31, 2026. We have based our forward-looking statements on our management’s beliefs and assumptions based on information available to our management at the time the statements are made. We caution you that actual outcomes and results may differ materially from what is expressed, implied or forecasted by our forward-looking statements. Reference is made in particular to forward-looking statements regarding product sales, regulatory activities, clinical trial results, reimbursement, expenses, EPS, liquidity and capital resources, trends, planned dividends, stock repurchases, and collaborations. Except as required under the federal securities laws and the rules and regulations of the SEC, we do not have any intention or obligation to update publicly any forward-looking statements after the distribution of this report, whether as a result of new information, future events, changes in assumptions or otherwise.",
+          "cause": null
+        },
+        {
+          "id": "e83-m41",
+          "text": "The increase in global TEPEZZA sales for the three months ended June 30, 2026 was driven by higher net selling price of 6%, volume growth of 6% and favorable changes to estimated sales deductions of 4%, partially offset by 4% from lower inventory.",
+          "cause": "driven by higher net selling price of 6%, volume growth of 6% and favorable changes to estimated sales deductions of 4%, partially offset by 4% from lower inventory"
+        },
+        {
+          "id": "e83-m44",
+          "text": "The decrease in global Otezla sales for the three months ended June 30, 2026 was driven by lower net selling price of 9%, lower volume of 6% and unfavorable changes to estimated sales deductions.",
+          "cause": "driven by lower net selling price of 9%, lower volume of 6% and unfavorable changes to estimated sales deductions"
+        },
+        {
+          "id": "e83-m52",
+          "text": "The increase in global BLINCYTO sales for the three months ended June 30, 2026 was driven by volume growth of 16%, favorable changes to estimated sales deductions of 4% and higher net selling price.",
+          "cause": "driven by volume growth of 16%, favorable changes to estimated sales deductions of 4% and higher net selling price"
+        },
+        {
+          "id": "e83-m67",
+          "text": "The increases in global KRYSTEXXA sales for the three and six months ended June 30, 2026 were driven by higher net selling price of 23% and 20%, respectively, partially offset by lower inventory for both periods.",
+          "cause": "driven by higher net selling price of 23% and 20%, respectively, partially offset by lower inventory for both periods"
+        },
+        {
+          "id": "e83-m80",
+          "text": "Cost of sales decreased to 28.0% of total revenues for the three months ended June 30, 2026, driven by lower amortization expense from acquisition-related assets, partially offset by higher profit share expense, higher manufacturing costs and changes in our sales mix.",
+          "cause": "driven by lower amortization expense from acquisition-related assets, partially offset by higher profit share expense, higher manufacturing costs and changes in our sales mix"
+        }
+      ],
+      "scored": [
+        {
+          "paragraph": "e83-m18",
+          "rank": 1,
+          "score": 24
+        },
+        {
+          "paragraph": "e83-m49",
+          "rank": 2,
+          "score": 24
+        },
+        {
+          "paragraph": "e83-m22",
+          "rank": 3,
+          "score": 22
+        }
+      ],
+      "baseline": "e83-m3",
+      "offered": [
+        "e83-m18",
+        "e83-m22",
+        "e83-m41",
+        "e83-m44",
+        "e83-m49",
+        "e83-m52",
+        "e83-m67",
+        "e83-m80"
+      ]
+    },
+    {
+      "id": "e84",
+      "set": "final",
+      "question": "Why did General Motors' net income fall year over year last quarter?",
+      "company": "General Motors",
+      "metric": "net_income",
+      "basis": "year_over_year",
+      "report_date": "2026-06-30",
+      "accession": "0001467858-26-000051",
+      "url": "https://www.sec.gov/Archives/edgar/data/1467858/000146785826000051/gm-20260630.htm",
+      "reason": null,
+      "paragraphs": [
+        {
+          "id": "e84-m171",
+          "text": "(a)Refer to the reconciliation of Net income (loss) attributable to stockholders to EBIT-adjusted within this section of MD&A for adjustment details. These adjustments include Net income attributable to noncontrolling interests where applicable. The tax effect of each adjustment is determined based on the tax laws and valuation allowance status of the jurisdiction to which the adjustment relates.",
+          "cause": "attributable to stockholders to EBIT-adjusted within this section of MD&A for adjustment details"
+        },
+        {
+          "id": "e84-m149",
+          "text": "EBIT-adjusted (Most comparable GAAP measure: Net income attributable to stockholders) EBIT-adjusted is presented net of noncontrolling interests and is used by management and can be used by investors to review our consolidated operating results because it excludes automotive interest income, automotive interest expense, and income taxes as well as certain additional adjustments that are not considered part of our core operations. Examples of adjustments to EBIT include, but are not limited to, impairment charges on long-lived assets and other exit costs resulting from strategic shifts in our operations or discrete market and business conditions, and certain costs arising from legal matters. For EBIT-adjusted and our other non-GAAP measures, once we have made an adjustment in the current period for an item, we will also adjust the related non-GAAP measure in any future periods in which there is an impact from the item. Our corresponding measure for our GM Financial segment is EBT-adjusted because interest income and interest expense are an integral part of its financial performance.",
+          "cause": "attributable to stockholders) EBIT-adjusted is presented net of noncontrolling interests and is used by management and can be used by investors to review our consolidated operating results because it excludes automotive interest income, automotive interest expense, and income taxes as well as certain additional adjustments that are not considered part of our core operations"
+        },
+        {
+          "id": "e84-m11",
+          "text": "The following table reconciles expected Net income attributable to stockholders to expected EBIT-adjusted (dollars in billions):",
+          "cause": "attributable to stockholders to expected EBIT-adjusted (dollars in billions):"
+        },
+        {
+          "id": "e84-m10",
+          "text": "For the year ending December 31, 2026, we expect Net income attributable to stockholders of between $8.4 billion and $9.8 billion, EBIT-adjusted of between $14.0 billion and $16.0 billion, EPS-diluted of between $8.98 and $10.98, and EPS-diluted-adjusted of between $12.00 and $14.00. Refer to the \"Non-GAAP Measures\" section of this MD&A for additional information.",
+          "cause": null
+        },
+        {
+          "id": "e84-m17",
+          "text": "(a)Refer to the reconciliation of Net income (loss) attributable to stockholders to EBIT-adjusted within this MD&A for adjustment details. These expected financial results do not include the potential impact of future adjustments related to special items.",
+          "cause": "attributable to stockholders to EBIT-adjusted within this MD&A for adjustment details"
+        },
+        {
+          "id": "e84-m150",
+          "text": "EPS-diluted-adjusted (Most comparable GAAP measure: Diluted earnings per common share) EPS-diluted-adjusted is used by management and can be used by investors to review our consolidated diluted EPS results on a consistent basis. EPS-diluted-adjusted is calculated as net income attributable to common stockholders-diluted less adjustments noted above for EBIT-adjusted and certain income tax adjustments divided by weighted-average common shares outstanding-diluted. Examples of income tax adjustments include the establishment or release of significant deferred tax asset valuation allowances.",
+          "cause": "attributable to common stockholders-diluted less adjustments noted above for EBIT-adjusted and certain income tax adjustments divided by weighted-average common shares outstanding-diluted"
+        },
+        {
+          "id": "e84-m172",
+          "text": "We define return on equity (ROE) as Net income (loss) attributable to stockholders for the trailing four quarters divided by average equity for the same period. Management uses average equity to provide comparable amounts in the calculation of ROE. The following table summarizes the calculation of ROE (dollars in billions):",
+          "cause": "attributable to stockholders for the trailing four quarters divided by average equity for the same period"
+        },
+        {
+          "id": "e84-m174",
+          "text": "(a)Includes equity of noncontrolling interests where the corresponding earnings (loss) are included in Net income attributable to stockholders.",
+          "cause": "attributable to stockholders"
+        }
+      ],
+      "scored": [
+        {
+          "paragraph": "e84-m171",
+          "rank": 1,
+          "score": 14
+        },
+        {
+          "paragraph": "e84-m149",
+          "rank": 2,
+          "score": 12
+        },
+        {
+          "paragraph": "e84-m11",
+          "rank": 3,
+          "score": 10
+        }
+      ],
+      "baseline": "e84-m10",
+      "offered": [
+        "e84-m11",
+        "e84-m17",
+        "e84-m149",
+        "e84-m150",
+        "e84-m171",
+        "e84-m172",
+        "e84-m174"
+      ]
+    },
+    {
+      "id": "e85",
+      "set": "final",
+      "question": "What drove Gilead Sciences' gross profit up year over year this quarter?",
+      "company": "Gilead Sciences",
+      "metric": "gross_profit",
+      "basis": "year_over_year",
+      "report_date": "2026-06-30",
+      "accession": "0000882095-26-000031",
+      "url": "https://www.sec.gov/Archives/edgar/data/882095/000088209526000031/gild-20260630.htm",
+      "reason": null,
+      "paragraphs": [
+        {
+          "id": "e85-m68",
+          "text": "Product gross margin remained relatively flat at 79.3% for the three months ended June 30, 2026, compared to the same period in 2025.",
+          "cause": null
+        }
+      ],
+      "scored": [
+        {
+          "paragraph": "e85-m68",
+          "rank": 1,
+          "score": 8
+        }
+      ],
+      "baseline": "e85-m68",
+      "offered": [
+        "e85-m68"
+      ]
+    },
+    {
+      "id": "e86",
+      "set": "final",
+      "question": "What caused Broadcom's cost of revenue to rise year over year last quarter?",
+      "company": "Broadcom",
+      "metric": "cost_of_revenue",
+      "basis": "year_over_year",
+      "report_date": "2026-08-02",
+      "accession": "0001730168-26-000080",
+      "url": "https://www.sec.gov/Archives/edgar/data/1730168/000173016826000080/avgo-20260802.htm",
+      "reason": null,
+      "paragraphs": [
+        {
+          "id": "e86-m49",
+          "text": "Gross margin was $20,456 million for the fiscal quarter ended August 2, 2026 compared to $10,703 million for the fiscal quarter ended August 3, 2025 and $49,028 million for the three fiscal quarters ended August 2, 2026 compared to $31,045 million for the three fiscal quarters ended August 3, 2025. The increases were primarily due to strong product demand for our AI-related semiconductor solutions.",
+          "cause": "primarily due to strong product demand for our AI-related semiconductor solutions"
+        },
+        {
+          "id": "e86-m23",
+          "text": "Cost of products sold",
+          "cause": null
+        }
+      ],
+      "scored": [
+        {
+          "paragraph": "e86-m49",
+          "rank": 1,
+          "score": 10
+        }
+      ],
+      "baseline": "e86-m23",
+      "offered": [
+        "e86-m49"
+      ]
+    },
+    {
+      "id": "e87",
+      "set": "final",
+      "question": "What caused Advanced Micro Devices' SG&A expenses to rise year over year last quarter?",
+      "company": "Advanced Micro Devices",
+      "metric": "selling_general_and_administrative",
+      "basis": "year_over_year",
+      "report_date": "2026-06-27",
+      "accession": "0000002488-26-000123",
+      "url": "https://www.sec.gov/Archives/edgar/data/2488/000000248826000123/amd-20260627.htm",
+      "reason": "not_discussed",
+      "paragraphs": [],
+      "scored": [],
+      "baseline": null,
+      "offered": []
+    },
+    {
+      "id": "e88",
+      "set": "final",
+      "question": "Why did Apple's cost of revenue rise year over year last quarter?",
+      "company": "Apple",
+      "metric": "cost_of_revenue",
+      "basis": "year_over_year",
+      "report_date": "2026-06-27",
+      "accession": "0000320193-26-000020",
+      "url": "https://www.sec.gov/Archives/edgar/data/320193/000032019326000020/aapl-20260627.htm",
+      "reason": null,
+      "paragraphs": [
+        {
+          "id": "e88-m24",
+          "text": "Products gross margin and gross margin percentage increased during the third quarter and first nine months of 2026 compared to the same periods in 2025 primarily due to a different mix of products and tariff refunds, partially offset by higher costs, including memory.",
+          "cause": "primarily due to a different mix of products and tariff refunds, partially offset by higher costs, including memory"
+        },
+        {
+          "id": "e88-m25",
+          "text": "Services gross margin increased during the third quarter and first nine months of 2026 compared to the same periods in 2025 primarily due to higher Services net sales and a different mix of services, partially offset by higher costs.",
+          "cause": "primarily due to higher Services net sales and a different mix of services, partially offset by higher costs"
+        },
+        {
+          "id": "e88-m5",
+          "text": "The Company has historically experienced higher net sales in its first quarter compared to other quarters in its fiscal year due in part to seasonal holiday demand. Additionally, new product and service introductions can significantly impact net sales, cost of sales and operating expenses. The timing of product introductions can also impact the Company’s net sales to its indirect distribution channels as these channels are filled with new inventory following a product launch, and channel inventory of an older product often declines as the launch of a newer product approaches. Net sales can also be affected when consumers and distributors anticipate a product introduction.",
+          "cause": null
+        }
+      ],
+      "scored": [
+        {
+          "paragraph": "e88-m24",
+          "rank": 1,
+          "score": 24
+        },
+        {
+          "paragraph": "e88-m25",
+          "rank": 2,
+          "score": 23
+        }
+      ],
+      "baseline": "e88-m5",
+      "offered": [
+        "e88-m24",
+        "e88-m25"
+      ]
+    },
+    {
+      "id": "e89",
+      "set": "final",
+      "question": "Why did Palantir Technologies' revenue rise year over year last quarter?",
+      "company": "Palantir Technologies",
+      "metric": "revenue",
+      "basis": "year_over_year",
+      "report_date": "2026-06-30",
+      "accession": "0001321655-26-000041",
+      "url": "https://www.sec.gov/Archives/edgar/data/1321655/000132165526000041/pltr-20260630.htm",
+      "reason": null,
+      "paragraphs": [
+        {
+          "id": "e89-m12",
+          "text": "For the three months ended June 30, 2026, we generated $1.9 billion in revenue, reflecting a 93% growth rate from the three months ended June 30, 2025 when we generated $1.0 billion in revenue. For the six months ended June 30, 2026, we generated $3.6 billion in revenue, reflecting a 89% growth rate from the six months ended June 30, 2025 when we generated $1.9 billion in revenue.",
+          "cause": "reflecting a 93% growth rate from the three months ended June 30, 2025 when we generated $1.0 billion in revenue"
+        },
+        {
+          "id": "e89-m80",
+          "text": "Revenue increased by $932 million, or 93%, for the three months ended June 30, 2026 compared to the same period in 2025. Revenue from government customers increased by $437 million, or 79%, for the three months ended June 30, 2026 compared to the same period in 2025. Of the increase, $428 million was from government customers existing as of December 31, 2025. Revenue from U.S. government customers was $809 million for the three months ended June 30, 2026 compared to $426 million for the same period in 2025. Revenue from commercial customers increased by $495 million, or 110%, for the three months ended June 30, 2026 compared to the same period in 2025. Of the increase, $407 million was from commercial customers existing as of December 31, 2025. Revenue from U.S. commercial customers was $764 million for the three months ended June 30, 2026 compared to $306 million for the same period in 2025, a 149% increase.",
+          "cause": null
+        },
+        {
+          "id": "e89-m51",
+          "text": "Sales of our software licenses, primarily term licenses, grant customers the right to use functional intellectual property, either on their internal hardware infrastructure or on their own cloud instance, over the contractual term and are also sold together with stand-ready O&M services. O&M services include critical updates and support and maintenance services required to operate the software and, as such, are necessary for the software to maintain its intended utility over the contractual term. Because of this requirement, we have concluded that the software licenses and O&M services, which together we refer to as our On-Premises Software, are highly interdependent and interrelated and represent a single distinct performance obligation within the context of the contract. Revenue is generally recognized over the contract term on a ratable basis.",
+          "cause": "Because of this requirement, we have concluded that the software licenses and O&M services, which together we refer to as our On-Premises Software, are highly interdependent and interrelated and represent a single distinct performance obligation within the context of the contract"
+        },
+        {
+          "id": "e89-m11",
+          "text": "Our customers pay us to use the software platforms we have built. While we generally offer contract terms of one to five years in length, our customers sometimes enter into shorter-term contracts. Revenue is generally recognized ratably over the contract term. Many of our customer contracts contain termination for convenience provisions.",
+          "cause": null
+        },
+        {
+          "id": "e89-m18",
+          "text": "We have built lasting and significant customer relationships and partnerships with some of the world’s leading government institutions and companies. Our average revenue for the top twenty customers during the trailing twelve months ended June 30, 2026 was $124 million, which grew 67% from an average of $75 million in revenue from the top twenty customers during the trailing twelve months ended June 30, 2025, demonstrating our expanding relationships with existing customers.",
+          "cause": null
+        },
+        {
+          "id": "e89-m25",
+          "text": "As a corporation with an international presence, we are subject to risks and uncertainties caused by significant events with macroeconomic impacts, including, but not limited to, geopolitical tensions, fluctuating interest rates, monetary policy changes, supply chain disruptions, geopolitical or economic uncertainty, foreign currency fluctuations, and the potential or actual imposition of tariffs or other impacts on trade relations. Additionally, these macroeconomic impacts have disrupted, and may continue to disrupt, the operations of our customers and prospective customers. In particular, if the portion of total revenue attributable to the United States remains at current levels or continues to increase, our business and financial condition could be more exposed to any future adverse conditions such as these in the United States. We continuously monitor the direct and indirect impacts of these circumstances on our business and financial results, as well as the overall global economy and geopolitical landscape.",
+          "cause": "attributable to the United States remains at current levels or continues to increase, our business and financial condition could be more exposed to any future adverse conditions such as these in the United States"
+        },
+        {
+          "id": "e89-m30",
+          "text": "Our contracts with customers and vendors are primarily denominated in U.S. dollars. However, when the U.S. dollar strengthens compared to other currencies (primarily the Euro (“EUR”) and British pound sterling (“GBP”)), it has had, and could in the future have, an unfavorable impact on our revenues and expenses from certain non-U.S. customers or vendors whose contracts are denominated in currencies other than the U.S. dollar. Additionally, certain of our U.S. and non-U.S. subsidiaries may hold monetary assets and liabilities in currencies other than their functional currency (primarily the Japanese Yen (“JPY”), EUR, and GBP), which could subject our results of operations and cash flows to adverse fluctuations due to changes in such foreign currency exchange rates as compared to the U.S. dollar. For the six months ended June 30, 2026 such impacts were not material to our financial position or results of operations.",
+          "cause": "due to changes in such foreign currency exchange rates as compared to the U.S. dollar"
+        },
+        {
+          "id": "e89-m34",
+          "text": "Revenue is allocated to each customer account directly. The cost of revenue and sales and marketing costs include both the costs associated with the deployment and operation of our software as well as expenses associated with identifying new customers and expanding partnerships with existing ones. Our software engineers working with existing customers often manage the deployment and operation of our platforms as well as identify new ways that those platforms can be used. To calculate the contribution by segment, we allocate cost of revenue and sales and marketing expenses, excluding stock-based compensation, to an account pro rata based on headcount and time spent on the account during the period. To the extent certain costs or personnel are not directly assigned to a specific account, they are allocated pro rata based on total headcount staffed during such period. Direct costs, such as third-party cloud hosting services, are directly allocated to the account to which they relate. Allocated revenues and expenses are then aggregated into a segment based upon the customer account to which they relate.",
+          "cause": null
+        },
+        {
+          "id": "e89-m55",
+          "text": "Our sales and marketing efforts span all stages of our sales cycle, including personnel involved with sales functions, and executing pilots at new or existing customers. Sales and marketing costs primarily include salaries, stock-based compensation expense, variable compensation, including commissions, and benefits for our sales force and personnel involved in sales functions, executing on pilots, and customer growth activities; as well as third-party cloud hosting services for our pilots, travel costs, and marketing and sales event-related costs. Sales and marketing costs are generally expensed as incurred.",
+          "cause": null
+        }
+      ],
+      "scored": [
+        {
+          "paragraph": "e89-m12",
+          "rank": 1,
+          "score": 23
+        },
+        {
+          "paragraph": "e89-m80",
+          "rank": 2,
+          "score": 17
+        },
+        {
+          "paragraph": "e89-m51",
+          "rank": 3,
+          "score": 12
+        }
+      ],
+      "baseline": "e89-m11",
+      "offered": [
+        "e89-m12",
+        "e89-m18",
+        "e89-m25",
+        "e89-m30",
+        "e89-m34",
+        "e89-m51",
+        "e89-m55",
+        "e89-m80"
+      ]
+    },
+    {
+      "id": "e90",
+      "set": "final",
+      "question": "What caused Pfizer's gross profit to rise year over year last quarter?",
+      "company": "Pfizer",
+      "metric": "gross_profit",
+      "basis": "year_over_year",
+      "report_date": "2026-06-28",
+      "accession": "0000078003-26-000095",
+      "url": "https://www.sec.gov/Archives/edgar/data/78003/000007800326000095/pfe-20260628.htm",
+      "reason": null,
+      "paragraphs": [
+        {
+          "id": "e90-m70",
+          "text": "Cost of sales increased $314 million in the second quarter of 2026, primarily due to:",
+          "cause": "primarily due to:"
+        },
+        {
+          "id": "e90-m79",
+          "text": "The increase in Cost of sales as a percentage of revenues in the first six months of 2026 was primarily due to the non-recurrence of a favorable revision of our estimate of accrued royalties in the first quarter of 2025, and an unfavorable impact of foreign exchange.",
+          "cause": "primarily due to the non-recurrence of a favorable revision of our estimate of accrued royalties in the first quarter of 2025, and an unfavorable impact of foreign exchange"
+        },
+        {
+          "id": "e90-m155",
+          "text": "Acquisition-Related Items—Adjusted income excludes certain acquisition-related items, which are composed of transaction, integration, restructuring charges and additional depreciation costs for business combinations because these costs are unique to each transaction and represent costs that were incurred to restructure and integrate businesses as a result of an acquisition. We have made no adjustments for resulting synergies. Acquisition-related items may include purchase accounting impacts such as the incremental charge to cost of sales from the sale of acquired inventory that was written up to fair value, depreciation related to the increase/decrease in fair value of acquired fixed assets, amortization related to the increase in fair value of acquired debt, and the fair value changes for contingent consideration.",
+          "cause": "as a result of an acquisition"
+        },
+        {
+          "id": "e90-m7",
+          "text": "Manufacturing Optimization Program––In the third quarter of 2026, we announced the next phase of our multi-year program designed to reduce our cost of goods sold focused on network structure changes, product portfolio enhancements and additional operational efficiencies which is expected to deliver additional anticipated savings of approximately $1.5 billion through 2029, some of which is expected to begin being realized in 2027. The one-time costs to achieve the savings associated with this phase of the program are expected to be approximately $4.0 billion, with approximately 60% of non-cash expenditures. The costs to achieve these savings are expected to be incurred through 2029.",
+          "cause": null
+        },
+        {
+          "id": "e90-m97",
+          "text": "For a description of our programs, as well as the anticipated and actual costs, see Notes 3A and 3B. The program savings discussed above may be rounded and represent approximations. In addition to these programs, we continuously monitor our operations for cost reduction and/or productivity opportunities, especially in light of patent-based and regulatory exclusivity expiries as well as the expiration of collaborative arrangements for various products. Long-term improvement in gross margin will remain a key focus for the Company over the next few years.",
+          "cause": null
+        }
+      ],
+      "scored": [
+        {
+          "paragraph": "e90-m70",
+          "rank": 1,
+          "score": 19
+        },
+        {
+          "paragraph": "e90-m79",
+          "rank": 2,
+          "score": 16
+        },
+        {
+          "paragraph": "e90-m155",
+          "rank": 3,
+          "score": 7
+        }
+      ],
+      "baseline": "e90-m7",
+      "offered": [
+        "e90-m70",
+        "e90-m79",
+        "e90-m97",
+        "e90-m155"
+      ]
+    },
+    {
+      "id": "e91",
+      "set": "final",
+      "question": "What caused Danaher's gross profit to rise year over year last quarter?",
+      "company": "Danaher",
+      "metric": "gross_profit",
+      "basis": "year_over_year",
+      "report_date": "2026-06-26",
+      "accession": "0000313616-26-000161",
+      "url": "https://www.sec.gov/Archives/edgar/data/313616/000031361626000161/dhr-20260626.htm",
+      "reason": null,
+      "paragraphs": [
+        {
+          "id": "e91-m129",
+          "text": "Cost of sales increased year-over-year during both the three and six-month periods ended June 26, 2026 as compared to the comparable periods in 2025. The increase was primarily due to the impact of higher year-over-year sales volumes, the impact of recently acquired businesses and a $46 million acquisition-related charge associated with the fair value adjustment to inventory recorded in connection with the Masimo Acquisition in the second quarter of 2026. In the six-month period ended June 26, 2026, these increases were partially offset by a $15 million impairment charge related to a facility in the Biotechnology segment recorded in 2025.",
+          "cause": "primarily due to the impact of higher year-over-year sales volumes, the impact of recently acquired businesses and a $46 million acquisition-related charge associated with the fair value adjustment to inventory recorded in connection with the Masimo Acquisition in the second quarter of 2026"
+        },
+        {
+          "id": "e91-m130",
+          "text": "Year-over-year gross profit margin decreased during both the three and six-month periods ended June 26, 2026 as compared to the comparable periods in 2025 primarily due to the impact of product mix and the fair value adjustment to inventory in 2026, referenced above, partially offset by the facility impairment recorded in 2025, referenced above in the six-month period.",
+          "cause": "primarily due to the impact of product mix and the fair value adjustment to inventory in 2026, referenced above, partially offset by the facility impairment recorded in 2025, referenced above in the six-month period"
+        },
+        {
+          "id": "e91-m35",
+          "text": "As a result of the Company’s geographic and industry diversity, the Company faces a variety of opportunities and challenges, including rapid technological development (particularly with respect to computing, automation, artificial intelligence, mobile connectivity and digitization) in most of the Company’s served markets, the expansion and evolution of opportunities in high-growth markets, trends and costs associated with a global labor force, consolidation of the Company’s competitors, increasing regulation and a rapidly evolving global trade environment. The Company operates in a highly competitive business environment in most markets, and the Company’s long-term growth and profitability will depend in particular on its ability to expand its business in high-growth geographies and high-growth market segments, identify, consummate and integrate appropriate acquisitions and identify and consummate appropriate investments and strategic partnerships, develop innovative and differentiated new products and services with higher gross profit margins, expand and improve the effectiveness of the Company’s sales force, continue to reduce costs and improve operating efficiency and quality and effectively address the demands of an increasingly regulated global environment and the evolving trade environment. The Company is making significant investments, organically and through acquisitions and investments, to address the rapid pace of technological change in its served markets and to position its manufacturing, research and development and customer-facing resources to be responsive to the Company’s customers throughout the world and improve the efficiency of the Company’s operations.",
+          "cause": "As a result of the Company’s geographic and industry diversity, the Company faces a variety of opportunities and challenges, including rapid technological development (particularly with respect to computing, automation, artificial intelligence, mobile connectivity and digitization) in most of the Company’s served markets, the expansion and evolution of opportunities in high-growth markets, trends and costs associated with a global labor force, consolidation of the Company’s competitors, increasing regulation and a rapidly evolving global trade environment"
+        }
+      ],
+      "scored": [
+        {
+          "paragraph": "e91-m129",
+          "rank": 1,
+          "score": 17
+        },
+        {
+          "paragraph": "e91-m130",
+          "rank": 2,
+          "score": 16
+        },
+        {
+          "paragraph": "e91-m35",
+          "rank": 3,
+          "score": 7
+        }
+      ],
+      "baseline": "e91-m35",
+      "offered": [
+        "e91-m35",
+        "e91-m129",
+        "e91-m130"
+      ]
+    },
+    {
+      "id": "e92",
+      "set": "final",
+      "question": "What drove Micron Technology's net income up year over year this quarter?",
+      "company": "Micron Technology",
+      "metric": "net_income",
+      "basis": "year_over_year",
+      "report_date": "2026-05-28",
+      "accession": "0000723125-26-000015",
+      "url": "https://www.sec.gov/Archives/edgar/data/723125/000072312526000015/mu-20260528.htm",
+      "reason": "not_discussed",
+      "paragraphs": [
+        {
+          "id": "e92-m14",
+          "text": "Equity in net income (loss) of equity method investees 9 — % (4) — % 7 — % 13 — % 10 — %",
+          "cause": null
+        }
+      ],
+      "scored": [],
+      "baseline": "e92-m14",
+      "offered": []
+    },
+    {
+      "id": "e93",
+      "set": "final",
+      "question": "Why did Broadcom's gross margin rise year over year last quarter?",
+      "company": "Broadcom",
+      "metric": "gross_margin",
+      "basis": "year_over_year",
+      "report_date": "2026-08-02",
+      "accession": "0001730168-26-000080",
+      "url": "https://www.sec.gov/Archives/edgar/data/1730168/000173016826000080/avgo-20260802.htm",
+      "reason": null,
+      "paragraphs": [
+        {
+          "id": "e93-m49",
+          "text": "Gross margin was $20,456 million for the fiscal quarter ended August 2, 2026 compared to $10,703 million for the fiscal quarter ended August 3, 2025 and $49,028 million for the three fiscal quarters ended August 2, 2026 compared to $31,045 million for the three fiscal quarters ended August 3, 2025. The increases were primarily due to strong product demand for our AI-related semiconductor solutions.",
+          "cause": "primarily due to strong product demand for our AI-related semiconductor solutions"
+        },
+        {
+          "id": "e93-m23",
+          "text": "Cost of products sold",
+          "cause": null
+        }
+      ],
+      "scored": [
+        {
+          "paragraph": "e93-m49",
+          "rank": 1,
+          "score": 10
+        }
+      ],
+      "baseline": "e93-m23",
+      "offered": [
+        "e93-m49"
+      ]
+    },
+    {
+      "id": "e94",
+      "set": "final",
+      "question": "Why did Micron Technology's gross profit rise year over year last quarter?",
+      "company": "Micron Technology",
+      "metric": "gross_profit",
+      "basis": "year_over_year",
+      "report_date": "2026-05-28",
+      "accession": "0000723125-26-000015",
+      "url": "https://www.sec.gov/Archives/edgar/data/723125/000072312526000015/mu-20260528.htm",
+      "reason": null,
+      "paragraphs": [
+        {
+          "id": "e94-m26",
+          "text": "Our consolidated gross margin percentage improved to 85% for the third quarter of 2026 from 38% for the third quarter of 2025 and improved to 77% for the first nine months of 2026 from 38% for the first nine months of 2025. Improvements in our consolidated gross margins for the third quarter and first nine months of 2026 as compared to corresponding periods of 2025 were due to improvements in margins for both DRAM and NAND products. Margins improved, primarily due to increases in average selling prices and, to a lesser extent, favorable mix and manufacturing cost reductions.",
+          "cause": "due to improvements in margins for both DRAM and NAND products"
+        },
+        {
+          "id": "e94-m13",
+          "text": "We expect gross margins from our strategic customer agreements with price bands, even at floor pricing levels, to yield gross margins well above our peak quarterly margins in any past cycle. Accordingly, we believe these agreements accelerate the transformation of our business model and will significantly enhance the durability and predictability of our financial performance.",
+          "cause": null
+        }
+      ],
+      "scored": [
+        {
+          "paragraph": "e94-m26",
+          "rank": 1,
+          "score": 28
+        }
+      ],
+      "baseline": "e94-m13",
+      "offered": [
+        "e94-m26"
+      ]
+    },
+    {
+      "id": "e95",
+      "set": "final",
+      "question": "What drove NVIDIA's net income up year over year this quarter?",
+      "company": "NVIDIA",
+      "metric": "net_income",
+      "basis": "year_over_year",
+      "report_date": "2026-07-26",
+      "accession": "0001045810-26-000075",
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm",
+      "reason": "not_discussed",
+      "paragraphs": [],
+      "scored": [],
+      "baseline": null,
+      "offered": []
+    },
+    {
+      "id": "e96",
+      "set": "final",
+      "question": "Why did Palantir Technologies' net income rise year over year last quarter?",
+      "company": "Palantir Technologies",
+      "metric": "net_income",
+      "basis": "year_over_year",
+      "report_date": "2026-06-30",
+      "accession": "0001321655-26-000041",
+      "url": "https://www.sec.gov/Archives/edgar/data/1321655/000132165526000041/pltr-20260630.htm",
+      "reason": null,
+      "paragraphs": [
+        {
+          "id": "e96-m64",
+          "text": "Net income attributable to noncontrolling interests represents the share of income that is not attributable to the Company.",
+          "cause": "attributable to noncontrolling interests represents the share of income that is not attributable to the Company"
+        }
+      ],
+      "scored": [
+        {
+          "paragraph": "e96-m64",
+          "rank": 1,
+          "score": 15
+        }
+      ],
+      "baseline": "e96-m64",
+      "offered": [
+        "e96-m64"
+      ]
+    },
+    {
+      "id": "e97",
+      "set": "final",
+      "question": "What caused Tesla's cost of revenue to rise year over year last quarter?",
+      "company": "Tesla",
+      "metric": "cost_of_revenue",
+      "basis": "year_over_year",
+      "report_date": "2026-06-30",
+      "accession": "0001628280-26-049270",
+      "url": "https://www.sec.gov/Archives/edgar/data/1318605/000162828026049270/tsla-20260630.htm",
+      "reason": null,
+      "paragraphs": [
+        {
+          "id": "e97-m32",
+          "text": "Cost of automotive sales revenue increased $3.30 billion, or 24%, in the three months ended June 30, 2026 as compared to the three months ended June 30, 2025, due to the increase in deliveries year over year as discussed above.",
+          "cause": "due to the increase in deliveries year over year as discussed above"
+        },
+        {
+          "id": "e97-m37",
+          "text": "Cost of energy generation and storage revenue increased $556 million, or 29%, in the three months ended June 30, 2026 as compared to the three months ended June 30, 2025, primarily due to the deployment fluctuations as discussed above, as well as an increase in average cost per MWh primarily driven by sales mix and unfavorable warranty adjustments.",
+          "cause": "primarily due to the deployment fluctuations as discussed above, as well as an increase in average cost per MWh primarily driven by sales mix and unfavorable warranty adjustments"
+        },
+        {
+          "id": "e97-m38",
+          "text": "Gross margin for energy generation and storage decreased from 30.3% to 20.4% in the three months ended June 30, 2026 as compared to the three months ended June 30, 2025. The decrease was primarily due to the changes in energy generation and storage revenue and cost of energy generation and storage revenue, as discussed above.",
+          "cause": "primarily due to the changes in energy generation and storage revenue and cost of energy generation and storage revenue, as discussed above"
+        },
+        {
+          "id": "e97-m27",
+          "text": "Total automotive & services and other segment cost of revenues 20,986 16,675 4,311 26 % 37,197 30,912 6,285 20 %",
+          "cause": null
+        }
+      ],
+      "scored": [
+        {
+          "paragraph": "e97-m32",
+          "rank": 1,
+          "score": 23
+        },
+        {
+          "paragraph": "e97-m37",
+          "rank": 2,
+          "score": 22
+        },
+        {
+          "paragraph": "e97-m38",
+          "rank": 3,
+          "score": 19
+        }
+      ],
+      "baseline": "e97-m27",
+      "offered": [
+        "e97-m32",
+        "e97-m37",
+        "e97-m38"
+      ]
+    },
+    {
+      "id": "e98",
+      "set": "final",
+      "question": "What drove NVIDIA's SG&A expenses up year over year this quarter?",
+      "company": "NVIDIA",
+      "metric": "selling_general_and_administrative",
+      "basis": "year_over_year",
+      "report_date": "2026-07-26",
+      "accession": "0001045810-26-000075",
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm",
+      "reason": null,
+      "paragraphs": [
+        {
+          "id": "e98-m51",
+          "text": "The increases in sales, general and administrative expenses for the second quarter and first half of fiscal year 2027 were primarily driven by compensation and benefits, including stock-based compensation, reflecting employee growth and compensation increases.",
+          "cause": "primarily driven by compensation and benefits, including stock-based compensation, reflecting employee growth and compensation increases"
+        },
+        {
+          "id": "e98-m20",
+          "text": "Our global supply chain for networking products, including our Israel operations, with approximately 6,200 employees, supporting research and development, operations, and sales and marketing, has not been significantly impacted by the conflict in the Middle East. If the conflict escalates or extends, it could affect future product development, supply chain, and revenue, and create business uncertainty.",
+          "cause": null
+        }
+      ],
+      "scored": [
+        {
+          "paragraph": "e98-m51",
+          "rank": 1,
+          "score": 20
+        }
+      ],
+      "baseline": "e98-m20",
+      "offered": [
+        "e98-m51"
+      ]
+    },
+    {
+      "id": "e99",
+      "set": "final",
+      "question": "Why did Danaher's operating income rise year over year last quarter?",
+      "company": "Danaher",
+      "metric": "operating_income",
+      "basis": "year_over_year",
+      "report_date": "2026-06-26",
+      "accession": "0000313616-26-000161",
+      "url": "https://www.sec.gov/Archives/edgar/data/313616/000031361626000161/dhr-20260626.htm",
+      "reason": null,
+      "paragraphs": [
+        {
+          "id": "e99-m86",
+          "text": "Operating profit margins increased 30 basis points during the three-month period ended June 26, 2026 as compared to the comparable period of 2025 due to higher second quarter 2026 core sales, net of the impact of product mix.",
+          "cause": "due to higher second quarter 2026 core sales, net of the impact of product mix"
+        },
+        {
+          "id": "e99-m87",
+          "text": "Operating profit margins increased 120 basis points during the six-month period ended June 26, 2026 as compared to the comparable period of 2025. The following factors favorably impacted year-over-year operating profit margin:",
+          "cause": null
+        },
+        {
+          "id": "e99-m101",
+          "text": "Operating profit margins increased 2,640 basis points during the three-month period ended June 26, 2026 as compared to the comparable period of 2025. The following factors favorably impacted year-over-year operating profit margin:",
+          "cause": null
+        },
+        {
+          "id": "e99-m46",
+          "text": "References to sales or operating profit attributable to acquisitions or acquired businesses refer to sales or operating profit, as applicable, from acquired businesses recorded prior to the first anniversary of the acquisition less any sales and operating profit, during the applicable period, attributable to divested product lines not considered discontinued operations. The portion of revenue attributable to currency translation is calculated as the difference between:",
+          "cause": null
+        },
+        {
+          "id": "e99-m59",
+          "text": "Operating profit margins increased 520 basis points from 12.8% during the three-month period ended June 27, 2025 to 18.0% for the three-month period ended June 26, 2026.",
+          "cause": null
+        },
+        {
+          "id": "e99-m66",
+          "text": "Operating profit margins increased 280 basis points from 17.4% during the six-month period ended June 27, 2025 to 20.2% for the six-month period ended June 26, 2026.",
+          "cause": null
+        },
+        {
+          "id": "e99-m104",
+          "text": "Operating profit margins increased 1,410 basis points during the six-month period ended June 26, 2026 as compared to the comparable period of 2025. The following factors favorably impacted year-over-year operating profit margin:",
+          "cause": null
+        },
+        {
+          "id": "e99-m120",
+          "text": "Operating profit margin decreased 710 basis points during the three-month period ended June 26, 2026 as compared to the comparable period of 2025. The following factors unfavorably impacted year-over-year operating profit margin:",
+          "cause": null
+        },
+        {
+          "id": "e99-m124",
+          "text": "Operating profit margin decreased 440 basis points during the six-month period ended June 26, 2026 as compared to the comparable period of 2025. The following factors unfavorably impacted year-over-year operating profit margin:",
+          "cause": null
+        }
+      ],
+      "scored": [
+        {
+          "paragraph": "e99-m86",
+          "rank": 1,
+          "score": 23
+        },
+        {
+          "paragraph": "e99-m87",
+          "rank": 2,
+          "score": 11
+        },
+        {
+          "paragraph": "e99-m101",
+          "rank": 3,
+          "score": 11
+        }
+      ],
+      "baseline": "e99-m46",
+      "offered": [
+        "e99-m59",
+        "e99-m66",
+        "e99-m86",
+        "e99-m87",
+        "e99-m101",
+        "e99-m104",
+        "e99-m120",
+        "e99-m124"
+      ]
+    },
+    {
+      "id": "e100",
+      "set": "final",
+      "question": "What caused Alphabet's cost of revenue to rise year over year last quarter?",
+      "company": "Alphabet",
+      "metric": "cost_of_revenue",
+      "basis": "year_over_year",
+      "report_date": "2026-06-30",
+      "accession": "0001652044-26-000071",
+      "url": "https://www.sec.gov/Archives/edgar/data/1652044/000165204426000071/goog-20260630.htm",
+      "reason": null,
+      "paragraphs": [
+        {
+          "id": "e100-m99",
+          "text": "Cost of revenues increased $6.9 billion from the three months ended June 30, 2025 to the three months ended June 30, 2026 due to an increase in other cost of revenues and TAC of $5.4 billion and $1.5 billion, respectively. Cost of revenues increased $11.8 billion from the six months ended June 30, 2025 to the six months ended June 30, 2026 due to an increase in other cost of revenues and TAC of $8.9 billion and $3.0 billion, respectively.",
+          "cause": "due to an increase in other cost of revenues and TAC of $5.4 billion and $1.5 billion, respectively"
+        },
+        {
+          "id": "e100-m101",
+          "text": "The increase in other cost of revenues from the three months ended June 30, 2025 to the three months ended June 30, 2026 was primarily due to increases in depreciation expense, inventory and other costs, content acquisition costs, largely for YouTube, and other technical infrastructure operations costs.",
+          "cause": "primarily due to increases in depreciation expense, inventory and other costs, content acquisition costs, largely for YouTube, and other technical infrastructure operations costs"
+        },
+        {
+          "id": "e100-m71",
+          "text": "•Cost of revenues was $45.9 billion, an increase of 18% year over year, primarily driven by increases in depreciation expense, TAC, inventory and other costs, content acquisition costs, and other technical infrastructure operations costs.",
+          "cause": "primarily driven by increases in depreciation expense, TAC, inventory and other costs, content acquisition costs, and other technical infrastructure operations costs"
+        },
+        {
+          "id": "e100-m38",
+          "text": "Our cost structure has two components: cost of revenues and operating expenses. Our operating expenses include costs related to research and development, sales and marketing, and general and administrative functions. Certain of our costs and expenses, including those associated with the operation of our technical infrastructure as well as components of our operating expenses, are generally less variable in nature and may not correlate to changes in revenue. Additionally, fluctuations in employee compensation expenses may not directly correlate with changes in headcount, due to factors such as annual SBC awards that vest over time.",
+          "cause": null
+        }
+      ],
+      "scored": [
+        {
+          "paragraph": "e100-m99",
+          "rank": 1,
+          "score": 27
+        },
+        {
+          "paragraph": "e100-m101",
+          "rank": 2,
+          "score": 17
+        },
+        {
+          "paragraph": "e100-m71",
+          "rank": 3,
+          "score": 15
+        }
+      ],
+      "baseline": "e100-m38",
+      "offered": [
+        "e100-m71",
+        "e100-m99",
+        "e100-m101"
+      ]
     }
   ]
 }

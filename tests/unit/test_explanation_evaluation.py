@@ -3,6 +3,7 @@
 import json
 from collections import Counter
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 
@@ -81,6 +82,35 @@ def test_the_confirm_draw_is_reproducible_year_over_year_covered_and_unseen(
     assert not {case.id for case in confirm} & {case.id for case in [*first, *held_out]}
 
 
+def test_the_final_draw_is_reproducible_year_over_year_covered_and_unseen(
+    first: list[ev.ExplanationCase], drawn: list[ev.ExplanationCase]
+) -> None:
+    # Counts, metrics, companies and overlap only: the final cases' paragraphs are not read.
+    earlier = [case for case in drawn if case.set in ("held-out", "confirm")]
+    used = _triples(first) | _triples(earlier)
+    final = [case for case in drawn if case.set == "final"]
+    assert ev.FINAL_SEED == 20261111
+    assert ev.draw_final(ev.FINAL_SEED, used) == final
+    assert ev.draw_final(ev.FINAL_SEED + 1, used) != final
+    assert len(final) == 20
+    assert {case.basis for case in final} == {"year_over_year"}
+    assert {case.metric for case in final} <= set(ev.explained_metrics())
+    assert not _triples(final) & used
+    assert len(_triples(final)) == 20
+    assert max(Counter(case.cik for case in final).values()) <= 2
+    assert [case.id for case in final] == [f"e{number}" for number in range(81, 101)]
+    assert not {case.id for case in final} & {case.id for case in [*first, *earlier]}
+
+
+def test_the_model_sets_are_the_in_scope_cases(drawn: list[ev.ExplanationCase]) -> None:
+    tuning = ev.model_cases("tuning", drawn)
+    final = ev.model_cases("final", drawn)
+    assert len(tuning) == 32
+    assert {case.set for case in tuning} == {"dev", "held-out", "confirm"}
+    assert len(final) == 20
+    assert all(ev.covers(case.metric, case.basis) for case in [*tuning, *final])
+
+
 def test_the_committed_cases_are_the_draws_from_their_seeds(
     drawn: list[ev.ExplanationCase],
 ) -> None:
@@ -89,6 +119,7 @@ def test_the_committed_cases_are_the_draws_from_their_seeds(
         "dev": ev.SEED,
         "held-out": ev.HELD_OUT_SEED,
         "confirm": ev.CONFIRM_SEED,
+        "final": 20261111,
     }
     assert "leave the evaluation" in committed["notes"]
     assert ev.load_cases() == drawn
@@ -99,7 +130,8 @@ def test_every_case_is_a_metric_with_words_and_a_recorded_latest_10q(
 ) -> None:
     documents = ev.recorded_documents()
     for case in drawn:
-        covered = ev.explained_metrics() if case.set == "confirm" else ev.SECOND_DRAW_METRICS
+        narrowed = case.set in ("confirm", "final")
+        covered = ev.explained_metrics() if narrowed else ev.SECOND_DRAW_METRICS
         assert case.metric in covered
         assert f"{case.cik}:{case.accession}:{case.document}" in documents
         assert case.latest is not None
@@ -155,6 +187,14 @@ def test_candidates_are_offline_deterministic_and_committed() -> None:
         assert len(entry["scored"]) <= 3
         assert {rank["paragraph"] for rank in entry["scored"]} <= ids
         assert entry["baseline"] is None or entry["baseline"] in ids
+        # Phase B's candidates are labelled too, in the order the model sees them.
+        assert len(entry["offered"]) <= 8
+        assert set(entry["offered"]) <= ids
+        assert {rank["paragraph"] for rank in entry["scored"]} <= set(entry["offered"])
+        places = [int(pid.rsplit("-m", 1)[1]) for pid in entry["offered"]]
+        assert places == sorted(places)
+        if not ev.covers(entry["metric"], entry["basis"]):
+            assert entry["offered"] == []
 
 
 def test_a_paragraph_id_is_its_place_in_the_mda() -> None:
@@ -374,3 +414,119 @@ def test_the_judge_labels_every_paragraph_and_mda_once_and_resumes() -> None:
     again = ev.judge_candidates(candidates, {"a": "<html></html>"}, fake, record)
     assert asked == [] and again["labels"] == record["labels"]
     assert ev.spot_check(record, count=1) in (["a-p1"], ["a-p2"])
+
+
+def test_a_set_with_no_labels_yet_is_reported_unjudged() -> None:
+    candidates = {"cases": [_candidate("a", ["a1"], "a1"), _candidate("f", ["f1"], None)]}
+    labels = {"labels": {"a": {"nothing_to_find": False, "explains": {"a1": True}}}}
+    summary = ev.score(candidates, labels, {"a": "confirm", "f": "final"})
+    assert summary["confirm"]["scoring"]["at_1"] == 1
+    assert summary["final"] == {"unjudged": 1, "outside_scope": 0}
+    report = ev.report_markdown(summary, judge="test")
+    assert "Not judged yet" in report.split("## final")[1]
+
+
+def _answer(case_id: str, chosen: list[str], reason: str | None) -> dict[str, object]:
+    return {
+        "id": case_id,
+        "set": "dev",
+        "metric": "revenue",
+        "basis": "year_over_year",
+        "offered": chosen,
+        "chosen": [{"id": pid, "text": f"Revenue rose. ({pid})"} for pid in chosen],
+        "explanation": "",
+        "reason": reason,
+        "failed": [],
+        "reply": "",
+    }
+
+
+def test_the_models_choice_is_scored_like_phase_as_and_withheld_counts_as_nothing() -> None:
+    answers = {
+        "model": "fake",
+        "instructions": "abc",
+        "cases": [
+            _answer("a", ["a2", "a1"], None),  # the second chosen explains
+            _answer("b", [], "quote_outside"),  # withheld, and there was a cause
+            _answer("c", [], "nothing_found"),  # right: nothing to find
+            _answer("d", ["d7"], None),  # d7 is not labelled yet
+            _answer("e", [], "numeral_lock"),  # the case is not judged at all
+        ],
+    }
+    labels = {
+        "labels": {
+            "a": {"nothing_to_find": False, "explains": {"a1": True, "a2": False}},
+            "b": {"nothing_to_find": False, "explains": {}},
+            "c": {"nothing_to_find": True, "explains": {}},
+            "d": {"nothing_to_find": False, "explains": {"d1": True}},
+        },
+        "judgements": {"a1": {"scope": "part"}, "a2": {"scope": "company"}},
+    }
+    result = ev.score_model(answers, labels)
+    assert result["scoring"] == {
+        "cases": 3,
+        "shown": 1,
+        "at_1": 0,
+        "at_3": 1,
+        "nothing_found": 2,
+        "nothing_found_right": 1,
+    }
+    # Strict counts only company-wide causes: a1's cause is a part's.
+    assert result["scoring_strict"]["at_3"] == 0
+    assert result["outcomes"] == {
+        "nothing_found": 1,
+        "numeral_lock": 1,
+        "quote_outside": 1,
+        "shown": 2,
+    }
+    assert result["withheld"] == 2
+    assert result["unlabelled"] == [
+        {"case": "d", "paragraph": "d7"},
+        {"case": "e", "paragraph": "e-mda"},
+    ]
+    summary = ev.score({"cases": []}, labels, {})
+    report = ev.report_markdown(summary, judge="test", model={"tuning": result})
+    section = report.split("## Phase B, tuning")[1]
+    assert "| model | 1 of 3 | 0.00 (0 of 1) | 1.00 (1 of 1) | 0.50 (1 of 2) |" in section
+    assert "Withheld: 0.40 (2 of 5)" in section
+    assert "- d7 (d)" in section and "- e-mda (e)" in section
+
+
+class _FakeCompleter:
+    """Chooses the first candidate, with an explanation that quotes nothing."""
+
+    def __init__(self) -> None:
+        self.asked = 0
+
+    def complete_essay(self, query: str, tool_json: str = "") -> str:
+        self.asked += 1
+        return json.dumps({"paragraphs": [1], "explanation": "Management gives a cause."})
+
+
+def test_generate_runs_offline_with_a_fake_completer(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    fake = _FakeCompleter()
+    monkeypatch.setattr(ev, "_model_completer", lambda model: (fake, model or "fake-model"))
+    monkeypatch.setattr(ev, "EVALUATION", tmp_path)
+    ev.main(["generate", "--model", "--set", "tuning"])
+    written = json.loads((tmp_path / "explanation-model-tuning.json").read_text(encoding="utf-8"))
+    assert written["model"] == "fake-model"
+    assert written["instructions"] == ev.instructions_version()
+    tuning = ev.model_cases("tuning", ev.load_cases())
+    assert [entry["id"] for entry in written["cases"]] == [case.id for case in tuning]
+    candidates = {
+        entry["id"]: entry
+        for entry in json.loads(ev.CANDIDATES_PATH.read_text(encoding="utf-8"))["cases"]
+    }
+    asked = 0
+    for entry in written["cases"]:
+        offered = candidates[entry["id"]]["offered"]
+        assert entry["offered"] == offered
+        if offered:
+            asked += 1
+            assert entry["reason"] is None
+            assert [chosen["id"] for chosen in entry["chosen"]] == offered[:1]
+        else:
+            assert entry["reason"] == "not_discussed" and entry["chosen"] == []
+    assert fake.asked == asked > 0

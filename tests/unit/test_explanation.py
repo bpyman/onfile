@@ -4,23 +4,36 @@ import json
 import os
 import subprocess
 import sys
+from decimal import Decimal
 from functools import cache
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
+from financial_analyst_agent import explanation
+from financial_analyst_agent.config import Settings
+from financial_analyst_agent.essay import OpenAIEssayCompleter
 from financial_analyst_agent.explanation import (
+    EXPLANATION_ESSAY,
+    EXPLANATION_INSTRUCTIONS,
+    NOT_FOUND_MESSAGE,
+    ModelExplanation,
+    WhyQuestion,
     covers,
     explained_metrics,
+    explanation_candidates,
     is_about_another_metric,
     management_explanation,
     mentions_metric,
+    model_explanation,
 )
 from financial_analyst_agent.filing_change import (
     extract_section,
     filing_anchor_url,
     section_paragraphs,
 )
+from financial_analyst_agent.model_spend import DailySpendCap, SpendCapReached
 from financial_analyst_agent.providers.sec.urls import build_filing_document_url
 
 RECORDINGS = (
@@ -441,3 +454,238 @@ def test_the_result_does_not_depend_on_hash_ordering(seeds: tuple[str, str]) -> 
         outputs.append(completed.stdout)
     assert outputs[0] == outputs[1]
     assert json.loads(outputs[0])
+
+
+# --- phase B: the model chooses, under a quote lock (ticket 07) ----------------------
+
+HIV = (
+    "Total revenues increased $1.2 billion, or 9%, compared with the same quarter of 2025, "
+    "primarily due to higher sales of HIV products."
+)
+ONCOLOGY = (
+    "Revenue from oncology products declined in the quarter, primarily due to generic "
+    "competition, which cost $4.4 billion."
+)
+NET_INCOME = "Net income rose in the quarter, primarily due to lower taxes on our earnings."
+ASKED = WhyQuestion(
+    company="Gilead",
+    question="Why did Gilead's revenue rise year over year last quarter?",
+    quarter_ended="2026-06-30",
+    direction="rose",
+)
+
+
+class FakeCompleter:
+    """Answers every request with one reply and keeps what it was asked."""
+
+    def __init__(self, reply: str) -> None:
+        self.reply = reply
+        self.asked: list[tuple[str, str]] = []
+
+    def complete_essay(self, query: str, tool_json: str = "") -> str:
+        self.asked.append((query, tool_json))
+        return self.reply
+
+
+def _model(reply: str, *paragraphs: str) -> ModelExplanation:
+    html = _mda(*(paragraphs or (HIV, ONCOLOGY)))
+    completer = FakeCompleter(reply)
+    return model_explanation(html, "revenue", "year_over_year", URL, completer, asked=ASKED)
+
+
+def _answer(paragraphs: object, explanation: str) -> str:
+    return json.dumps({"paragraphs": paragraphs, "explanation": explanation})
+
+
+def test_the_instructions_are_the_draft_between_its_rules() -> None:
+    draft = (
+        Path(__file__).resolve().parents[2]
+        / "docs"
+        / "process"
+        / "tickets"
+        / "why-from-the-filing"
+        / "phase-b-prompt.md"
+    ).read_text(encoding="utf-8")
+    between_the_rules = draft.split("\n---\n")[1].strip("\n")
+    assert between_the_rules == EXPLANATION_INSTRUCTIONS
+    assert EXPLANATION_ESSAY.explain == EXPLANATION_INSTRUCTIONS
+    assert EXPLANATION_ESSAY.analysis == EXPLANATION_ESSAY.news == EXPLANATION_INSTRUCTIONS
+
+
+def test_a_checked_answer_keeps_the_models_order_and_explanation() -> None:
+    explanation = 'Revenue rose $1.2 billion, "primarily due to higher sales of HIV products".'
+    result = _model(_answer([2, 1], explanation))
+    assert result.reason is None
+    assert [paragraph.text for paragraph in result.paragraphs] == [ONCOLOGY, HIV]
+    assert result.explanation == explanation
+    assert result.paragraphs[1].url == filing_anchor_url(URL, HIV)
+
+
+def test_the_input_is_the_question_then_the_candidates_numbered_in_filing_order() -> None:
+    completer = FakeCompleter(_answer([], ""))
+    model_explanation(_mda(HIV, ONCOLOGY), "revenue", None, URL, completer, asked=ASKED)
+    [(query, tool_json)] = completer.asked
+    # No grounding JSON: the essay completer sends its "explain" instructions, which
+    # EXPLANATION_ESSAY sets to the explanation brief.
+    assert tool_json == ""
+    assert query == "\n".join(
+        [
+            "Company: Gilead",
+            "Figure: revenue, which rose year over year",
+            "Quarter ended: 2026-06-30",
+            f"Question: {ASKED.question}",
+            "",
+            f"Paragraph 1: {HIV}",
+            "",
+            f"Paragraph 2: {ONCOLOGY}",
+        ]
+    )
+
+
+def test_the_candidates_are_phase_as_best_eight_in_filing_order() -> None:
+    weak = [
+        f"Revenue in region {name} was higher than before in the period we report."
+        for name in ("one", "two")
+    ]
+    strong = [
+        "Total revenue increased in the quarter compared with the same quarter of the prior "
+        f"year, primarily due to higher demand in region {number}."
+        for number in range(3, 11)
+    ]
+    html = _mda(weak[0], *strong[:4], weak[1], *strong[4:])
+    offered = explanation_candidates(html, "revenue", "year_over_year", URL)
+    assert [paragraph.text for paragraph in offered] == strong
+    # Phase A's own choice is still its top three.
+    phase_a = management_explanation(html, "revenue", "year_over_year", URL)
+    assert len(phase_a.paragraphs) == 3
+    assert {paragraph.text for paragraph in phase_a.paragraphs} <= set(strong)
+
+
+@pytest.mark.parametrize(
+    "reply",
+    [
+        "I think paragraph 1 explains it.",
+        '["not", "an object"]',
+        '{"paragraphs": "1", "explanation": "x"}',
+        '{"paragraphs": [1]}',
+        '{"paragraphs": [1], "explanation": null}',
+        '{"paragraphs": [1], "explanation": "unclosed}',
+    ],
+)
+def test_an_answer_that_is_not_the_json_shape_is_unparseable(reply: str) -> None:
+    result = _model(reply)
+    assert (result.reason, result.paragraphs, result.explanation) == ("unparseable", (), "")
+    assert result.reply == reply
+
+
+@pytest.mark.parametrize(
+    "numbers", [[3], [0], [-1], [1, 2, 1], [True], ["1"], [1.0], [None]]
+)
+def test_a_choice_outside_the_candidates_is_bad(numbers: list[object]) -> None:
+    result = _model(_answer(numbers, ""))
+    assert (result.reason, result.paragraphs, result.explanation) == ("bad_choice", (), "")
+
+
+def test_more_than_three_choices_are_bad() -> None:
+    four = [HIV, ONCOLOGY, HIV.replace("HIV", "liver"), ONCOLOGY.replace("oncology", "eye")]
+    result = _model(_answer([1, 2, 3, 4], ""), *four)
+    assert len(result.offered) == 4
+    assert result.reason == "bad_choice"
+
+
+def test_an_empty_choice_is_nothing_found() -> None:
+    result = _model(_answer([], ""))
+    assert (result.reason, result.paragraphs) == ("nothing_found", ())
+    assert NOT_FOUND_MESSAGE == "I couldn't find management's explanation in this 10-Q"
+
+
+def test_a_quotation_not_in_the_chosen_paragraphs_withholds_the_whole_answer() -> None:
+    # A paraphrase in quotation marks.
+    result = _model(_answer([1], 'Revenue rose on "higher HIV product sales".'))
+    assert (result.reason, result.paragraphs, result.explanation) == ("quote_outside", (), "")
+    assert result.failed == ("higher HIV product sales",)
+    # Verbatim, but from a candidate the model did not choose.
+    result = _model(_answer([1], 'Oncology fell "primarily due to generic competition".'))
+    assert result.reason == "quote_outside"
+
+
+def test_a_figure_not_in_the_chosen_paragraphs_withholds_the_whole_answer() -> None:
+    quoted = '"primarily due to higher sales of HIV products"'
+    # $4.4 billion is in a candidate, but not in the one chosen.
+    result = _model(_answer([1], f"Revenue rose {quoted}, despite a $4.4 billion loss."))
+    assert (result.reason, result.paragraphs) == ("numeral_lock", ())
+    assert result.failed == ("$4.4 billion",)
+    computed = _model(_answer([1], f"Revenue rose about 10%, {quoted}."))
+    assert computed.reason == "numeral_lock"
+    grounded = _model(_answer([1, 2], f"Revenue rose 9% {quoted}, despite $4.4 billion."))
+    assert grounded.reason is None
+
+
+@pytest.mark.parametrize(
+    ("metric", "basis", "paragraph", "reason"),
+    [
+        ("revenue", "sequential", HIV, "basis_not_discussed"),
+        ("operating_margin", "year_over_year", HIV, "metric_not_covered"),
+        ("revenue", "year_over_year", NET_INCOME, "not_discussed"),
+    ],
+)
+def test_the_model_is_not_asked_without_candidates(
+    metric: str, basis: str, paragraph: str, reason: str
+) -> None:
+    completer = FakeCompleter(_answer([1], ""))
+    html = _mda(paragraph)
+    result = model_explanation(html, metric, basis, URL, completer, asked=ASKED)  # type: ignore[arg-type]
+    assert completer.asked == []
+    assert (result.reason, result.paragraphs) == (reason, ())
+
+
+class _Responses:
+    def __init__(self, reply: str) -> None:
+        self.reply = reply
+        self.sent: list[dict[str, object]] = []
+
+    def create(self, **request: object) -> SimpleNamespace:
+        self.sent.append(request)
+        usage = SimpleNamespace(input_tokens=1_000_000, output_tokens=0)
+        return SimpleNamespace(output_text=self.reply, usage=usage)
+
+
+def test_the_essay_completer_sends_the_brief_and_charges_the_daily_cap() -> None:
+    responses = _Responses(_answer([], ""))
+    spend = DailySpendCap(Decimal("1"))
+    completer = OpenAIEssayCompleter(
+        SimpleNamespace(responses=responses), "gpt-6.1-sol", EXPLANATION_ESSAY, spend=spend
+    )
+    html = _mda(HIV, ONCOLOGY)
+    model_explanation(html, "revenue", None, URL, completer, asked=ASKED)
+    [request] = responses.sent
+    assert request["instructions"] == EXPLANATION_INSTRUCTIONS
+    assert request["model"] == "gpt-6.1-sol"
+    assert str(request["input"]).startswith("Company: Gilead")
+    # A million input tokens at gpt-6.1-sol's $2 per million.
+    assert spend.spent_today == Decimal(2)
+    with pytest.raises(SpendCapReached):
+        model_explanation(html, "revenue", None, URL, completer, asked=ASKED)
+    assert len(responses.sent) == 1
+
+
+def test_the_completer_uses_the_apps_client_essay_model_and_spend_file(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    responses = _Responses(_answer([], ""))
+    monkeypatch.setattr(
+        explanation,
+        "openai_client_from_settings",
+        lambda settings: (SimpleNamespace(responses=responses), "planner-model"),
+    )
+    ledger = tmp_path / "spend.json"
+    settings = Settings(
+        _env_file=None,  # type: ignore[call-arg]
+        openai_essay_model="gpt-6.1-sol",
+        openai_daily_budget_usd=5.0,
+        openai_spend_file=str(ledger),
+    )
+    completer = explanation.explanation_completer(settings)
+    model_explanation(_mda(HIV, ONCOLOGY), "revenue", None, URL, completer, asked=ASKED)
+    assert responses.sent[0]["model"] == "gpt-6.1-sol"
+    assert Decimal(json.loads(ledger.read_text(encoding="utf-8"))["spent_usd"]) == 2

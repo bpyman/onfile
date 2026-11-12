@@ -3425,3 +3425,47 @@ Blockers / next:
   `score --labels docs/evaluation/explanation-labels.json`.
 - 2,669 tests pass; ruff and mypy are clean; compare_answers reports `0 of 893 conversations
   differ from HEAD`.
+
+
+## 2026-11-11 — why-from-the-filing 07: phase B, the model chooses under a quote lock
+
+Ticket: `docs/process/tickets/why-from-the-filing/issues/07-phase-b-the-model-chooses-under-a-quote-lock.md`
+
+Key decisions:
+- `quote_lock.quotes_outside` normalises whitespace and quote shapes only; an unclosed quotation
+  runs to the end of the text and is checked.
+- `explanation.model_explanation(..., completer, *, asked=WhyQuestion(...))` offers phase A's
+  best eight eligible paragraphs in filing order (`explanation_candidates`). It calls
+  `complete_essay(input)` with no grounding JSON; `EXPLANATION_ESSAY` sets every essay kind to
+  `EXPLANATION_INSTRUCTIONS`, so `OpenAIEssayCompleter` and its `DailySpendCap` are reused
+  unchanged (`explanation_completer`). Any failed check withholds everything (`bad_choice`,
+  `unparseable`, `quote_outside`, `numeral_lock`); `[]` is `nothing_found`. No candidate means
+  no call, and phase A's reason.
+- `EXPLANATION_INSTRUCTIONS` is the draft's text between its rules, verbatim, marked DRAFT; a
+  test holds it to `phase-b-prompt.md`.
+- Candidates gain `offered`, so `judge` labels whatever the model can choose. The earlier sets'
+  candidates are otherwise unchanged (38 new paragraphs to label).
+- `generate --model [NAME] --set tuning|final` writes `explanation-model-<set>.json`.
+  `score` adds phase B sections, with a withheld answer counted as nothing found, outcomes by
+  reason, and unlabelled paragraphs listed. A set with no labels yet is "not judged yet".
+- Final set: e81 to e100, seed 20261111, 20 year over year on covered metrics, 14 companies
+  (none more than twice), no (company, metric, basis) shared with any earlier set. Only counts,
+  metrics, companies and overlap were checked.
+- ADR 0017 says phase A's paragraphs show when the model is withheld; the ticket says not.
+  Followed the ticket and logged it in `rules-to-review.md`.
+
+Files changed:
+- `src/financial_analyst_agent/quote_lock.py` (new), `src/financial_analyst_agent/explanation.py`,
+  `src/financial_analyst_agent/explanation_evaluation.py`
+- `tests/unit/test_quote_lock.py` (new), `tests/unit/test_explanation.py`,
+  `tests/unit/test_explanation_evaluation.py`
+- `docs/evaluation/explanation-cases.json`, `docs/evaluation/explanation-candidates.json`
+- `docs/process/rules-to-review.md`, the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- Blake reviews the prompt. Then, paid and a person's: `generate --model --set tuning`, `judge`
+  (labels only what has none: 38 tuning paragraphs, the final set's 76 paragraphs and 20
+  MD&As), `score --labels docs/evaluation/explanation-labels.json`; tune; then
+  `generate --model --set final` once, and `score`.
+- 2,710 tests pass; ruff and mypy are clean; compare_answers reports `0 of 893 conversations
+  differ from HEAD`.

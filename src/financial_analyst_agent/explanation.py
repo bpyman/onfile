@@ -36,22 +36,42 @@ investing cash flows is about another metric for every metric covered. Ties keep
 filing's order. Margins other than gross margin, ratios, cash flow and capex are not
 covered for now (``_METRIC_FAMILY``).
 The weights are a first cut; the explanation evaluation measures them.
+
+Phase B (``model_explanation``, ticket 07) makes phase A the retrieval stage: its best
+eight eligible paragraphs, numbered in filing order, go to the essay model, which
+chooses up to three and explains the move in management's words. Code checks the
+answer: the choice must be among the candidates, every quotation must be in the
+chosen paragraphs (``quote_lock``), and every figure must pass the numeral lock.
+Any failure withholds the whole answer, and the analyst is told the explanation was
+not found (``NOT_FOUND_MESSAGE``), never shown phase A's paragraphs instead.
 """
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass
+from decimal import Decimal
+from pathlib import Path
 from typing import Literal
 
-from financial_analyst_agent.contracts import ComparisonBase
+from financial_analyst_agent.config import Settings
+from financial_analyst_agent.contracts import ComparisonBase, EssayCompleter
+from financial_analyst_agent.essay import EssayInstructions, OpenAIEssayCompleter
 from financial_analyst_agent.filing_change import (
     extract_section,
     filing_anchor_url,
     section_paragraphs,
 )
+from financial_analyst_agent.model_spend import DailySpendCap
+from financial_analyst_agent.numeral_lock import numeral_lock_extras
+from financial_analyst_agent.planner import openai_client_from_settings
+from financial_analyst_agent.quote_lock import quotes_outside
+from financial_analyst_agent.services.metric_catalog import METRIC_DISPLAY
 
 MAX_PARAGRAPHS = 3
+# Phase B's candidates: phase A's eligible paragraphs, best first, beyond its top three.
+MAX_CANDIDATES = 8
 
 # ``basis_not_discussed``: a sequential question, where the MD&A explains the same
 # metric against a year earlier; those paragraphs come as the alternative.
@@ -503,6 +523,18 @@ def _choose(
     basis: ComparisonBase | None,
     source_url: str,
 ) -> tuple[ExplainingParagraph, ...]:
+    ranked = _ranked(paragraphs, metric, family, basis, source_url)
+    return tuple(chosen for _, chosen in ranked[:MAX_PARAGRAPHS])
+
+
+def _ranked(
+    paragraphs: list[str],
+    metric: str,
+    family: str,
+    basis: ComparisonBase | None,
+    source_url: str,
+) -> list[tuple[int, ExplainingParagraph]]:
+    """Every paragraph that can be chosen, best first, with its place in the MD&A."""
     ranked: list[tuple[int, int, ExplainingParagraph]] = []
     for position, paragraph in enumerate(paragraphs):
         # A paragraph about another metric is never shown: with nothing about this
@@ -521,4 +553,259 @@ def _choose(
         )
         ranked.append((-score, position, chosen))
     ranked.sort(key=lambda entry: entry[:2])
-    return tuple(entry[2] for entry in ranked[:MAX_PARAGRAPHS])
+    return [(position, chosen) for _, position, chosen in ranked]
+
+
+# --- phase B: the model chooses, under a quote lock (ticket 07) ----------------------
+
+# DRAFT, awaiting Blake's review: the text between the two rules of
+# docs/process/tickets/why-from-the-filing/phase-b-prompt.md, verbatim. No model is
+# called with it until it is approved.
+EXPLANATION_INSTRUCTIONS = """\
+You are helping an equity analyst who has just looked at a company's quarterly figure and \
+asked why it moved. Below the question are numbered paragraphs from the Management's \
+Discussion and Analysis (MD&A) of the 10-Q that figure came from. Find the paragraphs in which \
+management says what caused this figure's move in this quarter, compared with the same quarter \
+a year earlier. Then explain the move in management's own words.
+
+## What a strong answer does
+
+- **It chooses only paragraphs that state a cause** of this figure's move, in this quarter, \
+against the year-earlier quarter. A cause says what drove the move: products, segments, \
+regions, price, volume, mix, currency, a charge or its absence, an acquisition, a cost.
+- **It counts a part of the company** (a segment, a product line, a region) only when that \
+part moved the same way as the figure asked about and is given as driving it. A segment whose \
+margin rose does not explain a company margin that fell. A cost that rose does not explain a \
+profit that rose.
+- **It leaves out paragraphs that:**
+  - only restate the change ("revenue increased 9%");
+  - explain a different figure;
+  - give a cause only for the six or nine months to date;
+  - look ahead;
+  - describe risks.
+- **It says nothing was found when nothing qualifies.** An empty answer is a good answer when \
+the paragraphs do not state a cause. The analyst would rather read the filing than be shown a \
+paragraph that does not answer the question.
+- **It reads like a careful colleague's summary:** the main driver first, then any offset, in \
+two or three plain sentences. Each sentence carries a short quotation from management.
+
+## Hard rules
+
+Code checks every one. An answer that breaks any of them is thrown away whole, and the analyst \
+sees nothing from you.
+
+1. **Quote exactly.** Every passage in double quotation marks must be copied word for word, \
+with the same punctuation, from one of the paragraphs you chose. Do not shorten a quotation in \
+the middle, join words from two sentences, or change a word's form.
+   - Allowed: "primarily due to higher sales of HIV products"
+   - Thrown away: "higher HIV product sales". Those words are not in the paragraph in that \
+order.
+2. **Use only numbers that are in your chosen paragraphs, written the same way.** Do not \
+compute, round, convert or combine figures. "$4.4 billion" may be quoted. "about $4 billion", \
+or a percentage you worked out, will throw the answer away. When in doubt, leave the number \
+out.
+3. **Use only the paragraphs given.** Do not add what you know about the company, its industry \
+or the quarter.
+4. **No forecast and no recommendation.**
+
+## Your answer
+
+Return only this JSON object, with no other text:
+
+```json
+{"paragraphs": [3, 7], "explanation": "Two or three sentences, each with a short exact \
+quotation."}
+```
+
+- `paragraphs`: the numbers of the paragraphs that state a cause, best first, at most three. \
+Use `[]` when none does.
+- `explanation`: your two or three sentences, or `""` when `paragraphs` is empty."""
+# The essay completer picks its instructions by the grounding a request has; a request
+# with none is an "explain" one. Every kind gets these, so no other brief can be sent.
+EXPLANATION_ESSAY = EssayInstructions(
+    explain=EXPLANATION_INSTRUCTIONS,
+    analysis=EXPLANATION_INSTRUCTIONS,
+    news=EXPLANATION_INSTRUCTIONS,
+)
+# What the panel says when the model's answer is withheld or finds nothing.
+NOT_FOUND_MESSAGE = "I couldn't find management's explanation in this 10-Q"
+
+Direction = Literal["rose", "fell"]
+# Why an answer is withheld, or that the model found nothing.
+Withheld = Literal["quote_outside", "numeral_lock", "bad_choice", "unparseable", "nothing_found"]
+
+# How a question names a metric, where the catalog's label is not everyday wording.
+_EVERYDAY_NAMES = {
+    "research_and_development": "R&D spending",
+    "selling_general_and_administrative": "SG&A expenses",
+    "capital_expenditure": "capital spending",
+    "rd_to_sales": "R&D-to-sales ratio",
+}
+
+
+def everyday_metric(metric: str) -> str:
+    """ "gross margin", "R&D spending": the metric as a question would name it."""
+    return _EVERYDAY_NAMES.get(metric) or METRIC_DISPLAY[metric].label.lower().replace(
+        "sg&a", "SG&A"
+    )
+
+
+@dataclass(frozen=True)
+class WhyQuestion:
+    """What the analyst asked, as the model is told it.
+
+    ``direction`` comes from the recorded figures, so the model never works it out.
+    """
+
+    company: str
+    question: str
+    quarter_ended: str
+    direction: Direction | None = None
+
+
+@dataclass(frozen=True)
+class ModelExplanation:
+    """The model's chosen paragraphs, best first, and its explanation, once checked.
+
+    When withheld, or when the model found nothing, ``paragraphs`` is empty and
+    ``reason`` says why; ``failed`` holds the quotations or figures that failed a
+    lock. A question phase B does not ask the model gets phase A's reason. ``offered``
+    are the candidates as numbered for the model, and ``reply`` what it returned.
+    """
+
+    paragraphs: tuple[ExplainingParagraph, ...]
+    explanation: str
+    reason: Withheld | NothingFound | None = None
+    offered: tuple[ExplainingParagraph, ...] = ()
+    reply: str = ""
+    failed: tuple[str, ...] = ()
+
+
+def explanation_candidates(
+    html: str, metric: str, basis: ComparisonBase | None, source_url: str
+) -> tuple[ExplainingParagraph, ...]:
+    """Phase B's candidates: phase A's best eight eligible paragraphs, in filing order.
+
+    In filing order, so the model does not take phase A's ranking as a hint. None for
+    a question phase A does not cover (``covers``) or an MD&A that cannot be found.
+    """
+    family = _METRIC_FAMILY.get(metric)
+    if family is None or not covers(metric, basis):
+        return ()
+    paragraphs = section_paragraphs(extract_section(html, "mda"))
+    best = _ranked(paragraphs, metric, family, basis, source_url)[:MAX_CANDIDATES]
+    return tuple(chosen for _, chosen in sorted(best, key=lambda entry: entry[0]))
+
+
+def explanation_input(
+    metric: str, asked: WhyQuestion, offered: tuple[ExplainingParagraph, ...]
+) -> str:
+    """What follows the instructions: the question, then the numbered paragraphs."""
+    moved = f"which {asked.direction} " if asked.direction else ""
+    lines = [
+        f"Company: {asked.company}",
+        f"Figure: {everyday_metric(metric)}, {moved}year over year",
+        f"Quarter ended: {asked.quarter_ended}",
+        f"Question: {asked.question}",
+    ]
+    for number, paragraph in enumerate(offered, start=1):
+        lines += ["", f"Paragraph {number}: {paragraph.text}"]
+    return "\n".join(lines)
+
+
+def model_explanation(
+    html: str,
+    metric: str,
+    basis: ComparisonBase | None,
+    source_url: str,
+    completer: EssayCompleter,
+    *,
+    asked: WhyQuestion,
+) -> ModelExplanation:
+    """The model's choice of explaining paragraphs and its explanation, checked by code.
+
+    ``completer`` is the essay completer built with ``EXPLANATION_ESSAY``
+    (``explanation_completer``), so the request goes through the app's OpenAI client
+    and daily spend cap; ``SpendCapReached`` reaches the caller. The model is not
+    asked when phase A has no candidate.
+    """
+    offered = explanation_candidates(html, metric, basis, source_url)
+    if not offered:
+        found = management_explanation(html, metric, basis, source_url)
+        return ModelExplanation((), "", found.reason or "not_discussed")
+    reply = completer.complete_essay(explanation_input(metric, asked, offered))
+    return checked_answer(reply, offered)
+
+
+def checked_answer(reply: str, offered: tuple[ExplainingParagraph, ...]) -> ModelExplanation:
+    """The model's reply, parsed and checked; any failure withholds all of it."""
+
+    def withheld(reason: Withheld, failed: list[str] | None = None) -> ModelExplanation:
+        return ModelExplanation((), "", reason, offered, reply, tuple(failed or ()))
+
+    answer = _parsed(reply)
+    if answer is None:
+        return withheld("unparseable")
+    numbers, explanation = answer
+    if not numbers:
+        return withheld("nothing_found")
+    if not _is_choice(numbers, len(offered)):
+        return withheld("bad_choice")
+    chosen = tuple(offered[number - 1] for number in numbers if isinstance(number, int))
+    texts = [paragraph.text for paragraph in chosen]
+    outside = quotes_outside(explanation, texts)
+    if outside:
+        return withheld("quote_outside", outside)
+    invented = numeral_lock_extras(explanation, json.dumps(texts))
+    if invented:
+        return withheld("numeral_lock", invented)
+    return ModelExplanation(chosen, explanation, None, offered, reply)
+
+
+def _parsed(reply: str) -> tuple[list[object], str] | None:
+    """The answer's paragraph numbers and explanation, or None when it is not that shape."""
+    match = re.search(r"\{.*\}", reply, re.S)
+    if match is None:
+        return None
+    try:
+        loaded = json.loads(match.group(0))
+    except ValueError:
+        return None
+    if not isinstance(loaded, dict):
+        return None
+    numbers, explanation = loaded.get("paragraphs"), loaded.get("explanation")
+    if not isinstance(numbers, list) or not isinstance(explanation, str):
+        return None
+    return numbers, explanation
+
+
+def _is_choice(numbers: list[object], offered: int) -> bool:
+    """At most three distinct candidate numbers."""
+    return (
+        len(numbers) <= MAX_PARAGRAPHS
+        and len(set(map(repr, numbers))) == len(numbers)
+        and all(
+            isinstance(number, int) and not isinstance(number, bool) and 1 <= number <= offered
+            for number in numbers
+        )
+    )
+
+
+def explanation_completer(
+    settings: Settings, spend: DailySpendCap | None = None, model: str | None = None
+) -> OpenAIEssayCompleter:
+    """The essay completer that sends ``EXPLANATION_INSTRUCTIONS``.
+
+    It uses the app's OpenAI client and essay model (gpt-6.1-sol), and charges ``spend``:
+    the runtime's shared cap, or else one built from the settings' daily budget and
+    spend file, so an evaluation run counts against the same day's ceiling.
+    """
+    client, _ = openai_client_from_settings(settings)
+    if spend is None:
+        path = settings.openai_spend_file.strip()
+        spend = DailySpendCap(
+            Decimal(str(settings.openai_daily_budget_usd)), Path(path) if path else None
+        )
+    return OpenAIEssayCompleter(
+        client, model or settings.essay_model(), EXPLANATION_ESSAY, spend=spend
+    )
