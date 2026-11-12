@@ -299,10 +299,21 @@ _REGION = re.compile(
     re.IGNORECASE,
 )
 _ASKS_WHY = re.compile(
-    r"\bwhy\b|\bwhat (?:drove|drives|caused|causes|explains?|is behind|was behind)\b"
+    r"\bwhy\b|\bhow come\b"
+    r"|\bwhat (?:drove|drives|caused|causes|explains?|is behind|was behind)\b"
     r"|\breasons? (?:for|behind)\b|\bdrivers? (?:of|behind)\b",
     re.IGNORECASE,
 )
+
+
+def asks_why(message: str) -> bool:
+    """Whether a question asks why a figure moved: "why", "what drove", "what caused"."""
+    return bool(WHY_CHANGE.search(message) or _ASKS_WHY.search(message))
+
+
+# The notes a why question gets where Management's explanation cannot show (ADR 0016);
+# where it shows, the panel replaces them (ADR 0017).
+WHY_NOTES = (WHY_CHANGE_BANNER, WHY_NOT_ANSWERED_NOTE)
 # A ranking by how fast a figure grew, which is ordered by the figure itself. "By
 # revenue and their growth" orders by revenue, as asked.
 _BY_GROWTH = re.compile(

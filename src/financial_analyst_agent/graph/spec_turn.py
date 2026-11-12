@@ -21,8 +21,10 @@ from functools import partial
 from typing import Any, Literal, TypeGuard
 
 from financial_analyst_agent.answer_notes import (
+    WHY_NOTES,
     already_present_notes,
     annual_filer_note,
+    asks_why,
     capped_ranking_notes,
     change_banners,
     fund_note,
@@ -43,12 +45,16 @@ from financial_analyst_agent.contracts import (
     SOURCE_UNAVAILABLE,
     STRUCTURED_INTENTS,
     TRAILING_YEAR_FIGURES,
+    CompanyExplanation,
     ComparisonBase,
     ComponentProvenance,
+    Explanation,
+    ExplanationQuote,
     Intent,
     Refusal,
     RendererKind,
     Runtime,
+    RuntimeKind,
     TableRow,
     ToolTrace,
     TurnResult,
@@ -66,7 +72,26 @@ from financial_analyst_agent.domain.errors import (
     UnknownIndustryError,
     visitor_message,
 )
+from financial_analyst_agent.explanation import (
+    FILING_UNREADABLE_MESSAGE,
+    MODEL_FAILED_MESSAGE,
+    MODEL_UNAVAILABLE_MESSAGE,
+    NOT_FOUND_MESSAGE,
+    NOT_RECORDED_MESSAGE,
+    YEAR_OVER_YEAR_ONLY_NOTE,
+    Direction,
+    ExplanationUnavailable,
+    WhyQuestion,
+    everyday_metric,
+    explained_metrics,
+    model_explanation,
+)
 from financial_analyst_agent.fan_out import DEFAULT_TASK_MAX_WORKERS, map_in_order, or_none
+from financial_analyst_agent.filing_change import (
+    extract_section,
+    filing_anchor_url,
+    section_paragraphs,
+)
 from financial_analyst_agent.graph.analysis_spec import (
     AnalysisSpec,
     CompiledTask,
@@ -84,8 +109,10 @@ from financial_analyst_agent.graph.analysis_spec import (
     validate_spec,
 )
 from financial_analyst_agent.graph.state import CompiledAnalysis, StructuredRequest
+from financial_analyst_agent.model_spend import SpendCapReached
+from financial_analyst_agent.observability import log_event
 from financial_analyst_agent.period_selection import INVALID_QUARTER, Periods, read
-from financial_analyst_agent.prose import in_sentence, short_name
+from financial_analyst_agent.prose import in_sentence, possessive, short_name
 from financial_analyst_agent.providers.sec.client import sec_turn_seconds_left
 from financial_analyst_agent.providers.sec.company_resolver import resolve_company
 from financial_analyst_agent.request_wording import (
@@ -105,6 +132,7 @@ from financial_analyst_agent.services.fiscal_periods import (
     adjacent_quarters,
     one_year_earlier,
 )
+from financial_analyst_agent.services.metric_catalog import resolve_metric_phrase
 from financial_analyst_agent.turn import (
     compare_task,
     lookup_task,
@@ -1107,6 +1135,224 @@ def annotate_analysis(
             }
         )
     return merged, _with_market_date(spec, runtime)
+
+
+# Management's explanation is read for at most this many companies of an answer.
+MAX_EXPLAINED_COMPANIES = 4
+_QUARTERLY_FORMS = ("10-Q", "10-Q/A")
+
+
+@dataclass(frozen=True)
+class _ExplainedFigure:
+    """A company's latest figure for the metric, and the 10-Q it came from."""
+
+    company_name: str
+    cik: str
+    end_date: date
+    accession: str
+    source_url: str
+    direction: Direction | None
+
+
+def add_explanation(
+    compiled: CompiledAnalysis,
+    merged: TurnResult,
+    runtime: Runtime,
+    *,
+    max_workers: int = DEFAULT_TASK_MAX_WORKERS,
+) -> TurnResult:
+    """Management's explanation beside a why question's figures (ADR 0017, ticket 04).
+
+    It shows for "why", "what drove" or "what caused" about a covered metric (and a
+    bare "why?" re-asking the figures on screen), for each company whose latest
+    figure came from a 10-Q, up to four. It replaces ADR 0016's why notes. The
+    question is always explained year over year, as 10-Qs explain the quarter; a
+    sequential one is told so. Any failure leaves the figures as they are, and the
+    panel says what happened.
+    """
+    spec = compiled.spec
+    if (
+        not asks_why(compiled.wording)
+        or merged.renderer is not RendererKind.TABLE
+        or spec.constituents is not None
+        or not spec.metrics
+        or spec.metrics[0] not in explained_metrics()
+        or runtime.filings is None
+        or runtime.explanations is None
+    ):
+        return merged
+    metric = spec.metrics[0]
+    figures = _explained_figures(merged, metric)[:MAX_EXPLAINED_COMPANIES]
+    if not figures:
+        return merged
+    # The change asked about is on the quarter before ("sequentially", or the quarters'
+    # own changes): the 10-Q explains the one on a year earlier.
+    sequential = "year_over_year" not in spec.operations and bool(
+        {"sequential", "across_periods"} & set(spec.operations)
+    )
+    question = compiled.wording if resolve_metric_phrase(compiled.wording).kind != "unknown" else ""
+    companies = map_in_order(
+        partial(_explain_company, metric=metric, question=question, runtime=runtime),
+        figures,
+        max_workers=max_workers,
+    )
+    removed = [banner for banner in merged.banners if banner in WHY_NOTES]
+    kept = [banner for banner in merged.banners if banner not in WHY_NOTES]
+    before_snapshot = merged.banners[: merged.snapshot_banner_index]
+    return merged.model_copy(
+        update={
+            "explanation": Explanation(
+                metric=metric,
+                companies=companies,
+                note=YEAR_OVER_YEAR_ONLY_NOTE if sequential else None,
+            ),
+            "banners": kept,
+            "snapshot_banner_index": merged.snapshot_banner_index
+            - sum(banner in removed for banner in before_snapshot),
+        }
+    )
+
+
+def _explained_figures(merged: TurnResult, metric: str) -> list[_ExplainedFigure]:
+    """Each company's latest figure for ``metric`` that a 10-Q reported, in answer order."""
+    latest: dict[str, TableRow] = {}
+    for row in merged.table_rows:
+        if row.metric != metric or row.comparison is not None or row.value is None:
+            continue
+        if row.end_date is None:
+            continue
+        held = latest.get(row.cik)
+        if held is None or (held.end_date is not None and row.end_date > held.end_date):
+            latest[row.cik] = row
+    figures = []
+    for row in latest.values():
+        filing = _filing_of(row)
+        if filing is None or row.end_date is None:
+            continue
+        accession, source_url = filing
+        figures.append(
+            _ExplainedFigure(
+                company_name=row.company_name,
+                cik=row.cik,
+                end_date=row.end_date,
+                accession=accession,
+                source_url=source_url,
+                direction=_direction(merged, row),
+            )
+        )
+    return figures
+
+
+def _filing_of(row: TableRow) -> tuple[str, str] | None:
+    """The 10-Q a figure came from: its own, or its first part's for a formula."""
+    sources: list[TableRow | ComponentProvenance] = [row, *row.components, *row.derived_from]
+    for source in sources:
+        if source.accession_number and source.source_url:
+            if source.form not in _QUARTERLY_FORMS:
+                return None
+            return source.accession_number, source.source_url
+    return None
+
+
+def _direction(merged: TurnResult, latest: TableRow) -> Direction | None:
+    """Whether the figure rose or fell against the same quarter a year earlier, when shown."""
+
+    def same_figure(row: TableRow) -> bool:
+        return row.cik == latest.cik and row.metric == latest.metric and row.value is not None
+
+    change = next(
+        (
+            row.value
+            for row in merged.table_rows
+            if same_figure(row)
+            and row.comparison == "year_over_year"
+            and row.end_date == latest.end_date
+        ),
+        None,
+    )
+    if change is None and latest.end_date is not None:
+        earlier = one_year_earlier(latest.end_date)
+        change = next(
+            (
+                latest.value - row.value
+                for row in [*merged.table_rows, *merged.year_earlier_rows]
+                if same_figure(row)
+                and row.comparison is None
+                and latest.value is not None
+                and row.value is not None
+                and row.end_date is not None
+                and abs(row.end_date - earlier) <= FISCAL_WEEK_TOLERANCE
+            ),
+            None,
+        )
+    if change is None or change == 0:
+        return None
+    return "rose" if change > 0 else "fell"
+
+
+def _explain_company(
+    figure: _ExplainedFigure, *, metric: str, question: str, runtime: Runtime
+) -> CompanyExplanation:
+    """One company's explanation from its 10-Q, or the line saying why there is none."""
+    name = short_name(figure.company_name) or figure.company_name
+    shown = CompanyExplanation(
+        company_name=figure.company_name,
+        cik=figure.cik,
+        period_end=figure.end_date,
+        accession_number=figure.accession,
+        filing_url=figure.source_url,
+        mda_url=figure.source_url,
+    )
+
+    def unavailable(reason: str, message: str) -> CompanyExplanation:
+        log_event("management_explanation", cik=figure.cik, metric=metric, reason=reason)
+        return shown.model_copy(update={"unavailable": message, "reason": reason})
+
+    filings, explanations = runtime.filings, runtime.explanations
+    if filings is None or explanations is None:
+        return unavailable("not_recorded", NOT_RECORDED_MESSAGE)
+    document = figure.source_url.rsplit("/", 1)[-1]
+    try:
+        html = filings.get_filing_document(figure.cik, figure.accession, document)
+    except Exception:  # a filing that cannot be read never fails the turn
+        if runtime.kind is RuntimeKind.RECORDED:
+            return unavailable("not_recorded", NOT_RECORDED_MESSAGE)
+        return unavailable("filing_unreadable", FILING_UNREADABLE_MESSAGE)
+    mda = section_paragraphs(extract_section(html, "mda"))
+    if mda:
+        shown = shown.model_copy(
+            update={"mda_url": filing_anchor_url(figure.source_url, mda[0])}
+        )
+    asked = WhyQuestion(
+        company=name,
+        question=question
+        or f"Why did {possessive(name)} {everyday_metric(metric)} move year over year?",
+        quarter_ended=figure.end_date.isoformat(),
+        direction=figure.direction,
+    )
+    try:
+        completer = explanations.completer(figure.cik, figure.accession, metric)
+        result = model_explanation(
+            html, metric, "year_over_year", figure.source_url, completer, asked=asked
+        )
+    except ExplanationUnavailable as exc:
+        return unavailable(exc.reason, exc.message)
+    except SpendCapReached:
+        return unavailable("model_unavailable", MODEL_UNAVAILABLE_MESSAGE)
+    except Exception:  # a model that fails never fails the turn
+        return unavailable("model_failed", MODEL_FAILED_MESSAGE)
+    if result.reason is not None:
+        return unavailable(result.reason, NOT_FOUND_MESSAGE)
+    log_event("management_explanation", cik=figure.cik, metric=metric, reason="shown")
+    return shown.model_copy(
+        update={
+            "explanation": result.explanation,
+            "paragraphs": [
+                ExplanationQuote(text=paragraph.text, url=paragraph.url)
+                for paragraph in result.paragraphs
+            ],
+        }
+    )
 
 
 EMPTIED_MESSAGES = {

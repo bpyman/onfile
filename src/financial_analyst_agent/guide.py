@@ -19,6 +19,7 @@ from financial_analyst_agent.contracts import (
     RendererKind,
     TurnResult,
 )
+from financial_analyst_agent.explanation import explained_metrics
 from financial_analyst_agent.graph.analysis_spec import AnalysisSpec
 from financial_analyst_agent.issuer_index import (
     CompanyNames,
@@ -136,7 +137,7 @@ UNDO_MESSAGE = (
 )
 _START_OVER = re.compile(r"^(?:start (?:over|again|fresh)|reset|clear|new (?:question|analysis))$")
 _UNDO = re.compile(r"^(?:undo|go back|back|revert|undo that)$")
-_WHY = re.compile(r"^why\b")
+_WHY = re.compile(r"^(?:why|how come)\b")
 _CHART = re.compile(
     r"^(?:can you |please )?(?:chart|plot|graph|visuali[sz]e|draw)(?: it| that| this| them)?$"
 )
@@ -290,15 +291,41 @@ def guide_reply(
             PEERS_MESSAGE.format(count=len(names)),
             [f"compare {name} to its peers" for name in names[:_MAX_PEER_CHOICES]],
         )
-    if _WHY.match(text) and len(text.split()) <= _WHY_MAX_WORDS and not _names_figure(
-        message, index
-    ):
-        # "why?" alone gets the guide; "why did revenue drop?" is a change to show.
+    if asks_bare_why(message, index):
+        # "why?" alone gets the guide, unless the figures on screen can be explained
+        # (``explains_bare_why``); "why did revenue drop?" is a change to show.
         name = _spec_company(spec)
         if name is None:
             return _guide(WHY_MESSAGE, list(STARTER_QUESTIONS[3:]))
         return _guide(WHY_MESSAGE, [f"What changed in {name}'s latest 10-Q?"])
     return None
+
+
+def asks_bare_why(message: str, index: CompanyNames | None) -> bool:
+    """ "why?", "why is that?", "how come?": a why naming no figure or company."""
+    text = _normalized(message)
+    return (
+        _WHY.match(text) is not None
+        and len(text.split()) <= _WHY_MAX_WORDS
+        and not _names_figure(message, index)
+    )
+
+
+def explains_bare_why(message: str, spec: AnalysisSpec | None, index: CompanyNames | None) -> bool:
+    """Whether a bare "why?" asks about figures on screen that Management's explanation covers.
+
+    That is an analysis of named companies whose first metric the explanation
+    covers (ADR 0017). It is answered with those figures again and the panel; any
+    other bare "why?" gets ``WHY_MESSAGE``.
+    """
+    return (
+        spec is not None
+        and spec.constituents is None
+        and bool(spec.companies)
+        and bool(spec.metrics)
+        and spec.metrics[0] in explained_metrics()
+        and asks_bare_why(message, index)
+    )
 
 
 def _form_reply(message: str, text: str, index: CompanyNames | None) -> TurnResult | None:

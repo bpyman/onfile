@@ -737,6 +737,14 @@ def test_one_figure_as_a_share_of_another_is_not_worked_out(runtime) -> None:  #
 
 
 def test_a_why_inside_a_figures_question_is_not_answered_and_says_so(runtime) -> None:  # type: ignore[no-untyped-def]
-    (answer,) = ask(runtime, "Show me Nvidia's revenue and tell me why it grew")
+    # A margin Management's explanation does not cover keeps ADR 0016's note.
+    (answer,) = ask(runtime, "Show me Nvidia's operating margin and tell me why it grew")
     assert answer.table is not None
+    assert answer.explanation is None
     assert answer.banners[0].startswith("Filings report what happened, not why, so the “why”")
+    # A covered amount gets the panel in its place (ADR 0017), here saying the recorded
+    # demo has no explanation for it.
+    (covered,) = ask(runtime, "Show me Nvidia's revenue and tell me why it grew")
+    assert covered.table is not None
+    assert covered.explanation is not None
+    assert not any("not why" in banner for banner in covered.banners)

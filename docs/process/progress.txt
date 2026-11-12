@@ -3286,6 +3286,234 @@ Blockers / next:
   conversations differ from master`. Every simplify-leftovers ticket is resolved.
 
 
+## 2026-10-23 — why-from-the-filing 01: choose the MD&A paragraphs that explain a figure
+
+Ticket: `docs/process/tickets/why-from-the-filing/issues/01-choose-the-paragraphs-that-explain-a-figure.md`
+
+Key decisions:
+- New `explanation.py`: `management_explanation(html, metric, basis, source_url)` returns up to
+  three verbatim paragraphs (score, first causal clause span, anchor link) or a reason
+  (`mda_not_found`, `not_discussed`, `metric_not_covered`). No model, no network.
+- Metric words are a table of families in `explanation.py`, not catalog fields; longer phrases win
+  overlaps ("cost of sales" is gross margin), and "non-operating income" is not operating income.
+- A paragraph qualifies only when a sentence naming the metric (or the next) gives a change or
+  a cause. One whose subject is another metric (outnumbers, ties and comes first, or owns the
+  opening sentence) ranks below every paragraph about this one.
+- Basis from wording and from the quarters a sentence names; bonuses for a cause beside the
+  metric in a quarter sentence and for opening on the company-wide figure.
+- `filing_change._paragraphs` renamed `section_paragraphs`; behaviour unchanged.
+- AMD gross margin now finds the cause first (the MI308 charges and mix); Tesla operating income
+  is `not_discussed` instead of an auto-cycle paragraph.
+
+Files changed:
+- `src/financial_analyst_agent/explanation.py` (new), `src/financial_analyst_agent/filing_change.py`
+- `tests/unit/test_explanation.py` (new)
+- `CONTEXT.md` (Management's explanation)
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None. 2,627 tests pass; ruff and mypy clean; compare_answers reports `0 of 893 conversations
+  differ from HEAD`. Ticket 02 (the evaluation set and harness) is next; its blocker 01 is resolved.
+
+
+## 2026-10-23 — why-from-the-filing 02: the explanation evaluation set and harness
+
+Ticket: `docs/process/tickets/why-from-the-filing/issues/02-the-explanation-evaluation-set-and-harness.md`
+
+Key decisions:
+- `explanation_evaluation.py`: `cases`, `candidates`, `brief [--case]` and `score --labels`, all
+  offline; no model is called.
+- The pool is the 21 companies with a recorded latest 10-Q crossed with the 15 metrics that have
+  words, kept only where the recorded facts hold the metric for that quarter. 40 drawn with seed
+  20261023; 20/20 bases, each split 10 dev / 10 held-out.
+- Directions come from the recorded runtime's lookup (comparative for year over year, the quarter
+  before for sequential, formula components for ratios); the verb follows them. All 40 have one.
+- Candidates give each distinct paragraph an id so the judge labels it once; the baseline is the
+  MD&A's first paragraph naming the metric.
+- Precision at k is the design's hit rate (one of the first k states a cause). No report is
+  committed: there are no labels until ticket 03.
+- The rubric is a brief to an equity analyst with the hard constraints stated; it awaits Blake's
+  review before any judge run.
+
+Files changed:
+- `src/financial_analyst_agent/explanation_evaluation.py` (new)
+- `tests/unit/test_explanation_evaluation.py` (new)
+- `docs/evaluation/explanation-cases.json`, `explanation-candidates.json`, `explanation-rubric.md` (new)
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- None for code. 2,641 tests pass; ruff and mypy clean; compare_answers reports `0 of 893
+  conversations differ from HEAD`. Ticket 03 (judge the set) is a person's: it runs the model
+  judge after the rubric is reviewed. Nothing found for 9 cases; 3 first places are about another
+  metric by code's reading (e05, e10, e19).
+
+
+## 2026-10-23 — why-from-the-filing 05: tune the choice on the development half, fresh held-out set
+
+Ticket: `docs/process/tickets/why-from-the-filing/issues/05-tune-the-choice-on-the-development-half.md`
+
+Key decisions:
+- A paragraph must compare on the basis asked: sequential needs it said (or two adjacent
+  quarters named); year over year drops only sequential-only paragraphs.
+- A cause only for the year to date is out unless the paragraph says it holds for the quarter
+  ("both periods", "three and six months").
+- A sequential question that finds nothing, where year over year would, returns
+  `basis_not_discussed` with those paragraphs as `alternative`.
+- Headings (fewer than eight words, or no verb) are never chosen. Cash-balance, liquidity,
+  financing and investing paragraphs are about another metric, via a new `cash_balance` family.
+- Operating cash flow, capex and free cash flow are commented out of `_METRIC_FAMILY`
+  (`metric_not_covered`). Their words stay, so cash-flow paragraphs still count as another metric.
+- Weights unchanged: on dev every hit is already first, and no remaining miss had a labelled
+  cause among the paragraphs that could be chosen.
+- Dev (16 kept), by the committed labels: precision at 1 and 3 went from 0.27 (3 of 11) to 0.43
+  (3 of 7), and "nothing found right" from 0.40 (2 of 5) to 0.67 (6 of 9). On all 20 dev cases
+  before, both precisions were 0.23 (3 of 13) and "nothing found right" was 0.57 (4 of 7).
+  No newly shown dev paragraph lacks a label.
+- Cases: dev is the first draw's 16 dev cases whose metric is still covered. The held-out set is
+  e41 to e60, seed 20261024, 10 year over year and 10 sequential, and shares no
+  (company, metric, basis) with either half of the first draw. The old held-out half leaves the
+  evaluation. Its candidates were not opened; only counts were checked.
+- Candidate paragraph ids are their MD&A place (`-mN`), so a stale label cannot attach to
+  another paragraph. `judge --carry-from` carries saved labels by text.
+
+Files changed:
+- `src/financial_analyst_agent/explanation.py`, `src/financial_analyst_agent/explanation_evaluation.py`
+- `tests/unit/test_explanation.py`, `tests/unit/test_explanation_evaluation.py`
+- `docs/evaluation/explanation-cases.json`, `docs/evaluation/explanation-candidates.json`
+- `CONTEXT.md` (Management's explanation)
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- The held-out set needs a judge run, which is a person's (paid). Write the old candidates out
+  with `git show 5f78089:docs/evaluation/explanation-candidates.json`, then run
+  `judge --carry-from` on them, then `score`. Until then `score` against the committed labels
+  fails, because the ids are new.
+- 2,661 tests pass; ruff and mypy are clean; compare_answers reports `0 of 893 conversations
+  differ from HEAD`.
+
+
+## 2026-10-23 — why-from-the-filing 06: narrow phase A to year-over-year amounts, confirmation set
+
+Ticket: `docs/process/tickets/why-from-the-filing/issues/06-narrow-phase-a-and-draw-a-confirmation-set.md`
+
+Key decisions:
+- Phase A covers year-over-year questions about revenue, cost of revenue, gross profit, gross
+  margin, operating income, net income, R&D and SG&A. Operating margin, net margin, R&D to sales
+  and the SG&A ratio are commented out of `_METRIC_FAMILY` (`metric_not_covered`); their words stay.
+- A sequential question is not searched: `basis_not_discussed` with the year-over-year paragraphs,
+  or `not_discussed`. `explanation.covers` names the scope. Weights unchanged.
+- Confirm set: e61 to e80, seed 20261025, all year over year, covered metrics, no overlap with any
+  earlier (company, metric, basis), no company more than twice (15 companies). 6 of its
+  (company, metric) pairs were drawn earlier as sequential questions; the ticket's rule allows it.
+  Its paragraphs were not opened.
+- Dev and held-out stay as they were (`SECOND_DRAW_METRICS` freezes ticket 05's metrics). The
+  narrowed scope covers 6 of 16 dev and 6 of 20 held-out cases. `score` counts only covered
+  cases, reports dev, held-out and confirm (no "all"), and the report says the dev and held-out
+  figures predate the narrowing.
+
+Files changed:
+- `src/financial_analyst_agent/explanation.py`, `src/financial_analyst_agent/explanation_evaluation.py`
+- `tests/unit/test_explanation.py`, `tests/unit/test_explanation_evaluation.py`
+- `docs/evaluation/explanation-cases.json`, `docs/evaluation/explanation-candidates.json`
+- `CONTEXT.md` (Management's explanation)
+- the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- The confirm set needs a judge run (paid, a person's):
+  `git show b1afb9f:docs/evaluation/explanation-candidates.json > old-candidates.json`, then
+  `judge --carry-from old-candidates.json` (63 judgements, all confirm), then
+  `score --labels docs/evaluation/explanation-labels.json`.
+- 2,669 tests pass; ruff and mypy are clean; compare_answers reports `0 of 893 conversations
+  differ from HEAD`.
+
+
+## 2026-11-11 — why-from-the-filing 07: phase B, the model chooses under a quote lock
+
+Ticket: `docs/process/tickets/why-from-the-filing/issues/07-phase-b-the-model-chooses-under-a-quote-lock.md`
+
+Key decisions:
+- `quote_lock.quotes_outside` normalises whitespace and quote shapes only; an unclosed quotation
+  runs to the end of the text and is checked.
+- `explanation.model_explanation(..., completer, *, asked=WhyQuestion(...))` offers phase A's
+  best eight eligible paragraphs in filing order (`explanation_candidates`). It calls
+  `complete_essay(input)` with no grounding JSON; `EXPLANATION_ESSAY` sets every essay kind to
+  `EXPLANATION_INSTRUCTIONS`, so `OpenAIEssayCompleter` and its `DailySpendCap` are reused
+  unchanged (`explanation_completer`). Any failed check withholds everything (`bad_choice`,
+  `unparseable`, `quote_outside`, `numeral_lock`); `[]` is `nothing_found`. No candidate means
+  no call, and phase A's reason.
+- `EXPLANATION_INSTRUCTIONS` is the draft's text between its rules, verbatim, marked DRAFT; a
+  test holds it to `phase-b-prompt.md`.
+- Candidates gain `offered`, so `judge` labels whatever the model can choose. The earlier sets'
+  candidates are otherwise unchanged (38 new paragraphs to label).
+- `generate --model [NAME] --set tuning|final` writes `explanation-model-<set>.json`.
+  `score` adds phase B sections, with a withheld answer counted as nothing found, outcomes by
+  reason, and unlabelled paragraphs listed. A set with no labels yet is "not judged yet".
+- Final set: e81 to e100, seed 20261111, 20 year over year on covered metrics, 14 companies
+  (none more than twice), no (company, metric, basis) shared with any earlier set. Only counts,
+  metrics, companies and overlap were checked.
+- ADR 0017 says phase A's paragraphs show when the model is withheld; the ticket says not.
+  Followed the ticket and logged it in `rules-to-review.md`.
+
+Files changed:
+- `src/financial_analyst_agent/quote_lock.py` (new), `src/financial_analyst_agent/explanation.py`,
+  `src/financial_analyst_agent/explanation_evaluation.py`
+- `tests/unit/test_quote_lock.py` (new), `tests/unit/test_explanation.py`,
+  `tests/unit/test_explanation_evaluation.py`
+- `docs/evaluation/explanation-cases.json`, `docs/evaluation/explanation-candidates.json`
+- `docs/process/rules-to-review.md`, the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- Blake reviews the prompt. Then, paid and a person's: `generate --model --set tuning`, `judge`
+  (labels only what has none: 38 tuning paragraphs, the final set's 76 paragraphs and 20
+  MD&As), `score --labels docs/evaluation/explanation-labels.json`; tune; then
+  `generate --model --set final` once, and `score`.
+- 2,710 tests pass; ruff and mypy are clean; compare_answers reports `0 of 893 conversations
+  differ from HEAD`.
+
+
+## 2026-11-11 — why-from-the-filing 04: a why question shows Management's explanation
+
+Ticket: `docs/process/tickets/why-from-the-filing/issues/04-a-why-question-shows-managements-explanation.md`
+
+Key decisions:
+- A new `explain` step after `annotate` (`spec_turn.add_explanation`): a why question
+  (`answer_notes.asks_why`, now with "how come") about a covered first metric, on a table of
+  named companies, reads each company's latest 10-Q (up to four) and calls `model_explanation`
+  year over year. It drops `answer_notes.WHY_NOTES` where the panel shows. Every failure is a
+  line on the panel, never a failed turn.
+- A figure from a 10-K (a fiscal fourth quarter) keeps ADR 0016's note, as a figure with no filing
+  does: the 10-K's MD&A explains the year. On the recorded demo that is Microsoft and Cisco.
+- A bare "why?" after figures it can explain (`guide.explains_bare_why`) re-runs the analysis
+  with an empty extend patch from the thread's evidence; otherwise the guide's `WHY_MESSAGE`.
+- `Runtime.explanations` (`ExplanationsPort.completer(cik, accession, metric)`):
+  `LiveExplanations` (the essay client under the shared `DailySpendCap`; OpenAI off raises
+  `ExplanationUnavailable` when asked) and `RecordedExplanations` (replays
+  `data/explanation_recordings.json` through `checked_answer`, only for the same numbered
+  paragraphs, by `offered_digest`).
+- `explanation_evaluation recordings` writes the 41 recordings from the tuning and final runs.
+- Web: `ManagementExplanation` in `web/components/explanation.tsx`, read by `api.readPresentation`.
+
+Files changed:
+- `src/financial_analyst_agent/`: `contracts.py`, `runtime.py`, `explanation.py`,
+  `explanation_evaluation.py`, `answer_notes.py`, `guide.py`, `presentation.py`,
+  `graph/spec_turn.py`, `graph/structured.py`, `graph/turn_graph.py`,
+  `data/explanation_recordings.json` (new)
+- tests: `tests/test_management_explanation.py` (new), `tests/unit/test_explanation_evaluation.py`,
+  and four updated for the new behaviour (`test_says_what_it_cannot_do`, `test_held_out_5_findings`,
+  `test_api`, `unit/test_clarification_checkpoint`)
+- web: `lib/types.ts`, `lib/api.ts`, `lib/api.test.ts`, `components/explanation.tsx` (new),
+  `components/explanation.test.tsx` (new), `components/answer.tsx`, `e2e/features.spec.ts`,
+  `lib/demo-answers.json`
+- `README.md`, `docs/prompts-and-controls.md`, `CONTEXT.md`, `docs/process/rules-to-review.md`,
+  the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- `phase-b-prompt.md` still says it is a draft no model runs (rules-to-review, 2026-11-11).
+- compare_answers: 2 of 893 differ from HEAD (Goldman's "so volatile" and Apple's "since 2023",
+  both why conversations now showing the panel). Against origin/master, 84 differ: those 2 and
+  82 headline-only differences from master's commits this branch lacks.
+- 2,733 tests pass; ruff and mypy are clean; web lint, tsc, vitest (226), build and Playwright
+  (48) pass.
 ## 2026-10-23 — demo-polish 01: a comparison over several quarters gets a headline about the trend
 
 Ticket: `docs/process/tickets/demo-polish/issues/01-a-trend-headline-for-several-companies.md`

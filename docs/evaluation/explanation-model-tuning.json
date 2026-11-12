@@ -1,0 +1,655 @@
+{
+  "model": "gpt-6.1-sol",
+  "instructions": "c0132f88bc71",
+  "cases": [
+    {
+      "id": "e02",
+      "set": "dev",
+      "metric": "net_income",
+      "basis": "year_over_year",
+      "offered": [
+        "e02-m7",
+        "e02-m31"
+      ],
+      "chosen": [],
+      "explanation": "",
+      "reason": "nothing_found",
+      "failed": [],
+      "reply": "{\"paragraphs\":[],\"explanation\":\"\"}"
+    },
+    {
+      "id": "e04",
+      "set": "dev",
+      "metric": "research_and_development",
+      "basis": "year_over_year",
+      "offered": [
+        "e04-m21",
+        "e04-m70",
+        "e04-m71",
+        "e04-m73",
+        "e04-m74",
+        "e04-m100"
+      ],
+      "chosen": [
+        {
+          "id": "e04-m73",
+          "text": "Research and development expenses increased 18% and 9% to $1.8 billion and $3.1 billion for the three and six months ended June 30, 2026, respectively, compared to the same periods in 2025. Personnel, infrastructure and other support costs increased primarily due to integration expenses, including $229 million of stock-based compensation expenses related to our acquisitions of Arcellx, Ouro Medicines and Tubulis. Clinical studies and other costs decreased primarily due to lower oncology clinical study activity."
+        }
+      ],
+      "explanation": "R&D spending rose as personnel, infrastructure and other support costs increased “primarily due to integration expenses,” including stock-based compensation expenses related to the acquisitions of Arcellx, Ouro Medicines and Tubulis. Partly offsetting that increase, clinical studies and other costs decreased “primarily due to lower oncology clinical study activity.”",
+      "reason": null,
+      "failed": [],
+      "reply": "{\"paragraphs\":[4],\"explanation\":\"R&D spending rose as personnel, infrastructure and other support costs increased “primarily due to integration expenses,” including stock-based compensation expenses related to the acquisitions of Arcellx, Ouro Medicines and Tubulis. Partly offsetting that increase, clinical studies and other costs decreased “primarily due to lower oncology clinical study activity.”\"}"
+    },
+    {
+      "id": "e07",
+      "set": "dev",
+      "metric": "research_and_development",
+      "basis": "year_over_year",
+      "offered": [
+        "e07-m39",
+        "e07-m46"
+      ],
+      "chosen": [
+        {
+          "id": "e07-m39",
+          "text": "R&D expenses of $2.5 billion for the three months ended June 27, 2026 increased by $0.6 billion, or 33%, compared to $1.9 billion for the prior year period. R&D expenses of $4.9 billion for the six months ended June 27, 2026 increased by $1.3 billion, or 36%, compared to $3.6 billion for the prior year period. The increase in both periods was primarily due to higher employee-related costs from an increase in headcount in support of our continued focus on our AI strategy and long-term growth opportunities."
+        }
+      ],
+      "explanation": "R&D spending rose primarily because of \"higher employee-related costs from an increase in headcount\". Management said the additional headcount supported \"our continued focus on our AI strategy and long-term growth opportunities.\"",
+      "reason": null,
+      "failed": [],
+      "reply": "{\"paragraphs\":[1],\"explanation\":\"R&D spending rose primarily because of \\\"higher employee-related costs from an increase in headcount\\\". Management said the additional headcount supported \\\"our continued focus on our AI strategy and long-term growth opportunities.\\\"\"}"
+    },
+    {
+      "id": "e13",
+      "set": "dev",
+      "metric": "operating_income",
+      "basis": "year_over_year",
+      "offered": [],
+      "chosen": [],
+      "explanation": "",
+      "reason": "not_discussed",
+      "failed": [],
+      "reply": ""
+    },
+    {
+      "id": "e14",
+      "set": "dev",
+      "metric": "operating_income",
+      "basis": "year_over_year",
+      "offered": [
+        "e14-m19",
+        "e14-m67",
+        "e14-m76"
+      ],
+      "chosen": [
+        {
+          "id": "e14-m67",
+          "text": "Operating income increased $6.4 billion or 20% driven by growth in Productivity and Business Processes and Intelligent Cloud."
+        }
+      ],
+      "explanation": "Management attributed the operating income increase to growth in \"Productivity and Business Processes\". Growth in \"Intelligent Cloud\" was the other stated driver.",
+      "reason": null,
+      "failed": [],
+      "reply": "{\"paragraphs\":[2],\"explanation\":\"Management attributed the operating income increase to growth in \\\"Productivity and Business Processes\\\". Growth in \\\"Intelligent Cloud\\\" was the other stated driver.\"}"
+    },
+    {
+      "id": "e19",
+      "set": "dev",
+      "metric": "net_income",
+      "basis": "year_over_year",
+      "offered": [],
+      "chosen": [],
+      "explanation": "",
+      "reason": "not_discussed",
+      "failed": [],
+      "reply": ""
+    },
+    {
+      "id": "e41",
+      "set": "held-out",
+      "metric": "research_and_development",
+      "basis": "year_over_year",
+      "offered": [
+        "e41-m105",
+        "e41-m117"
+      ],
+      "chosen": [
+        {
+          "id": "e41-m105",
+          "text": "Research and development expenses increased $4.4 billion and $7.9 billion from the three and six months ended June 30, 2025 to the three and six months ended June 30, 2026, primarily driven by increases in employee compensation expenses of $2.9 billion and $5.3 billion, as well as depreciation expense of $592 million and $1.1 billion, respectively."
+        }
+      ],
+      "explanation": "R&D spending rose primarily because of higher employee compensation, with management citing \"increases in employee compensation expenses of $2.9 billion and $5.3 billion\" for the quarter and six months, respectively. Higher depreciation also contributed, with \"depreciation expense of $592 million and $1.1 billion, respectively.\"",
+      "reason": null,
+      "failed": [],
+      "reply": "{\"paragraphs\":[1],\"explanation\":\"R&D spending rose primarily because of higher employee compensation, with management citing \\\"increases in employee compensation expenses of $2.9 billion and $5.3 billion\\\" for the quarter and six months, respectively. Higher depreciation also contributed, with \\\"depreciation expense of $592 million and $1.1 billion, respectively.\\\"\"}"
+    },
+    {
+      "id": "e44",
+      "set": "held-out",
+      "metric": "gross_profit",
+      "basis": "year_over_year",
+      "offered": [
+        "e44-m32",
+        "e44-m47"
+      ],
+      "chosen": [],
+      "explanation": "",
+      "reason": "nothing_found",
+      "failed": [],
+      "reply": "{\"paragraphs\":[],\"explanation\":\"\"}"
+    },
+    {
+      "id": "e45",
+      "set": "held-out",
+      "metric": "revenue",
+      "basis": "year_over_year",
+      "offered": [
+        "e45-m10",
+        "e45-m19",
+        "e45-m20",
+        "e45-m21",
+        "e45-m58"
+      ],
+      "chosen": [
+        {
+          "id": "e45-m20",
+          "text": "The Semiconductor Systems segment remained our largest revenue contributor for which revenue increased for the three and nine months ended July 26, 2026, compared to the same periods in the prior year. The increase in foundry and logic customers’ spending for the three and nine months ended July 26, 2026 reflected stronger demand for leading-edge manufacturing technologies. For the nine months ended July 26, 2026, this increase was partially offset by lower customer demand for trailing-edge logic systems. Memory customers’ spending in the three and nine months ended July 26, 2026 was higher compared to the same periods in the prior year due to increased customer investments in DRAM technology transitions."
+        },
+        {
+          "id": "e45-m21",
+          "text": "Our AGS revenue increased in the three and nine months ended July 26, 2026 compared to the same periods in the prior year primarily due to higher long-term service agreement revenue and customer spending on spares."
+        }
+      ],
+      "explanation": "Revenue growth in Semiconductor Systems, the largest revenue contributor, reflected \"stronger demand for leading-edge manufacturing technologies\" and \"increased customer investments in DRAM technology transitions.\" AGS revenue also increased, \"primarily due to higher long-term service agreement revenue and customer spending on spares.\"",
+      "reason": null,
+      "failed": [],
+      "reply": "{\"paragraphs\":[3,4],\"explanation\":\"Revenue growth in Semiconductor Systems, the largest revenue contributor, reflected \\\"stronger demand for leading-edge manufacturing technologies\\\" and \\\"increased customer investments in DRAM technology transitions.\\\" AGS revenue also increased, \\\"primarily due to higher long-term service agreement revenue and customer spending on spares.\\\"\"}"
+    },
+    {
+      "id": "e53",
+      "set": "held-out",
+      "metric": "revenue",
+      "basis": "year_over_year",
+      "offered": [
+        "e53-m38",
+        "e53-m41",
+        "e53-m47",
+        "e53-m48",
+        "e53-m50",
+        "e53-m76"
+      ],
+      "chosen": [
+        {
+          "id": "e53-m47",
+          "text": "Net revenue from our semiconductor solutions segment increased in the fiscal quarter and three fiscal quarters ended August 2, 2026 compared to the prior year fiscal periods due to strong demand for our networking solutions, primarily custom AI accelerators and AI networking products."
+        },
+        {
+          "id": "e53-m48",
+          "text": "Net revenue from our infrastructure software segment increased in the fiscal quarter and three fiscal quarters ended August 2, 2026 compared to the prior year fiscal periods primarily due to strong demand for our VMware Cloud Foundation (“VCF”) product, including additional license revenue recognized on contracts where customers do not have the right to terminate. As of the fiscal quarter ended August 2, 2026, we no longer have termination for convenience provisions for the majority of new software contracts."
+        }
+      ],
+      "explanation": "Semiconductor solutions revenue increased due to \"strong demand for our networking solutions, primarily custom AI accelerators and AI networking products.\" Infrastructure software revenue also increased, driven by \"strong demand for our VMware Cloud Foundation (“VCF”) product, including additional license revenue recognized on contracts where customers do not have the right to terminate.\"",
+      "reason": null,
+      "failed": [],
+      "reply": "{\"paragraphs\":[3,4],\"explanation\":\"Semiconductor solutions revenue increased due to \\\"strong demand for our networking solutions, primarily custom AI accelerators and AI networking products.\\\" Infrastructure software revenue also increased, driven by \\\"strong demand for our VMware Cloud Foundation (“VCF”) product, including additional license revenue recognized on contracts where customers do not have the right to terminate.\\\"\"}"
+    },
+    {
+      "id": "e54",
+      "set": "held-out",
+      "metric": "revenue",
+      "basis": "year_over_year",
+      "offered": [
+        "e54-m22",
+        "e54-m30",
+        "e54-m36",
+        "e54-m40",
+        "e54-m44",
+        "e54-m48",
+        "e54-m79"
+      ],
+      "chosen": [
+        {
+          "id": "e54-m22",
+          "text": "During the second quarter of 2026, customer activity continued to strengthen across our end markets. Revenue growth was strong in the pharma and biotech market, with performance driven by strengthening underlying market conditions. Revenues in the academic and government market grew, and growth in the industrial and applied market was strong, both driven by customer demand for our innovative high-end instruments. Revenue to customers in the diagnostics and healthcare market was also strong. During the second quarter of 2026, sales increased across all major geographies. Revenue growth was strong in Europe and Asia-Pacific, including China. Contributions to organic revenue during the second quarter of 2026 were led by the Laboratory Products and Biopharma Services segment and the Analytical Instruments segment."
+        },
+        {
+          "id": "e54-m48",
+          "text": "The increase in organic revenues in the second quarter of 2026 was primarily due to growth in the research and safety market channel and the clinical research business. On a reported basis, the clinical research business grew $441 million, which contributed 7 percentage points of reported growth in the segment, primarily driven by the impact of the Clario acquisition. The research and safety market channel and pharma services business grew $153 million and $99 million, respectively, which contributed 3 percentage points and 2 percentage points, respectively, of reported growth in the segment. The increase in segment income margin was driven by strong productivity improvements and the impact of acquisitions, partially offset by unfavorable business mix and strategic investments."
+        },
+        {
+          "id": "e54-m36",
+          "text": "The increase in organic revenues in the second quarter of 2026 was primarily driven by the bioproduction business. On a reported basis, the bioproduction business grew $196 million, which contributed 8 percentage points of reported growth in the segment, driven by higher demand from pharma and biotech customers, as well as the impact from the 2025 acquisition of the filtration and separation business. The increase in segment income margin resulted primarily from very strong productivity improvements, offset in part by the impact from the acquisition of the filtration and separation business and unfavorable business mix."
+        }
+      ],
+      "explanation": "Revenue rose as pharma and biotech conditions strengthened, while academic/government and industrial/applied growth was driven by \"customer demand for our innovative high-end instruments.\" Clinical research growth was \"primarily driven by the impact of the Clario acquisition.\" Bioproduction also contributed, \"driven by higher demand from pharma and biotech customers, as well as the impact from the 2025 acquisition of the filtration and separation business.\"",
+      "reason": null,
+      "failed": [],
+      "reply": "{\"paragraphs\":[1,6,3],\"explanation\":\"Revenue rose as pharma and biotech conditions strengthened, while academic/government and industrial/applied growth was driven by \\\"customer demand for our innovative high-end instruments.\\\" Clinical research growth was \\\"primarily driven by the impact of the Clario acquisition.\\\" Bioproduction also contributed, \\\"driven by higher demand from pharma and biotech customers, as well as the impact from the 2025 acquisition of the filtration and separation business.\\\"\"}"
+    },
+    {
+      "id": "e55",
+      "set": "held-out",
+      "metric": "operating_income",
+      "basis": "year_over_year",
+      "offered": [
+        "e55-m13",
+        "e55-m25",
+        "e55-m29",
+        "e55-m31"
+      ],
+      "chosen": [
+        {
+          "id": "e55-m13",
+          "text": "Operating income for the three months ended June 27, 2026 was $2.0 billion compared to operating loss of $134 million for the prior year period. The increase in operating income was due to higher gross profit, partially offset by higher operating expenses. Net income for the three months ended June 27, 2026 was $2.3 billion compared to net income of $872 million for the prior year period. The increase in net income was primarily driven by higher operating income."
+        },
+        {
+          "id": "e55-m25",
+          "text": "Data Center operating income was $2.1 billion for the three months ended June 27, 2026, compared to operating loss of $155 million for the prior year period. Data Center operating income was $3.7 billion for the six months ended June 27, 2026, compared to operating income of $777 million for the prior year period. The increase in operating income in both periods was primarily driven by higher revenue and the absence of inventory and related charges associated with the U.S. government export control on AMD Instinct MI308 Data Center GPU products that was recorded in the prior year period, partially offset by higher cost of sales and operating expenses."
+        },
+        {
+          "id": "e55-m31",
+          "text": "Embedded operating income was $386 million for the three months ended June 27, 2026, compared to operating income of $275 million for the prior year period. Embedded operating income was $724 million for the six months ended June 27, 2026, compared to operating income of $603 million for the prior year period. The increase in operating income in both periods was primarily driven by higher revenue, partially offset by higher cost of sales and operating expenses."
+        }
+      ],
+      "explanation": "Company-wide operating income rose because of \"higher gross profit, partially offset by higher operating expenses\". Data Center benefited from \"higher revenue and the absence of inventory and related charges\" associated with export controls on AMD Instinct MI308 Data Center GPU products that had been recorded in the prior-year period. Embedded also contributed, with its increase driven by \"higher revenue, partially offset by higher cost of sales and operating expenses\".",
+      "reason": null,
+      "failed": [],
+      "reply": "{\"paragraphs\":[1,2,4],\"explanation\":\"Company-wide operating income rose because of \\\"higher gross profit, partially offset by higher operating expenses\\\". Data Center benefited from \\\"higher revenue and the absence of inventory and related charges\\\" associated with export controls on AMD Instinct MI308 Data Center GPU products that had been recorded in the prior-year period. Embedded also contributed, with its increase driven by \\\"higher revenue, partially offset by higher cost of sales and operating expenses\\\".\"}"
+    },
+    {
+      "id": "e61",
+      "set": "confirm",
+      "metric": "revenue",
+      "basis": "year_over_year",
+      "offered": [
+        "e61-m24",
+        "e61-m61",
+        "e61-m70",
+        "e61-m80",
+        "e61-m90",
+        "e61-m99",
+        "e61-m107",
+        "e61-m117"
+      ],
+      "chosen": [],
+      "explanation": "",
+      "reason": "quote_outside",
+      "failed": [
+        "driven by growth in Microsoft Cloud,",
+        "demand for services across the platform with continued growth across all workloads,"
+      ],
+      "reply": "{\"paragraphs\":[2,5,4],\"explanation\":\"Microsoft’s revenue rose \\\"driven by growth in Microsoft Cloud,\\\" with Azure and Microsoft 365 Commercial cloud driving the growing segments. Azure benefited from \\\"demand for services across the platform with continued growth across all workloads,\\\" while Microsoft 365 Commercial cloud had \\\"growth in revenue per user driven by Microsoft 365 E5 and Microsoft 365 Copilot.\\\" Partly offsetting that growth, More Personal Computing revenue decreased with \\\"lower hardware sales across Devices and Gaming, offset in part by growth in Search advertising.\\\"\"}"
+    },
+    {
+      "id": "e62",
+      "set": "confirm",
+      "metric": "gross_margin",
+      "basis": "year_over_year",
+      "offered": [
+        "e62-m86",
+        "e62-m93",
+        "e62-m94",
+        "e62-m103",
+        "e62-m113",
+        "e62-m121",
+        "e62-m129",
+        "e62-m130"
+      ],
+      "chosen": [
+        {
+          "id": "e62-m94",
+          "text": "Gross margin increased $3.1 billion or 19% driven by growth in Azure. Gross margin percentage decreased driven by the continued investments in AI infrastructure, offset in part by efficiency gains in Azure."
+        }
+      ],
+      "explanation": "Management attributed the margin decline to \"the continued investments in AI infrastructure\". The decline was partly offset by \"efficiency gains in Azure\".",
+      "reason": null,
+      "failed": [],
+      "reply": "{\"paragraphs\":[3],\"explanation\":\"Management attributed the margin decline to \\\"the continued investments in AI infrastructure\\\". The decline was partly offset by \\\"efficiency gains in Azure\\\".\"}"
+    },
+    {
+      "id": "e63",
+      "set": "confirm",
+      "metric": "selling_general_and_administrative",
+      "basis": "year_over_year",
+      "offered": [
+        "e63-m53"
+      ],
+      "chosen": [
+        {
+          "id": "e63-m53",
+          "text": "Selling, general and administrative expense decreased $76 million, or 7%, and $34 million, or 1%, for the fiscal quarter and three fiscal quarters ended August 2, 2026, respectively, compared to the prior year fiscal periods, primarily due to lower compensation resulting from a decrease in headcount."
+        }
+      ],
+      "explanation": "SG&A expenses fell primarily because of \"lower compensation resulting from a decrease in headcount.\" Management reported that selling, general and administrative expense \"decreased $76 million, or 7%,\" for the fiscal quarter.",
+      "reason": null,
+      "failed": [],
+      "reply": "{\"paragraphs\":[1],\"explanation\":\"SG&A expenses fell primarily because of \\\"lower compensation resulting from a decrease in headcount.\\\" Management reported that selling, general and administrative expense \\\"decreased $76 million, or 7%,\\\" for the fiscal quarter.\"}"
+    },
+    {
+      "id": "e64",
+      "set": "confirm",
+      "metric": "gross_profit",
+      "basis": "year_over_year",
+      "offered": [
+        "e64-m32",
+        "e64-m37",
+        "e64-m38"
+      ],
+      "chosen": [],
+      "explanation": "",
+      "reason": "nothing_found",
+      "failed": [],
+      "reply": "{\"paragraphs\":[],\"explanation\":\"\"}"
+    },
+    {
+      "id": "e65",
+      "set": "confirm",
+      "metric": "operating_income",
+      "basis": "year_over_year",
+      "offered": [],
+      "chosen": [],
+      "explanation": "",
+      "reason": "not_discussed",
+      "failed": [],
+      "reply": ""
+    },
+    {
+      "id": "e66",
+      "set": "confirm",
+      "metric": "operating_income",
+      "basis": "year_over_year",
+      "offered": [
+        "e66-m39"
+      ],
+      "chosen": [
+        {
+          "id": "e66-m39",
+          "text": "Reportable segment operating income – The year-over-year increase in Compute & Networking segment operating income in the second quarter of fiscal year 2027 was driven by the growth in revenue. The year-over-year increase in Compute & Networking segment operating income in the first half of fiscal year 2027 was driven by the growth in revenue and the non-recurrence of a $4.5 billion charge associated with H20 excess inventory and purchase obligations in the first quarter of fiscal year 2026. The year-over-year increase in Graphics segment operating income in the second quarter and first half of fiscal year 2027 was driven by the growth in revenue."
+        }
+      ],
+      "explanation": "Compute & Networking segment operating income increased because it “was driven by the growth in revenue.” Graphics segment operating income also rose, with management stating that the increase “was driven by the growth in revenue.”",
+      "reason": null,
+      "failed": [],
+      "reply": "{\"paragraphs\":[1],\"explanation\":\"Compute & Networking segment operating income increased because it “was driven by the growth in revenue.” Graphics segment operating income also rose, with management stating that the increase “was driven by the growth in revenue.”\"}"
+    },
+    {
+      "id": "e67",
+      "set": "confirm",
+      "metric": "research_and_development",
+      "basis": "year_over_year",
+      "offered": [
+        "e67-m32",
+        "e67-m36"
+      ],
+      "chosen": [
+        {
+          "id": "e67-m32",
+          "text": "Research and development (“R&D”) expense increased during the third quarter and first nine months of 2026 compared to the same periods in 2025 primarily due to higher infrastructure-related costs, including investments in artificial intelligence, and headcount-related expenses."
+        }
+      ],
+      "explanation": "R&D spending rose primarily because of \"higher infrastructure-related costs, including investments in artificial intelligence\". Management also cited \"headcount-related expenses\" as a driver.",
+      "reason": null,
+      "failed": [],
+      "reply": "{\"paragraphs\":[1],\"explanation\":\"R&D spending rose primarily because of \\\"higher infrastructure-related costs, including investments in artificial intelligence\\\". Management also cited \\\"headcount-related expenses\\\" as a driver.\"}"
+    },
+    {
+      "id": "e68",
+      "set": "confirm",
+      "metric": "net_income",
+      "basis": "year_over_year",
+      "offered": [],
+      "chosen": [],
+      "explanation": "",
+      "reason": "not_discussed",
+      "failed": [],
+      "reply": ""
+    },
+    {
+      "id": "e69",
+      "set": "confirm",
+      "metric": "revenue",
+      "basis": "year_over_year",
+      "offered": [
+        "e69-m19",
+        "e69-m49",
+        "e69-m50",
+        "e69-m57",
+        "e69-m58",
+        "e69-m59",
+        "e69-m60",
+        "e69-m64"
+      ],
+      "chosen": [
+        {
+          "id": "e69-m19",
+          "text": "Total revenues increased 10% and 7% to $7.8 billion and $14.8 billion for the three and six months ended June 30, 2026, respectively, compared to the same periods in 2025, primarily due to higher sales of HIV products, Trodelvy and Livdelzi, as well as higher royalty, contract and other revenues, partially offset by lower sales of Veklury as well as Cell Therapy and chronic hepatitis C virus (“HCV”) products."
+        },
+        {
+          "id": "e69-m49",
+          "text": "HIV product sales increased 12% to $5.7 billion for the three months ended June 30, 2026, compared to the same period in 2025, primarily due to higher average realized price and demand. In particular:"
+        },
+        {
+          "id": "e69-m64",
+          "text": "Royalty, contract and other revenues increased to $176 million and $189 million for the three and six months ended June 30, 2026, respectively, compared to the same periods in 2025, primarily due to recognition of $156 million of previously constrained revenues from the sale of certain intellectual property."
+        }
+      ],
+      "explanation": "Revenue rose primarily because of \"higher sales of HIV products, Trodelvy and Livdelzi\", along with higher royalty, contract and other revenues. HIV sales benefited from \"higher average realized price and demand\", while royalty, contract and other revenues benefited from \"recognition of $156 million of previously constrained revenues from the sale of certain intellectual property\". These gains were partly offset by \"lower sales of Veklury as well as Cell Therapy\" and lower chronic hepatitis C product sales.",
+      "reason": null,
+      "failed": [],
+      "reply": "{\"paragraphs\":[1,2,8],\"explanation\":\"Revenue rose primarily because of \\\"higher sales of HIV products, Trodelvy and Livdelzi\\\", along with higher royalty, contract and other revenues. HIV sales benefited from \\\"higher average realized price and demand\\\", while royalty, contract and other revenues benefited from \\\"recognition of $156 million of previously constrained revenues from the sale of certain intellectual property\\\". These gains were partly offset by \\\"lower sales of Veklury as well as Cell Therapy\\\" and lower chronic hepatitis C product sales.\"}"
+    },
+    {
+      "id": "e70",
+      "set": "confirm",
+      "metric": "gross_margin",
+      "basis": "year_over_year",
+      "offered": [
+        "e70-m73",
+        "e70-m74",
+        "e70-m77",
+        "e70-m78",
+        "e70-m82",
+        "e70-m83",
+        "e70-m85",
+        "e70-m86"
+      ],
+      "chosen": [
+        {
+          "id": "e70-m73",
+          "text": "Product gross margin decreased by 2.5 percentage points primarily driven by negative impacts from product mix and to a lesser extent, pricing, partially offset by productivity improvements. The negative impacts from product mix were primarily due to higher Networking revenue. Productivity benefits were adversely impacted by higher memory costs."
+        },
+        {
+          "id": "e70-m82",
+          "text": "We experienced a gross margin percentage decrease in our Americas segment due to negative impacts from product mix and to a lesser extent pricing, partially offset by positive impacts from productivity improvements."
+        }
+      ],
+      "explanation": "Product gross margin fell primarily because of \"negative impacts from product mix and to a lesser extent, pricing\"; the mix impact reflected \"higher Networking revenue.\" Productivity improvements partly offset the decline, but \"Productivity benefits were adversely impacted by higher memory costs.\" Americas gross margin also fell due to \"negative impacts from product mix and to a lesser extent pricing,\" partly offset by productivity improvements.",
+      "reason": null,
+      "failed": [],
+      "reply": "{\"paragraphs\":[1,5],\"explanation\":\"Product gross margin fell primarily because of \\\"negative impacts from product mix and to a lesser extent, pricing\\\"; the mix impact reflected \\\"higher Networking revenue.\\\" Productivity improvements partly offset the decline, but \\\"Productivity benefits were adversely impacted by higher memory costs.\\\" Americas gross margin also fell due to \\\"negative impacts from product mix and to a lesser extent pricing,\\\" partly offset by productivity improvements.\"}"
+    },
+    {
+      "id": "e71",
+      "set": "confirm",
+      "metric": "research_and_development",
+      "basis": "year_over_year",
+      "offered": [
+        "e71-m59"
+      ],
+      "chosen": [
+        {
+          "id": "e71-m59",
+          "text": "Research and development expenses increased 14 percent and 21 percent for the three and six months ended June 30, 2026, respectively, driven by continued investments in our early and late-stage portfolio."
+        }
+      ],
+      "explanation": "R&D spending rose this quarter because of \"continued investments in our early and late-stage portfolio.\" Management reported that research and development expenses \"increased 14 percent and 21 percent for the three and six months ended June 30, 2026, respectively,\" with the former applying to the quarter.",
+      "reason": null,
+      "failed": [],
+      "reply": "{\"paragraphs\":[1],\"explanation\":\"R&D spending rose this quarter because of \\\"continued investments in our early and late-stage portfolio.\\\" Management reported that research and development expenses \\\"increased 14 percent and 21 percent for the three and six months ended June 30, 2026, respectively,\\\" with the former applying to the quarter.\"}"
+    },
+    {
+      "id": "e72",
+      "set": "confirm",
+      "metric": "gross_margin",
+      "basis": "year_over_year",
+      "offered": [
+        "e72-m12",
+        "e72-m38"
+      ],
+      "chosen": [
+        {
+          "id": "e72-m12",
+          "text": "Gross margin for the three months ended June 27, 2026 was 54% compared to gross margin of 40% for the prior year period, a 14% increase primarily driven by the absence of inventory and related charges associated with the U.S. government export control on AMD Instinct MI308 Data Center GPU products that was recorded in the prior year period and a favorable product mix, including higher Data Center segment revenue."
+        },
+        {
+          "id": "e72-m38",
+          "text": "Gross margin was 54% and 40% for the three months ended June 27, 2026 and June 28, 2025, respectively. Gross margin was 53% and 45% for the six months ended June 27, 2026 and June 28, 2025, respectively. The increase in both periods was driven by the absence of inventory and related charges associated with the U.S. government export control on AMD Instinct MI308 Data Center GPU products that was recorded in the prior year period and a favorable product mix, including higher Data Center segment revenue."
+        }
+      ],
+      "explanation": "Gross margin rose primarily because of the \"absence of inventory and related charges associated with the U.S. government export control on AMD Instinct MI308 Data Center GPU products that was recorded in the prior year period\". Management also cited \"a favorable product mix, including higher Data Center segment revenue\".",
+      "reason": null,
+      "failed": [],
+      "reply": "{\"paragraphs\":[1,2],\"explanation\":\"Gross margin rose primarily because of the \\\"absence of inventory and related charges associated with the U.S. government export control on AMD Instinct MI308 Data Center GPU products that was recorded in the prior year period\\\". Management also cited \\\"a favorable product mix, including higher Data Center segment revenue\\\".\"}"
+    },
+    {
+      "id": "e73",
+      "set": "confirm",
+      "metric": "operating_income",
+      "basis": "year_over_year",
+      "offered": [],
+      "chosen": [],
+      "explanation": "",
+      "reason": "not_discussed",
+      "failed": [],
+      "reply": ""
+    },
+    {
+      "id": "e74",
+      "set": "confirm",
+      "metric": "operating_income",
+      "basis": "year_over_year",
+      "offered": [],
+      "chosen": [],
+      "explanation": "",
+      "reason": "not_discussed",
+      "failed": [],
+      "reply": ""
+    },
+    {
+      "id": "e75",
+      "set": "confirm",
+      "metric": "selling_general_and_administrative",
+      "basis": "year_over_year",
+      "offered": [
+        "e75-m81"
+      ],
+      "chosen": [],
+      "explanation": "",
+      "reason": "nothing_found",
+      "failed": [],
+      "reply": "{\"paragraphs\":[],\"explanation\":\"\"}"
+    },
+    {
+      "id": "e76",
+      "set": "confirm",
+      "metric": "operating_income",
+      "basis": "year_over_year",
+      "offered": [
+        "e76-m62",
+        "e76-m63"
+      ],
+      "chosen": [
+        {
+          "id": "e76-m62",
+          "text": "Operating income from our semiconductor solutions segment increased for the fiscal quarter and three fiscal quarters ended August 2, 2026 compared to the prior year fiscal periods due to strong demand for our networking solutions, primarily custom AI accelerators and AI networking products."
+        },
+        {
+          "id": "e76-m63",
+          "text": "Higher operating income from our infrastructure software segment in the fiscal quarter and three fiscal quarters ended August 2, 2026 compared to the prior year fiscal periods was primarily due to strong demand for our VCF product, including additional license revenue recognized on contracts where customers do not have the right to terminate. As of the fiscal quarter ended August 2, 2026, we no longer have termination for convenience provisions for the majority of new software contracts."
+        }
+      ],
+      "explanation": "Semiconductor solutions operating income rose due to \"strong demand for our networking solutions, primarily custom AI accelerators and AI networking products.\" Infrastructure software operating income also rose, primarily due to \"strong demand for our VCF product, including additional license revenue recognized on contracts where customers do not have the right to terminate.\"",
+      "reason": null,
+      "failed": [],
+      "reply": "{\"paragraphs\":[1,2],\"explanation\":\"Semiconductor solutions operating income rose due to \\\"strong demand for our networking solutions, primarily custom AI accelerators and AI networking products.\\\" Infrastructure software operating income also rose, primarily due to \\\"strong demand for our VCF product, including additional license revenue recognized on contracts where customers do not have the right to terminate.\\\"\"}"
+    },
+    {
+      "id": "e77",
+      "set": "confirm",
+      "metric": "selling_general_and_administrative",
+      "basis": "year_over_year",
+      "offered": [],
+      "chosen": [],
+      "explanation": "",
+      "reason": "not_discussed",
+      "failed": [],
+      "reply": ""
+    },
+    {
+      "id": "e78",
+      "set": "confirm",
+      "metric": "revenue",
+      "basis": "year_over_year",
+      "offered": [
+        "e78-m48",
+        "e78-m70",
+        "e78-m85",
+        "e78-m86",
+        "e78-m87",
+        "e78-m93",
+        "e78-m94",
+        "e78-m100"
+      ],
+      "chosen": [
+        {
+          "id": "e78-m70",
+          "text": "•Revenues were $119.8 billion, an increase of 24% year over year, primarily driven by an increase in Google Services revenues of $12.0 billion, or 15%, and an increase in Google Cloud revenues of $11.1 billion, or 82%."
+        },
+        {
+          "id": "e78-m94",
+          "text": "Google Cloud revenues increased $11.1 billion and $18.9 billion from the three and six months ended June 30, 2025 to the three and six months ended June 30, 2026 primarily driven by growth in Google Cloud Platform largely from infrastructure and platform services. In addition, in the second quarter of 2026, we began recognizing revenue from the sale of TPU systems."
+        },
+        {
+          "id": "e78-m85",
+          "text": "Google Search & other revenues increased $9.1 billion and $18.8 billion from the three and six months ended June 30, 2025 to the three and six months ended June 30, 2026. The overall growth was driven by interrelated factors including increases in search queries resulting from growth in user adoption and usage on mobile devices; growth in advertiser spending; and improvements we have made in ad formats and delivery."
+        }
+      ],
+      "explanation": "Revenue growth was primarily driven by Google Services and Google Cloud, with management citing an \"increase in Google Services revenues of $12.0 billion\" and an \"increase in Google Cloud revenues of $11.1 billion\". Cloud benefited from \"growth in Google Cloud Platform largely from infrastructure and platform services\" and the start of revenue recognition from TPU system sales. Within Services, Search growth reflected increased queries from mobile adoption and usage, \"growth in advertiser spending\", and improvements in ad formats and delivery.",
+      "reason": null,
+      "failed": [],
+      "reply": "{\"paragraphs\":[2,7,3],\"explanation\":\"Revenue growth was primarily driven by Google Services and Google Cloud, with management citing an \\\"increase in Google Services revenues of $12.0 billion\\\" and an \\\"increase in Google Cloud revenues of $11.1 billion\\\". Cloud benefited from \\\"growth in Google Cloud Platform largely from infrastructure and platform services\\\" and the start of revenue recognition from TPU system sales. Within Services, Search growth reflected increased queries from mobile adoption and usage, \\\"growth in advertiser spending\\\", and improvements in ad formats and delivery.\"}"
+    },
+    {
+      "id": "e79",
+      "set": "confirm",
+      "metric": "selling_general_and_administrative",
+      "basis": "year_over_year",
+      "offered": [],
+      "chosen": [],
+      "explanation": "",
+      "reason": "not_discussed",
+      "failed": [],
+      "reply": ""
+    },
+    {
+      "id": "e80",
+      "set": "confirm",
+      "metric": "cost_of_revenue",
+      "basis": "year_over_year",
+      "offered": [
+        "e80-m70",
+        "e80-m79",
+        "e80-m97",
+        "e80-m155"
+      ],
+      "chosen": [],
+      "explanation": "",
+      "reason": "nothing_found",
+      "failed": [],
+      "reply": "{\"paragraphs\":[],\"explanation\":\"\"}"
+    }
+  ]
+}

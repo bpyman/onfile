@@ -133,7 +133,7 @@ Live APIs are the default; a fixture kill-switch uses the same renderer if the n
 - LangGraph Studio as the audience view; Claude Desktop as a required second client; stdio-only MCP.
 - Authentication, cloud deploy, streaming-as-a-product. Multi-turn thread state is now in scope per ADR 0005 (persisted analysis spec, resumable clarification); per-thread public-demo quotas and deploy docs for the portfolio demo are in scope; cross-thread long-term memory and personalization stay out.
 - Rewriting the v1 XBRL selector from scratch.
-- Extra analyst tools (peers, filing full-text search) beyond the five MCP tools and eight intents above. Accession-pinned MD&A / Risk Factors filing-change diffs are in scope; open-ended 10-K vs 10-Q analysis is not.
+- Extra analyst tools (peers, filing full-text search) beyond the five MCP tools and eight intents above. Accession-pinned MD&A / Risk Factors filing-change diffs are in scope; open-ended 10-K vs 10-Q analysis is not. *Revised 23 October 2026 (ADR 0017):* Management's explanation (MD&A paragraphs quoted verbatim from the filing a figure came from, chosen by code) is in scope, and so, later, are paragraphs that match a question about a filing's text. Open-ended analysis across filings stays out.
 - Tavily extract/map/crawl, keyless DuckDuckGo, or a second search vendor.
 
 ## Further Notes

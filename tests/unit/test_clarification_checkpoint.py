@@ -375,7 +375,7 @@ def test_structured_analysis_is_a_subgraph_of_ordered_steps() -> None:
     from financial_analyst_agent.graph.turn_graph import TURN_GRAPH
 
     drawn = TURN_GRAPH.get_graph(xray=True)
-    steps = ["run_tasks", "merge", "add_history", "annotate"]
+    steps = ["run_tasks", "merge", "add_history", "annotate", "explain"]
     edges = {(edge.source, edge.target) for edge in drawn.edges}
     names = [f"structured_analysis:{step}" for step in steps]
     assert set(names) <= set(drawn.nodes)

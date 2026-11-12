@@ -301,6 +301,17 @@ class FilingsPort(Protocol):
     def get_filing_document(self, cik: str, accession: str, document: str) -> str: ...
 
 
+class ExplanationsPort(Protocol):
+    """The model that writes Management's explanation (ADR 0017).
+
+    The completer is asked only when there are paragraphs to offer. Asked, it may
+    raise ``explanation.ExplanationUnavailable``: the live runtime without OpenAI,
+    or the recorded one with no recording for this filing and metric.
+    """
+
+    def completer(self, cik: str, accession: str, metric: str) -> EssayCompleter: ...
+
+
 @dataclass(frozen=True)
 class Runtime:
     """Provider set for a turn. ``kind`` says whether it is the recorded or live runtime.
@@ -321,6 +332,9 @@ class Runtime:
     # OpenAI. Without them it replays the recorded demo's answers and says so (story 36).
     live_news: bool = True
     live_essays: bool = True
+    # Management's explanation of a figure (ADR 0017). Without it, or without
+    # ``filings``, a why question keeps ADR 0016's note.
+    explanations: ExplanationsPort | None = None
 
 
 class NewsHit(BaseModel):
@@ -458,6 +472,42 @@ class DisclosureChange(BaseModel):
     )
 
 
+class ExplanationQuote(BaseModel):
+    """One MD&A paragraph the model chose, verbatim, with a link to it in the filing."""
+
+    text: str
+    url: str
+
+
+class CompanyExplanation(BaseModel):
+    """One company's Management's explanation, or what the panel says instead.
+
+    The filing is the 10-Q the latest figure came from. ``explanation`` is the
+    model's, held to ``paragraphs`` by the quote lock and the numeral lock. With
+    nothing to show, ``unavailable`` is the panel's line and ``reason`` its code.
+    """
+
+    company_name: str
+    cik: str
+    period_end: date | None = None
+    accession_number: str
+    filing_url: str
+    mda_url: str
+    explanation: str = ""
+    paragraphs: list[ExplanationQuote] = Field(default_factory=list)
+    unavailable: str | None = None
+    reason: str | None = None
+
+
+class Explanation(BaseModel):
+    """Management's explanation of a why question's figure, per company (ADR 0017)."""
+
+    metric: str
+    companies: list[CompanyExplanation]
+    # Said above the companies: a sequential question gets the year-over-year route.
+    note: str | None = None
+
+
 # What a CLARIFY result asks: pick one metric, extend vs replace the analysis,
 # which of the companies a name could mean, or what a change is measured against.
 ClarifyKind = Literal[
@@ -503,6 +553,8 @@ class TurnResult(BaseModel):
     # quarter of a sequential view. Empty when no change was asked.
     change_bases: tuple[ComparisonBase, ...] = ()
     refusal: Refusal | None = None
+    # Management's explanation, for a why question about a figure (ADR 0017).
+    explanation: Explanation | None = None
     snapshot_as_of: str | None = None
     # Position of a migrated legacy snapshot banner among visible banners.
     snapshot_banner_index: int = 0

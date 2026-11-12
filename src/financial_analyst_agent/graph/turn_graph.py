@@ -68,6 +68,7 @@ from financial_analyst_agent.graph.state import (
 )
 from financial_analyst_agent.graph.structured import build_structured_analysis
 from financial_analyst_agent.guide import (
+    explains_bare_why,
     guide_reply,
     not_recorded_banner,
     not_recorded_reply,
@@ -331,6 +332,15 @@ def _interpret(state: AnalysisRun, runtime: GraphRuntime[TurnDeps]) -> dict[str,
     providers = deps.runtime
     message = state["message"]
     index = names_index(providers)
+    if (
+        providers.explanations is not None
+        and providers.filings is not None
+        and explains_bare_why(message, deps.active_spec, index)
+    ):
+        # "why?" after figures it can explain: the same analysis again, which the
+        # thread's evidence answers, with Management's explanation (ADR 0017).
+        again = StructuredRequest(patch=SpecPatch(mode="extend"), wording=message, question=message)
+        return {"request": again, "result": None}
     outside = getattr(providers.completer, "outside_index", None)
     guide = guide_reply(message, deps.active_spec, index, outside)
     if guide is not None:

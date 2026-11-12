@@ -135,6 +135,34 @@ export interface DisplayDisclosure {
   subsection?: string;
 }
 
+/** An MD&A paragraph the model chose, verbatim, and its link into the filing. */
+export interface DisplayQuote {
+  text: string;
+  url: string;
+}
+
+/** One company's part of Management's explanation. */
+export interface DisplayCompanyExplanation {
+  company_name: string;
+  /** "From Apple's 10-Q for the quarter ended Jun 27, 2026 · MD&A" */
+  source: string;
+  filing_url: string;
+  mda_url: string;
+  /** The model's, from the quoted paragraphs; "" when `unavailable` says why not. */
+  explanation: string;
+  paragraphs: DisplayQuote[];
+  /** What shows in place of an explanation, followed by a link to the MD&A. */
+  unavailable: string | null;
+}
+
+/** Management's explanation, below a why question's figures (ADR 0017). */
+export interface DisplayExplanation {
+  heading: string;
+  companies: DisplayCompanyExplanation[];
+  /** A sequential question's line: the 10-Q explains the year-over-year change. */
+  note: string | null;
+}
+
 export interface Presentation {
   intent: string;
   intent_label: string;
@@ -159,6 +187,8 @@ export interface Presentation {
   headline?: string | null;
   /** Small trend charts beside one company's overview; empty for any other answer. */
   trends: LineChartSpec[];
+  /** Management's explanation of a why question's figures; absent in older answers. */
+  explanation?: DisplayExplanation | null;
 }
 
 export interface Turn {

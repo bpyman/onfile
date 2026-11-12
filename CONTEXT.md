@@ -68,6 +68,10 @@ _Avoid_: ambiguous metric
 Words of a question the answer does not act on: a condition on a ranking ("above 20%", "profitable", "S&P 500"), an unknown metric beside a catalog one, a region, one figure as a share of another outside the catalog's ratios, or a "why". The answer names them in a note above it, in the analyst's words, whichever planner read the question (ADR 0016).
 _Avoid_: ignored words, dropped constraint (for the note)
 
+**Management's explanation**:
+The panel a why question's figures carry: the MD&A paragraphs of the 10-Q the latest figure came from that explain its move, quoted verbatim, each with a link to its passage, under the model's short explanation in management's words (ADR 0017, revised 11 November 2026). Code offers up to eight candidates: a paragraph must name the metric in the MD&A's own words, say it moved or why, not compare only sequentially, and explain the quarter, not only the year to date; one whose subject is another metric, the cash balance or financing is never offered. The model chooses up to three and explains them, held by the quote lock (every quotation verbatim in the chosen paragraphs) and the numeral lock. Any failure withholds the whole answer, and the panel says it could not find management's explanation and links the MD&A; it never falls back to code's paragraphs. It covers year-over-year questions about amounts (revenue, cost of revenue, gross profit, operating income, net income, R&D, SG&A) and gross margin. A sequential question gets the year-over-year explanation and is told the 10-Q explains the quarter against a year earlier. Other margins and ratios, cash flow and capex, and a figure with no 10-Q behind it keep the note that filings report what changed, not why.
+_Avoid_: rationale, commentary, reason (unqualified), the why
+
 **Shared name**:
 A company name two or more snapshot members answer to ("Lincoln"). The analyst is asked which one; the largest is not assumed (ADR 0010).
 _Avoid_: ambiguous company (in prose), alias collision
