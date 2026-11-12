@@ -71,4 +71,69 @@ Its evaluation cleared the bar on an unseen final set (`docs/evaluation/explanat
 
 **Blocked by:** 07
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Shipped. No model was called: the recorded explanations are the committed evaluation runs, and the live path is tested with fakes.
+
+**The turn** (`graph/spec_turn.add_explanation`, a new `explain` step after `annotate` in the structured subgraph):
+- **When:** `answer_notes.asks_why` ("why", "how come", "what drove", "what caused" and the rest of ADR 0016's why words) on a table answer whose first metric `explanation.explained_metrics()` covers, with named companies, not a ranking.
+- **Bare "why?":** `guide.explains_bare_why` ("why?", "why is that?", "how come?" after figures it can explain). `turn_graph._interpret` then re-runs the analysis on screen (an empty extend patch, from the thread's evidence) with the panel. Any other bare "why?" keeps `WHY_MESSAGE`.
+- **Which filing:** each company's latest level row for the metric, up to four. Its accession and URL are the row's, or for a formula (gross margin) its first part's. Only a 10-Q: a figure from a 10-K (a fiscal fourth quarter, so Microsoft's and Cisco's latest quarters on the recorded demo) keeps ADR 0016's note, as a figure with no filing does. The ticket did not say; a 10-K's MD&A explains the year, not the quarter.
+- **The call:** `runtime.filings.get_filing_document`, then `model_explanation(..., "year_over_year", ...)` with a `WhyQuestion` (short name, the question, or one written for a bare why, the quarter end, and the direction from the year-over-year change on screen when there is one).
+- **Failures never fail the turn.** Each sets the company's `unavailable` line, and the figures show:
+  - a withheld or empty answer, or no candidates: `NOT_FOUND_MESSAGE`;
+  - OpenAI off, or `SpendCapReached`: `MODEL_UNAVAILABLE_MESSAGE`;
+  - the recorded demo with no recording, or no filing text: `NOT_RECORDED_MESSAGE`;
+  - SEC failing on the live runtime: `FILING_UNREADABLE_MESSAGE`;
+  - any other model error: `MODEL_FAILED_MESSAGE`.
+- **Sequential:** an analysis whose change is on the quarter before (`across_periods` or `sequential`, no `year_over_year`) gets `YEAR_OVER_YEAR_ONLY_NOTE` above the year-over-year explanation.
+- **Notes:** `WHY_CHANGE_BANNER` and `WHY_NOT_ANSWERED_NOTE` (`answer_notes.WHY_NOTES`) are dropped where the panel shows.
+
+**Contracts:** `TurnResult.explanation` (`Explanation`: metric, note, a `CompanyExplanation` per company with filing and MD&A links, explanation, `ExplanationQuote`s, `unavailable` and `reason`). `Runtime.explanations` is an `ExplanationsPort`: `completer(cik, accession, metric)`. Without it, or without `filings`, the notes stay as before.
+
+**Runtimes** (`runtime.py`):
+- **`LiveExplanations`:** `explanation_completer` over the shared `DailySpendCap`, built once. With OpenAI off it returns a completer that raises `ExplanationUnavailable` when asked.
+- **`RecordedExplanations`:** replays `data/explanation_recordings.json`, keyed by CIK, accession and metric, through `checked_answer` like a live reply. Each recording carries a digest of the numbered paragraphs it was asked about (`explanation.offered_digest`). A replay for other paragraphs counts as no recording.
+- **The recordings:** `explanation_evaluation recordings` writes 41, one per evaluation case the model was asked about, from the tuning and final runs. It checks each case's candidates are unchanged, and a test holds the file to a fresh build.
+
+**Presentation and web:**
+- `Presentation.explanation` is a `DisplayExplanation`. Each company has a source line ("From Alphabet's 10-Q for the quarter ended Jun 30, 2026 · MD&A"), links, the explanation, `DisplayQuote`s and the `unavailable` line.
+- `web/lib/api.ts` reads it.
+- `web/components/explanation.tsx` (`ManagementExplanation`) draws the panel below the figures:
+  - the heading and the source line, with MD&A linked;
+  - the explanation, marked "Written by the model from the quoted paragraphs";
+  - each paragraph in a blockquote with "Read in the filing";
+  - on a phone, "Show the paragraphs";
+  - otherwise the line, then "Read the MD&A".
+
+**On the recorded demo,** with the panel's paragraphs: Alphabet's revenue, cost of revenue and R&D; Amgen's, Applied Materials', Broadcom's, Gilead's, Palantir's and Thermo Fisher's revenue; AMD's gross margin, operating income and R&D; Broadcom's gross margin, operating income and SG&A; NVIDIA's operating income and SG&A; Apple's, Eli Lilly's and Gilead's R&D; Gilead's SG&A; Micron's gross profit; Tesla's cost of revenue. Good for a screenshot:
+- "What caused Alphabet's cost of revenue to rise year over year last quarter?" (three paragraphs);
+- "What drove AMD's gross margin year over year?" (two).
+
+Others recorded show the not-found line (the model found nothing). Unrecorded ones say the demo has none.
+
+**Replay** (`compare_answers.py`):
+- **Against HEAD:** 2 of 893 differ, both why conversations that now show the panel in place of the note:
+  - `extra:Why is Goldman's revenue so volatile?`: no filing text is recorded for Goldman, so the panel says the demo has no explanation;
+  - `phrase:since_change:What caused Apple's revenue to fall since 2023?`: Apple's revenue is not recorded.
+- **Against origin/master:** 84 of 893 differ. They are the same 2, and 82 headline-only differences from master's ten commits this branch does not have ("A comparison over several quarters says where each company went", "A quarter-over-quarter question gets a quarter-over-quarter headline"). None of the 82 touches a why.
+
+**Tests:**
+- `tests/test_management_explanation.py` covers:
+  - the recorded conversations: a recording shows paragraphs; figure then "why?", "why is that?" and "how come?"; a plain lookup shows none; market cap keeps the note, and its bare why the guide; operating margin and Cisco's 10-K quarter keep the note; sequential, both ways; a quote-lock failure fixture; nothing found; no recording; a recording for other paragraphs; two companies;
+  - the live path with fakes: the completer is asked for the figure's filing; spend cap reached and OpenAI off say the model is unavailable and link the MD&A; the real `LiveExplanations` charges the shared cap and stops at it; an unreadable filing on both runtimes; `live_runtime` wires it.
+- Updated for the new behaviour:
+  - `test_says_what_it_cannot_do` and `test_held_out_5_findings`: the why note is now pinned on an uncovered margin, and the covered amount gets the panel;
+  - `test_api`'s presentation keys;
+  - the structured subgraph's steps;
+  - `web/lib/demo-answers.json`, regenerated.
+- Web: vitest for the panel and the reader. Two Playwright tests: the desktop panel, and on a phone "Show the paragraphs" after "why?".
+
+**Docs:**
+- README: the why rows of "How a question is read", the follow-ups paragraph, Limitations, and a sixth instruction under "Prompts and controls".
+- `docs/prompts-and-controls.md`: a Management's explanation section (the quote lock), its evaluation row, division of labour, known limits, reproducing, and the prompt verbatim.
+- `CONTEXT.md`: the Management's explanation entry now describes phase B, which ships.
+
+**For review** (`rules-to-review.md`, 2026-11-11): `phase-b-prompt.md` still calls itself a draft no model may run. The comment in `explanation.py` now says it is the prompt the runs used.

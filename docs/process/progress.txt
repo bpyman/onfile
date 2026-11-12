@@ -3469,3 +3469,48 @@ Blockers / next:
   `generate --model --set final` once, and `score`.
 - 2,710 tests pass; ruff and mypy are clean; compare_answers reports `0 of 893 conversations
   differ from HEAD`.
+
+
+## 2026-11-11 — why-from-the-filing 04: a why question shows Management's explanation
+
+Ticket: `docs/process/tickets/why-from-the-filing/issues/04-a-why-question-shows-managements-explanation.md`
+
+Key decisions:
+- A new `explain` step after `annotate` (`spec_turn.add_explanation`): a why question
+  (`answer_notes.asks_why`, now with "how come") about a covered first metric, on a table of
+  named companies, reads each company's latest 10-Q (up to four) and calls `model_explanation`
+  year over year. It drops `answer_notes.WHY_NOTES` where the panel shows. Every failure is a
+  line on the panel, never a failed turn.
+- A figure from a 10-K (a fiscal fourth quarter) keeps ADR 0016's note, as a figure with no filing
+  does: the 10-K's MD&A explains the year. On the recorded demo that is Microsoft and Cisco.
+- A bare "why?" after figures it can explain (`guide.explains_bare_why`) re-runs the analysis
+  with an empty extend patch from the thread's evidence; otherwise the guide's `WHY_MESSAGE`.
+- `Runtime.explanations` (`ExplanationsPort.completer(cik, accession, metric)`):
+  `LiveExplanations` (the essay client under the shared `DailySpendCap`; OpenAI off raises
+  `ExplanationUnavailable` when asked) and `RecordedExplanations` (replays
+  `data/explanation_recordings.json` through `checked_answer`, only for the same numbered
+  paragraphs, by `offered_digest`).
+- `explanation_evaluation recordings` writes the 41 recordings from the tuning and final runs.
+- Web: `ManagementExplanation` in `web/components/explanation.tsx`, read by `api.readPresentation`.
+
+Files changed:
+- `src/financial_analyst_agent/`: `contracts.py`, `runtime.py`, `explanation.py`,
+  `explanation_evaluation.py`, `answer_notes.py`, `guide.py`, `presentation.py`,
+  `graph/spec_turn.py`, `graph/structured.py`, `graph/turn_graph.py`,
+  `data/explanation_recordings.json` (new)
+- tests: `tests/test_management_explanation.py` (new), `tests/unit/test_explanation_evaluation.py`,
+  and four updated for the new behaviour (`test_says_what_it_cannot_do`, `test_held_out_5_findings`,
+  `test_api`, `unit/test_clarification_checkpoint`)
+- web: `lib/types.ts`, `lib/api.ts`, `lib/api.test.ts`, `components/explanation.tsx` (new),
+  `components/explanation.test.tsx` (new), `components/answer.tsx`, `e2e/features.spec.ts`,
+  `lib/demo-answers.json`
+- `README.md`, `docs/prompts-and-controls.md`, `CONTEXT.md`, `docs/process/rules-to-review.md`,
+  the ticket, `docs/process/progress.txt`
+
+Blockers / next:
+- `phase-b-prompt.md` still says it is a draft no model runs (rules-to-review, 2026-11-11).
+- compare_answers: 2 of 893 differ from HEAD (Goldman's "so volatile" and Apple's "since 2023",
+  both why conversations now showing the panel). Against origin/master, 84 differ: those 2 and
+  82 headline-only differences from master's commits this branch lacks.
+- 2,733 tests pass; ruff and mypy are clean; web lint, tsc, vitest (226), build and Playwright
+  (48) pass.

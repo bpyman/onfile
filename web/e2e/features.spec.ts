@@ -158,6 +158,19 @@ test("/ jumps to the question box and ↑ brings back the last question", async 
   await expect(box).toHaveValue("R/D");
 });
 
+test("a why question shows management's explanation from the 10-Q, quoted and linked", async ({ page }) => {
+  const analyst = new Analyst(page);
+  await analyst.open();
+  await analyst.ask("What caused Alphabet's cost of revenue to rise year over year last quarter?");
+  const panel = page.getByRole("region", { name: "Management's explanation" });
+  await expect(panel.getByText("From Alphabet's 10-Q for the quarter ended Jun 30, 2026")).toBeVisible();
+  await expect(panel.getByText("Written by the model from the quoted paragraphs")).toBeVisible();
+  await expect(panel.locator("blockquote")).toHaveCount(3);
+  await expect(panel.getByRole("link", { name: "Read in the filing" }).first()).toHaveAttribute("href", /goog-20260630\.htm#:~:text=/);
+  // The panel replaces the note that filings report what changed, not why.
+  await expect(page.getByText(/Filings report what/)).toHaveCount(0);
+});
+
 // The suite runs in Chromium; the phone is its size, touch and user agent, not WebKit.
 const { viewport, userAgent, deviceScaleFactor, isMobile, hasTouch } = devices["iPhone 13"];
 const iPhone = { viewport, userAgent, deviceScaleFactor, isMobile, hasTouch };
@@ -191,6 +204,20 @@ test.describe("on a phone", () => {
     await expect(sheet.getByText("96,221,000,000")).toBeVisible();
     await sheet.getByRole("button", { name: "Close source" }).click();
     await expect(sheet).toBeHidden();
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+
+  test("management's explanation shows its paragraphs when asked", async ({ page }) => {
+    const analyst = new Analyst(page);
+    await analyst.open();
+    await analyst.ask("Nvidia operating income");
+    await analyst.ask("why?");
+    const panel = page.getByRole("region", { name: /^Management's explanation/ });
+    await expect(panel.getByText("Written by the model from the quoted paragraphs")).toBeVisible();
+    await expect(panel.locator("blockquote").first()).toBeHidden();
+    await panel.getByRole("button", { name: "Show the paragraphs" }).click();
+    await expect(panel.locator("blockquote").first()).toBeVisible();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     expect(overflow).toBeLessThanOrEqual(0);
   });

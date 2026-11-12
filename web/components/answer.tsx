@@ -33,6 +33,7 @@ import { useRegionName } from "./answer-scope";
 import { Clarify } from "./clarify";
 import { CopyButton } from "./copy-button";
 import { DataTable } from "./data-table";
+import { ManagementExplanation } from "./explanation";
 import { FilingChanges } from "./filing-changes";
 import { InspectContext } from "./inspect-context";
 import { SafeMarkdown } from "./markdown";
@@ -170,6 +171,7 @@ function AnswerComponent({
           </>
         )}
         {fact_card && <FactCard card={fact_card} footnotes={footnotes} />}
+        {presentation.explanation && <ManagementExplanation explanation={presentation.explanation} />}
         {message &&
           (presentation.message_tone === "info" ? (
             <p className="break-words text-[15px] leading-relaxed text-fg">{message}</p>

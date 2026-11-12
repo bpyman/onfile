@@ -2,6 +2,7 @@ import { createSseParser } from "./sse";
 import type {
   ChartSpec,
   CreatedThread,
+  DisplayExplanation,
   DisplayTable,
   DisplayTrace,
   LineChartSpec,
@@ -352,6 +353,30 @@ export function readPresentation(raw: Raw): Presentation {
       const chart = readChart(item);
       return chart?.kind === "line" ? chart : null;
     }),
+    explanation: isRecord(raw.explanation) ? readExplanation(raw.explanation) : null,
+  };
+}
+
+const EXPLANATION_KEYS = ["company_name", "source", "filing_url", "mda_url", "explanation"] as const;
+
+/** Management's explanation; a company with neither paragraphs nor a line is dropped. */
+function readExplanation(raw: Raw): DisplayExplanation | null {
+  const companies = list(raw.companies, (item) => {
+    const company = {
+      ...strings(item, EXPLANATION_KEYS),
+      paragraphs: list(item.paragraphs, (quote) => {
+        const paragraph = { text: text(quote.text), url: text(quote.url) };
+        return paragraph.text ? paragraph : null;
+      }),
+      unavailable: textOrNull(item.unavailable),
+    };
+    return company.unavailable || (company.explanation && company.paragraphs.length > 0) ? company : null;
+  });
+  if (companies.length === 0) return null;
+  return {
+    heading: text(raw.heading) || "Management's explanation",
+    companies,
+    note: textOrNull(raw.note),
   };
 }
 

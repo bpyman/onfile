@@ -125,6 +125,42 @@ describe("readThreadView", () => {
     ]);
   });
 
+  it("reads management's explanation, dropping a company with nothing to show", () => {
+    const company = {
+      company_name: "Alphabet Inc.",
+      source: "From Alphabet's 10-Q for the quarter ended Jun 30, 2026 · MD&A",
+      filing_url: "https://www.sec.gov/a.htm",
+      mda_url: "https://www.sec.gov/a.htm#:~:text=Overview",
+      explanation: 'Costs rose, "driven by depreciation".',
+      paragraphs: [{ text: "Costs rose, driven by depreciation.", url: "https://www.sec.gov/a.htm#p" }, { url: 3 }],
+      unavailable: null,
+    };
+    const [turn, older, empty] = readThreadView({
+      thread_id: "t",
+      turns: [
+        {
+          presentation: {
+            explanation: {
+              heading: "Management's explanation",
+              note: null,
+              companies: [company, { ...company, explanation: "", paragraphs: [] }, "junk"],
+            },
+          },
+        },
+        { presentation: {} },
+        { presentation: { explanation: { companies: [] } } },
+      ],
+    }).turns;
+    expect(turn.presentation.explanation).toEqual({
+      heading: "Management's explanation",
+      note: null,
+      companies: [{ ...company, paragraphs: [company.paragraphs[0]] }],
+    });
+    // An answer stored before the panel existed has none.
+    expect(older.presentation.explanation).toBeNull();
+    expect(empty.presentation.explanation).toBeNull();
+  });
+
   it("drops a chart of a kind it cannot draw and evens out a trace pair", () => {
     const [turn] = readThreadView({
       thread_id: "t",
