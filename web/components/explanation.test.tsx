@@ -2,7 +2,16 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { DisplayExplanation } from "@/lib/types";
-import { ManagementExplanation } from "./explanation";
+import { ManagementExplanation, readable } from "./explanation";
+
+describe("readable", () => {
+  it("drops a list bullet the filing left at a paragraph's start, and nothing else", () => {
+    expect(readable("•Cost of revenues was $45.9 billion")).toBe("Cost of revenues was $45.9 billion");
+    expect(readable("• Revenue rose")).toBe("Revenue rose");
+    expect(readable("-$5 million of charges")).toBe("-$5 million of charges");
+    expect(readable("Revenue rose • strongly")).toBe("Revenue rose • strongly");
+  });
+});
 
 const FILING = "https://www.sec.gov/Archives/edgar/data/1652044/000165204426000071/goog-20260630.htm";
 

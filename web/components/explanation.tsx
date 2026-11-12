@@ -8,6 +8,11 @@ import { Callout, ExternalLink } from "./ui";
 // explanation.NOT_FOUND_MESSAGE: what shows when an answer carries neither paragraphs nor a line.
 const NOT_FOUND = "I couldn't find management's explanation in this 10-Q";
 
+/** A paragraph as read: a list bullet the filing's HTML left at its start ("•Cost of…") is dropped. */
+export function readable(text: string): string {
+  return text.replace(/^[\s•·▪●◦‣]+(?=\S)/u, "");
+}
+
 /**
  * Management's explanation (ADR 0017): for each company, the 10-Q its figure came
  * from, the model's short explanation, then the MD&A paragraphs it chose, verbatim,
@@ -77,7 +82,7 @@ function CompanyExplanation({ company }: { company: DisplayCompanyExplanation })
             {company.paragraphs.map((paragraph) => (
               <li key={paragraph.url} className="space-y-1.5">
                 <blockquote className="max-w-[72ch] border-l-2 border-primary/40 pl-3.5 text-[14px] leading-[1.7] text-muted [overflow-wrap:anywhere]">
-                  {paragraph.text}
+                  {readable(paragraph.text)}
                 </blockquote>
                 <div className="pl-4">
                   <ExternalLink href={paragraph.url} className="text-[12.5px]">
