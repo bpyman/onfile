@@ -48,6 +48,7 @@ not found (``NOT_FOUND_MESSAGE``), never shown phase A's paragraphs instead.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from dataclasses import dataclass
@@ -558,9 +559,10 @@ def _ranked(
 
 # --- phase B: the model chooses, under a quote lock (ticket 07) ----------------------
 
-# DRAFT, awaiting Blake's review: the text between the two rules of
-# docs/process/tickets/why-from-the-filing/phase-b-prompt.md, verbatim. No model is
-# called with it until it is approved.
+# The text between the two rules of
+# docs/process/tickets/why-from-the-filing/phase-b-prompt.md, verbatim: the prompt the
+# tuning and final runs used (instructions c0132f88bc71, docs/evaluation/explanation.md),
+# which ticket 04 ships.
 EXPLANATION_INSTRUCTIONS = """\
 You are helping an equity analyst who has just looked at a company's quarterly figure and \
 asked why it moved. Below the question are numbered paragraphs from the Management's \
@@ -629,6 +631,31 @@ EXPLANATION_ESSAY = EssayInstructions(
 )
 # What the panel says when the model's answer is withheld or finds nothing.
 NOT_FOUND_MESSAGE = "I couldn't find management's explanation in this 10-Q"
+# What it says when there is no answer to check (ticket 04). Each is followed by a
+# link to the MD&A.
+MODEL_UNAVAILABLE_MESSAGE = (
+    "Management's explanation needs the language model, which is unavailable here"
+)
+NOT_RECORDED_MESSAGE = "The recorded demo has no explanation for this question"
+MODEL_FAILED_MESSAGE = "The language model did not answer, so management's explanation is not shown"
+FILING_UNREADABLE_MESSAGE = "I couldn't read this 10-Q, so management's explanation is not shown"
+# Above a sequential question's panel: 10-Qs explain the quarter against a year earlier.
+YEAR_OVER_YEAR_ONLY_NOTE = (
+    "This 10-Q explains the change against a year earlier, not the quarter before"
+)
+
+
+class ExplanationUnavailable(Exception):
+    """No model answer can be had here: the panel says ``message`` (``reason`` is its code).
+
+    Raised by a runtime's explanation completer when asked: the live runtime without
+    OpenAI, or the recorded runtime with no recording for the filing and metric.
+    """
+
+    def __init__(self, reason: str, message: str) -> None:
+        super().__init__(message)
+        self.reason = reason
+        self.message = message
 
 Direction = Literal["rose", "fell"]
 # Why an answer is withheld, or that the model found nothing.
@@ -708,9 +735,32 @@ def explanation_input(
         f"Quarter ended: {asked.quarter_ended}",
         f"Question: {asked.question}",
     ]
-    for number, paragraph in enumerate(offered, start=1):
-        lines += ["", f"Paragraph {number}: {paragraph.text}"]
-    return "\n".join(lines)
+    asked_lines = "\n".join(lines)
+    return asked_lines + _PARAGRAPHS_START + _numbered(offered) if offered else asked_lines
+
+
+# Where the numbered paragraphs begin in ``explanation_input``.
+_PARAGRAPHS_START = "\n\nParagraph 1: "
+
+
+def _numbered(offered: tuple[ExplainingParagraph, ...]) -> str:
+    """The candidates as the model reads them, after "Paragraph 1: "."""
+    return "\n\n".join(
+        f"Paragraph {number}: {paragraph.text}" for number, paragraph in enumerate(offered, 1)
+    ).removeprefix("Paragraph 1: ")
+
+
+def offered_digest(offered: tuple[ExplainingParagraph, ...]) -> str:
+    """A short hash of the numbered candidates: which paragraph each number means."""
+    return hashlib.sha256(_numbered(offered).encode("utf-8")).hexdigest()[:16]
+
+
+def input_digest(query: str) -> str | None:
+    """``offered_digest`` of the candidates in an ``explanation_input``, or None."""
+    _, found, numbered = query.partition(_PARAGRAPHS_START)
+    if not found:
+        return None
+    return hashlib.sha256(numbered.encode("utf-8")).hexdigest()[:16]
 
 
 def model_explanation(

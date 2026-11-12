@@ -689,6 +689,73 @@ class DisplayCitation:
 
 
 @dataclass(frozen=True)
+class DisplayQuote:
+    """An MD&A paragraph, verbatim, and its "Read in the filing" link."""
+
+    text: str
+    url: str
+
+
+@dataclass(frozen=True)
+class DisplayCompanyExplanation:
+    """One company's part of the panel: where it is from, then the explanation or a line."""
+
+    company_name: str
+    # "From Apple's 10-Q for the quarter ended Jun 27, 2026 · MD&A"
+    source: str
+    filing_url: str
+    mda_url: str
+    # The model's, from the quoted paragraphs; "" when ``unavailable`` says why not.
+    explanation: str
+    paragraphs: tuple[DisplayQuote, ...]
+    unavailable: str | None = None
+
+
+@dataclass(frozen=True)
+class DisplayExplanation:
+    """Management's explanation: the panel a why question's figures carry (ADR 0017)."""
+
+    heading: str
+    companies: tuple[DisplayCompanyExplanation, ...]
+    # A sequential question's line: the 10-Q explains the year-over-year change.
+    note: str | None = None
+
+
+EXPLANATION_HEADING = "Management's explanation"
+
+
+def explanation_source(company_name: str, period_end: date | None) -> str:
+    """ "From Apple's 10-Q for the quarter ended Jun 27, 2026 · MD&A"."""
+    name = possessive(short_name(company_name) or company_name)
+    ended = f" for the quarter ended {format_date(period_end)}" if period_end else ""
+    return f"From {name} 10-Q{ended} · MD&A"
+
+
+def _display_explanation(result: TurnResult) -> DisplayExplanation | None:
+    explained = result.explanation
+    if explained is None:
+        return None
+    return DisplayExplanation(
+        heading=EXPLANATION_HEADING,
+        note=explained.note,
+        companies=tuple(
+            DisplayCompanyExplanation(
+                company_name=company.company_name,
+                source=explanation_source(company.company_name, company.period_end),
+                filing_url=company.filing_url,
+                mda_url=company.mda_url,
+                explanation=company.explanation,
+                paragraphs=tuple(
+                    DisplayQuote(text=quote.text, url=quote.url) for quote in company.paragraphs
+                ),
+                unavailable=company.unavailable,
+            )
+            for company in explained.companies
+        ),
+    )
+
+
+@dataclass(frozen=True)
 class Presentation:
     intent: str
     banners: tuple[str, ...]
@@ -713,6 +780,8 @@ class Presentation:
     headline: str | None = None
     # Small trend charts beside one company's overview: revenue, net margin.
     trends: tuple[ChartSpec, ...] = ()
+    # Management's explanation, below a why question's figures.
+    explanation: DisplayExplanation | None = None
 
 
 def metric_groups() -> tuple[tuple[str, tuple[str, ...]], ...]:
@@ -1620,6 +1689,7 @@ def present_turn(result: TurnResult) -> Presentation:
         or overview_headline(result.table_rows)
         or (comparison_headline(result.table_rows, result.intent) if table is not None else None),
         trends=overview_trends(result.trend_rows),
+        explanation=_display_explanation(result),
     )
 
 

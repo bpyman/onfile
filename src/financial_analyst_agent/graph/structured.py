@@ -1,12 +1,13 @@
 """Structured-analysis subgraph: compiled tasks in, one answer and its resolved spec out.
 
-    run_tasks → merge → add_history → annotate
+    run_tasks → merge → add_history → annotate → explain
 
 ``run_tasks`` is the only step that fans out to providers for the asked cells
 (a bounded thread pool under the turn's SEC deadline); ``merge`` combines the
 cells deterministically (period-aligned rows, Decimal changes); ``add_history``
 reads the overview trend and a lone fact's prior quarter; ``annotate`` adds the
-notes and names the analysis the thread keeps. The subgraph sees only the
+notes and names the analysis the thread keeps; ``explain`` adds Management's
+explanation to a why question's figures (ADR 0017). The subgraph sees only the
 compiled analysis, never the conversation.
 """
 
@@ -21,6 +22,7 @@ from financial_analyst_agent.contracts import TurnResult
 from financial_analyst_agent.evidence_store import with_banner
 from financial_analyst_agent.graph.analysis_spec import AnalysisSpec
 from financial_analyst_agent.graph.spec_turn import (
+    add_explanation,
     add_history,
     annotate_analysis,
     dispatch_compiled_tasks,
@@ -93,6 +95,14 @@ def _annotate(state: StructuredAnalysis, runtime: GraphRuntime[TurnDeps]) -> dic
     return {"result": result, "analysis_spec": spec, "thread_spec": spec}
 
 
+def _explain(state: StructuredAnalysis, runtime: GraphRuntime[TurnDeps]) -> dict[str, Any]:
+    deps = runtime.context
+    result = add_explanation(
+        _compiled(state), _answer(state), deps.runtime, max_workers=deps.max_workers
+    )
+    return {"result": result}
+
+
 def build_structured_analysis() -> Any:
     builder = StateGraph(
         StructuredAnalysis,
@@ -104,9 +114,11 @@ def build_structured_analysis() -> Any:
     builder.add_node("merge", _merge)
     builder.add_node("add_history", _add_history)
     builder.add_node("annotate", _annotate)
+    builder.add_node("explain", _explain)
     builder.add_edge(START, "run_tasks")
     builder.add_edge("run_tasks", "merge")
     builder.add_edge("merge", "add_history")
     builder.add_edge("add_history", "annotate")
-    builder.add_edge("annotate", END)
+    builder.add_edge("annotate", "explain")
+    builder.add_edge("explain", END)
     return builder.compile(name="structured_analysis")

@@ -1,6 +1,6 @@
 # Prompts and controls
 
-Onfile uses a language model for two jobs: reading a question into a plan, and writing prose around results. It never uses the model to produce a number the analyst sees. Each of the five instructions below is paired with a mechanism outside the model that checks or replaces what the model returns, and each has been measured.
+Onfile uses a language model for two jobs: reading a question into a plan, and writing prose around results. It never uses the model to produce a number the analyst sees. Each of the six instructions below is paired with a mechanism outside the model that checks or replaces what the model returns, and each has been measured.
 
 | Measure | Result | Source |
 | --- | --- | --- |
@@ -9,6 +9,7 @@ Onfile uses a language model for two jobs: reading a question into a plan, and w
 | Cost and median latency per planner call | Cascade $0.0002 and 1 ms; LLM planner $0.0035 and 1.1 s | [Planner comparison](evaluation/planner-comparison.md) |
 | Altered or invented figures in model prose | 108 of 108 withheld; 108 of 108 true figures passed | [Numeral lock](evaluation/numeral-lock.md) |
 | Everyday phrasings read as documented | 555 of 555; 14 would be routed to the model | [Phrase coverage](evaluation/phrase-coverage.md) |
+| Management's explanation, 20 unseen why questions: does a chosen paragraph state a cause? | Precision at 3 of 1.00 (9 of 9 shown), 0.56 counting company-wide causes only; 0 of 20 answers withheld by the quote or numeral lock | [Explanation evaluation](evaluation/explanation.md) |
 | Essay quality, 30 held-out questions written by another lab's model | Revised instructions won 26 and lost 2 against the originals (p < 0.001); no investment advice in 60 essays | [Essay evaluation](evaluation/essay-evaluation.md) |
 
 ## Division of labour
@@ -19,6 +20,7 @@ Onfile uses a language model for two jobs: reading a question into a plan, and w
 | Resolve company, metric and period | Code, from the analyst's own words, whichever planner proposed | The model's choices are proposals; resolution decides ([ADR 0004](adr/0004-ambiguous-metric-clarify.md), [ADR 0010](adr/0010-one-reading-of-names-and-windows.md)) |
 | Retrieve and compute figures | Code: SEC XBRL facts, `Decimal` arithmetic, a dated ranking snapshot | The model has no access to this path |
 | Write explanations, news briefs and filing summaries | The model | Numeral lock: any figure absent from the grounding withholds the text |
+| Explain why a figure moved | Code offers MD&A paragraphs; the model chooses and explains | Quote lock and numeral lock: any quotation or figure not in the chosen paragraphs withholds the answer |
 
 ## The instructions
 
@@ -60,6 +62,16 @@ The figure check is enforced in code. The **numeral lock** extracts every figure
 
 These instructions replaced one- to three-sentence originals after a [measured evaluation](evaluation/essay-evaluation.md): on 30 held-out questions they won 26 and lost 2.
 
+### Management's explanation
+
+Answers a why question about a figure from the 10-Q that figure came from ([ADR 0017](adr/0017-management-explanation-is-quoted-from-the-filing.md)). One call to `gpt-6.1-sol` through the essay client and the same daily spend cap. Source: `explanation.py`.
+
+- **Code chooses what the model may read.** Up to eight MD&A paragraphs that name the metric and say it changed or why, ranked by wording rules and offered in filing order, so the ranking is no hint. With none, the model is not asked.
+- **The model chooses and explains.** It returns `{"paragraphs": [...], "explanation": "..."}`: at most three of the numbered paragraphs, best first, and two or three sentences in management's words. An empty list is an answer: nothing in the paragraphs states a cause.
+- **Code checks every answer, and any failure withholds all of it.** Each chosen number must be one offered. The **quote lock** (`quote_lock.py`) requires every passage in double quotation marks, straight or curly, to appear verbatim in one of the chosen paragraphs; only whitespace and the shape of quotation marks and apostrophes are forgiven, so a paraphrase in quotation marks, two sentences joined into one quotation, or a changed word form fails. The numeral lock holds every figure to the chosen paragraphs alone.
+- **A withheld answer shows nothing of the model's.** The panel says "I couldn't find management's explanation in this 10-Q" and links the MD&A. It does not fall back to code's paragraphs, which did not clear their own evaluation.
+- **Written as a brief.** What a strong answer does (a cause, in this quarter, against the year-earlier quarter; a part of the company only when it moved the same way as the figure), then the hard rules code enforces, each with an example of what passes and what fails.
+
 ## When the model is consulted
 
 The rules planner plans every turn. The model is called only when the rules plan shows one of five signs of uncertainty (`planner_cascade.unsure_reason`):
@@ -91,6 +103,8 @@ A regression test fails if a phrasing that previously stayed with the rules plan
 ## Known limits
 
 - **The lock checks numbers, not meaning.** A true figure attributed to the wrong company passes (0 of 14 caught), as does a number written in words.
+- **The quote lock checks words, not meaning.** A verbatim quotation can still be put to the wrong use, and unquoted prose is held only by the numeral lock. On the final set the judge counted every chosen paragraph as stating a cause, but 4 of the 9 gave a part of the company's cause rather than the company's.
+- **Management's explanation often finds nothing.** On the final set the model chose nothing, or code offered nothing, in 11 of 20 questions; in 10 of those the judge found a cause somewhere in the MD&A.
 - **News citations.** Citation errors appeared in 3 of 20 held-out news briefs under both the original and the revised instructions. A citation check in code, like the numeral lock, is the next step.
 
 ## Reproducing
@@ -101,6 +115,8 @@ uv run python -m financial_analyst_agent.planner_evaluation --estimate --runs 3 
 uv run python -m financial_analyst_agent.phrase_coverage                          # fails if routing to the model widens
 uv run python -m financial_analyst_agent.numeral_lock_evaluation
 uv run python -m financial_analyst_agent.essay_evaluation report --a v5@gpt-6.1-sol --b v1@gpt-6.1-sol --set held-out
+uv run python -m financial_analyst_agent.explanation_evaluation score --labels docs/evaluation/explanation-labels.json
+uv run python -m financial_analyst_agent.explanation_evaluation recordings   # the answers the recorded demo replays
 ```
 
 ## Appendix: the instructions verbatim
@@ -379,6 +395,52 @@ Write a concise financial-analyst brief using only the supplied news tool JSON. 
 [n], where n is the 1-based index of an object in that JSON array. Do not write (n), n., [1, 2], or
 [1-3]. Do not introduce facts or numeric tokens that are absent from that JSON, except those [n]
 markers.
+```
+
+</details>
+
+<details>
+<summary><strong>Management's explanation</strong> (explanation.py, 519 words)</summary>
+
+The input is the company, the figure and which way it moved year over year, the quarter, the question, then the numbered paragraphs (`explanation_input`).
+
+```text
+You are helping an equity analyst who has just looked at a company's quarterly figure and asked why it moved. Below the question are numbered paragraphs from the Management's Discussion and Analysis (MD&A) of the 10-Q that figure came from. Find the paragraphs in which management says what caused this figure's move in this quarter, compared with the same quarter a year earlier. Then explain the move in management's own words.
+
+## What a strong answer does
+
+- **It chooses only paragraphs that state a cause** of this figure's move, in this quarter, against the year-earlier quarter. A cause says what drove the move: products, segments, regions, price, volume, mix, currency, a charge or its absence, an acquisition, a cost.
+- **It counts a part of the company** (a segment, a product line, a region) only when that part moved the same way as the figure asked about and is given as driving it. A segment whose margin rose does not explain a company margin that fell. A cost that rose does not explain a profit that rose.
+- **It leaves out paragraphs that:**
+  - only restate the change ("revenue increased 9%");
+  - explain a different figure;
+  - give a cause only for the six or nine months to date;
+  - look ahead;
+  - describe risks.
+- **It says nothing was found when nothing qualifies.** An empty answer is a good answer when the paragraphs do not state a cause. The analyst would rather read the filing than be shown a paragraph that does not answer the question.
+- **It reads like a careful colleague's summary:** the main driver first, then any offset, in two or three plain sentences. Each sentence carries a short quotation from management.
+
+## Hard rules
+
+Code checks every one. An answer that breaks any of them is thrown away whole, and the analyst sees nothing from you.
+
+1. **Quote exactly.** Every passage in double quotation marks must be copied word for word, with the same punctuation, from one of the paragraphs you chose. Do not shorten a quotation in the middle, join words from two sentences, or change a word's form.
+   - Allowed: "primarily due to higher sales of HIV products"
+   - Thrown away: "higher HIV product sales". Those words are not in the paragraph in that order.
+2. **Use only numbers that are in your chosen paragraphs, written the same way.** Do not compute, round, convert or combine figures. "$4.4 billion" may be quoted. "about $4 billion", or a percentage you worked out, will throw the answer away. When in doubt, leave the number out.
+3. **Use only the paragraphs given.** Do not add what you know about the company, its industry or the quarter.
+4. **No forecast and no recommendation.**
+
+## Your answer
+
+Return only this JSON object, with no other text:
+
+```json
+{"paragraphs": [3, 7], "explanation": "Two or three sentences, each with a short exact quotation."}
+```
+
+- `paragraphs`: the numbers of the paragraphs that state a cause, best first, at most three. Use `[]` when none does.
+- `explanation`: your two or three sentences, or `""` when `paragraphs` is empty.
 ```
 
 </details>

@@ -169,11 +169,12 @@ As an independent check outside the XBRL data the app reads, [the filing check](
 
 ## Prompts and controls
 
-The model reads questions and writes prose; code produces every number. Five short instructions do the model's part, and each is paired with a check outside the model:
+The model reads questions and writes prose; code produces every number. Six short instructions do the model's part, and each is paired with a check outside the model:
 
 - **Planning** uses a per-intent schema under strict structured output. The model is asked to return the analyst's own word when a measure is ambiguous or unknown, so code can ask or refuse rather than guess.
 - **Follow-ups** return a patch to the analysis on screen. An unclear patch produces a clarifying question.
 - **Essays** pass a numeral lock that withholds any text quoting a figure absent from its grounding: in testing it withheld 108 of 108 altered or invented figures and passed 108 of 108 quoted as the results show them.
+- **Management's explanation** chooses among MD&A paragraphs code offers and explains them in management's words, under a quote lock: every quotation must be verbatim in the paragraphs it chose, and every figure must pass the numeral lock, or the whole answer is withheld.
 
 The model is consulted only when the rules planner signals uncertainty, 7% of planner calls on the latest held-out set. [Prompts and controls](docs/prompts-and-controls.md) covers each instruction, the routing rule, five changes the evaluations prompted, and the known limits.
 
@@ -309,7 +310,8 @@ What a question leaves out has a default, so the same words always get the same 
 | Year over year: `Apple revenue year over year`, `versus last year` | With no period, the latest 8 quarters, each with its year-over-year change |
 | Quarter over quarter: `quarter over quarter`, `QoQ`, `sequentially` | With no period, the latest 5 quarters, each with its change on the quarter before |
 | A change with no base: `Why did revenue drop?`, `How much did revenue change?` | A question: compared with what? |
-| A why or yes-no question: `Why is Goldman's revenue so volatile?` | The figures it names, with a note that filings report what changed, not why |
+| A why question about an amount: `What caused Alphabet's cost of revenue to rise year over year?`, `Why did Amgen's revenue grow year over year?`, or `why?` after one | The figures, then Management's explanation: the model's short account in management's words, with the 10-Q's MD&A paragraphs it chose, quoted verbatim and linked (ADR 0017) |
+| Any other why or yes-no question: `Why is Goldman's revenue so volatile?`, `What drove Apple's market cap?` | The figures it names, with a note that filings report what changed, not why |
 | An ambiguous word: `profit`, `income`, `margin`, `cash flow`, `interest`, `expenses`, `dividends`, `tax` | A question: which one? (ADR 0004) |
 | Two metrics: `revenue and net income` | Both |
 | A measure the catalog lacks: `debt`, `debt-to-equity`, `FCF yield`, `CAGR`, `earnings date`, `analyst estimates`, `institutional holders` | It says it cannot look that up yet, and lists what it can. Beside a catalog metric (`Apple revenue and dividend yield`), the catalog metric, with a note naming the measure left out |
@@ -363,7 +365,7 @@ What a question leaves out has a default, so the same words always get the same 
 **Follow-ups, explanations and filing changes**
 
 - A follow-up keeps the metric and window. `drop`, `remove`, `take out`, `without`, `swap X for Y` and `make it the last 8 quarters` edit what is on screen; `add` and `too` show a metric beside the ones on screen, and `what about` puts it in their place.
-- The explanation wording decides (`explain`, `how does … affect`, `how is … calculated`, `why does … matter`, `what does … mean`, and `what is X` for a measure alone), not the absence of a company alone. With a company named and a metric (`How does Apple's buyback affect its EPS?`, `Why is Goldman's revenue so volatile?`), it is that company's figure, whichever planner reads it, with the why note where the question asks why. A company and no metric (`How might AI change Goldman Sachs's business?`) stays an explanation. A question about what could happen (`how might`, `how could`, `how would`, `what if`, `what would happen`) is an explanation, marked as the model's, even with a company and a metric named (`How might AI change Apple's revenue?`, `How could tariffs affect Nvidia's gross margin?`), whichever planner reads it: the latest figure answers none of it. A request to the analyst (`How would you rank banks by revenue?`), a follow-up (`How would that look sequentially?`, `What if we look at Microsoft?`) and a comparison (`How would Apple's revenue compare with Microsoft's?`) are not.
+- The explanation wording decides (`explain`, `how does … affect`, `how is … calculated`, `why does … matter`, `what does … mean`, and `what is X` for a measure alone), not the absence of a company alone. With a company named and a metric (`How does Apple's buyback affect its EPS?`, `Why is Goldman's revenue so volatile?`), it is that company's figure, whichever planner reads it, with Management's explanation, or the why note where it cannot show, when the question asks why. A company and no metric (`How might AI change Goldman Sachs's business?`) stays an explanation. A question about what could happen (`how might`, `how could`, `how would`, `what if`, `what would happen`) is an explanation, marked as the model's, even with a company and a metric named (`How might AI change Apple's revenue?`, `How could tariffs affect Nvidia's gross margin?`), whichever planner reads it: the latest figure answers none of it. A request to the analyst (`How would you rank banks by revenue?`), a follow-up (`How would that look sequentially?`, `What if we look at Microsoft?`) and a comparison (`How would Apple's revenue compare with Microsoft's?`) are not.
 - A filing change compares 10-Ks when asked about the `10-K` or `annual report`; `what's new in` is `what changed in`. With no company, it asks which.
 
 ## Limitations
@@ -373,6 +375,7 @@ What a question leaves out has a default, so the same words always get the same 
 - Quarterly facts are directly reported standalone quarters where the filing has one. Otherwise only two derivations are made, both marked †: a fiscal fourth quarter (the 10-K's year minus the nine months) and a year-to-date difference (ADR 0007). Per-share figures are never derived.
 - The metric catalog is closed. Unknown or ambiguous phrases do not guess, and segment figures (AWS, iPhone) are not reported on their own: the answer shows the company-wide figure and says it is not the segment.
 - Foreign private issuers (20-F and 40-F filers) have no 10-Q facts, and subsidiaries that file jointly with their parent have no quarterly figures of their own in SEC's data.
+- Management's explanation covers year-over-year questions about amounts (revenue, cost of revenue, gross profit and gross margin, operating income, net income, R&D, SG&A) whose latest figure came from a 10-Q. The model chooses up to three paragraphs from at most eight that code offers from the MD&A, and is held to the filing's words: a quotation not in the chosen paragraphs, or a figure not in them, withholds the whole answer, and the panel says the explanation was not found. A sequential question gets the year-over-year explanation and is told so. Other margins and ratios, a figure with no 10-Q behind it (market cap, price, a fiscal fourth quarter from the 10-K) and rankings keep the note. The recorded demo replays the model's answers from its evaluation runs, and says so where it has none.
 - Questions are read in English.
 - Public live SEC, if enabled, is quota-guarded. OpenAI spend is capped per day (`OPENAI_DAILY_BUDGET_USD`); past the cap written answers pause and figures still work.
 

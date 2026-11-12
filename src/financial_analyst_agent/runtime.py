@@ -10,9 +10,16 @@ from pathlib import Path
 from types import MappingProxyType
 
 from financial_analyst_agent.config import AppMode, Settings, get_settings
-from financial_analyst_agent.contracts import Completer, Runtime, RuntimeKind
+from financial_analyst_agent.contracts import Completer, EssayCompleter, Runtime, RuntimeKind
 from financial_analyst_agent.domain.errors import ProviderError, ProviderRefusal
 from financial_analyst_agent.essay import OpenAIEssayCompleter
+from financial_analyst_agent.explanation import (
+    MODEL_UNAVAILABLE_MESSAGE,
+    NOT_RECORDED_MESSAGE,
+    ExplanationUnavailable,
+    explanation_completer,
+    input_digest,
+)
 from financial_analyst_agent.facts import RecordedSECDataSource
 from financial_analyst_agent.facts_warmer import FactsWarmer, ensure_facts_warmer
 from financial_analyst_agent.model_spend import DailySpendCap
@@ -174,6 +181,78 @@ class RecordedEssayCompleter:
         return " ".join(sentences)
 
 
+EXPLANATION_RECORDINGS = Path(__file__).parent / "data" / "explanation_recordings.json"
+
+
+@lru_cache(maxsize=1)
+def _explanation_recordings() -> Mapping[tuple[str, str, str], tuple[str, str]]:
+    """(CIK, accession, metric) → (the offered paragraphs' digest, the model's reply)."""
+    loaded = json.loads(EXPLANATION_RECORDINGS.read_text(encoding="utf-8"))
+    return MappingProxyType(
+        {
+            (entry["cik"], entry["accession"], entry["metric"]): (
+                entry["offered"],
+                entry["reply"],
+            )
+            for entry in loaded["recordings"]
+        }
+    )
+
+
+class _ReplayedExplanation:
+    """One recorded answer, given only for the same numbered paragraphs it was asked about."""
+
+    def __init__(self, recorded: tuple[str, str] | None) -> None:
+        self._recorded = recorded
+
+    def complete_essay(self, query: str, tool_json: str = "") -> str:
+        if self._recorded is None or input_digest(query) != self._recorded[0]:
+            raise ExplanationUnavailable("not_recorded", NOT_RECORDED_MESSAGE)
+        return self._recorded[1]
+
+
+class RecordedExplanations:
+    """Replays the model's answers from the explanation evaluation's runs (ticket 04).
+
+    Keyed by CIK, accession and metric (``data/explanation_recordings.json``, from
+    ``explanation_evaluation recordings``). The reply goes through the same checks
+    as a live one; with no recording, the panel says the demo has none.
+    """
+
+    def __init__(
+        self, recordings: Mapping[tuple[str, str, str], tuple[str, str]] | None = None
+    ) -> None:
+        self._recordings = recordings
+
+    def completer(self, cik: str, accession: str, metric: str) -> EssayCompleter:
+        recordings = self._recordings
+        if recordings is None:
+            recordings = _explanation_recordings()
+        return _ReplayedExplanation(recordings.get((cik, accession, metric)))
+
+
+class _NoModel:
+    def complete_essay(self, query: str, tool_json: str = "") -> str:
+        raise ExplanationUnavailable("model_unavailable", MODEL_UNAVAILABLE_MESSAGE)
+
+
+class LiveExplanations:
+    """The essay model under the shared daily spend cap, or none when OpenAI is off."""
+
+    def __init__(self, settings: Settings, spend: DailySpendCap, *, enabled: bool) -> None:
+        self._settings = settings
+        self._spend = spend
+        self._enabled = enabled
+        self._completer: EssayCompleter | None = None
+
+    def completer(self, cik: str, accession: str, metric: str) -> EssayCompleter:
+        if not self._enabled:
+            return _NoModel()
+        if self._completer is None:
+            self._completer = explanation_completer(self._settings, self._spend)
+        return self._completer
+
+
 @lru_cache(maxsize=4)
 def _cached_ranking(path: Path | None, _mtime_ns: int) -> SnapshotRanking:
     # The planner's index: a company resolves the way the planner read it.
@@ -285,6 +364,7 @@ def recorded_runtime() -> Runtime:
         news=RecordedNewsSearch(),
         essay=RecordedEssayCompleter(),
         kind=RuntimeKind.RECORDED,
+        explanations=RecordedExplanations(),
     )
 
 
@@ -411,6 +491,7 @@ def live_runtime(
         kind=RuntimeKind.LIVE,
         live_news=use_tavily,
         live_essays=use_openai,
+        explanations=LiveExplanations(resolved, spend, enabled=use_openai),
     )
 
 

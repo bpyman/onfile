@@ -522,9 +522,14 @@ def test_a_named_companys_question_is_its_figure_whichever_planner(
 
 def test_a_named_companys_why_has_the_why_note_whichever_planner(runtime: Runtime) -> None:
     for planner in (runtime.completer, _ProposedPlan(WorkflowPlan(intent=Intent.EXPLAIN))):
-        turn = _turn("Why is Goldman's revenue so volatile?", planner, runtime)
+        turn = _turn("Why is Goldman's operating margin so volatile?", planner, runtime)
 
         assert any("not why" in banner for banner in turn.result.banners)
+        # An amount gets Management's explanation in the note's place (ADR 0017).
+        turn = _turn("Why is Goldman's revenue so volatile?", planner, runtime)
+
+        assert turn.result.explanation is not None
+        assert not any("not why" in banner for banner in turn.result.banners)
 
 
 def test_a_named_companys_how_has_no_why_note(runtime: Runtime) -> None:

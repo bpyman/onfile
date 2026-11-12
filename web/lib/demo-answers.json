@@ -217,7 +217,8 @@
     ],
     "message_tone": "warning",
     "headline": null,
-    "trends": []
+    "trends": [],
+    "explanation": null
    }
   },
   {
@@ -762,7 +763,8 @@
     ],
     "message_tone": "warning",
     "headline": "Microsoft's revenue rose from $77.67 B to $90.01 B † over 4 quarters to Jun 30, 2026.",
-    "trends": []
+    "trends": [],
+    "explanation": null
    }
   },
   {
@@ -2236,7 +2238,8 @@
     ],
     "message_tone": "warning",
     "headline": "Of these 10 companies, Apple reported the most research and development, $11.73 B, and Palantir Technologies the least, $192.51 M.",
-    "trends": []
+    "trends": [],
+    "explanation": null
    }
   },
   {
@@ -2956,7 +2959,8 @@
     "suggestions": [],
     "message_tone": "warning",
     "headline": null,
-    "trends": []
+    "trends": [],
+    "explanation": null
    }
   }
  ]

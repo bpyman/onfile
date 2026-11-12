@@ -172,3 +172,10 @@ Each entry: date, ticket, where, the rule, why it looks wrong, what the agent di
 - **Why it looks wrong:** ticket 07's decisions (Blake, 11 November 2026) replace it: any failure discards the whole answer and the panel says "I couldn't find management's explanation in this 10-Q", with a link to the MD&A, "never to phase A's paragraphs". Phase A missed the 0.8 bar on the confirm set (0.79 same-direction), so showing its paragraphs as a fallback would show the answer that was judged not good enough. The ADR and the design still say the opposite.
 - **What you did:** followed the ticket. `explanation.model_explanation` withholds everything on a failure and `explanation.NOT_FOUND_MESSAGE` holds the panel's line; no panel exists yet (ticket 04). The ADR and design are outside the ticket's files, so they are unchanged: a person should amend ADR 0017's phase B bullet (or supersede it) when phase B ships.
 - **Decided (2026-11-11):** the ticket stands. ADR 0017 has a revision note: phase A did not clear its bar, so a withheld model answer falls back to "could not find", never to phase A's paragraphs.
+
+## 2026-11-11 — why-from-the-filing 04: the phase B prompt still says it is a draft no model may run
+
+- **Where:** `docs/process/tickets/why-from-the-filing/phase-b-prompt.md`, the title and Status line ("draft for review", "No model runs until Blake approves it").
+- **The rule:** the explanation prompt is a draft, and no model is called with it until it is approved.
+- **Why it looks wrong:** the tuning and final runs used it (instructions `c0132f88bc71`, `docs/evaluation/explanation.md`), and ticket 04 ships it: the live runtime now sends it on every why question it can explain. The prompt file still calls itself a draft no model runs, and `explanation.py` called it one too.
+- **What you did:** followed the ticket. The comment above `EXPLANATION_INSTRUCTIONS` now says it is the prompt the runs used and ticket 04 ships. The prompt file is not this ticket's, so its Status line is unchanged: a person should mark it approved.

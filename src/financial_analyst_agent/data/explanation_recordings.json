@@ -1,0 +1,385 @@
+{
+  "runs": [
+    {
+      "set": "tuning",
+      "model": "gpt-6.1-sol",
+      "instructions": "c0132f88bc71"
+    },
+    {
+      "set": "final",
+      "model": "gpt-6.1-sol",
+      "instructions": "c0132f88bc71"
+    }
+  ],
+  "recordings": [
+    {
+      "case": "e02",
+      "company": "UnitedHealth",
+      "cik": "0000731766",
+      "accession": "0000731766-26-000197",
+      "metric": "net_income",
+      "offered": "3db8a9ab1b83cf96",
+      "reply": "{\"paragraphs\":[],\"explanation\":\"\"}"
+    },
+    {
+      "case": "e04",
+      "company": "Gilead Sciences",
+      "cik": "0000882095",
+      "accession": "0000882095-26-000031",
+      "metric": "research_and_development",
+      "offered": "2007cea06eac9d14",
+      "reply": "{\"paragraphs\":[4],\"explanation\":\"R&D spending rose as personnel, infrastructure and other support costs increased “primarily due to integration expenses,” including stock-based compensation expenses related to the acquisitions of Arcellx, Ouro Medicines and Tubulis. Partly offsetting that increase, clinical studies and other costs decreased “primarily due to lower oncology clinical study activity.”\"}"
+    },
+    {
+      "case": "e07",
+      "company": "Advanced Micro Devices",
+      "cik": "0000002488",
+      "accession": "0000002488-26-000123",
+      "metric": "research_and_development",
+      "offered": "f244d9f986064f9a",
+      "reply": "{\"paragraphs\":[1],\"explanation\":\"R&D spending rose primarily because of \\\"higher employee-related costs from an increase in headcount\\\". Management said the additional headcount supported \\\"our continued focus on our AI strategy and long-term growth opportunities.\\\"\"}"
+    },
+    {
+      "case": "e14",
+      "company": "Microsoft",
+      "cik": "0000789019",
+      "accession": "0001193125-26-191507",
+      "metric": "operating_income",
+      "offered": "96b4f89e985648f9",
+      "reply": "{\"paragraphs\":[2],\"explanation\":\"Management attributed the operating income increase to growth in \\\"Productivity and Business Processes\\\". Growth in \\\"Intelligent Cloud\\\" was the other stated driver.\"}"
+    },
+    {
+      "case": "e41",
+      "company": "Alphabet",
+      "cik": "0001652044",
+      "accession": "0001652044-26-000071",
+      "metric": "research_and_development",
+      "offered": "45c935e86562b1b1",
+      "reply": "{\"paragraphs\":[1],\"explanation\":\"R&D spending rose primarily because of higher employee compensation, with management citing \\\"increases in employee compensation expenses of $2.9 billion and $5.3 billion\\\" for the quarter and six months, respectively. Higher depreciation also contributed, with \\\"depreciation expense of $592 million and $1.1 billion, respectively.\\\"\"}"
+    },
+    {
+      "case": "e44",
+      "company": "NVIDIA",
+      "cik": "0001045810",
+      "accession": "0001045810-26-000075",
+      "metric": "gross_profit",
+      "offered": "36a1a3c9eee73507",
+      "reply": "{\"paragraphs\":[],\"explanation\":\"\"}"
+    },
+    {
+      "case": "e45",
+      "company": "Applied Materials",
+      "cik": "0000006951",
+      "accession": "0001628280-26-058235",
+      "metric": "revenue",
+      "offered": "ee829da18330b5c9",
+      "reply": "{\"paragraphs\":[3,4],\"explanation\":\"Revenue growth in Semiconductor Systems, the largest revenue contributor, reflected \\\"stronger demand for leading-edge manufacturing technologies\\\" and \\\"increased customer investments in DRAM technology transitions.\\\" AGS revenue also increased, \\\"primarily due to higher long-term service agreement revenue and customer spending on spares.\\\"\"}"
+    },
+    {
+      "case": "e53",
+      "company": "Broadcom",
+      "cik": "0001730168",
+      "accession": "0001730168-26-000080",
+      "metric": "revenue",
+      "offered": "7a0614ae9a955a1a",
+      "reply": "{\"paragraphs\":[3,4],\"explanation\":\"Semiconductor solutions revenue increased due to \\\"strong demand for our networking solutions, primarily custom AI accelerators and AI networking products.\\\" Infrastructure software revenue also increased, driven by \\\"strong demand for our VMware Cloud Foundation (“VCF”) product, including additional license revenue recognized on contracts where customers do not have the right to terminate.\\\"\"}"
+    },
+    {
+      "case": "e54",
+      "company": "Thermo Fisher Scientific",
+      "cik": "0000097745",
+      "accession": "0000097745-26-000144",
+      "metric": "revenue",
+      "offered": "e86a993f4922d680",
+      "reply": "{\"paragraphs\":[1,6,3],\"explanation\":\"Revenue rose as pharma and biotech conditions strengthened, while academic/government and industrial/applied growth was driven by \\\"customer demand for our innovative high-end instruments.\\\" Clinical research growth was \\\"primarily driven by the impact of the Clario acquisition.\\\" Bioproduction also contributed, \\\"driven by higher demand from pharma and biotech customers, as well as the impact from the 2025 acquisition of the filtration and separation business.\\\"\"}"
+    },
+    {
+      "case": "e55",
+      "company": "Advanced Micro Devices",
+      "cik": "0000002488",
+      "accession": "0000002488-26-000123",
+      "metric": "operating_income",
+      "offered": "a25af71871670148",
+      "reply": "{\"paragraphs\":[1,2,4],\"explanation\":\"Company-wide operating income rose because of \\\"higher gross profit, partially offset by higher operating expenses\\\". Data Center benefited from \\\"higher revenue and the absence of inventory and related charges\\\" associated with export controls on AMD Instinct MI308 Data Center GPU products that had been recorded in the prior-year period. Embedded also contributed, with its increase driven by \\\"higher revenue, partially offset by higher cost of sales and operating expenses\\\".\"}"
+    },
+    {
+      "case": "e61",
+      "company": "Microsoft",
+      "cik": "0000789019",
+      "accession": "0001193125-26-191507",
+      "metric": "revenue",
+      "offered": "9e09ef3082c9ed2b",
+      "reply": "{\"paragraphs\":[2,5,4],\"explanation\":\"Microsoft’s revenue rose \\\"driven by growth in Microsoft Cloud,\\\" with Azure and Microsoft 365 Commercial cloud driving the growing segments. Azure benefited from \\\"demand for services across the platform with continued growth across all workloads,\\\" while Microsoft 365 Commercial cloud had \\\"growth in revenue per user driven by Microsoft 365 E5 and Microsoft 365 Copilot.\\\" Partly offsetting that growth, More Personal Computing revenue decreased with \\\"lower hardware sales across Devices and Gaming, offset in part by growth in Search advertising.\\\"\"}"
+    },
+    {
+      "case": "e62",
+      "company": "Microsoft",
+      "cik": "0000789019",
+      "accession": "0001193125-26-191507",
+      "metric": "gross_margin",
+      "offered": "b78d366c238af4c4",
+      "reply": "{\"paragraphs\":[3],\"explanation\":\"Management attributed the margin decline to \\\"the continued investments in AI infrastructure\\\". The decline was partly offset by \\\"efficiency gains in Azure\\\".\"}"
+    },
+    {
+      "case": "e63",
+      "company": "Broadcom",
+      "cik": "0001730168",
+      "accession": "0001730168-26-000080",
+      "metric": "selling_general_and_administrative",
+      "offered": "29eb5e4cad4418e2",
+      "reply": "{\"paragraphs\":[1],\"explanation\":\"SG&A expenses fell primarily because of \\\"lower compensation resulting from a decrease in headcount.\\\" Management reported that selling, general and administrative expense \\\"decreased $76 million, or 7%,\\\" for the fiscal quarter.\"}"
+    },
+    {
+      "case": "e64",
+      "company": "Tesla",
+      "cik": "0001318605",
+      "accession": "0001628280-26-049270",
+      "metric": "gross_profit",
+      "offered": "03ff60095a7b2404",
+      "reply": "{\"paragraphs\":[],\"explanation\":\"\"}"
+    },
+    {
+      "case": "e66",
+      "company": "NVIDIA",
+      "cik": "0001045810",
+      "accession": "0001045810-26-000075",
+      "metric": "operating_income",
+      "offered": "e945136160ae16bd",
+      "reply": "{\"paragraphs\":[1],\"explanation\":\"Compute & Networking segment operating income increased because it “was driven by the growth in revenue.” Graphics segment operating income also rose, with management stating that the increase “was driven by the growth in revenue.”\"}"
+    },
+    {
+      "case": "e67",
+      "company": "Apple",
+      "cik": "0000320193",
+      "accession": "0000320193-26-000020",
+      "metric": "research_and_development",
+      "offered": "cabc3e87de387b37",
+      "reply": "{\"paragraphs\":[1],\"explanation\":\"R&D spending rose primarily because of \\\"higher infrastructure-related costs, including investments in artificial intelligence\\\". Management also cited \\\"headcount-related expenses\\\" as a driver.\"}"
+    },
+    {
+      "case": "e69",
+      "company": "Gilead Sciences",
+      "cik": "0000882095",
+      "accession": "0000882095-26-000031",
+      "metric": "revenue",
+      "offered": "d8001cf3636fa007",
+      "reply": "{\"paragraphs\":[1,2,8],\"explanation\":\"Revenue rose primarily because of \\\"higher sales of HIV products, Trodelvy and Livdelzi\\\", along with higher royalty, contract and other revenues. HIV sales benefited from \\\"higher average realized price and demand\\\", while royalty, contract and other revenues benefited from \\\"recognition of $156 million of previously constrained revenues from the sale of certain intellectual property\\\". These gains were partly offset by \\\"lower sales of Veklury as well as Cell Therapy\\\" and lower chronic hepatitis C product sales.\"}"
+    },
+    {
+      "case": "e70",
+      "company": "Cisco Systems",
+      "cik": "0000858877",
+      "accession": "0000858877-26-000078",
+      "metric": "gross_margin",
+      "offered": "10395672efb519d4",
+      "reply": "{\"paragraphs\":[1,5],\"explanation\":\"Product gross margin fell primarily because of \\\"negative impacts from product mix and to a lesser extent, pricing\\\"; the mix impact reflected \\\"higher Networking revenue.\\\" Productivity improvements partly offset the decline, but \\\"Productivity benefits were adversely impacted by higher memory costs.\\\" Americas gross margin also fell due to \\\"negative impacts from product mix and to a lesser extent pricing,\\\" partly offset by productivity improvements.\"}"
+    },
+    {
+      "case": "e71",
+      "company": "Eli Lilly",
+      "cik": "0000059478",
+      "accession": "0000059478-26-000081",
+      "metric": "research_and_development",
+      "offered": "495f9755fb93a188",
+      "reply": "{\"paragraphs\":[1],\"explanation\":\"R&D spending rose this quarter because of \\\"continued investments in our early and late-stage portfolio.\\\" Management reported that research and development expenses \\\"increased 14 percent and 21 percent for the three and six months ended June 30, 2026, respectively,\\\" with the former applying to the quarter.\"}"
+    },
+    {
+      "case": "e72",
+      "company": "Advanced Micro Devices",
+      "cik": "0000002488",
+      "accession": "0000002488-26-000123",
+      "metric": "gross_margin",
+      "offered": "da02b69674ee44ca",
+      "reply": "{\"paragraphs\":[1,2],\"explanation\":\"Gross margin rose primarily because of the \\\"absence of inventory and related charges associated with the U.S. government export control on AMD Instinct MI308 Data Center GPU products that was recorded in the prior year period\\\". Management also cited \\\"a favorable product mix, including higher Data Center segment revenue\\\".\"}"
+    },
+    {
+      "case": "e75",
+      "company": "Pfizer",
+      "cik": "0000078003",
+      "accession": "0000078003-26-000095",
+      "metric": "selling_general_and_administrative",
+      "offered": "39d8eab7ba6d9b78",
+      "reply": "{\"paragraphs\":[],\"explanation\":\"\"}"
+    },
+    {
+      "case": "e76",
+      "company": "Broadcom",
+      "cik": "0001730168",
+      "accession": "0001730168-26-000080",
+      "metric": "operating_income",
+      "offered": "bc97bd9cba6ccc4d",
+      "reply": "{\"paragraphs\":[1,2],\"explanation\":\"Semiconductor solutions operating income rose due to \\\"strong demand for our networking solutions, primarily custom AI accelerators and AI networking products.\\\" Infrastructure software operating income also rose, primarily due to \\\"strong demand for our VCF product, including additional license revenue recognized on contracts where customers do not have the right to terminate.\\\"\"}"
+    },
+    {
+      "case": "e78",
+      "company": "Alphabet",
+      "cik": "0001652044",
+      "accession": "0001652044-26-000071",
+      "metric": "revenue",
+      "offered": "e7d316f1dc61b946",
+      "reply": "{\"paragraphs\":[2,7,3],\"explanation\":\"Revenue growth was primarily driven by Google Services and Google Cloud, with management citing an \\\"increase in Google Services revenues of $12.0 billion\\\" and an \\\"increase in Google Cloud revenues of $11.1 billion\\\". Cloud benefited from \\\"growth in Google Cloud Platform largely from infrastructure and platform services\\\" and the start of revenue recognition from TPU system sales. Within Services, Search growth reflected increased queries from mobile adoption and usage, \\\"growth in advertiser spending\\\", and improvements in ad formats and delivery.\"}"
+    },
+    {
+      "case": "e80",
+      "company": "Pfizer",
+      "cik": "0000078003",
+      "accession": "0000078003-26-000095",
+      "metric": "cost_of_revenue",
+      "offered": "2d719d4c3a231619",
+      "reply": "{\"paragraphs\":[],\"explanation\":\"\"}"
+    },
+    {
+      "case": "e81",
+      "company": "Cisco Systems",
+      "cik": "0000858877",
+      "accession": "0000858877-26-000078",
+      "metric": "revenue",
+      "offered": "6e36f8fe82229f7a",
+      "reply": "{\"paragraphs\":[1,5],\"explanation\":\"Revenue growth was driven by product sales, led by \\\"growth in Networking of 25%, particularly within our AI Infrastructure and Campus Networking solutions\\\" and growth in Observability. In the Americas, growth was led by the Service Provider and Cloud customer market, \\\"largely driven by revenue from our AI Infrastructure solutions.\\\" The product gains were partially offset by \\\"a product revenue decline in Collaboration of 1%.\\\"\"}"
+    },
+    {
+      "case": "e82",
+      "company": "Gilead Sciences",
+      "cik": "0000882095",
+      "accession": "0000882095-26-000031",
+      "metric": "selling_general_and_administrative",
+      "offered": "f6b068badbfce4d9",
+      "reply": "{\"paragraphs\":[1],\"explanation\":\"SG&A expenses rose as general and administrative costs increased \\\"primarily due to integration expenses,\\\" including stock-based compensation related to the acquisitions of Arcellx, Ouro Medicines and Tubulis. Selling and marketing expenses also increased \\\"primarily due to higher HIV promotional expenses.\\\"\"}"
+    },
+    {
+      "case": "e83",
+      "company": "Amgen",
+      "cik": "0000318154",
+      "accession": "0000318154-26-000126",
+      "metric": "revenue",
+      "offered": "d47d8cd870e06252",
+      "reply": "{\"paragraphs\":[1,3,6],\"explanation\":\"Management said total product sales increased, \\\"driven by volume growth.\\\" TEPEZZA sales rose because of \\\"higher net selling price of 6%, volume growth of 6% and favorable changes to estimated sales deductions of 4%, partially offset by 4% from lower inventory.\\\" BLINCYTO sales also increased, driven by \\\"volume growth of 16%, favorable changes to estimated sales deductions of 4% and higher net selling price.\\\"\"}"
+    },
+    {
+      "case": "e84",
+      "company": "General Motors",
+      "cik": "0001467858",
+      "accession": "0001467858-26-000051",
+      "metric": "net_income",
+      "offered": "3c91892f86970f02",
+      "reply": "{\"paragraphs\":[],\"explanation\":\"\"}"
+    },
+    {
+      "case": "e85",
+      "company": "Gilead Sciences",
+      "cik": "0000882095",
+      "accession": "0000882095-26-000031",
+      "metric": "gross_profit",
+      "offered": "d2bb67ec493e20d9",
+      "reply": "{\"paragraphs\":[],\"explanation\":\"\"}"
+    },
+    {
+      "case": "e86",
+      "company": "Broadcom",
+      "cik": "0001730168",
+      "accession": "0001730168-26-000080",
+      "metric": "cost_of_revenue",
+      "offered": "d49a3de3729db712",
+      "reply": "{\"paragraphs\":[],\"explanation\":\"\"}"
+    },
+    {
+      "case": "e88",
+      "company": "Apple",
+      "cik": "0000320193",
+      "accession": "0000320193-26-000020",
+      "metric": "cost_of_revenue",
+      "offered": "1b72d0e6e7d5ccc7",
+      "reply": "{\"paragraphs\":[],\"explanation\":\"\"}"
+    },
+    {
+      "case": "e89",
+      "company": "Palantir Technologies",
+      "cik": "0001321655",
+      "accession": "0001321655-26-000041",
+      "metric": "revenue",
+      "offered": "1145797b47f03311",
+      "reply": "{\"paragraphs\":[8],\"explanation\":\"Commercial customers were the larger driver of revenue growth; management said, \\\"Of the increase, $407 million was from commercial customers existing as of December 31, 2025.\\\" Government customers also contributed, largely through existing relationships: \\\"Of the increase, $428 million was from government customers existing as of December 31, 2025.\\\"\"}"
+    },
+    {
+      "case": "e90",
+      "company": "Pfizer",
+      "cik": "0000078003",
+      "accession": "0000078003-26-000095",
+      "metric": "gross_profit",
+      "offered": "2d719d4c3a231619",
+      "reply": "{\"paragraphs\":[],\"explanation\":\"\"}"
+    },
+    {
+      "case": "e91",
+      "company": "Danaher",
+      "cik": "0000313616",
+      "accession": "0000313616-26-000161",
+      "metric": "gross_profit",
+      "offered": "9c08aeb87008294d",
+      "reply": "{\"paragraphs\":[],\"explanation\":\"\"}"
+    },
+    {
+      "case": "e93",
+      "company": "Broadcom",
+      "cik": "0001730168",
+      "accession": "0001730168-26-000080",
+      "metric": "gross_margin",
+      "offered": "d49a3de3729db712",
+      "reply": "{\"paragraphs\":[1],\"explanation\":\"Gross margin rose primarily because of \\\"strong product demand for our AI-related semiconductor solutions.\\\" Management explicitly attributed the increases to that demand, saying, \\\"The increases were primarily due to strong product demand for our AI-related semiconductor solutions.\\\"\"}"
+    },
+    {
+      "case": "e94",
+      "company": "Micron Technology",
+      "cik": "0000723125",
+      "accession": "0000723125-26-000015",
+      "metric": "gross_profit",
+      "offered": "dbbd8c89effe7e85",
+      "reply": "{\"paragraphs\":[1],\"explanation\":\"Management attributed the improvement to \\\"improvements in margins for both DRAM and NAND products.\\\" Those margins improved \\\"primarily due to increases in average selling prices and, to a lesser extent, favorable mix and manufacturing cost reductions.\\\"\"}"
+    },
+    {
+      "case": "e96",
+      "company": "Palantir Technologies",
+      "cik": "0001321655",
+      "accession": "0001321655-26-000041",
+      "metric": "net_income",
+      "offered": "6c2464697fbb9108",
+      "reply": "{\"paragraphs\":[],\"explanation\":\"\"}"
+    },
+    {
+      "case": "e97",
+      "company": "Tesla",
+      "cik": "0001318605",
+      "accession": "0001628280-26-049270",
+      "metric": "cost_of_revenue",
+      "offered": "03ff60095a7b2404",
+      "reply": "{\"paragraphs\":[1,2],\"explanation\":\"Automotive sales cost of revenue rose \\\"due to the increase in deliveries year over year as discussed above.\\\" Energy generation and storage cost of revenue also rose, \\\"primarily due to the deployment fluctuations as discussed above,\\\" along with higher average cost per MWh driven by \\\"sales mix and unfavorable warranty adjustments.\\\"\"}"
+    },
+    {
+      "case": "e98",
+      "company": "NVIDIA",
+      "cik": "0001045810",
+      "accession": "0001045810-26-000075",
+      "metric": "selling_general_and_administrative",
+      "offered": "bd78dbf672942bcb",
+      "reply": "{\"paragraphs\":[1],\"explanation\":\"SG&A expenses rose primarily because of \\\"compensation and benefits, including stock-based compensation\\\". Management attributed the increase to \\\"employee growth and compensation increases.\\\"\"}"
+    },
+    {
+      "case": "e99",
+      "company": "Danaher",
+      "cik": "0000313616",
+      "accession": "0000313616-26-000161",
+      "metric": "operating_income",
+      "offered": "f17faee0418f66b1",
+      "reply": "{\"paragraphs\":[],\"explanation\":\"\"}"
+    },
+    {
+      "case": "e100",
+      "company": "Alphabet",
+      "cik": "0001652044",
+      "accession": "0001652044-26-000071",
+      "metric": "cost_of_revenue",
+      "offered": "07c6963ab1cae2f0",
+      "reply": "{\"paragraphs\":[1,3,2],\"explanation\":\"The rise was driven by “increases in depreciation expense, TAC, inventory and other costs, content acquisition costs, and other technical infrastructure operations costs.” Management attributed the quarterly increase to “an increase in other cost of revenues and TAC of $5.4 billion and $1.5 billion, respectively.” Within other cost of revenues, content acquisition costs were “largely for YouTube,” alongside the depreciation, inventory and infrastructure cost increases.\"}"
+    }
+  ]
+}

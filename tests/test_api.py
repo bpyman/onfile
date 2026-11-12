@@ -59,6 +59,7 @@ PRESENTATION_KEYS = {
     "message_tone",
     "headline",
     "trends",
+    "explanation",
 }
 
 # Keys of a thread view (web/lib/types.ts ThreadView).

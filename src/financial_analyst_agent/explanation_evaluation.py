@@ -10,6 +10,7 @@ a model, and only when a person runs them (both are paid); everything else is of
     uv run python -m financial_analyst_agent.explanation_evaluation generate --model --set tuning
     uv run python -m financial_analyst_agent.explanation_evaluation judge
     uv run python -m financial_analyst_agent.explanation_evaluation score --labels labels.json
+    uv run python -m financial_analyst_agent.explanation_evaluation recordings
 
 ``cases`` writes ``explanation-cases.json``: the development set, from the first draw's seed,
 a fresh held-out set from its own seed (ticket 05), a confirmation set, year over year
@@ -22,6 +23,8 @@ sets or of the final set, and writes ``explanation-model-<set>.json``; ``--model
 names another OpenAI model. ``score`` reads the judge's labels, scores phase A and any
 phase B answers, and writes ``explanation.md``. ``judge`` labels only what has no label
 yet; ``--carry-from old-candidates.json`` keeps saved labels by text after ids change.
+``recordings`` copies the model's answers into ``data/explanation_recordings.json``,
+which the recorded runtime replays (ticket 04).
 """
 
 from __future__ import annotations
@@ -67,6 +70,7 @@ from financial_analyst_agent.explanation import (
     management_explanation,
     mentions_metric,
     model_explanation,
+    offered_digest,
 )
 from financial_analyst_agent.filing_change import extract_section, section_paragraphs
 from financial_analyst_agent.prose import possessive, short_name
@@ -81,6 +85,8 @@ CANDIDATES_PATH = EVALUATION / "explanation-candidates.json"
 REPORT_PATH = EVALUATION / "explanation.md"
 RUBRIC_PATH = EVALUATION / "explanation-rubric.md"
 RECORDINGS = Path(__file__).parent / "data" / "sec_fixture_recordings.json"
+# The model's answers the recorded runtime replays (ticket 04).
+RECORDINGS_OUT = Path(__file__).parent / "data" / "explanation_recordings.json"
 
 # The first draw (ticket 02): its development half, less the metrics no longer
 # covered, is the development set.
@@ -774,6 +780,44 @@ def model_answers(
     return {"model": model, "instructions": instructions_version(), "cases": answers}
 
 
+def explanation_recordings() -> dict[str, Any]:
+    """The model's answers from the evaluation runs, for the recorded runtime to replay.
+
+    One per case the model was asked about, keyed by CIK, accession and metric, with a
+    digest of the paragraphs it was offered: a replay checks the same numbered
+    paragraphs are offered before it trusts the answer's numbers. The reply is kept
+    raw, so the replay goes through the same checks a live answer does.
+    """
+    cases = {case.id: case for case in load_cases()}
+    recordings = []
+    models = []
+    for split in MODEL_SETS:
+        run = json.loads(model_path(split).read_text(encoding="utf-8"))
+        models.append({"set": split, "model": run["model"], "instructions": run["instructions"]})
+        for answer in run["cases"]:
+            if not answer["offered"]:
+                continue
+            case = cases[answer["id"]]
+            html, url = _source(case)
+            offered = explanation_candidates(html, case.metric, case.basis, url)
+            places = _places(html)
+            ids = [f"{case.id}-m{places[paragraph.text]}" for paragraph in offered]
+            if ids != answer["offered"]:
+                raise ValueError(f"{case.id}: the candidates changed since the model's run")
+            recordings.append(
+                {
+                    "case": case.id,
+                    "company": case.company,
+                    "cik": case.cik,
+                    "accession": case.accession,
+                    "metric": case.metric,
+                    "offered": offered_digest(offered),
+                    "reply": answer["reply"],
+                }
+            )
+    return {"runs": models, "recordings": recordings}
+
+
 def score_model(answers: Mapping[str, Any], labels: Mapping[str, Any]) -> dict[str, Any]:
     """The model's chosen paragraphs, scored as ``score`` scores phase A's.
 
@@ -1207,7 +1251,16 @@ def main(argv: Sequence[str] | None = None) -> None:
         help="the OpenAI model; the app's essay model when no name is given",
     )
     gen.add_argument("--set", dest="split", choices=tuple(MODEL_SETS), required=True)
+    sub.add_parser(
+        "recordings", help="copy the model's answers for the recorded runtime to replay"
+    )
     args = parser.parse_args(argv)
+
+    if args.command == "recordings":
+        recordings = explanation_recordings()
+        _write_json(RECORDINGS_OUT, recordings)
+        print(f"wrote {len(recordings['recordings'])} recorded answers -> {RECORDINGS_OUT}")
+        return
 
     if args.command == "generate":
         cases = model_cases(args.split, load_cases())

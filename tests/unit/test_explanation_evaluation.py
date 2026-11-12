@@ -530,3 +530,29 @@ def test_generate_runs_offline_with_a_fake_completer(
         else:
             assert entry["reason"] == "not_discussed" and entry["chosen"] == []
     assert fake.asked == asked > 0
+
+
+def test_the_recordings_are_the_models_answers_for_the_recorded_filings() -> None:
+    committed = json.loads(ev.RECORDINGS_OUT.read_text(encoding="utf-8"))
+    # Regenerate with: uv run python -m financial_analyst_agent.explanation_evaluation recordings
+    assert committed == ev.explanation_recordings()
+    cases = {case.id: case for case in ev.load_cases()}
+    answers = [
+        answer
+        for split in ev.MODEL_SETS
+        for answer in json.loads(ev.model_path(split).read_text(encoding="utf-8"))["cases"]
+        if answer["offered"]
+    ]
+    recorded = committed["recordings"]
+    # Only an answer the model was asked for is recorded: with no candidate, no call.
+    assert [entry["case"] for entry in recorded] == [answer["id"] for answer in answers]
+    for entry, answer in zip(recorded, answers, strict=True):
+        case = cases[answer["id"]]
+        assert (entry["cik"], entry["accession"], entry["metric"]) == (
+            case.cik,
+            case.accession,
+            case.metric,
+        )
+        assert entry["reply"] == answer["reply"]
+    keys = {(entry["cik"], entry["accession"], entry["metric"]) for entry in recorded}
+    assert len(keys) == len(recorded)
